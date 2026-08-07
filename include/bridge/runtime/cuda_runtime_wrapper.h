@@ -107,6 +107,11 @@ aclError CUBRIDGE_API wcudaMemcpyAsync(void *dst, const void *src, size_t count,
                                        aclrtMemcpyKind kind, aclrtStream stream /* =0 */);
 aclError CUBRIDGE_API wcudaMemcpy2D(void *dst, size_t dpitch, const void *src, size_t spitch,
                                     size_t width, size_t height, aclrtMemcpyKind kind);
+/* Peer 拷贝（昇腾有 peer access：aclrtDeviceCanAccessPeer 等） */
+aclError CUBRIDGE_API wcudaMemcpyPeer(void *dst, int dstDevice, const void *src, int srcDevice,
+                                      size_t count);
+aclError CUBRIDGE_API wcudaMemcpyPeerAsync(void *dst, int dstDevice, const void *src,
+                                           int srcDevice, size_t count, aclrtStream stream /* =0 */);
 aclError CUBRIDGE_API wcudaMemcpy2DAsync(void *dst, size_t dpitch, const void *src, size_t spitch,
                                          size_t width, size_t height, aclrtMemcpyKind kind,
                                          aclrtStream stream /* =0 */);
@@ -175,6 +180,11 @@ aclError CUBRIDGE_API wcudaOccupancyMaxPotentialBlockSize(int *minGridSize, int 
 aclError CUBRIDGE_API wcudaLaunchKernel(const void *hostFunction, int gridDimX, int gridDimY,
                                         int gridDimZ, int blockDimX, int blockDimY, int blockDimZ,
                                         void **args, size_t sharedMemBytes, aclrtStream stream);
+
+/* ============ Profiler Control ============ */
+/* 昇腾 profiling 用 aclprof（API 面不同），此处 no-op 占位 */
+aclError CUBRIDGE_API wcudaProfilerStart(void);
+aclError CUBRIDGE_API wcudaProfilerStop(void);
 
 /* ============ Thread Management（废弃 API，映射到等价运行时调用） ============ */
 aclError CUBRIDGE_API wcudaThreadSynchronize(void);

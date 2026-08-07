@@ -625,6 +625,29 @@ aclError wcudaMemcpyFromSymbol(void *dst, const void *symbol, size_t count, size
     WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
 }
 
+/* ---- Peer 拷贝 ---- */
+
+aclError wcudaMemcpyPeer(void *dst, int dstDevice, const void *src, int srcDevice, size_t count) {
+    (void)dstDevice;
+    (void)srcDevice;
+    if (dst == nullptr || src == nullptr) {
+        WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
+    }
+    /* 昇腾 peer 拷贝用 aclrtMemcpy（DeviceToDevice），需先 EnablePeerAccess。
+     * 简化：直接用 D2D 拷贝（假设 peer access 已启用）。 */
+    WCUDA_RETURN(aclrtMemcpy(dst, count, src, count, ACL_MEMCPY_DEVICE_TO_DEVICE));
+}
+
+aclError wcudaMemcpyPeerAsync(void *dst, int dstDevice, const void *src, int srcDevice,
+                              size_t count, aclrtStream stream) {
+    (void)dstDevice;
+    (void)srcDevice;
+    if (dst == nullptr || src == nullptr || stream == nullptr) {
+        WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
+    }
+    WCUDA_RETURN(aclrtMemcpyAsync(dst, count, src, count, ACL_MEMCPY_DEVICE_TO_DEVICE, stream));
+}
+
 /* ---- Unified Memory（昇腾无 managed memory，fallback device 分配） ---- */
 
 aclError wcudaMallocManaged(void **devPtr, size_t size, unsigned int flags) {
@@ -872,6 +895,14 @@ aclError wcudaLaunchKernel(const void *hostFunction, int gridDimX, int gridDimY,
      * 显式 cudaLaunchKernel 桥接需 aclrtLaunchKernelV2 + kernel stub（Phase A3 收尾）。 */
     return ACL_ERROR_API_NOT_SUPPORT;
 }
+
+/* ---------------- Profiler Control ----------------
+ * 昇腾 profiling 用 aclprof（API 面不同）。此处 no-op 占位，
+ * 真机如需 profiling 走 aclprof 单独启用。 */
+
+aclError wcudaProfilerStart(void) { return ACL_ERROR_NONE; }
+
+aclError wcudaProfilerStop(void) { return ACL_ERROR_NONE; }
 
 /* ---------------- Thread Management（废弃 API） ---------------- */
 

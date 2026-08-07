@@ -160,6 +160,8 @@
 #define cudaMemcpyAsync wcudaMemcpyAsync
 #define cudaMemcpy2D wcudaMemcpy2D
 #define cudaMemcpy2DAsync wcudaMemcpy2DAsync
+#define cudaMemcpyPeer wcudaMemcpyPeer
+#define cudaMemcpyPeerAsync wcudaMemcpyPeerAsync
 #define cudaMemset wcudaMemset
 #define cudaMemsetAsync wcudaMemsetAsync
 #define cudaMemset2D wcudaMemset2D
@@ -203,6 +205,10 @@
 #define cudaPeekAtLastError wcudaPeekAtLastError
 #define cudaGetErrorString wcudaGetErrorString
 #define cudaGetErrorName wcudaGetErrorName
+
+// Profiler Control（no-op 占位，真机 profiling 走 aclprof）
+#define cudaProfilerStart wcudaProfilerStart
+#define cudaProfilerStop wcudaProfilerStop
 
 // Thread Management（废弃 API）
 #define cudaThreadSynchronize wcudaThreadSynchronize
