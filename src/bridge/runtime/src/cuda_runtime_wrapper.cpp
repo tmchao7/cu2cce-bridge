@@ -150,6 +150,64 @@ aclError wcudaGetDeviceProperties(_cceDeviceProp_t *prop, int device) {
     WCUDA_RETURN(ACL_ERROR_NONE);
 }
 
+aclError wcudaDeviceGetAttribute(int *value, int attr, int device) {
+    if (value == nullptr) {
+        WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
+    }
+    _cceDeviceProp_t prop;
+    aclError err = wcudaGetDeviceProperties(&prop, device);
+    if (err != ACL_ERROR_NONE) {
+        WCUDA_RETURN(err);
+    }
+    switch (attr) {
+    case 1: /* cudaDevAttrMaxThreadsPerBlock */
+        *value = prop.maxThreadsPerBlock;
+        break;
+    case 2: /* MaxBlockDimX */
+        *value = prop.maxThreadsDim[0];
+        break;
+    case 3:
+        *value = prop.maxThreadsDim[1];
+        break;
+    case 4:
+        *value = prop.maxThreadsDim[2];
+        break;
+    case 5: /* MaxGridDimX */
+        *value = prop.maxGridSize[0];
+        break;
+    case 6:
+        *value = prop.maxGridSize[1];
+        break;
+    case 7:
+        *value = prop.maxGridSize[2];
+        break;
+    case 8: /* MaxSharedMemoryPerBlock */
+        *value = (int)prop.sharedMemPerBlock;
+        break;
+    case 12: /* ClockRate */
+        *value = prop.clockRate;
+        break;
+    case 13: /* WarpSize */
+        *value = prop.warpSize;
+        break;
+    case 14: /* MaxPitch */
+        *value = (int)prop.memPitch;
+        break;
+    case 16: /* MultiProcessorCount */
+        *value = prop.multiProcessorCount;
+        break;
+    case 19: /* KernelExecTimeout */
+        *value = 0; /* 昇腾无超时语义，填 0 表示不超时 */
+        break;
+    case 20: /* Integrated */
+        *value = 0; /* 昇腾为独立加速卡，非集成 GPU */
+        break;
+    default:
+        WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
+    }
+    WCUDA_RETURN(ACL_ERROR_NONE);
+}
+
 /* ---------------- Stream Management ---------------- */
 
 aclError wcudaStreamCreate(aclrtStream *pStream) {

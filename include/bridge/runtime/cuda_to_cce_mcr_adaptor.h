@@ -75,6 +75,26 @@
 #define cudaDeviceSynchronize wcudaDeviceSynchronize
 #define cudaDeviceReset wcudaDeviceReset
 #define cudaGetDeviceProperties wcudaGetDeviceProperties
+#define cudaDeviceGetAttribute wcudaDeviceGetAttribute
+
+/* cudaDeviceAttr 枚举常量（CUDA 标准 ABI 编号，昇腾侧用 int 简化，wrapper 内 switch）。
+ * 常用值：MaxThreadsPerBlock=1..MaxGridDimZ=7, MaxSharedMemoryPerBlock=8, ClockRate=12,
+ *         WarpSize=13, MaxPitch=14, MultiProcessorCount=16, KernelExecTimeout=19, Integrated=20 */
+#define cudaDeviceAttr int
+#define cudaDevAttrMaxThreadsPerBlock 1
+#define cudaDevAttrMaxBlockDimX 2
+#define cudaDevAttrMaxBlockDimY 3
+#define cudaDevAttrMaxBlockDimZ 4
+#define cudaDevAttrMaxGridDimX 5
+#define cudaDevAttrMaxGridDimY 6
+#define cudaDevAttrMaxGridDimZ 7
+#define cudaDevAttrMaxSharedMemoryPerBlock 8
+#define cudaDevAttrClockRate 12
+#define cudaDevAttrWarpSize 13
+#define cudaDevAttrMaxPitch 14
+#define cudaDevAttrMultiProcessorCount 16
+#define cudaDevAttrKernelExecTimeout 19
+#define cudaDevAttrIntegrated 20
 
 // Peer Device Memory Access（昇腾有对应：aclrtDeviceCanAccessPeer 等）
 #define cudaDeviceCanAccessPeer wcudaDeviceCanAccessPeer

@@ -36,6 +36,9 @@ aclError CUBRIDGE_API wcudaGetDevice(int *device);
 aclError CUBRIDGE_API wcudaDeviceSynchronize(void);
 aclError CUBRIDGE_API wcudaDeviceReset(void);
 aclError CUBRIDGE_API wcudaGetDeviceProperties(_cceDeviceProp_t *prop, int device);
+/* 常用设备属性查询（attr 取值见 cudaDeviceAttr 枚举，见 adaptor 宏表）
+ * 昇腾无 aclrtDeviceGetAttribute，从 _cceDeviceProp_t 字段映射。 */
+aclError CUBRIDGE_API wcudaDeviceGetAttribute(int *value, int attr, int device);
 
 /* ============ Peer Device Memory Access ============ */
 aclError CUBRIDGE_API wcudaDeviceCanAccessPeer(int *canAccessPeer, int device, int peerDevice);
