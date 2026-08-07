@@ -71,10 +71,17 @@ int main(void) {
         return 1;
     }
 
-    /* kernel 启动（昇腾 SIMT 语法糖：<<<blocks, threads, stream>>>，由 bisheng 原生识别） */
+    /* kernel 启动（昇腾 SIMT 语法糖：<<<blocks, threads, dyn_ubuf_size, stream>>>，4 参，
+     * 与 CUDA 的 <<<grid, block, sharedMem, stream>>> 一致，由 bisheng 原生识别。
+     * 依据：asc-devkit hello_world_simt 示例。
+     * 注意：CUDA 里 cudaStream_t stream = 0 表示默认 stream；昇腾需显式创建。 */
     int threads = 256;
     int blocks = (N + threads - 1) / threads;
-    vectorAddKernel<<<blocks, threads, 0>>>(d_c, d_a, d_b, N);
+    cudaStream_t stream = nullptr;
+    cudaStreamCreate(&stream);
+    vectorAddKernel<<<blocks, threads, 0, stream>>>(d_c, d_a, d_b, N);
+    cudaStreamSynchronize(stream);
+    cudaStreamDestroy(stream);
 
     cudaDeviceSynchronize();
 

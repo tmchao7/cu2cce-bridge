@@ -205,12 +205,18 @@ aclError aclRet = aclrtGetLastError(ACL_RT_THREAD_LEVEL);
 | `__shared__` | `__ubuf__` | 静态数组或动态申请，块内共享，高带宽低延迟 |
 | 全局内存 | `__gm__` | 所有线程可访问 |
 | `__syncthreads()` | `asc_syncthreads()` | 头文件 `simt_api/device_sync_functions.h` |
-| `__shfl_*` | `asc_shfl` | warp 内洗牌 |
-| `atomicAdd` 等 | `asc_atomic_add` / `asc_atomic_sub` / `asc_atomic_exch` | |
+| `__threadfence()` | `asc_threadfence()` | 另有 `asc_threadfence_block()` |
+| `__shfl_sync(mask,var,srcLane)` | `asc_shfl(var, src_lane, width=warpSize)` | **无 mask 参数**（warp 内全同步）；有 up/down/xor 变体 |
+| `__all_sync`/`__any_sync`/`__ballot_sync` | `asc_all`/`asc_any`/`asc_ballot` | 无 mask |
+| `atomicAdd` 等 | `asc_atomic_add`/`asc_atomic_sub`/`asc_atomic_exch`/`max`/`min` | 参数带 `__ubuf__`/`__gm__` 地址空间修饰 |
 | `__launch_bounds__` | `__launch_bounds__` | 同名 |
-| 线程归约/广播 | `asc_reduce_max` / `asc_all` | |
+| 线程归约 | `asc_reduce_add` | |
 | `sin/cos/exp/half/half2/bfloat16` | 支持 | `half`/`bfloat16_t`/`float2` 等 |
-| `<<<grid,block,stream>>>` | `<<<blocks_per_grid, threads_per_block, stream>>>` | 启动变量命名不同 |
+| `<<<grid,block,sharedMem,stream>>>` | `<<<blocks_per_grid, threads_per_block, dyn_ubuf_size, stream>>>` | **4 参**（与 CUDA 一致），第 3 参是动态 UB 大小 |
+
+**⚠️ 2026-08-07 权威核对（asc-devkit hello_world_simt 示例）**：kernel 启动是 **4 参**
+`kernel<<<blocks_per_grid, threads_per_block, dyn_ubuf_size, stream>>>`，**不是 3 参**。
+warp/原子函数在 `#if (__NPU_ARCH__ == 3510) || (__NPU_ARCH__ == 5102)` 下启用。
 
 另有函数形式：`AscendC::Simt::GetThreadIdx<<0>>()`、`GetBlockIdx()`、`GetThreadNum<<0>>()`、`GetBlockNum()`。
 
