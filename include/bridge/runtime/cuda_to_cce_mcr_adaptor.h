@@ -165,6 +165,10 @@
 #define cudaMemset2D wcudaMemset2D
 #define cudaMemset2DAsync wcudaMemset2DAsync
 #define cudaMallocPitch wcudaMallocPitch
+#define cudaMallocManaged wcudaMallocManaged
+#define cudaMemAdvise wcudaMemAdvise
+#define cudaMemPrefetchAsync wcudaMemPrefetchAsync
+#define cudaPointerGetAttributes wcudaPointerGetAttributes
 #define cudaMemGetInfo wcudaMemGetInfo
 #define cudaMallocHost wcudaMallocHost
 #define cudaFreeHost wcudaFreeHost

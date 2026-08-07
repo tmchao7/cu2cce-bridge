@@ -120,6 +120,15 @@ aclError CUBRIDGE_API wcudaMemset2DAsync(void *devPtr, size_t pitch, int value, 
 aclError CUBRIDGE_API wcudaMemGetInfo(size_t *free, size_t *total);
 /* 昇腾无 pitch 分配接口，wcudaMallocPitch 用 aclrtMalloc 模拟（宽度对齐，见实现） */
 aclError CUBRIDGE_API wcudaMallocPitch(void **devPtr, size_t *pitch, size_t width, size_t height);
+
+/* Unified Memory：昇腾无 managed memory，fallback 到 device 分配（无自动迁移语义，标注差异）。
+ * MemAdvise/Prefetch 为 no-op/not-support（昇腾无统一寻址）。 */
+aclError CUBRIDGE_API wcudaMallocManaged(void **devPtr, size_t size, unsigned int flags);
+aclError CUBRIDGE_API wcudaMemAdvise(const void *devPtr, size_t count, int advice, int device);
+aclError CUBRIDGE_API wcudaMemPrefetchAsync(const void *devPtr, size_t count, int dstDevice,
+                                            aclrtStream stream /* =0 */);
+/* PointerGetAttributes：昇腾无统一寻址，简化返回 device 指针属性 */
+aclError CUBRIDGE_API wcudaPointerGetAttributes(void *attributes, const void *ptr);
 aclError CUBRIDGE_API wcudaMallocHost(void **ptr, size_t size);
 aclError CUBRIDGE_API wcudaMallocHostWithFlags(void **ptr, size_t size, unsigned int flags);
 aclError CUBRIDGE_API wcudaFreeHost(void *ptr);

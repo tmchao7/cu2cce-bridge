@@ -587,6 +587,45 @@ aclError wcudaMallocPitch(void **devPtr, size_t *pitch, size_t width, size_t hei
     WCUDA_RETURN(ret);
 }
 
+/* ---- Unified Memory（昇腾无 managed memory，fallback device 分配） ---- */
+
+aclError wcudaMallocManaged(void **devPtr, size_t size, unsigned int flags) {
+    (void)flags;
+    if (devPtr == nullptr || size == 0) {
+        WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
+    }
+    /* ⚠️ 昇腾无 cudaMallocManaged 对应（无统一内存/自动迁移）。
+     * 这里 fallback 到普通 device 内存，应用代码可编译运行，但没有 host/device 自动迁移语义。
+     * 若应用依赖 managed 的自动拷贝，需真机评估替代方案。 */
+    return wcudaMalloc(devPtr, size);
+}
+
+aclError wcudaMemAdvise(const void *devPtr, size_t count, int advice, int device) {
+    (void)devPtr;
+    (void)count;
+    (void)advice;
+    (void)device;
+    /* 昇腾无内存建议接口，no-op 返回成功（不影响正确性）。 */
+    WCUDA_RETURN(ACL_ERROR_NONE);
+}
+
+aclError wcudaMemPrefetchAsync(const void *devPtr, size_t count, int dstDevice, aclrtStream stream) {
+    (void)devPtr;
+    (void)count;
+    (void)dstDevice;
+    (void)stream;
+    /* 昇腾无预取接口，no-op 返回成功。 */
+    WCUDA_RETURN(ACL_ERROR_NONE);
+}
+
+aclError wcudaPointerGetAttributes(void *attributes, const void *ptr) {
+    (void)attributes;
+    (void)ptr;
+    /* 昇腾无 cudaPointerGetAttributes 对应（需要 cudaPointerAttributes 结构）。
+     * 简化返回 not-support；若应用依赖指针属性查询需真机实现。 */
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
 aclError wcudaMemsetAsync(void *devPtr, int value, size_t count, aclrtStream stream) {
     if (devPtr == nullptr || stream == nullptr) {
         WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
