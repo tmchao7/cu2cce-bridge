@@ -35,10 +35,19 @@
 | 14 | tools/cmake_maca + cmake_mock | tools/cmake_cce + tools/mock/ | 已移植 | 包 cmake：mock nvcc 应答 CMake CUDA 探测（--version/__cmake_determine_cuda/CompilerId），真实编译透传 cucc |
 | 15 | tools/mock/ | tools/mock/ | 已移植 | mock_nvcc.py + nvcc_entry.sh；本机已测 --version 与探测应答 |
 
+## Phase A4：库（cublas→aclblas 最小子集）
+
+| # | cu-bridge 源文件 | cu2cce 目标文件 | 状态 | 备注 |
+|---|---|---|---|---|
+| 20 | include/cublas_v2.h | include/cublas_v2.h | 已移植 | 入口转发 |
+| 21 | include/bridge/blas/cublas_v2_wrapper.h | include/bridge/blas/cublas_v2_wrapper.h | 已移植 | cublasSgemm→wcublasSgemm→aclblasGemmEx（类型补全）；Dgemm 昇腾不支持返回 not-support |
+| 22 | src/bridge/blas/src/cublas_v2_wrapper.cpp | src/bridge/blas/src/cublas_v2_wrapper.cpp | 已移植 | handle 关联 stream，transC 固定 N，computeType 高精度 |
+| 23 | （昇腾新增） | tests/mock_acl/acl/ops/acl_cblas.h | 已移植 | mock aclblas 签名供语法验证 |
+
 ## 跳过项（昇腾无对应）
 
 | # | cu-bridge 源文件 | 原因 |
 |---|---|---|
 | 16 | tools_src/ptx2cpp | 昇腾无 PTX 内联汇编；需自行处理 __asm__ |
-| 17 | include/bridge/{blas,dnn,fft,rand,...} 库 | Phase A4+，cublas→aclblas 先行（acl/ops/acl_cblas.h） |
+| 17 | include/bridge/{dnn,fft,rand,...} 库 | 昇腾无同名 API 级对应，后置；仅 blas 先行 |
 | 18 | src/bridge/runtime/src/cuda_driver_wrapper.cpp | 昇腾无同形 Driver API，后置 |

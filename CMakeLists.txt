@@ -30,8 +30,11 @@ set(LIB_DEST_DIR "${CMAKE_INSTALL_PREFIX}/lib")
 file(GLOB BRIDGE_RUNTIME_SRC
     "${CMAKE_CURRENT_SOURCE_DIR}/src/bridge/runtime/src/*.cpp"
 )
+file(GLOB BRIDGE_BLAS_SRC
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/bridge/blas/src/*.cpp"
+)
 
-add_library(cce_bridge_runtime SHARED ${BRIDGE_RUNTIME_SRC})
+add_library(cce_bridge_runtime SHARED ${BRIDGE_RUNTIME_SRC} ${BRIDGE_BLAS_SRC})
 
 target_include_directories(cce_bridge_runtime
     PUBLIC
@@ -43,6 +46,7 @@ target_include_directories(cce_bridge_runtime
 target_link_libraries(cce_bridge_runtime
     PRIVATE
         ${ASCEND_LIB}/libascendcl.so
+        ${ASCEND_LIB}/libacl_cblas.so
         # CANN 9.x 推荐 libacl_rt.so；若链接失败改用 -lascendcl
         # ${ASCEND_LIB}/libacl_rt.so
 )
