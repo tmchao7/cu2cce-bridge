@@ -1,5 +1,7 @@
 #!/bin/bash
 # syntax_check.sh —— 本机（macOS）可运行的语法验证（mock ACL + clang）
+# 注意：examples/vectorAdd/vectorAdd.cu 含 kernel（<<<>>>/__global__），需 bisheng 编译，
+#       本脚本只验证纯 host 链路（tests/host_bridge_smoke.cu）。
 set -u
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 MOCK="$ROOT/tests/mock_acl"
@@ -17,7 +19,7 @@ check() {
         echo "✗ $name"; FAIL=$((FAIL+1))
     fi
 }
-check "vectorAdd.cu (host side)" -x c++ "$ROOT/examples/vectorAdd/vectorAdd.cu"
+check "host_bridge_smoke.cu" -x c++ "$ROOT/tests/host_bridge_smoke.cu"
 check "cuda_runtime_wrapper.cpp" -x c++ "$SRC/cuda_runtime_wrapper.cpp"
 check "cublas_v2_wrapper.cpp" -x c++ "$BLAS_SRC/cublas_v2_wrapper.cpp"
 echo "---"; echo "PASS=$PASS FAIL=$FAIL"

@@ -19,6 +19,15 @@
 
 #define N 1024
 
+/* SIMT kernel：昇腾 950 系列（dav-310）由 bisheng 直编。
+ * __global__ 同名；同步原语由 simt_adaptor.h 映射（__syncthreads→asc_syncthreads）。 */
+__global__ void vectorAddKernel(float *c, const float *a, const float *b, int n) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < n) {
+        c[i] = a[i] + b[i];
+    }
+}
+
 int main(void) {
     int devCount = 0;
     cudaError_t err = cudaGetDeviceCount(&devCount);
@@ -62,8 +71,10 @@ int main(void) {
         return 1;
     }
 
-    /* TODO(Phase A3): kernel 体
-     * vectorAdd<<<blocks, threads, 0>>>(d_c, d_a, d_b, N); */
+    /* kernel 启动（昇腾 SIMT 语法糖：<<<blocks, threads, stream>>>，由 bisheng 原生识别） */
+    int threads = 256;
+    int blocks = (N + threads - 1) / threads;
+    vectorAddKernel<<<blocks, threads, 0>>>(d_c, d_a, d_b, N);
 
     cudaDeviceSynchronize();
 

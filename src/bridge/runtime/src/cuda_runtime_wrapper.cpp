@@ -611,6 +611,19 @@ aclError wcudaCtxSynchronize(void) {
     WCUDA_RETURN(aclrtSynchronizeDevice());
 }
 
+/* ---------------- Execution Control ---------------- */
+
+aclError wcudaLaunchKernel(const void *hostFunction, int gridDimX, int gridDimY, int gridDimZ,
+                           int blockDimX, int blockDimY, int blockDimZ, void **args,
+                           size_t sharedMemBytes, aclrtStream stream) {
+    (void)hostFunction; (void)gridDimX; (void)gridDimY; (void)gridDimZ;
+    (void)blockDimX; (void)blockDimY; (void)blockDimZ;
+    (void)args; (void)sharedMemBytes; (void)stream;
+    /* ⚠️ 昇腾 SIMT 请用 kernel<<<blocks, threads, stream>>>(...) 语法糖启动（bisheng 原生）。
+     * 显式 cudaLaunchKernel 桥接需 aclrtLaunchKernelV2 + kernel stub（Phase A3 收尾）。 */
+    return ACL_ERROR_API_NOT_SUPPORT;
+}
+
 /* ---------------- Version ---------------- */
 
 aclError wcudaRuntimeGetVersion(int *runtimeVersion) {

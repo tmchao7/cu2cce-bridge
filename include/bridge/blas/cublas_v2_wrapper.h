@@ -17,6 +17,7 @@
 
 //------------ types ------------//
 #define cublasStatus aclError
+#define cublasStatus_t aclError
 #define cublasHandle_t aclblasHandle
 #define CUBLAS_STATUS_SUCCESS ACL_ERROR_NONE
 #define CUBLAS_STATUS_NOT_INITIALIZED ACL_ERROR_UNINITIALIZE

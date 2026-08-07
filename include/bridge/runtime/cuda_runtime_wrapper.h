@@ -110,6 +110,15 @@ aclError CUBRIDGE_API wcudaPeekAtLastError(void);
 const char CUBRIDGE_API *wcudaGetErrorString(aclError error);
 const char CUBRIDGE_API *wcudaGetErrorName(aclError error);
 
+/* ============ Execution Control ============ */
+/* CUDA 的 cudaLaunchKernel(hostFunction, grid, block, args, smem, stream) 需要函数指针→kernel stub。
+ * 昇腾 SIMT 的主流启动是 kernel<<<blocks, threads, stream>>>(...) 语法糖（bisheng 原生处理），
+ * 显式 cudaLaunchKernel 的完整桥接需 aclrtLaunchKernelV2 + kernel stub 注册（Phase A3 收尾，真机验证）。
+ * 当前返回 not-support，应用请用 <<<>>> 启动。 */
+aclError CUBRIDGE_API wcudaLaunchKernel(const void *hostFunction, int gridDimX, int gridDimY,
+                                        int gridDimZ, int blockDimX, int blockDimY, int blockDimZ,
+                                        void **args, size_t sharedMemBytes, aclrtStream stream);
+
 /* ============ Version ============ */
 aclError CUBRIDGE_API wcudaRuntimeGetVersion(int *runtimeVersion);
 aclError CUBRIDGE_API wcudaDriverGetVersion(int *driverVersion);

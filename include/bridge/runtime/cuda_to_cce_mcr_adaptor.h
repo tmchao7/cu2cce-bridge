@@ -148,6 +148,10 @@
 #define cudaHostUnregister wcudaHostUnregister
 #define cudaHostGetFlags wcudaHostGetFlags
 
+// Execution Control
+/* cudaLaunchKernel 显式 API：昇腾用 <<<>>> 语法糖（bisheng 原生），此 wrapper 当前返回 not-support */
+#define cudaLaunchKernel wcudaLaunchKernel
+
 // Error Handling
 #define cudaGetLastError wcudaGetLastError
 #define cudaPeekAtLastError wcudaPeekAtLastError
