@@ -121,7 +121,7 @@ aclError aclrtLaunchKernelV2(aclrtFuncHandle funcHandle, uint32_t numBlocks,
   | ACL_ERROR_RT_MEMORY_ALLOCATION | 207001 | ACL_ERROR_RT_KERNEL_LOOKUP | 507027 |
   | ACL_ERROR_RT_MEMORY_FREE | 207002 | ACL_ERROR_RT_KERNEL_DUPLICATE | 507028 |
 
-### 1.6 已核对的关键签名修正（2026-08-07，对照 MegEngine 真实头）
+### 1.6 已核对的关键签名修正（2026-08-07，对照 MegEngine + torch_npu 真实头）
 
 | 我此前写错 | 真实签名 |
 |---|---|
@@ -129,10 +129,15 @@ aclError aclrtLaunchKernelV2(aclrtFuncHandle funcHandle, uint32_t numBlocks,
 | `aclrtGetSocName(&soc)` 返回 aclError | `const char *aclrtGetSocName()`（无错误返回，失败返回 nullptr） |
 | `aclrtMemset(devPtr,count,value,0,count)` 5 参 | `aclrtMemset(devPtr, maxCount, value, count)` 4 参 |
 | `aclrtMemsetAsync(+offset)` 6 参 | `aclrtMemsetAsync(devPtr, maxCount, value, count, stream)` 5 参 |
-| `aclrtQueryEvent(event)` | `aclrtQueryEvent(event, aclrtEventStatus *status)`（status: COMPLETE=0/NOT_READY=1） |
-| `aclrtStreamQuery` 存在 | **昇腾无 Stream 查询 API**，只有 aclrtSynchronizeStream |
+| `aclrtQueryEvent(event)` | `aclrtQueryEvent(event, aclrtEventStatus*)`（**已废弃**，9.x 用 aclrtQueryEventStatus） |
+| ~~`aclrtStreamQuery` 不存在~~ | **存在！** `aclrtStreamQuery(stream, aclrtStreamStatus*)`（我此前用 SynchronizeStream 模拟是错的） |
 | `aclrtGetMemInfo(ACL_HBM_MEM, ...)` | `aclrtGetMemInfo(aclrtMemAttr, size_t*, size_t*)`，ACL_HBM_MEM 有效 |
 | `aclrtCreateEventWithFlags` | 真实为 `aclrtCreateEventWithFlag`（无 s） |
+| `aclrtGetVersion(&ver)` 单参 | **torch_npu CANN9 头中不存在**；8.5 文档签名是 3 参 (major/minor/patch)。改为返回模拟 CUDA 版本宏 |
+| **`aclblasCreate/Destroy/SetStream/GetStream` 存在** | **不存在！** aclblasGemmEx 无 handle、直接传 aclrtStream；handle 需 cu2cce 自定义结构 |
+| aclTransType 含 `ACL_TRANS_C` | **无 C**：N/T/NZ/NZ_T |
+| aclDataType 含 double | **无 ACL_DT_DOUBLE**（FP16/FP32/int8） |
+| `aclrtQueryEventStatus` 用 aclrtEventStatus | 用 **`aclrtEventRecordedStatus`**：NOT_READY=0/COMPLETE=1（与 EventStatus 相反！） |
 
 **关键差异点（写 wrapper 时注意）**：
 1. `aclrtMemcpy`/`aclrtMemcpyAsync` 多一个 `destMax` 参数（CUDA `cudaMemcpy(dst,src,count,kind)` 无此参数）——wrapper 需补 `destMax`。

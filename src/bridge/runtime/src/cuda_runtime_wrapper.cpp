@@ -320,11 +320,18 @@ aclError wcudaStreamQuery(aclrtStream stream) {
     if (stream == nullptr) {
         WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
     }
-    /* 昇腾 ACL 无 aclrtStreamQuery（真实头文件中只有 aclrtSynchronizeStream）。
-     * CUDA 语义：cudaStreamQuery 非阻塞查询，已完成返回 success，未完成返回 cudaErrorNotReady。
-     * 昇腾无直接对应，此处用阻塞同步模拟并返回 success；
-     * ⚠️ 语义不完全等价，待真机核对是否有其它查询手段。 */
-    WCUDA_RETURN(aclrtSynchronizeStream(stream));
+    /* aclrtStreamQuery(stream, aclrtStreamStatus *status)。
+     * CUDA 语义：cudaStreamQuery 已完成返回 success，未完成返回 cudaErrorNotReady。
+     * 昇腾用 status 输出判断：ACL_STREAM_STATUS_COMPLETE / NOT_READY。 */
+    aclrtStreamStatus status = ACL_STREAM_STATUS_COMPLETE;
+    aclError ret = aclrtStreamQuery(stream, &status);
+    if (ret != ACL_ERROR_NONE) {
+        WCUDA_RETURN(ret);
+    }
+    if (status != ACL_STREAM_STATUS_COMPLETE) {
+        WCUDA_RETURN(ACL_ERROR_RT_STREAM_NOT_COMPLETE);
+    }
+    WCUDA_RETURN(ACL_ERROR_NONE);
 }
 
 aclError wcudaStreamWaitEvent(aclrtStream stream, aclrtEvent event, unsigned int flags) {
@@ -447,15 +454,16 @@ aclError wcudaEventQuery(aclrtEvent event) {
     if (event == nullptr) {
         WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
     }
-    /* aclrtQueryEvent(event, aclrtEventStatus *status)。
-     * CUDA 语义：已完成返回 success，未完成返回 cudaErrorNotReady。
-     * 昇腾用 status 输出判断：ACL_EVENT_STATUS_COMPLETE / NOT_COMPLETE。 */
-    aclrtEventStatus status = ACL_EVENT_STATUS_COMPLETE;
-    aclError ret = aclrtQueryEvent(event, &status);
+    /* 9.x 推荐 aclrtQueryEventStatus(event, aclrtEventRecordedStatus *status)
+     * （旧 aclrtQueryEvent 已废弃）。注意 aclrtEventRecordedStatus 取值：
+     *   NOT_READY=0, COMPLETE=1（与 aclrtEventStatus 的 COMPLETE=0/NOT_READY=1 相反！）
+     * CUDA 语义：已完成返回 success，未完成返回 cudaErrorNotReady。 */
+    aclrtEventRecordedStatus status = ACL_EVENT_RECORDED_STATUS_NOT_READY;
+    aclError ret = aclrtQueryEventStatus(event, &status);
     if (ret != ACL_ERROR_NONE) {
         WCUDA_RETURN(ret);
     }
-    if (status != ACL_EVENT_STATUS_COMPLETE) { /* ACL_EVENT_STATUS_NOT_READY=1 */
+    if (status != ACL_EVENT_RECORDED_STATUS_COMPLETE) {
         WCUDA_RETURN(ACL_ERROR_RT_EVENT_NOT_COMPLETE);
     }
     WCUDA_RETURN(ACL_ERROR_NONE);
@@ -1199,14 +1207,12 @@ aclError wcudaRuntimeGetVersion(int *runtimeVersion) {
     if (runtimeVersion == nullptr) {
         WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
     }
-    int32_t ver = 0;
-    aclError ret = aclrtGetVersion(&ver);
-    if (ret == ACL_ERROR_NONE) {
-        /* 昇腾返回的版本号格式与 CUDA 的 12090 不同，此处原样透传，
-         * 应用若按 CUDA 版本号判断请谨慎。 */
-        *runtimeVersion = (int)ver;
-    }
-    WCUDA_RETURN(ret);
+    /* 返回模拟的 CUDA 版本（如 11060），与 cu-bridge 的版本模拟一致。
+     * 注意：不依赖 aclrtGetVersion（其签名是 3 参 major/minor/patch 且返回 ACL 接口版本，
+     * 不是 CUDA 版本；torch_npu 的 CANN 9.x 头中也不存在该接口）。
+     * 应用按 CUDA 版本号判断的特性（#if CUDA_VERSION）由编译期宏 CUDA_VERSION 保证。 */
+    *runtimeVersion = WCUDA_VERSION;
+    WCUDA_RETURN(ACL_ERROR_NONE);
 }
 
 aclError wcudaDriverGetVersion(int *driverVersion) {
