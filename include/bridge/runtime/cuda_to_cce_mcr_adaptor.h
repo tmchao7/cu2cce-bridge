@@ -11,7 +11,7 @@
  * 本文件是"编译期宏替换"这一迁移线的核心。目标平台从 MXMACA(mc*) 换成昇腾(acl*)：
  *   - cudaMalloc   -> wcudaMalloc   （wrapper，签名保持 CUDA 形状）
  *   - cudaError_t  -> aclError      （原生 ACL 错误码类型）
- *   - cudaSuccess  -> ACL_SUCCESS   （原生 ACL 错误码）
+ *   - cudaSuccess  -> ACL_ERROR_NONE   （原生 ACL 错误码）
  *
  * ⚠️ 说明：以下宏值/枚举值依据 CANN 文档（见 ASCEND_RESEARCH_NOTES.md §1-§2）编写，
  *    具体 ACL 枚举名（ACL_MEMCPY_HOST_TO_DEVICE 等）以真机 acl_base.h / acl_rt.h 为准，
@@ -28,16 +28,25 @@
  * 用户代码里 `cudaError_t err = cudaMalloc(...)` 编译为 `aclError err = wcudaMalloc(...)`，
  * 类型一致，无需强转。 */
 #define cudaError_t aclError
-#define cudaSuccess ACL_SUCCESS
+#define cudaSuccess ACL_ERROR_NONE
 
-// 常用错误码（部分映射，非全量；全量映射表见 docs/01_Design/CUDA_TO_CCE_PORTING_PLAN.md §Phase A1）
-#define cudaErrorInvalidValue ACL_ERROR_INVALID_PARAM
-#define cudaErrorMemoryAllocation ACL_ERROR_RT_MEMORY_ALLOCATION
-#define cudaErrorInitializationError ACL_ERROR_RT_INTERNAL_ERROR
-#define cudaErrorInvalidDevice ACL_ERROR_INVALID_DEVICE
-#define cudaErrorNoDevice ACL_ERROR_RT_INVALID_DEVICEID
-#define cudaErrorInvalidResourceHandle ACL_ERROR_INVALID_RESOURCE_HANDLE
-#define cudaErrorNotReady ACL_ERROR_RT_EVENT_STATUS_ERROR
+// 错误码映射。错误码值以真实 ACL 头为准（MegEngine 镜像 acl_base.h / error_codes/rt_error_codes.h，
+// 见 ASCEND_RESEARCH_NOTES.md §1.5）。昇腾无一一对应 CUDA 全部错误码，映射常用且语义接近的；
+// 其余 cudaError* 若不定义，应用代码引用会编译报错，按需补充即可。
+#define cudaErrorInvalidValue ACL_ERROR_INVALID_PARAM           // 100000
+#define cudaErrorMemoryAllocation ACL_ERROR_RT_MEMORY_ALLOCATION // 207001
+#define cudaErrorInitializationError ACL_ERROR_RT_INTERNAL_ERROR // 507000
+#define cudaErrorInvalidDevice ACL_ERROR_INVALID_DEVICE          // 200002
+#define cudaErrorNoDevice ACL_ERROR_RT_NO_DEVICE                 // 207004
+#define cudaErrorInvalidResourceHandle ACL_ERROR_RT_INVALID_HANDLE // 107017
+#define cudaErrorNotReady ACL_ERROR_RT_EVENT_NOT_COMPLETE        // 507006
+#define cudaErrorInvalidConfiguration ACL_ERROR_RT_PARAM_INVALID // 107000
+#define cudaErrorLaunchOutOfResources ACL_ERROR_RT_NO_STREAM_RESOURCE // 207008
+#define cudaErrorInvalidPitchValue ACL_ERROR_RT_PARAM_INVALID
+#define cudaErrorInvalidDevicePointer ACL_ERROR_RT_PARAM_INVALID
+#define cudaErrorIllegalAddress ACL_ERROR_RT_AICORE_EXCEPTION    // 507015
+#define cudaErrorUnknown ACL_ERROR_FAILURE                        // 500001
+#define cudaErrorApiFailureBase ACL_ERROR_FAILURE
 
 //------------ memory kind ------------//
 /* cudaMemcpyKind: 枚举值 0..3, 顺序与 aclrtMemcpyKind 一致（HtoH, HtoD, DtoH, DtoD） */
@@ -66,6 +75,19 @@
 #define cudaDeviceSynchronize wcudaDeviceSynchronize
 #define cudaDeviceReset wcudaDeviceReset
 #define cudaGetDeviceProperties wcudaGetDeviceProperties
+
+// Peer Device Memory Access（昇腾有对应：aclrtDeviceCanAccessPeer 等）
+#define cudaDeviceCanAccessPeer wcudaDeviceCanAccessPeer
+#define cudaDeviceEnablePeerAccess wcudaDeviceEnablePeerAccess
+#define cudaDeviceDisablePeerAccess wcudaDeviceDisablePeerAccess
+
+// Context Management（昇腾有对应：aclrtCreateContext / SetCurrentContext 等；
+// CUDA Runtime 的 cudaCtx* 在 driver 层，此处映射 wcuda* runtime 封装）
+#define cudaCtxCreate wcudaCtxCreate
+#define cudaCtxDestroy wcudaCtxDestroy
+#define cudaCtxSetCurrent wcudaCtxSetCurrent
+#define cudaCtxGetCurrent wcudaCtxGetCurrent
+#define cudaCtxSynchronize wcudaCtxSynchronize
 
 // Stream Management
 #define cudaStreamCreate wcudaStreamCreate

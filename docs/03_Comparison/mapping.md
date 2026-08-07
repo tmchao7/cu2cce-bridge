@@ -11,10 +11,10 @@
 | 1 | include/bridge/runtime/cuda_benchmark_targets.h | include/bridge/runtime/cuda_benchmark_targets.h | 已移植 | 版本模拟 + CUBRIDGE_API，结构一致 |
 | 2 | include/bridge/runtime/cuda_wrapper_internal_types.h | include/bridge/runtime/cuda_wrapper_internal_types.h | 已移植 | NV arch 枚举 → SOC 类型枚举（预留） |
 | 3 | include/bridge/runtime/cuda_wrapper_internal.h | include/bridge/runtime/cuda_wrapper_internal.h | 已移植 | bridge_init + BRIDGE_INIT 宏 |
-| 4 | include/bridge/runtime/cuda_to_maca_mcr_adaptor.h | include/bridge/runtime/cuda_to_cce_mcr_adaptor.h | 移植中 | 宏表 mc*→acl*；目前只映射常用错误码/句柄/函数 |
-| 5 | include/bridge/runtime/cuda_runtime_wrapper.h | include/bridge/runtime/cuda_runtime_wrapper.h | 移植中 | wcuda* 声明，mc*→acl*；目前仅 Phase A1 核心集 |
+| 4 | include/bridge/runtime/cuda_to_maca_mcr_adaptor.h | include/bridge/runtime/cuda_to_cce_mcr_adaptor.h | 移植中 | 宏表 mc*→acl*；错误码/句柄/函数已按真实 acl_base.h 对齐；成功码 ACL_ERROR_NONE |
+| 5 | include/bridge/runtime/cuda_runtime_wrapper.h | include/bridge/runtime/cuda_runtime_wrapper.h | 移植中 | wcuda* 声明；含 Device/Peer/Context/Stream/Event/Memory/Error/Version |
 | 6 | （cu-bridge 无，昇腾新增） | include/bridge/runtime/cuda_wrapper_types.h | 已移植 | _cceDeviceProp_t 模拟 cudaDeviceProp |
-| 7 | src/bridge/runtime/src/cuda_runtime_wrapper.cpp | src/bridge/runtime/src/cuda_runtime_wrapper.cpp | 移植中 | wcuda*→aclrt*；差异点（destMax/policy/init）已标注 |
+| 7 | src/bridge/runtime/src/cuda_runtime_wrapper.cpp | src/bridge/runtime/src/cuda_runtime_wrapper.cpp | 移植中 | wcuda*→aclrt*；已按真实签名修正（ResetDevice 带参/SocName 返回类型/Memset 4 参/QueryEvent 带 status/无 StreamQuery） |
 | 8 | include/cuda_runtime.h | include/cuda_runtime.h | 已移植 | 转发入口 |
 | 9 | include/__cuda_runtime.h | include/__cuda_runtime.h | 已移植 | 组装 wrapper+adaptor+ACL 头 |
 | 10 | include/cuda_runtime_api.h | include/cuda_runtime_api.h | 已移植 | 转发入口 |

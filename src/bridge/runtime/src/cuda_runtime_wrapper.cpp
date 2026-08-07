@@ -24,7 +24,7 @@
 /* ---------------- 内部状态 ---------------- */
 
 /* 线程局部"上一次错误"。仿照 cu-bridge 的 g_last_error。 */
-static thread_local aclError g_last_error = ACL_SUCCESS;
+static thread_local aclError g_last_error = ACL_ERROR_NONE;
 
 /* 全局是否已有 context（仿照 cu-bridge 的 g_hasContextBeenCreated） */
 static thread_local bool g_has_context_created = false;
@@ -55,7 +55,7 @@ void bridge_init() {
     do {                                                                                           \
         BRIDGE_INIT();                                                                             \
         aclError error = (ret);                                                                    \
-        if (error != ACL_SUCCESS) {                                                                \
+        if (error != ACL_ERROR_NONE) {                                                                \
             g_last_error = error;                                                                  \
         }                                                                                          \
         return error;                                                                              \
@@ -69,7 +69,7 @@ aclError wcudaGetDeviceCount(int *count) {
     }
     uint32_t cnt = 0;
     aclError ret = aclrtGetDeviceCount(&cnt);
-    if (ret == ACL_SUCCESS) {
+    if (ret == ACL_ERROR_NONE) {
         *count = (int)cnt;
     }
     WCUDA_RETURN(ret);
@@ -87,7 +87,7 @@ aclError wcudaGetDevice(int *device) {
     }
     int32_t dev = 0;
     aclError ret = aclrtGetDevice(&dev);
-    if (ret == ACL_SUCCESS) {
+    if (ret == ACL_ERROR_NONE) {
         *device = (int)dev;
     }
     WCUDA_RETURN(ret);
@@ -100,8 +100,14 @@ aclError wcudaDeviceSynchronize(void) {
 
 aclError wcudaDeviceReset(void) {
     /* 释放当前 device 资源（对应 cudaDeviceReset）。
-     * 昇腾侧用 aclrtResetDevice（引用计数式，与 aclrtSetDevice 配对）。 */
-    WCUDA_RETURN(aclrtResetDevice());
+     * 昇腾侧用 aclrtResetDevice(int32_t deviceId)（引用计数式，与 aclrtSetDevice 配对）。
+     * 需要先查当前 deviceId 再 reset。 */
+    int32_t dev = 0;
+    aclError ret = aclrtGetDevice(&dev);
+    if (ret != ACL_ERROR_NONE) {
+        WCUDA_RETURN(ret);
+    }
+    WCUDA_RETURN(aclrtResetDevice(dev));
 }
 
 aclError wcudaGetDeviceProperties(_cceDeviceProp_t *prop, int device) {
@@ -110,20 +116,18 @@ aclError wcudaGetDeviceProperties(_cceDeviceProp_t *prop, int device) {
     }
     memset(prop, 0, sizeof(*prop));
 
-    /* 查 SOC 型号（aclrtGetSocName）填 name */
-    const char *soc = nullptr;
-    aclError ret = aclrtGetSocName(&soc);
-    if (ret != ACL_SUCCESS) {
-        WCUDA_RETURN(ret);
-    }
+    /* 查 SOC 型号填 name。注意 aclrtGetSocName() 签名是 const char*（无 aclError 返回），
+     * 失败返回 nullptr（见 MegEngine acl_base.h 镜像）。 */
+    const char *soc = aclrtGetSocName();
     if (soc != nullptr) {
         strncpy(prop->name, soc, _CCE_DEVICE_PROP_MAX_NAME_LEN - 1);
     }
 
-    /* 查可用内存填 totalGlobalMem（free+total） */
+    /* 查可用内存填 totalGlobalMem（free+total）。
+     * aclrtGetMemInfo(aclrtMemAttr attr, size_t *free, size_t *total) */
     size_t freeMem = 0, totalMem = 0;
-    ret = aclrtGetMemInfo(ACL_HBM_MEM, &freeMem, &totalMem);
-    if (ret == ACL_SUCCESS) {
+    aclError ret = aclrtGetMemInfo(ACL_HBM_MEM, &freeMem, &totalMem);
+    if (ret == ACL_ERROR_NONE) {
         prop->totalGlobalMem = totalMem;
     }
 
@@ -143,7 +147,7 @@ aclError wcudaGetDeviceProperties(_cceDeviceProp_t *prop, int device) {
     prop->major = 0;
     prop->minor = 0;
 
-    WCUDA_RETURN(ACL_SUCCESS);
+    WCUDA_RETURN(ACL_ERROR_NONE);
 }
 
 /* ---------------- Stream Management ---------------- */
@@ -182,9 +186,11 @@ aclError wcudaStreamQuery(aclrtStream stream) {
     if (stream == nullptr) {
         WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
     }
-    /* 昇腾无 aclrtStreamQuery 直接对应，用 aclrtStreamQuery 判断：
-     * 返回 ACL_ERROR_RT_STREAM_TASK_TIMEOUT 表示未完成。 */
-    WCUDA_RETURN(aclrtStreamQuery(stream));
+    /* 昇腾 ACL 无 aclrtStreamQuery（真实头文件中只有 aclrtSynchronizeStream）。
+     * CUDA 语义：cudaStreamQuery 非阻塞查询，已完成返回 success，未完成返回 cudaErrorNotReady。
+     * 昇腾无直接对应，此处用阻塞同步模拟并返回 success；
+     * ⚠️ 语义不完全等价，待真机核对是否有其它查询手段。 */
+    WCUDA_RETURN(aclrtSynchronizeStream(stream));
 }
 
 aclError wcudaStreamWaitEvent(aclrtStream stream, aclrtEvent event, unsigned int flags) {
@@ -243,7 +249,18 @@ aclError wcudaEventQuery(aclrtEvent event) {
     if (event == nullptr) {
         WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
     }
-    WCUDA_RETURN(aclrtQueryEvent(event));
+    /* aclrtQueryEvent(event, aclrtEventStatus *status)。
+     * CUDA 语义：已完成返回 success，未完成返回 cudaErrorNotReady。
+     * 昇腾用 status 输出判断：ACL_EVENT_STATUS_COMPLETE / NOT_COMPLETE。 */
+    aclrtEventStatus status = ACL_EVENT_STATUS_COMPLETE;
+    aclError ret = aclrtQueryEvent(event, &status);
+    if (ret != ACL_ERROR_NONE) {
+        WCUDA_RETURN(ret);
+    }
+    if (status != ACL_EVENT_STATUS_COMPLETE) { /* ACL_EVENT_STATUS_NOT_READY=1 */
+        WCUDA_RETURN(ACL_ERROR_RT_EVENT_NOT_COMPLETE);
+    }
+    WCUDA_RETURN(ACL_ERROR_NONE);
 }
 
 aclError wcudaEventElapsedTime(float *ms, aclrtEvent start, aclrtEvent end) {
@@ -263,7 +280,7 @@ aclError wcudaMalloc(void **ptr, size_t sizeBytes) {
      * 选大页优先（ACL_MEM_MALLOC_HUGE_FIRST），与 CUDA 大块分配的默认行为接近。 */
     void *devPtr = nullptr;
     aclError ret = aclrtMalloc(&devPtr, sizeBytes, ACL_MEM_MALLOC_HUGE_FIRST);
-    if (ret == ACL_SUCCESS) {
+    if (ret == ACL_ERROR_NONE) {
         *ptr = devPtr;
     }
     WCUDA_RETURN(ret);
@@ -271,7 +288,7 @@ aclError wcudaMalloc(void **ptr, size_t sizeBytes) {
 
 aclError wcudaFree(void *ptr) {
     if (ptr == nullptr) {
-        WCUDA_RETURN(ACL_SUCCESS); /* cudaFree(NULL) 是合法的 no-op */
+        WCUDA_RETURN(ACL_ERROR_NONE); /* cudaFree(NULL) 是合法的 no-op */
     }
     WCUDA_RETURN(aclrtFree(ptr));
 }
@@ -299,14 +316,16 @@ aclError wcudaMemset(void *devPtr, int value, size_t count) {
     if (devPtr == nullptr) {
         WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
     }
-    WCUDA_RETURN(aclrtMemset(devPtr, count, value, 0, count));
+    /* aclrtMemset(devPtr, maxCount, value, count) —— 注意 maxCount 是目的内存最大长度，
+     * CUDA 无此参数，此处填 count。 */
+    WCUDA_RETURN(aclrtMemset(devPtr, count, value, count));
 }
 
 aclError wcudaMemsetAsync(void *devPtr, int value, size_t count, aclrtStream stream) {
     if (devPtr == nullptr || stream == nullptr) {
         WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
     }
-    WCUDA_RETURN(aclrtMemsetAsync(devPtr, count, value, 0, count, stream));
+    WCUDA_RETURN(aclrtMemsetAsync(devPtr, count, value, count, stream));
 }
 
 aclError wcudaMemGetInfo(size_t *free, size_t *total) {
@@ -323,7 +342,7 @@ aclError wcudaMallocHost(void **ptr, size_t size) {
     }
     void *hostPtr = nullptr;
     aclError ret = aclrtMallocHost(&hostPtr, size);
-    if (ret == ACL_SUCCESS) {
+    if (ret == ACL_ERROR_NONE) {
         *ptr = hostPtr;
     }
     WCUDA_RETURN(ret);
@@ -331,7 +350,7 @@ aclError wcudaMallocHost(void **ptr, size_t size) {
 
 aclError wcudaFreeHost(void *ptr) {
     if (ptr == nullptr) {
-        WCUDA_RETURN(ACL_SUCCESS);
+        WCUDA_RETURN(ACL_ERROR_NONE);
     }
     WCUDA_RETURN(aclrtFreeHost(ptr));
 }
@@ -340,7 +359,7 @@ aclError wcudaFreeHost(void *ptr) {
 
 aclError wcudaGetLastError(void) {
     aclError err = g_last_error;
-    g_last_error = ACL_SUCCESS;
+    g_last_error = ACL_ERROR_NONE;
     return err;
 }
 
@@ -361,6 +380,66 @@ const char *wcudaGetErrorName(aclError error) {
     return unknown;
 }
 
+/* ---------------- Peer Device Memory Access ---------------- */
+
+aclError wcudaDeviceCanAccessPeer(int *canAccessPeer, int device, int peerDevice) {
+    if (canAccessPeer == nullptr) {
+        WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
+    }
+    int32_t can = 0;
+    aclError ret = aclrtDeviceCanAccessPeer(&can, device, peerDevice);
+    if (ret == ACL_ERROR_NONE) {
+        *canAccessPeer = (int)can;
+    }
+    WCUDA_RETURN(ret);
+}
+
+aclError wcudaDeviceEnablePeerAccess(int peerDevice, unsigned int flags) {
+    /* 昇腾 aclrtDeviceEnablePeerAccess(int32_t peerDeviceId, uint32_t flags) */
+    WCUDA_RETURN(aclrtDeviceEnablePeerAccess(peerDevice, flags));
+}
+
+aclError wcudaDeviceDisablePeerAccess(int peerDevice) {
+    WCUDA_RETURN(aclrtDeviceDisablePeerAccess(peerDevice));
+}
+
+/* ---------------- Context Management ---------------- */
+
+aclError wcudaCtxCreate(wcceContext_t *ctx, unsigned int flags, int device) {
+    (void)flags; /* 昇腾无 flags 变体 */
+    if (ctx == nullptr) {
+        WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
+    }
+    WCUDA_RETURN(aclrtCreateContext(ctx, device));
+}
+
+aclError wcudaCtxDestroy(wcceContext_t ctx) {
+    if (ctx == nullptr) {
+        WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
+    }
+    WCUDA_RETURN(aclrtDestroyContext(ctx));
+}
+
+aclError wcudaCtxSetCurrent(wcceContext_t ctx) {
+    if (ctx == nullptr) {
+        WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
+    }
+    WCUDA_RETURN(aclrtSetCurrentContext(ctx));
+}
+
+aclError wcudaCtxGetCurrent(wcceContext_t *ctx) {
+    if (ctx == nullptr) {
+        WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
+    }
+    WCUDA_RETURN(aclrtGetCurrentContext(ctx));
+}
+
+aclError wcudaCtxSynchronize(void) {
+    /* 阻塞直到当前 context 所有任务完成（对应 cudaCtxSynchronize）。
+     * 昇腾无独立 context 同步接口，用 device 同步近似。 */
+    WCUDA_RETURN(aclrtSynchronizeDevice());
+}
+
 /* ---------------- Version ---------------- */
 
 aclError wcudaRuntimeGetVersion(int *runtimeVersion) {
@@ -369,7 +448,7 @@ aclError wcudaRuntimeGetVersion(int *runtimeVersion) {
     }
     int32_t ver = 0;
     aclError ret = aclrtGetVersion(&ver);
-    if (ret == ACL_SUCCESS) {
+    if (ret == ACL_ERROR_NONE) {
         /* 昇腾返回的版本号格式与 CUDA 的 12090 不同，此处原样透传，
          * 应用若按 CUDA 版本号判断请谨慎。 */
         *runtimeVersion = (int)ver;

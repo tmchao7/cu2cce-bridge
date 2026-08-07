@@ -86,6 +86,50 @@ aclError aclrtLaunchKernelV2(aclrtFuncHandle funcHandle, uint32_t numBlocks,
                              aclrtLaunchKernelCfg *cfg, aclrtStream stream);  // cfg 可传 NULL
 ```
 
+### 1.5 错误码（来自 MegEngine 镜像 acl_base.h / error_codes/rt_error_codes.h）
+
+- **成功码：`ACL_ERROR_NONE = 0`**（⚠️ 部分文档/版本写作 `ACL_SUCCESS`，真机核对）。
+- 基础错误码（acl_base.h）：
+  | 码 | 值 | 码 | 值 |
+  |---|---|---|---|
+  | ACL_ERROR_INVALID_PARAM | 100000 | ACL_ERROR_BAD_ALLOC | 200000 |
+  | ACL_ERROR_UNINITIALIZE | 100001 | ACL_ERROR_API_NOT_SUPPORT | 200001 |
+  | ACL_ERROR_REPEAT_INITIALIZE | 100002 | ACL_ERROR_INVALID_DEVICE | 200002 |
+  | ACL_ERROR_INVALID_FILE | 100003 | ACL_ERROR_MEMORY_ADDRESS_UNALIGNED | 200003 |
+  | ACL_ERROR_INVALID_FILE_SIZE | 100005 | ACL_ERROR_RESOURCE_NOT_MATCH | 200004 |
+  | ACL_ERROR_PARSE_FILE | 100006 | ACL_ERROR_INVALID_RESOURCE_HANDLE | 200005 |
+  | ACL_ERROR_INVALID_MODEL_ID | 100011 | ACL_ERROR_FEATURE_UNSUPPORTED | 200006 |
+  | ACL_ERROR_STORAGE_OVER_LIMIT | 300000 | ACL_ERROR_INTERNAL_ERROR | 500000 |
+  | ACL_ERROR_FAILURE | 500001 | ACL_ERROR_RT_FAILURE | 500003 |
+- RT 错误码（error_codes/rt_error_codes.h，107xxx=参数类、207xxx=资源类、507xxx=内部/超时类）：
+  | 码 | 值 | 码 | 值 |
+  |---|---|---|---|
+  | ACL_ERROR_RT_PARAM_INVALID | 107000 | ACL_ERROR_RT_NO_DEVICE | 207004 |
+  | ACL_ERROR_RT_INVALID_DEVICEID | 107001 | ACL_ERROR_RT_RESOURCE_ALLOC_FAIL | 207005 |
+  | ACL_ERROR_RT_CONTEXT_NULL | 107002 | ACL_ERROR_RT_NO_EVENT_RESOURCE | 207007 |
+  | ACL_ERROR_RT_STREAM_CONTEXT | 107003 | ACL_ERROR_RT_NO_STREAM_RESOURCE | 207008 |
+  | ACL_ERROR_RT_EVENT_TIMESTAMP_INVALID | 107006 | ACL_ERROR_RT_OVER_LIMIT | 207012 |
+  | ACL_ERROR_RT_ADDR_UNALIGNED | 107008 | ACL_ERROR_RT_INTERNAL_ERROR | 507000 |
+  | ACL_ERROR_RT_INVALID_HANDLE | 107017 | ACL_ERROR_RT_STREAM_NOT_COMPLETE | 507004 |
+  | ACL_ERROR_RT_INVALID_MALLOC_TYPE | 107018 | ACL_ERROR_RT_EVENT_NOT_COMPLETE | 507006 |
+  | ACL_ERROR_RT_WAIT_TIMEOUT | 107019 | ACL_ERROR_RT_AICORE_EXCEPTION | 507015 |
+  | ACL_ERROR_RT_FEATURE_NOT_SUPPORT | 207000 | ACL_ERROR_RT_AICPU_TIMEOUT | 507017 |
+  | ACL_ERROR_RT_MEMORY_ALLOCATION | 207001 | ACL_ERROR_RT_KERNEL_LOOKUP | 507027 |
+  | ACL_ERROR_RT_MEMORY_FREE | 207002 | ACL_ERROR_RT_KERNEL_DUPLICATE | 507028 |
+
+### 1.6 已核对的关键签名修正（2026-08-07，对照 MegEngine 真实头）
+
+| 我此前写错 | 真实签名 |
+|---|---|
+| `aclrtResetDevice()` | `aclrtResetDevice(int32_t deviceId)` |
+| `aclrtGetSocName(&soc)` 返回 aclError | `const char *aclrtGetSocName()`（无错误返回，失败返回 nullptr） |
+| `aclrtMemset(devPtr,count,value,0,count)` 5 参 | `aclrtMemset(devPtr, maxCount, value, count)` 4 参 |
+| `aclrtMemsetAsync(+offset)` 6 参 | `aclrtMemsetAsync(devPtr, maxCount, value, count, stream)` 5 参 |
+| `aclrtQueryEvent(event)` | `aclrtQueryEvent(event, aclrtEventStatus *status)`（status: COMPLETE=0/NOT_READY=1） |
+| `aclrtStreamQuery` 存在 | **昇腾无 Stream 查询 API**，只有 aclrtSynchronizeStream |
+| `aclrtGetMemInfo(ACL_HBM_MEM, ...)` | `aclrtGetMemInfo(aclrtMemAttr, size_t*, size_t*)`，ACL_HBM_MEM 有效 |
+| `aclrtCreateEventWithFlags` | 真实为 `aclrtCreateEventWithFlag`（无 s） |
+
 **关键差异点（写 wrapper 时注意）**：
 1. `aclrtMemcpy`/`aclrtMemcpyAsync` 多一个 `destMax` 参数（CUDA `cudaMemcpy(dst,src,count,kind)` 无此参数）——wrapper 需补 `destMax`。
 2. `aclrtMalloc` 的第三个参数是 `aclrtMemMallocPolicy`（大页/普通页），不是 flags。

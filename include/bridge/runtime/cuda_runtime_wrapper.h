@@ -37,6 +37,21 @@ aclError CUBRIDGE_API wcudaDeviceSynchronize(void);
 aclError CUBRIDGE_API wcudaDeviceReset(void);
 aclError CUBRIDGE_API wcudaGetDeviceProperties(_cceDeviceProp_t *prop, int device);
 
+/* ============ Peer Device Memory Access ============ */
+aclError CUBRIDGE_API wcudaDeviceCanAccessPeer(int *canAccessPeer, int device, int peerDevice);
+aclError CUBRIDGE_API wcudaDeviceEnablePeerAccess(int peerDevice, unsigned int flags);
+aclError CUBRIDGE_API wcudaDeviceDisablePeerAccess(int peerDevice);
+
+/* ============ Context Management ============ */
+/* 昇腾 Context 与 CUDA 语义相近（aclrtCreateContext / SetCurrentContext）。
+ * CUDA 的 cudaCtx* 属于 Driver API 层，这里提供 Runtime 风格的 wcuda* 封装。 */
+typedef aclrtContext wcceContext_t; /* cudaCtx_t 的昇腾对应 */
+aclError CUBRIDGE_API wcudaCtxCreate(wcceContext_t *ctx, unsigned int flags, int device);
+aclError CUBRIDGE_API wcudaCtxDestroy(wcceContext_t ctx);
+aclError CUBRIDGE_API wcudaCtxSetCurrent(wcceContext_t ctx);
+aclError CUBRIDGE_API wcudaCtxGetCurrent(wcceContext_t *ctx);
+aclError CUBRIDGE_API wcudaCtxSynchronize(void);
+
 /* ============ Stream Management ============ */
 aclError CUBRIDGE_API wcudaStreamCreate(aclrtStream *pStream);
 aclError CUBRIDGE_API wcudaStreamCreateWithFlags(aclrtStream *pStream, unsigned int flags);
