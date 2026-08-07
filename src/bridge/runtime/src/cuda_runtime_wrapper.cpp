@@ -751,6 +751,21 @@ aclError wcudaGraphMemcpyNodeSetParams1D(void *node, void *dst, const void *src,
     return ACL_ERROR_API_NOT_SUPPORT;
 }
 
+/* ---- External Memory（昇腾无对应，not-support） ---- */
+
+aclError wcudaImportExternalMemory(void *extMem_out, const void *memHandleDesc) {
+    (void)memHandleDesc;
+    if (extMem_out != nullptr) {
+        *(void **)extMem_out = nullptr;
+    }
+    return ACL_ERROR_API_NOT_SUPPORT;
+}
+
+aclError wcudaDestroyExternalMemory(void *extMem) {
+    (void)extMem;
+    return ACL_ERROR_API_NOT_SUPPORT;
+}
+
 /* ---- Symbol 内存（昇腾无 device symbol 概念，返回 not-support） ---- */
 
 aclError wcudaGetSymbolAddress(void **devPtr, const void *symbol) {

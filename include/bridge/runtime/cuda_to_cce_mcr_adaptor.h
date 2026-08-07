@@ -223,6 +223,10 @@
 #define cudaGetErrorString wcudaGetErrorString
 #define cudaGetErrorName wcudaGetErrorName
 
+// External Memory（昇腾无对应，not-support）
+#define cudaImportExternalMemory wcudaImportExternalMemory
+#define cudaDestroyExternalMemory wcudaDestroyExternalMemory
+
 // Profiler Control（no-op 占位，真机 profiling 走 aclprof）
 #define cudaProfilerStart wcudaProfilerStart
 #define cudaProfilerStop wcudaProfilerStop

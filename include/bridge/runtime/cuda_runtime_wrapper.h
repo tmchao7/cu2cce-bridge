@@ -232,6 +232,10 @@ aclError CUBRIDGE_API wcudaDestroySurfaceObject(void *surfObject);
 aclError CUBRIDGE_API wcudaBindTexture(size_t *offset, const void *texref, const void *devPtr,
                                        const void *desc, size_t size);
 
+/* ============ External Memory（昇腾无对应，not-support） ============ */
+aclError CUBRIDGE_API wcudaImportExternalMemory(void *extMem_out, const void *memHandleDesc);
+aclError CUBRIDGE_API wcudaDestroyExternalMemory(void *extMem);
+
 /* ============ Thread Management（废弃 API，映射到等价运行时调用） ============ */
 aclError CUBRIDGE_API wcudaThreadSynchronize(void);
 aclError CUBRIDGE_API wcudaThreadExit(void);
