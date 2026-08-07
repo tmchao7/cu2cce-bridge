@@ -171,6 +171,12 @@
 #define cudaGetSymbolSize wcudaGetSymbolSize
 #define cudaMemcpyToSymbol wcudaMemcpyToSymbol
 #define cudaMemcpyFromSymbol wcudaMemcpyFromSymbol
+#define cudaMallocAsync wcudaMallocAsync
+#define cudaFreeAsync wcudaFreeAsync
+#define cudaMemPoolCreate wcudaMemPoolCreate
+#define cudaMemPoolDestroy wcudaMemPoolDestroy
+#define cudaDeviceGetMemPool wcudaDeviceGetMemPool
+#define cudaDeviceSetMemPool wcudaDeviceSetMemPool
 #define cudaMallocManaged wcudaMallocManaged
 #define cudaMemAdvise wcudaMemAdvise
 #define cudaMemPrefetchAsync wcudaMemPrefetchAsync

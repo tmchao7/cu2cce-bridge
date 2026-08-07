@@ -133,6 +133,16 @@ aclError CUBRIDGE_API wcudaMemGetInfo(size_t *free, size_t *total);
 /* 昇腾无 pitch 分配接口，wcudaMallocPitch 用 aclrtMalloc 模拟（宽度对齐，见实现） */
 aclError CUBRIDGE_API wcudaMallocPitch(void **devPtr, size_t *pitch, size_t width, size_t height);
 
+/* Stream Ordered Memory Allocator（SOMA）：
+ * cudaMallocAsync/FreeAsync fallback 到 aclrtMalloc/Free（无 pool 语义）；
+ * MemPool 系列昇腾无对应，not-support。 */
+aclError CUBRIDGE_API wcudaMallocAsync(void **devPtr, size_t size, aclrtStream hStream);
+aclError CUBRIDGE_API wcudaFreeAsync(void *devPtr, aclrtStream hStream);
+aclError CUBRIDGE_API wcudaMemPoolCreate(void *memPool, const void *poolProps);
+aclError CUBRIDGE_API wcudaMemPoolDestroy(void *memPool);
+aclError CUBRIDGE_API wcudaDeviceGetMemPool(void *memPool, int device);
+aclError CUBRIDGE_API wcudaDeviceSetMemPool(int device, void *memPool);
+
 /* Unified Memory：昇腾无 managed memory，fallback 到 device 分配（无自动迁移语义，标注差异）。
  * MemAdvise/Prefetch 为 no-op/not-support（昇腾无统一寻址）。 */
 aclError CUBRIDGE_API wcudaMallocManaged(void **devPtr, size_t size, unsigned int flags);

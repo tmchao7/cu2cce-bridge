@@ -648,6 +648,51 @@ aclError wcudaMemcpyPeerAsync(void *dst, int dstDevice, const void *src, int src
     WCUDA_RETURN(aclrtMemcpyAsync(dst, count, src, count, ACL_MEMCPY_DEVICE_TO_DEVICE, stream));
 }
 
+/* ---- SOMA（Stream Ordered Memory Allocator） ----
+ * 昇腾无 aclrtMallocAsync/MemPool。MallocAsync/FreeAsync fallback 到普通 device 内存；
+ * MemPool 系列返回 not-support。 */
+
+aclError wcudaMallocAsync(void **devPtr, size_t size, aclrtStream hStream) {
+    (void)hStream;
+    if (devPtr == nullptr || size == 0) {
+        WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
+    }
+    /* ⚠️ 昇腾无 stream-ordered 内存，fallback 到普通 aclrtMalloc。
+     * 无 pool 复用语义，应用若依赖该特性需真机评估。 */
+    return wcudaMalloc(devPtr, size);
+}
+
+aclError wcudaFreeAsync(void *devPtr, aclrtStream hStream) {
+    (void)hStream;
+    if (devPtr == nullptr) {
+        WCUDA_RETURN(ACL_ERROR_NONE);
+    }
+    return wcudaFree(devPtr);
+}
+
+aclError wcudaMemPoolCreate(void *memPool, const void *poolProps) {
+    (void)memPool;
+    (void)poolProps;
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaMemPoolDestroy(void *memPool) {
+    (void)memPool;
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaDeviceGetMemPool(void *memPool, int device) {
+    (void)memPool;
+    (void)device;
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaDeviceSetMemPool(int device, void *memPool) {
+    (void)device;
+    (void)memPool;
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
 /* ---- Unified Memory（昇腾无 managed memory，fallback device 分配） ---- */
 
 aclError wcudaMallocManaged(void **devPtr, size_t size, unsigned int flags) {
