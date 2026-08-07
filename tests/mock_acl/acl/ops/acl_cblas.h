@@ -13,6 +13,7 @@ typedef enum { ACL_TRANS_N=0, ACL_TRANS_T=1, ACL_TRANS_NZ=2, ACL_TRANS_NZ_T=3 } 
 typedef enum { ACL_DT_FLOAT16=1, ACL_DT_FLOAT=0, ACL_DT_INT8=2, ACL_DT_INT32=3 } aclDataType;
 typedef enum { ACL_COMPUTE_HIGH_PRECISION=0, ACL_COMPUTE_LOW_PRECISION=1 } aclComputeType;
 #define ACL_ERROR_NONE 0
+#define ACL_SUCCESS 0
 #define ACL_ERROR_INVALID_PARAM 100000
 #define ACL_ERROR_UNINITIALIZE 100001
 #define ACL_ERROR_RT_MEMORY_ALLOCATION 207001
@@ -28,6 +29,11 @@ aclError aclblasGemmEx(aclTransType transA, aclTransType transB, aclTransType tr
                        const void *matrixA, int lda, aclDataType dataTypeA,
                        const void *matrixB, int ldb, aclDataType dataTypeB,
                        const void *beta, void *matrixC, int ldc, aclDataType dataTypeC,
+                       aclComputeType type, aclrtStream stream);
+aclError aclblasGemvEx(aclTransType transA, int m, int n, const void *alpha,
+                       const void *a, int lda, aclDataType dataTypeA,
+                       const void *x, int incx, aclDataType dataTypeX,
+                       const void *beta, void *y, int incy, aclDataType dataTypeY,
                        aclComputeType type, aclrtStream stream);
 aclError aclblasCreateHandleForGemmEx(aclTransType transA, aclTransType transB,
                                       aclTransType transC, int m, int n, int k,

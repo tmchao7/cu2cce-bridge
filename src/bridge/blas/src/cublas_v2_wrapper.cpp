@@ -32,7 +32,7 @@ aclError wcublasCreate(cublasHandle_t *handle) {
     }
     h->stream = nullptr; /* 默认 stream（nullptr 由调用方后续 SetStream） */
     *handle = h;
-    return ACL_ERROR_NONE;
+    return ACL_SUCCESS;
 }
 
 aclError wcublasDestroy(cublasHandle_t handle) {
@@ -40,7 +40,7 @@ aclError wcublasDestroy(cublasHandle_t handle) {
         return ACL_ERROR_INVALID_PARAM;
     }
     std::free(handle);
-    return ACL_ERROR_NONE;
+    return ACL_SUCCESS;
 }
 
 aclError wcublasSetStream(cublasHandle_t handle, aclrtStream stream) {
@@ -48,7 +48,7 @@ aclError wcublasSetStream(cublasHandle_t handle, aclrtStream stream) {
         return ACL_ERROR_INVALID_PARAM;
     }
     handle->stream = stream;
-    return ACL_ERROR_NONE;
+    return ACL_SUCCESS;
 }
 
 aclError wcublasGetStream(cublasHandle_t handle, aclrtStream *stream) {
@@ -56,7 +56,7 @@ aclError wcublasGetStream(cublasHandle_t handle, aclrtStream *stream) {
         return ACL_ERROR_INVALID_PARAM;
     }
     *stream = handle->stream;
-    return ACL_ERROR_NONE;
+    return ACL_SUCCESS;
 }
 
 aclError wcublasGetVersion(int *version) {
@@ -64,7 +64,7 @@ aclError wcublasGetVersion(int *version) {
     if (version != nullptr) {
         *version = 0;
     }
-    return ACL_ERROR_NONE;
+    return ACL_SUCCESS;
 }
 
 /* 通用 GEMM 内部实现：s/d 共用，用 aclblasGemmEx */
@@ -98,18 +98,21 @@ aclError wcublasDgemm(cublasHandle_t handle, aclTransType transa, aclTransType t
     return ACL_ERROR_API_NOT_SUPPORT;
 }
 
-/* ---------------- BLAS1/BLAS2 占位 ----------------
- * ⚠️ 昇腾 aclblas 是否提供 FP32 的 gemv/axpy/copy/dot/scal/swap/nrm2 需真机核对。
- * 目前只确认 GemmEx（FP16/FP32/int8）与 S8gemv。若真机存在对应接口，替换为真实调用。 */
+/* ---------------- BLAS1/BLAS2 ----------------
+ * aclblasGemvEx 存在（FP32 gemv，torch_cblas.h 确认）。Sgemv 真实映射；
+ * axpy/copy/dot/scal/swap/nrm2 昇腾无对应，保持 not-support 占位。 */
 
 static aclError not_supported_placeholder() { return ACL_ERROR_API_NOT_SUPPORT; }
 
 aclError wcublasSgemv(cublasHandle_t handle, aclTransType trans, int m, int n, const float *alpha,
                       const float *A, int lda, const float *x, int incx, const float *beta,
                       float *y, int incy) {
-    (void)handle; (void)trans; (void)m; (void)n; (void)alpha; (void)A; (void)lda;
-    (void)x; (void)incx; (void)beta; (void)y; (void)incy;
-    return not_supported_placeholder();
+    if (handle == nullptr) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    /* aclblasGemvEx(transA, m, n, alpha, a, lda, dtA, x, incx, dtX, beta, y, incy, dtY, type, stream) */
+    return aclblasGemvEx(trans, m, n, alpha, A, lda, ACL_DT_FLOAT, x, incx, ACL_DT_FLOAT, beta, y,
+                         incy, ACL_DT_FLOAT, ACL_COMPUTE_HIGH_PRECISION, handle->stream);
 }
 
 aclError wcublasSaxpy(cublasHandle_t handle, int n, const float *alpha, const float *x, int incx,

@@ -7,6 +7,7 @@ typedef void *aclrtStream;
 typedef void *aclrtEvent;
 typedef void *aclrtContext;
 #define ACL_ERROR_NONE 0
+#define ACL_SUCCESS 0
 #define ACL_ERROR_INVALID_PARAM 100000
 #define ACL_ERROR_UNINITIALIZE 100001
 #define ACL_ERROR_RT_MEMORY_ALLOCATION 207001

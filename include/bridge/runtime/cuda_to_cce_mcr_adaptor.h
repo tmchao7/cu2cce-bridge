@@ -11,7 +11,7 @@
  * 本文件是"编译期宏替换"这一迁移线的核心。目标平台从 MXMACA(mc) 换成昇腾(acl)：
  *   - cudaMalloc   -> wcudaMalloc   （wrapper，签名保持 CUDA 形状）
  *   - cudaError_t  -> aclError      （原生 ACL 错误码类型）
- *   - cudaSuccess  -> ACL_ERROR_NONE   （原生 ACL 错误码）
+ *   - cudaSuccess  -> ACL_SUCCESS   （原生 ACL 错误码）
  *
  * ⚠️ 说明：以下宏值/枚举值依据 CANN 文档（见 ASCEND_RESEARCH_NOTES.md §1-§2）编写，
  *    具体 ACL 枚举名（ACL_MEMCPY_HOST_TO_DEVICE 等）以真机 acl_base.h / acl_rt.h 为准，
@@ -28,7 +28,7 @@
  * 用户代码里 `cudaError_t err = cudaMalloc(...)` 编译为 `aclError err = wcudaMalloc(...)`，
  * 类型一致，无需强转。 */
 #define cudaError_t aclError
-#define cudaSuccess ACL_ERROR_NONE
+#define cudaSuccess ACL_SUCCESS
 
 // 错误码映射。错误码值以真实 ACL 头为准（MegEngine 镜像 acl_base.h / error_codes/rt_error_codes.h，
 // 见 ASCEND_RESEARCH_NOTES.md §1.5）。昇腾无一一对应 CUDA 全部错误码，映射常用且语义接近的；
