@@ -644,6 +644,51 @@ aclError wcudaMemcpy2DFromArray(void *dst, size_t dpitch, const void *src, size_
     return array_not_supported();
 }
 
+/* ---- Texture/Surface（昇腾无对应，全部 not-support） ---- */
+
+unsigned long long wcudaCreateChannelDesc(int x, int y, int z, int w) {
+    /* 承载 4 个 16bit 通道描述；昇腾无 texture 通道描述概念，仅保证类型可编译。 */
+    return ((unsigned long long)(unsigned short)x) | ((unsigned long long)(unsigned short)y << 16) |
+           ((unsigned long long)(unsigned short)z << 32) |
+           ((unsigned long long)(unsigned short)w << 48);
+}
+
+aclError wcudaCreateTextureObject(void *pTexObject, const void *pResDesc, const void *pTexDesc,
+                                  const void *pResViewDesc) {
+    (void)pResDesc; (void)pTexDesc; (void)pResViewDesc;
+    if (pTexObject != nullptr) {
+        *(void **)pTexObject = nullptr;
+    }
+    return ACL_ERROR_API_NOT_SUPPORT;
+}
+
+aclError wcudaDestroyTextureObject(void *texObject) {
+    (void)texObject;
+    return ACL_ERROR_API_NOT_SUPPORT;
+}
+
+aclError wcudaCreateSurfaceObject(void *pSurfObject, const void *pResDesc) {
+    (void)pResDesc;
+    if (pSurfObject != nullptr) {
+        *(void **)pSurfObject = nullptr;
+    }
+    return ACL_ERROR_API_NOT_SUPPORT;
+}
+
+aclError wcudaDestroySurfaceObject(void *surfObject) {
+    (void)surfObject;
+    return ACL_ERROR_API_NOT_SUPPORT;
+}
+
+aclError wcudaBindTexture(size_t *offset, const void *texref, const void *devPtr,
+                          const void *desc, size_t size) {
+    (void)texref; (void)devPtr; (void)desc; (void)size;
+    if (offset != nullptr) {
+        *offset = 0;
+    }
+    return ACL_ERROR_API_NOT_SUPPORT;
+}
+
 /* ---- Symbol 内存（昇腾无 device symbol 概念，返回 not-support） ---- */
 
 aclError wcudaGetSymbolAddress(void **devPtr, const void *symbol) {

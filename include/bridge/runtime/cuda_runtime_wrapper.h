@@ -217,6 +217,17 @@ aclError CUBRIDGE_API wcudaLaunchKernel(const void *hostFunction, int gridDimX, 
 aclError CUBRIDGE_API wcudaProfilerStart(void);
 aclError CUBRIDGE_API wcudaProfilerStop(void);
 
+/* ============ Texture/Surface（昇腾无对应，全部 not-support；句柄用 void* 简化） ============ */
+/* cudaCreateChannelDesc 返回 4-int 结构，用 unsigned long long 承载（x,y,z,w 各 16bit） */
+unsigned long long CUBRIDGE_API wcudaCreateChannelDesc(int x, int y, int z, int w);
+aclError CUBRIDGE_API wcudaCreateTextureObject(void *pTexObject, const void *pResDesc,
+                                               const void *pTexDesc, const void *pResViewDesc);
+aclError CUBRIDGE_API wcudaDestroyTextureObject(void *texObject);
+aclError CUBRIDGE_API wcudaCreateSurfaceObject(void *pSurfObject, const void *pResDesc);
+aclError CUBRIDGE_API wcudaDestroySurfaceObject(void *surfObject);
+aclError CUBRIDGE_API wcudaBindTexture(size_t *offset, const void *texref, const void *devPtr,
+                                       const void *desc, size_t size);
+
 /* ============ Thread Management（废弃 API，映射到等价运行时调用） ============ */
 aclError CUBRIDGE_API wcudaThreadSynchronize(void);
 aclError CUBRIDGE_API wcudaThreadExit(void);

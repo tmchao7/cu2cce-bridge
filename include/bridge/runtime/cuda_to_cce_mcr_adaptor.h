@@ -225,6 +225,14 @@
 #define cudaProfilerStart wcudaProfilerStart
 #define cudaProfilerStop wcudaProfilerStop
 
+// Texture/Surface（昇腾无对应，全部 not-support）
+#define cudaCreateChannelDesc wcudaCreateChannelDesc
+#define cudaCreateTextureObject wcudaCreateTextureObject
+#define cudaDestroyTextureObject wcudaDestroyTextureObject
+#define cudaCreateSurfaceObject wcudaCreateSurfaceObject
+#define cudaDestroySurfaceObject wcudaDestroySurfaceObject
+#define cudaBindTexture wcudaBindTexture
+
 // Thread Management（废弃 API）
 #define cudaThreadSynchronize wcudaThreadSynchronize
 #define cudaThreadExit wcudaThreadExit
