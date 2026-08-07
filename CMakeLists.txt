@@ -51,5 +51,11 @@ target_compile_definitions(cce_bridge_runtime PRIVATE CUBRIDGE_EXPORT_SYMBOL)
 
 install(TARGETS cce_bridge_runtime LIBRARY DESTINATION ${LIB_DEST_DIR})
 
-# 安装 include 兼容头（供用户编译时 -I$CUDA_PATH/include 使用，CUDA_PATH 指向安装目录）
+# 安装 include 兼容头（含 bridge/kernel/simt_adaptor.h，供用户编译时 -I$CUDA_PATH/include 使用）
 install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
+
+# 安装 cucc 驱动（CUCC_PATH/bin）
+install(PROGRAMS bin/cucc DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+
+# 安装示例（真机验证资产）
+install(DIRECTORY examples/ DESTINATION ${CMAKE_INSTALL_PREFIX}/examples)

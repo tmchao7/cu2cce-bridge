@@ -30,7 +30,7 @@
 
 | # | cu-bridge 源文件 | cu2cce 目标文件 | 状态 | 备注 |
 |---|---|---|---|---|
-| 12 | bin/cucc | bin/cucc | 移植中 | 骨架版：参数收集→找 bisheng→注入 include/link→调用；TODO 完整参数处理 |
+| 12 | bin/cucc | bin/cucc | 已移植 | @file/--options-file 展开、编译单元/阶段识别、注入 cu2cce include + SIMT adaptor、--npu-arch=dav-310、链接 wrapper 库；bash -n 通过 |
 | 13 | tools/make_maca | tools/make_cce | 未动 | 包 make，拦截 nvcc→cucc |
 | 14 | tools/cmake_maca | tools/cmake_cce | 未动 | 包 cmake |
 | 15 | tools/mock/ + tools/cmake_mock | tools/mock/ | 未动 | 无 CUDA Toolkit 时 mock 编译器探测（需 mock bisheng） |

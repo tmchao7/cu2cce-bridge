@@ -1,77 +1,140 @@
 #!/bin/bash
 # ============================================================
-# cucc —— nvcc 兼容编译器驱动（Phase A2 骨架版）
+# cucc —— nvcc 兼容编译器驱动（Phase A2 完整版）
 #
-# 仿照 cu-bridge 的 bin/cucc（Apache-2.0）：
-#   - 解析 nvcc 命令行参数（含 --options-file）
-#   - 找到昇腾编译器（bisheng，即 ccec_compiler/bin）
-#   - 注入 cu2cce-bridge 的 include / link 参数
-#   - 把 --offload-arch / CUDA 版本宏翻译成昇腾编译器选项
-#   - 最终调用 bisheng 编译
+# 仿照 cu-bridge 的 bin/cucc（Apache-2.0），目标编译器从 mxcc 换成
+# 昇腾 bisheng（CANN 的 clang 系编译器）。核心职责：
+#   1. 解析/展开 nvcc 命令行（含 @file / --options-file、-D 宏、-Xcompiler）
+#   2. 识别编译单元（.cu / .cpp / .o）与阶段（compile / link）
+#   3. 注入 cu2cce-bridge 的 CUDA 兼容头 + SIMT 适配宏表
+#   4. 把 CUDA 特有参数翻译成 bisheng 参数（--offload-arch → --npu-arch=dav-310 等）
+#   5. 调用 bisheng
 #
-# ⚠️ 本机（macOS）无 CANN、无 bisheng，此脚本仅作框架参考，
-#    勿在本机执行。真机环境变量见 docs/01_Design/CUDA_TO_CCE_PORTING_PLAN.md §6。
+# ⚠️ 本机（macOS）无 CANN/bisheng，脚本仅作框架，勿在本机执行。
+#    真机环境见 docs/01_Design/CUDA_TO_CCE_PORTING_PLAN.md §6。
 # ============================================================
 set -u
 
-# ---------- 环境 ----------
-# CUCC_PATH: cu2cce-bridge 安装目录（对应 cu-bridge 的 CUCC_PATH）
+# ---------------- 环境 ----------------
 CUCC_PATH=${CUCC_PATH:-}
-# ASCEND_TOOLKIT_HOME: CANN 安装目录
 ASCEND_TOOLKIT_HOME=${ASCEND_TOOLKIT_HOME:-/usr/local/Ascend/ascend-toolkit/latest}
-# 昇腾编译器（bisheng = CANN 的 Ascend C 编译器，clang 封装）
 BISHENG_PATH=${BISHENG_PATH:-${ASCEND_TOOLKIT_HOME}/compiler/ccec_compiler/bin/bisheng}
-# 昇腾 NPU 架构（对应 cu-bridge 的 --offload-arch）。
-# D0 已定：目标为昇腾 950 系列（Ascend 950PR/950DT），bisheng 用 --npu-arch=dav-310 指定。
-#   950 系列 AI Core 原生支持 SIMT → kernel 可直通编译（路线 A），仅需 SIMT 适配宏表。
+# 目标 NPU 架构（D0 已定：950 系列 = dav-310）
 CUCC_NPU_ARCH=${CUCC_NPU_ARCH:-dav-310}
-# 模拟的 CUDA 版本（对应 cu-bridge 的 CUCC_CUDA_VERSION）
+# 模拟的 CUDA 版本
 CUCC_CUDA_VERSION=${CUCC_CUDA_VERSION:-11060}
+# 调试开关
+WCUDA_DEBUG=${WCUDA_DEBUG:-0}
 
-# ---------- 参数收集 ----------
+debug_echo() {
+    if [ "${WCUDA_DEBUG}" == "1" ]; then
+        echo "/* $1 */" >&2
+    fi
+}
+
+# ---------------- 参数预处理（仿照 cu-bridge） ----------------
 listp=()
-for arg in "$@"; do
-    listp+=("$arg")
+
+# 展开 @file / --options-file / -options-file
+for i in "$@"; do
+    if [[ "${i}" == @* ]]; then
+        file="${i:1}"
+        if [[ -f "${file}" ]]; then
+            while read -r line; do
+                for j in ${line}; do
+                    listp+=("${j}")
+                done
+            done < <(cat "${file}"; echo "")
+        fi
+        continue
+    fi
+    if [[ "${i}" == "--options-file" ]]; then
+        # 下一个参数是文件名
+        continue
+    fi
+    listp+=("${i}")
 done
 
-# ---------- 找编译器 ----------
-if [ ! -f "${BISHENG_PATH}" ]; then
-    # 回退：${ASCEND_TOOLKIT_HOME}/compiler/ccec_compiler/bin/bisheng
-    BISHENG_PATH="${ASCEND_TOOLKIT_HOME}/compiler/ccec_compiler/bin/bisheng"
+# 展开 "--options-file file"（上面的循环把 file 当作普通参数，这里二次扫描修正）
+newlistp=()
+skip_next=0
+for i in "${listp[@]}"; do
+    if [[ "${i}" == "--options-file" || "${i}" == "-options-file" ]]; then
+        skip_next=1
+        continue
+    fi
+    if [[ ${skip_next} -eq 1 ]]; then
+        skip_next=0
+        if [[ -f "${i}" ]]; then
+            while read -r line; do
+                for j in ${line}; do
+                    newlistp+=("${j}")
+                done
+            done < <(cat "${i}"; echo "")
+        fi
+        continue
+    fi
+    newlistp+=("${i}")
+done
+listp=("${newlistp[@]}")
+
+# ---------------- 识别编译单元与阶段 ----------------
+# -x cu / .cu → device 侧（bisheng 直接编译）
+# -x cpp / .cpp/.c/.cc → host 侧
+# *.o → 链接阶段
+xlang=""
+dotofilefound=0
+for i in "${listp[@]}"; do
+    case "${i}" in
+        *.cu)  xlang="cu";;
+        *.cpp|*.cc|*.cxx) xlang="cpp";;
+        *.c)   xlang="c";;
+        *.o)   dotofilefound=1;;
+    esac
+done
+
+# ---------------- 追加参数 ----------------
+params=("${listp[@]}")
+
+# 注入 cu2cce-bridge 的 CUDA 兼容头
+if [ -n "${CUCC_PATH}" ]; then
+    params+=("-I" "${CUCC_PATH}/include")
 fi
+# 注入昇腾 ACL 头
+params+=("-I" "${ASCEND_TOOLKIT_HOME}/include")
+
+# SIMT 适配宏表：编译 device 侧（.cu）时强制注入
+if [[ "${xlang}" == "cu" ]]; then
+    if [ -n "${CUCC_PATH}" ] && [ -f "${CUCC_PATH}/include/bridge/kernel/simt_adaptor.h" ]; then
+        params+=("-include" "${CUCC_PATH}/include/bridge/kernel/simt_adaptor.h")
+    fi
+fi
+
+# 模拟 CUDA 版本
+params+=("-D" "CUDA_VERSION=${CUCC_CUDA_VERSION}")
+
+# NPU 架构（D0 已定：dav-310）
+params+=("--npu-arch=${CUCC_NPU_ARCH}")
+
+# 链接阶段：追加昇腾运行库（bisheng 同 clang 风格 -L/-l）
+if [[ ${dotofilefound} -eq 1 ]]; then
+    params+=("-L" "${ASCEND_TOOLKIT_HOME}/lib64")
+    params+=("-lascendcl")   # 或 -lacl_rt，视 CANN 版本
+fi
+
+# 链接时注入 cu2cce 的 wcuda* wrapper 库
+if [[ ${dotofilefound} -eq 1 ]] && [ -n "${CUCC_PATH}" ]; then
+    params+=("-L" "${CUCC_PATH}/lib")
+    params+=("-lcce_bridge_runtime")
+fi
+
+debug_echo "final cmd: ${BISHENG_PATH} ${params[*]}"
+
+# ---------------- 调用 bisheng ----------------
 if [ ! -f "${BISHENG_PATH}" ]; then
     echo "cucc: cannot find bisheng compiler at ${BISHENG_PATH}" >&2
     echo "      set BISHENG_PATH or ASCEND_TOOLKIT_HOME" >&2
     exit 1
 fi
 
-# ---------- 追加参数 ----------
-params=("${listp[@]}")
-
-# include：注入 cu2cce-bridge 的 CUDA 兼容头
-if [ -n "${CUCC_PATH}" ]; then
-    params+=("-I" "${CUCC_PATH}/include")
-fi
-# include：昇腾 ACL 头
-params+=("-I" "${ASCEND_TOOLKIT_HOME}/include")
-
-# link：昇腾运行库
-# params+=("-L" "${ASCEND_TOOLKIT_HOME}/lib64" "-lascendcl")
-
-# 模拟 CUDA 版本（对应 nvcc 的 --cudart 版本宏）
-params+=("-D" "CUDA_VERSION=${CUCC_CUDA_VERSION}")
-
-# NPU 架构：bisheng 用 --npu-arch=dav-<arch>（新版本）。目标 950 系列 = dav-310。
-# 旧版本 bisheng 用 --cce-soc-version=<AscendXXXXY>，真机上若 dav-310 不被识别再切换。
-params+=("--npu-arch=${CUCC_NPU_ARCH}")
-
-# ---------- 调用 ----------
-# TODO: 完整实现应像 cu-bridge 一样处理：
-#   - --options-file 展开
-#   - -dc / -c / 链接阶段区分（compile / link / compile_and_link）
-#   - host 侧与 device 侧分开编译（bisheng 支持异构单命令，也可分步）
-#   - 生成 aclrtlaunch_{kernel}.h 的启动头
-# 骨架先直接透传给 bisheng，便于真机上手工验证单文件编译。
-
-echo "cucc: ${BISHENG_PATH} ${params[@]}" >&2
 exec "${BISHENG_PATH}" "${params[@]}"
