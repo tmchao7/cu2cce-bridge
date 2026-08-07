@@ -167,6 +167,15 @@
 #define cudaMemset2D wcudaMemset2D
 #define cudaMemset2DAsync wcudaMemset2DAsync
 #define cudaMallocPitch wcudaMallocPitch
+#define cudaMallocArray wcudaMallocArray
+#define cudaMalloc3DArray wcudaMalloc3DArray
+#define cudaMallocMipmappedArray wcudaMallocMipmappedArray
+#define cudaFreeArray wcudaFreeArray
+#define cudaFreeMipmappedArray wcudaFreeMipmappedArray
+#define cudaMemcpyToArray wcudaMemcpyToArray
+#define cudaMemcpyFromArray wcudaMemcpyFromArray
+#define cudaMemcpy2DToArray wcudaMemcpy2DToArray
+#define cudaMemcpy2DFromArray wcudaMemcpy2DFromArray
 #define cudaGetSymbolAddress wcudaGetSymbolAddress
 #define cudaGetSymbolSize wcudaGetSymbolSize
 #define cudaMemcpyToSymbol wcudaMemcpyToSymbol

@@ -121,6 +121,27 @@ aclError CUBRIDGE_API wcudaMemsetAsync(void *devPtr, int value, size_t count,
 aclError CUBRIDGE_API wcudaMemset2D(void *devPtr, size_t pitch, int value, size_t width,
                                     size_t height);
 /* Symbol 内存（昇腾无 device symbol 概念，返回 not-support） */
+/* Array（昇腾无 array/mipmap 概念，全部 not-support；用 void* 简化句柄类型保证可编译） */
+aclError CUBRIDGE_API wcudaMallocArray(void *array, const void *desc, size_t width,
+                                       size_t height, unsigned int flags);
+aclError CUBRIDGE_API wcudaMalloc3DArray(void *array, const void *desc, void *extent,
+                                         unsigned int flags);
+aclError CUBRIDGE_API wcudaMallocMipmappedArray(void *mipmappedArray, const void *desc,
+                                                void *extent, unsigned int numLevels,
+                                                unsigned int flags);
+aclError CUBRIDGE_API wcudaFreeArray(void *array);
+aclError CUBRIDGE_API wcudaFreeMipmappedArray(void *mipmappedArray);
+aclError CUBRIDGE_API wcudaMemcpyToArray(void *dst, size_t wOffset, size_t hOffset,
+                                         const void *src, size_t count, int kind);
+aclError CUBRIDGE_API wcudaMemcpyFromArray(void *dst, const void *src, size_t wOffset,
+                                           size_t hOffset, size_t count, int kind);
+aclError CUBRIDGE_API wcudaMemcpy2DToArray(void *dst, size_t wOffset, size_t hOffset,
+                                           const void *src, size_t spitch, size_t width,
+                                           size_t height, int kind);
+aclError CUBRIDGE_API wcudaMemcpy2DFromArray(void *dst, size_t dpitch, const void *src,
+                                             size_t wOffset, size_t hOffset, size_t width,
+                                             size_t height, int kind);
+
 aclError CUBRIDGE_API wcudaGetSymbolAddress(void **devPtr, const void *symbol);
 aclError CUBRIDGE_API wcudaGetSymbolSize(size_t *size, const void *symbol);
 aclError CUBRIDGE_API wcudaMemcpyToSymbol(const void *symbol, const void *src, size_t count,

@@ -587,6 +587,63 @@ aclError wcudaMallocPitch(void **devPtr, size_t *pitch, size_t width, size_t hei
     WCUDA_RETURN(ret);
 }
 
+/* ---- Array（昇腾无 array/mipmap 概念，全部 not-support） ---- */
+
+static aclError array_not_supported() { return ACL_ERROR_API_NOT_SUPPORT; }
+
+aclError wcudaMallocArray(void *array, const void *desc, size_t width, size_t height,
+                          unsigned int flags) {
+    (void)array; (void)desc; (void)width; (void)height; (void)flags;
+    return array_not_supported();
+}
+
+aclError wcudaMalloc3DArray(void *array, const void *desc, void *extent, unsigned int flags) {
+    (void)array; (void)desc; (void)extent; (void)flags;
+    return array_not_supported();
+}
+
+aclError wcudaMallocMipmappedArray(void *mipmappedArray, const void *desc, void *extent,
+                                   unsigned int numLevels, unsigned int flags) {
+    (void)mipmappedArray; (void)desc; (void)extent; (void)numLevels; (void)flags;
+    return array_not_supported();
+}
+
+aclError wcudaFreeArray(void *array) {
+    (void)array;
+    return array_not_supported();
+}
+
+aclError wcudaFreeMipmappedArray(void *mipmappedArray) {
+    (void)mipmappedArray;
+    return array_not_supported();
+}
+
+aclError wcudaMemcpyToArray(void *dst, size_t wOffset, size_t hOffset, const void *src,
+                            size_t count, int kind) {
+    (void)dst; (void)wOffset; (void)hOffset; (void)src; (void)count; (void)kind;
+    return array_not_supported();
+}
+
+aclError wcudaMemcpyFromArray(void *dst, const void *src, size_t wOffset, size_t hOffset,
+                              size_t count, int kind) {
+    (void)dst; (void)src; (void)wOffset; (void)hOffset; (void)count; (void)kind;
+    return array_not_supported();
+}
+
+aclError wcudaMemcpy2DToArray(void *dst, size_t wOffset, size_t hOffset, const void *src,
+                              size_t spitch, size_t width, size_t height, int kind) {
+    (void)dst; (void)wOffset; (void)hOffset; (void)src; (void)spitch;
+    (void)width; (void)height; (void)kind;
+    return array_not_supported();
+}
+
+aclError wcudaMemcpy2DFromArray(void *dst, size_t dpitch, const void *src, size_t wOffset,
+                                size_t hOffset, size_t width, size_t height, int kind) {
+    (void)dst; (void)dpitch; (void)src; (void)wOffset; (void)hOffset;
+    (void)width; (void)height; (void)kind;
+    return array_not_supported();
+}
+
 /* ---- Symbol 内存（昇腾无 device symbol 概念，返回 not-support） ---- */
 
 aclError wcudaGetSymbolAddress(void **devPtr, const void *symbol) {
