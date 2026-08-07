@@ -3,7 +3,7 @@
  *
  * 仿照 cu-bridge 的 include/__cuda_runtime.h：把 wrapper 声明 + 宏表 + 昇腾 ACL 头
  * 组装成一个整体。用户代码 #include <cuda_runtime.h> 后，所有 CUDA host 侧符号
- * 都会被宏表替换为 wcuda*，最终调用 aclrt* 原生 API。
+ * 都会被宏表替换为 wcuda，最终调用 aclrt* 原生 API。
  *
  * 注意：本头被 bisheng 编译用户 .cu 时使用（-I$CUDA_PATH/include 注入），
  * 它既提供 host 侧 API 替换，也需兼容 device 侧（kernel）语法不冲突。

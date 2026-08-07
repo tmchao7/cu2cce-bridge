@@ -12,7 +12,7 @@
  *  - 加载 CANN 运行库（libacl_rt.so）——CANN 头文件默认在 ${ASCEND_TOOLKIT_HOME}/include，
  *    库在 ${ASCEND_TOOLKIT_HOME}/lib64；链接期由 bin/cucc 负责 -L/-l，运行期由 loader 找。
  *  - 必要时预初始化 ACL（但注意：CUDA 的初始化是"首次调用时惰性"的，
- *    aclInit 也应在第一次 wcuda* 调用时由 WCUDA_RETURN 宏触发，而非在此处立即执行）。
+ *    aclInit 也应在第一次 wcuda 调用时由 WCUDA_RETURN 宏触发，而非在此处立即执行）。
  */
 #include <cstdio>
 #include <mutex>
@@ -29,7 +29,7 @@ void bridge_init();
 
 } // namespace cubridge::internal
 
-/* bridge 初始化：第一次任何 wcuda* 调用时执行一次。
+/* bridge 初始化：第一次任何 wcuda 调用时执行一次。
  * 仿照 cu-bridge 的 BRIDGE_INIT 宏（见 cuda_driver_wrapper.h）。 */
 #define BRIDGE_INIT()                                                                              \
     do {                                                                                           \

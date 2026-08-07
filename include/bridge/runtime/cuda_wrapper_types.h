@@ -4,8 +4,8 @@
 /*
  * cu2cce-bridge 自定义类型。
  *
- * 仿照 cu-bridge：wrapper 声明用 mc* 类型，宏表把 cuda* 替换为 mc*。
- * cu2cce 的目标 API 是昇腾 acl*，但 `cudaDeviceProp` 这类"结构化描述"没有一一对应的
+ * 仿照 cu-bridge：wrapper 声明用 mc 类型，宏表把 cuda 替换为 mc。
+ * cu2cce 的目标 API 是昇腾 acl，但 `cudaDeviceProp` 这类"结构化描述"没有一一对应的
  * acl 结构（aclrtDeviceProperties 的字段名与 cudaDeviceProp 不同），
  * 因此由本头定义一个 _cceDeviceProp_t 模拟 cudaDeviceProp 常用字段，
  * 由 wcudaGetDeviceProperties 从 aclrtGetDeviceProperties 填充。
@@ -13,6 +13,8 @@
  * 字段集合刻意只覆盖 CUDA 应用最常用的子集（vectorAdd / matrixMul 等 sample 够用），
  * 需要更多字段时按 cuda_runtime_api.h 的 cudaDeviceProp 定义补充即可。
  */
+
+#include <stddef.h> /* size_t */
 
 #ifdef __cplusplus
 extern "C" {

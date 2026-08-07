@@ -1,0 +1,27 @@
+#ifndef ACL_BASE_MOCK
+#define ACL_BASE_MOCK
+#include <stdint.h>
+#include <stddef.h>
+typedef int aclError;
+typedef void *aclrtStream;
+typedef void *aclrtEvent;
+typedef void *aclrtContext;
+#define ACL_ERROR_NONE 0
+#define ACL_ERROR_INVALID_PARAM 100000
+#define ACL_ERROR_RT_MEMORY_ALLOCATION 207001
+#define ACL_ERROR_RT_INTERNAL_ERROR 507000
+#define ACL_ERROR_INVALID_DEVICE 200002
+#define ACL_ERROR_RT_NO_DEVICE 207004
+#define ACL_ERROR_RT_INVALID_HANDLE 107017
+#define ACL_ERROR_RT_EVENT_NOT_COMPLETE 507006
+#define ACL_ERROR_RT_PARAM_INVALID 107000
+#define ACL_ERROR_RT_NO_STREAM_RESOURCE 207008
+#define ACL_ERROR_RT_AICORE_EXCEPTION 507015
+#define ACL_ERROR_FAILURE 500001
+#define ACL_ERROR_API_NOT_SUPPORT 200001
+typedef enum { ACL_MEMCPY_HOST_TO_HOST=0, ACL_MEMCPY_HOST_TO_DEVICE=1, ACL_MEMCPY_DEVICE_TO_HOST=2, ACL_MEMCPY_DEVICE_TO_DEVICE=3 } aclrtMemcpyKind;
+typedef enum { ACL_MEM_MALLOC_HUGE_FIRST=0, ACL_MEM_MALLOC_HUGE_ONLY=1, ACL_MEM_MALLOC_NORMAL_ONLY=2 } aclrtMemMallocPolicy;
+typedef enum { ACL_HBM_MEM=1 } aclrtMemAttr;
+typedef enum { ACL_EVENT_STATUS_COMPLETE=0, ACL_EVENT_STATUS_NOT_READY=1, ACL_EVENT_STATUS_RESERVED=2 } aclrtEventStatus;
+typedef struct aclrtDeviceProperties aclrtDeviceProperties;
+#endif

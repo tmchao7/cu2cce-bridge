@@ -2,17 +2,17 @@
 #define __CUDA_RUNTIME_WRAPPER_H__
 
 /*
- * wcuda* wrapper 声明（Phase A1 最小核心集）。
+ * wcuda wrapper 声明（Phase A1 最小核心集）。
  *
  * 仿照 cu-bridge 的 include/bridge/runtime/cuda_runtime_wrapper.h：
- *   - 函数名 wcuda* 与 CUDA 同名函数一一对应，签名保持 CUDA 形状；
+ *   - 函数名 wcuda 与 CUDA 同名函数一一对应，签名保持 CUDA 形状；
  *   - 返回类型用 aclError（宏表已把 cudaError_t 替换为 aclError）；
  *   - 句柄类型用 aclrtStream / aclrtEvent（宏表已把 cudaStream_t / cudaEvent_t 替换）；
  *   - 实现在 src/bridge/runtime/src/cuda_runtime_wrapper.cpp，内部调用 aclrt* 原生 API。
  *
  * 本文件只列 Phase A1 需要的最小核心集（device/stream/event/memory/error/version）。
- * 其余 wcuda* 函数（launch/graph/texture/occupancy 等）随 Phase A3+ 逐步补充，
- * 补充时照抄 cu-bridge 声明行，把 mc* 类型换成对应 acl* 类型即可。
+ * 其余 wcuda 函数（launch/graph/texture/occupancy 等）随 Phase A3+ 逐步补充，
+ * 补充时照抄 cu-bridge 声明行，把 mc 类型换成对应 acl 类型即可。
  */
 
 #include "cuda_benchmark_targets.h"
@@ -44,7 +44,7 @@ aclError CUBRIDGE_API wcudaDeviceDisablePeerAccess(int peerDevice);
 
 /* ============ Context Management ============ */
 /* 昇腾 Context 与 CUDA 语义相近（aclrtCreateContext / SetCurrentContext）。
- * CUDA 的 cudaCtx* 属于 Driver API 层，这里提供 Runtime 风格的 wcuda* 封装。 */
+ * CUDA 的 cudaCtx* 属于 Driver API 层，这里提供 Runtime 风格的 wcuda 封装。 */
 typedef aclrtContext wcceContext_t; /* cudaCtx_t 的昇腾对应 */
 aclError CUBRIDGE_API wcudaCtxCreate(wcceContext_t *ctx, unsigned int flags, int device);
 aclError CUBRIDGE_API wcudaCtxDestroy(wcceContext_t ctx);

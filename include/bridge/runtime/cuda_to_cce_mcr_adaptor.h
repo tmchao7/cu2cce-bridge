@@ -6,9 +6,9 @@
  *
  * 仿照 cu-bridge 的 include/bridge/runtime/cuda_to_maca_mcr_adaptor.h：
  *   宏把用户代码里的 CUDA 符号（函数名、枚举值、错误码、类型）替换为
- *   cu2cce-bridge 的 wcuda* wrapper / acl* 原生符号。
+ *   cu2cce-bridge 的 wcuda wrapper / acl 原生符号。
  *
- * 本文件是"编译期宏替换"这一迁移线的核心。目标平台从 MXMACA(mc*) 换成昇腾(acl*)：
+ * 本文件是"编译期宏替换"这一迁移线的核心。目标平台从 MXMACA(mc) 换成昇腾(acl)：
  *   - cudaMalloc   -> wcudaMalloc   （wrapper，签名保持 CUDA 形状）
  *   - cudaError_t  -> aclError      （原生 ACL 错误码类型）
  *   - cudaSuccess  -> ACL_ERROR_NONE   （原生 ACL 错误码）
@@ -24,7 +24,7 @@
 //============================CUDA Runtime API====================//
 
 //------------ error code ------------//
-/* cudaError_t 是枚举，aclError 是 int32。宏替换后 wcuda* 返回 aclError，
+/* cudaError_t 是枚举，aclError 是 int32。宏替换后 wcuda 返回 aclError，
  * 用户代码里 `cudaError_t err = cudaMalloc(...)` 编译为 `aclError err = wcudaMalloc(...)`，
  * 类型一致，无需强转。 */
 #define cudaError_t aclError

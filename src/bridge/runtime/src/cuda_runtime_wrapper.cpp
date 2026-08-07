@@ -1,8 +1,8 @@
 /*
- * wcuda* wrapper 实现（Phase A1 最小核心集）。
+ * wcuda wrapper 实现（Phase A1 最小核心集）。
  *
  * 仿照 cu-bridge 的 src/bridge/runtime/src/cuda_runtime_wrapper.cpp：
- *   每个 wcuda* 函数内部调用昇腾 ACL 原生 API（aclrt*）。
+ *   每个 wcuda 函数内部调用昇腾 ACL 原生 API（aclrt*）。
  *
  * ⚠️ 本文件在装有 CANN 的真机上编译（-I$ASCEND_TOOLKIT_HOME/include，-L.../lib64 -lascendcl
  *   或 -lacl_rt），本机（macOS）无 CANN，仅作代码阅读/移植参考，勿在本机构建。
@@ -40,7 +40,7 @@ void bridge_init() {
      * 昇腾 ACL 应用在首次调用运行时 API 前需 aclInit。
      * aclInit 参数传 nullptr 表示默认配置（对应 CUDA 的惰性初始化）。 */
     int32_t ret = aclInit(nullptr);
-    (void)ret; /* 若返回非 0，后续 wcuda* 调用会通过 WCUDA_RETURN 观察到错误 */
+    (void)ret; /* 若返回非 0，后续 wcuda 调用会通过 WCUDA_RETURN 观察到错误 */
 }
 
 } // namespace cubridge::internal
