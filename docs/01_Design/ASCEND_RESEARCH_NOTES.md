@@ -360,7 +360,7 @@ aclError aclblasGemmEx(aclTransType transA, aclTransType transB, aclTransType tr
 
 ---
 
-## 8. cu2cce-bridge wrapper API 覆盖清单（2026-08-07，91 个函数）
+## 8. cu2cce-bridge wrapper API 覆盖清单（2026-08-07，124 个函数）
 
 > 来源：`include/bridge/runtime/cuda_runtime_wrapper.h` + `src/bridge/runtime/src/cuda_runtime_wrapper.cpp`。
 > 状态：`✅`=真实映射昇腾 API，`🔧`=占位/简化/not-support，`⚠️`=需真机核对签名。
@@ -397,11 +397,20 @@ aclError aclblasGemmEx(aclTransType transA, aclTransType transB, aclTransType tr
 - **no-op 返回成功**：MemAdvise、MemPrefetchAsync、ProfilerStart/Stop
 - **废弃旧名映射**：ThreadSynchronize→DeviceSynchronize、ThreadExit→DeviceReset
 
-### 8.3 未实现（cu-bridge 有但昇腾无，尚未声明）
+### 8.3 已补的占位组（2026-08-07 后续轮次，全部 not-support 或 fallback）
 
-- Graph 全组（cudaGraphCreate 等 100+）、Texture/Surface、Array（MallocArray/MemcpyToArray）、EGL/GL 互操作、ExternalMemory/Semaphore、cudaMemcpy3D、Occupancy 其余变体、cudaDeviceGetMemPool 等 SOMA、cudaCG 协作组。
+- **SOMA**：MallocAsync/FreeAsync fallback 到 aclrtMalloc/Free；MemPoolCreate/Destroy/DeviceGet/SetMemPool not-support
+- **Array**：MallocArray/Malloc3DArray/MallocMipmappedArray/FreeArray/FreeMipmappedArray/MemcpyToArray/FromArray/2DToArray/2DFromArray（9 个，not-support）
+- **Texture/Surface**：CreateChannelDesc（4×16bit 编码）/Create-DestroyTextureObject/Create-DestroySurfaceObject/BindTexture（6 个）
+- **Graph 核心**：Create/Destroy/Instantiate/Launch/ExecDestroy/ExecUpdate/AddKernelNode/MemcpyNodeSetParams1D（8 个）
+- **3D 拷贝**：Memcpy3D/Memcpy3DAsync
+- **ExternalMemory**：Import/Destroy
 
-> 真机验证建议：对照 §8.1 逐函数跑 smoke test；§8.2 验证 not-support 返回码正确；§8.3 评估应用是否依赖。
+### 8.4 仍未声明（cu-bridge 有但昇腾无，应用极少用）
+
+- EGL/GL 互操作（cudaEGL*）、ExternalSemaphore、cudaCG 协作组、Occupancy 其余变体、Graph 其余 90+ 节点/属性函数、SOMA 其余（MemPool 属性/导入导出）、cudaMemcpy2DToArrayAsync 等 Async 变体。
+
+> 真机验证建议：对照 §8.1 逐函数跑 smoke test；§8.2 验证 not-support 返回码正确；§8.3 已声明占位保证应用可编译；§8.4 评估应用是否依赖再按需补。
 
 ---
 
