@@ -1,0 +1,82 @@
+#!/bin/bash
+# ============================================================
+# make_cce —— 包 make，拦截 nvcc → cucc（昇腾版）
+#
+# 仿照 cu-bridge 的 tools/make_maca（Apache-2.0）：
+#   - 建立临时"伪 CUDA 目录"：把 cu2cce-bridge 的 include/bin 软链成
+#     CUDA_TOOLKIT 布局（bin/nvcc → cucc），这样 Makefile 里
+#     用 `nvcc`/`$(CUDA_PATH)/bin/nvcc` 的地方都被 cucc 接管
+#   - 设 CUDA_PATH / PATH，然后调用原 make
+#
+# 用法：make_cce [-jN] [target...]   （等价 make，但 nvcc 被拦截）
+#
+# ⚠️ 本机（macOS）无 CANN，勿在本机执行。真机环境变量见方案文档 §6。
+# ============================================================
+set -u
+
+setup_debug_propagation() {
+    [[ $- == *x* ]] && export BASH_XTRACE=1
+    [[ $- == *v* ]] && export BASH_VERBOSE=1
+    [[ $- == *e* ]] && export BASH_ERREXIT=1
+}
+setup_debug_propagation
+
+# ---------------- 环境 ----------------
+ASCEND_TOOLKIT_HOME=${ASCEND_TOOLKIT_HOME:-/usr/local/Ascend/ascend-toolkit/latest}
+CUCC_PATH=${CUCC_PATH:-}
+CUBRIDGE_HOME=${CUBRIDGE_HOME:-$HOME}
+
+if [ -z "${CUCC_PATH}" ]; then
+    echo "make_cce: CUCC_PATH not set (point to cu2cce-bridge install dir)" >&2
+    exit 1
+fi
+
+TEMP_DIR_NAME="cu2cce-bridge"
+DST_WCUDA="$CUBRIDGE_HOME/${TEMP_DIR_NAME}"
+
+# 若上一次残留且没有 make.log，清理（仿照 make_maca 的容错）
+if [ ! -f "$DST_WCUDA/make.log" ]; then
+    rm -rf "$DST_WCUDA"
+fi
+mkdir -p "$DST_WCUDA"
+
+# ---------------- 建伪 CUDA 目录 ----------------
+# CUDA_PATH 指向伪目录（其 bin/nvcc → cucc）
+CUDA_DIR="$DST_WCUDA/CUDA_DIR"
+mkdir -p "$CUDA_DIR/bin"
+mkdir -p "$CUDA_DIR/include"
+
+# bin/nvcc → cucc
+ln -sf "${CUCC_PATH}/bin/cucc" "$CUDA_DIR/bin/nvcc"
+ln -sf "${CUCC_PATH}/bin/cucc" "$CUDA_DIR/bin/cucc"
+
+# include：软链 cu2cce 的整个 include（含 cuda_runtime.h 等 + bridge/）
+ln -sfn "${CUCC_PATH}/include" "$CUDA_DIR/include" 2>/dev/null || true
+# 若上面整目录软链不生效（如跨文件系统），退化为逐项软链
+if [ ! -e "$CUDA_DIR/include/cuda_runtime.h" ]; then
+    for f in "${CUCC_PATH}/include"/*; do
+        ln -sfn "$f" "$CUDA_DIR/include/$(basename "$f")"
+    done
+fi
+
+# 若 make 里用了 lib64（昇腾一般用 ASCEND_TOOLKIT_HOME/lib64），补一个
+mkdir -p "$CUDA_DIR/lib64"
+
+# ---------------- 设环境并调 make ----------------
+export CUDA_PATH="$CUDA_DIR"
+export PATH="$CUDA_DIR/bin:$PATH"
+# 让 bisheng 能找到 ACL 头/库
+export ASCEND_TOOLKIT_HOME
+
+# -x cce 由 cucc 识别（cucc 已内置）
+# debug_echo
+if [ "${WCUDA_DEBUG:-0}" == "1" ]; then
+    echo "/* CUDA_PATH=$CUDA_PATH */"
+    echo "/* PATH=$PATH */"
+fi
+
+if [[ "$*" == *"clean"* ]]; then
+    rm -rf "$DST_WCUDA"
+fi
+
+exec make "$@"

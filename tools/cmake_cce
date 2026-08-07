@@ -1,0 +1,75 @@
+#!/bin/bash
+# ============================================================
+# cmake_cce —— 包 cmake，无 CUDA Toolkit 时用 mock 骗过 CMake 的 CUDA 探测
+#
+# 仿照 cu-bridge 的 tools/cmake_maca + tools/cmake_mock（Apache-2.0）：
+#   - 建立临时"伪 CUDA 目录"（bin/nvcc → mock_nvcc.py）
+#   - 设 CUDA_PATH / PATH，让 CMake 探测到的 nvcc 是 mock（能应答探测）
+#   - 真实 .cu 编译由 mock 透传给 cucc → bisheng
+#
+# 用法：cmake_cce <cmake args...>   （等价 cmake，但 CUDA 探测被 mock）
+#
+# ⚠️ 本机（macOS）无 CANN，勿在本机执行。真机环境变量见方案文档 §6。
+# ============================================================
+set -u
+
+setup_debug_propagation() {
+    [[ $- == *x* ]] && export BASH_XTRACE=1
+    [[ $- == *v* ]] && export BASH_VERBOSE=1
+    [[ $- == *e* ]] && export BASH_ERREXIT=1
+}
+setup_debug_propagation
+
+# ---------------- 环境 ----------------
+ASCEND_TOOLKIT_HOME=${ASCEND_TOOLKIT_HOME:-/usr/local/Ascend/ascend-toolkit/latest}
+CUCC_PATH=${CUCC_PATH:-}
+CUBRIDGE_HOME=${CUBRIDGE_HOME:-$HOME}
+
+if [ -z "${CUCC_PATH}" ]; then
+    echo "cmake_cce: CUCC_PATH not set (point to cu2cce-bridge install dir)" >&2
+    exit 1
+fi
+
+# cmake 查询模式（--version / -E / --help）直接透传真实 cmake
+for arg in "$@"; do
+    case "$arg" in
+        --version|-version|/V|-E|--help*)
+            exec cmake "$@"
+            ;;
+    esac
+done
+
+TEMP_DIR_NAME="cu2cce-bridge"
+DST_WCUDA="$CUBRIDGE_HOME/${TEMP_DIR_NAME}"
+rm -rf "$DST_WCUDA"
+mkdir -p "$DST_WCUDA"
+
+# ---------------- 建伪 CUDA 目录 ----------------
+CUDA_DIR="$DST_WCUDA/CUDA_DIR"
+mkdir -p "$CUDA_DIR/bin"
+mkdir -p "$CUDA_DIR/include"
+
+# bin/nvcc → mock_nvcc（应答 CMake 探测；真实编译透传 cucc）
+ln -sf "${CUCC_PATH}/tools/nvcc_entry.sh" "$CUDA_DIR/bin/nvcc"
+ln -sf "${CUCC_PATH}/bin/cucc" "$CUDA_DIR/bin/cucc"
+
+# include：软链 cu2cce 的 CUDA 兼容头
+ln -sfn "${CUCC_PATH}/include" "$CUDA_DIR/include" 2>/dev/null || true
+if [ ! -e "$CUDA_DIR/include/cuda_runtime.h" ]; then
+    for f in "${CUCC_PATH}/include"/*; do
+        ln -sfn "$f" "$CUDA_DIR/include/$(basename "$f")"
+    done
+fi
+mkdir -p "$CUDA_DIR/lib64"
+
+# ---------------- 设环境并调 cmake ----------------
+export CUDA_PATH="$CUDA_DIR"
+export PATH="$CUDA_DIR/bin:$PATH"
+export ASCEND_TOOLKIT_HOME
+
+# 让 mock_nvcc.py 能找到（nvcc_entry.sh 用 $CUCC_PATH）
+if [ "${WCUDA_DEBUG:-0}" == "1" ]; then
+    echo "/* cmake_cce: CUDA_PATH=$CUDA_PATH */"
+fi
+
+exec cmake "$@"
