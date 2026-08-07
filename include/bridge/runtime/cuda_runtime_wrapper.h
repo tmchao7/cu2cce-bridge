@@ -64,6 +64,19 @@ aclError CUBRIDGE_API wcudaStreamQuery(aclrtStream stream);
 aclError CUBRIDGE_API wcudaStreamWaitEvent(aclrtStream stream, aclrtEvent event,
                                            unsigned int flags /* =0 */);
 
+/* Stream capture（CUDA Graph 捕获）：昇腾无对应，占位返回 not-support。
+ * graph 参数用 void** 简化（真机若需要 CUDA Graph 桥再接 acl 对应物）。 */
+aclError CUBRIDGE_API wcudaStreamBeginCapture(aclrtStream stream, int mode);
+aclError CUBRIDGE_API wcudaStreamEndCapture(aclrtStream stream, void **graph);
+aclError CUBRIDGE_API wcudaStreamIsCapturing(aclrtStream stream, int *status);
+aclError CUBRIDGE_API wcudaStreamGetCaptureInfo(aclrtStream stream, int *status,
+                                                unsigned long long *id_out /* =0 */);
+aclError CUBRIDGE_API wcudaStreamGetCaptureInfo_v2(aclrtStream stream, int *status,
+                                                   unsigned long long *id_out /* =0 */,
+                                                   void *graph_out /* =0 */,
+                                                   const void **dependencies_out /* =0 */,
+                                                   size_t *numDependencies_out /* =0 */);
+
 /* ============ Event Management ============ */
 aclError CUBRIDGE_API wcudaEventCreate(aclrtEvent *event);
 aclError CUBRIDGE_API wcudaEventCreateWithFlags(aclrtEvent *event, unsigned int flags);

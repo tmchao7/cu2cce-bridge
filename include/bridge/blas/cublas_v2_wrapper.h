@@ -42,6 +42,14 @@
 #define cublasGetVersion wcublasGetVersion
 #define cublasSgemm wcublasSgemm
 #define cublasDgemm wcublasDgemm
+/* BLAS1/BLAS2（昇腾 aclblas 是否有 FP32 变体待真机核对；当前声明占位返回 not-support） */
+#define cublasSgemv wcublasSgemv
+#define cublasSaxpy wcublasSaxpy
+#define cublasScopy wcublasScopy
+#define cublasSdot wcublasSdot
+#define cublasSscal wcublasSscal
+#define cublasSswap wcublasSswap
+#define cublasSnrm2 wcublasSnrm2
 
 #ifdef __cplusplus
 extern "C" {
@@ -63,6 +71,19 @@ aclError wcublasSgemm(aclblasHandle handle, aclTransType transa, aclTransType tr
 aclError wcublasDgemm(aclblasHandle handle, aclTransType transa, aclTransType transb, int m, int n,
                       int k, const double *alpha, const double *A, int lda, const double *B,
                       int ldb, const double *beta, double *C, int ldc);
+
+/* BLAS1/BLAS2 占位（昇腾 aclblas FP32 变体待真机核对；若存在则替换为真实映射） */
+aclError wcublasSgemv(aclblasHandle handle, aclTransType trans, int m, int n, const float *alpha,
+                      const float *A, int lda, const float *x, int incx, const float *beta, float *y,
+                      int incy);
+aclError wcublasSaxpy(aclblasHandle handle, int n, const float *alpha, const float *x, int incx,
+                      float *y, int incy);
+aclError wcublasScopy(aclblasHandle handle, int n, const float *x, int incx, float *y, int incy);
+aclError wcublasSdot(aclblasHandle handle, int n, const float *x, int incx, const float *y,
+                     int incy, float *result);
+aclError wcublasSscal(aclblasHandle handle, int n, const float *alpha, float *x, int incx);
+aclError wcublasSswap(aclblasHandle handle, int n, float *x, int incx, float *y, int incy);
+aclError wcublasSnrm2(aclblasHandle handle, int n, const float *x, int incx, float *result);
 
 #ifdef __cplusplus
 }

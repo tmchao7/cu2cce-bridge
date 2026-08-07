@@ -259,6 +259,64 @@ aclError wcudaStreamWaitEvent(aclrtStream stream, aclrtEvent event, unsigned int
     WCUDA_RETURN(aclrtStreamWaitEvent(stream, event));
 }
 
+/* ---- Stream capture（昇腾无 CUDA Graph 捕获，占位返回 not-support） ---- */
+
+aclError wcudaStreamBeginCapture(aclrtStream stream, int mode) {
+    (void)stream;
+    (void)mode;
+    /* 昇腾无 Graph capture；SIMT 下任务直接下发 stream，无 capture 语义。 */
+    return ACL_ERROR_API_NOT_SUPPORT;
+}
+
+aclError wcudaStreamEndCapture(aclrtStream stream, void **graph) {
+    (void)stream;
+    if (graph != nullptr) {
+        *graph = nullptr;
+    }
+    return ACL_ERROR_API_NOT_SUPPORT;
+}
+
+aclError wcudaStreamIsCapturing(aclrtStream stream, int *status) {
+    (void)stream;
+    if (status != nullptr) {
+        *status = 0; /* cudaStreamCaptureStatusNone */
+    }
+    return ACL_ERROR_API_NOT_SUPPORT;
+}
+
+aclError wcudaStreamGetCaptureInfo(aclrtStream stream, int *status, unsigned long long *id_out) {
+    (void)stream;
+    if (status != nullptr) {
+        *status = 0;
+    }
+    if (id_out != nullptr) {
+        *id_out = 0;
+    }
+    return ACL_ERROR_API_NOT_SUPPORT;
+}
+
+aclError wcudaStreamGetCaptureInfo_v2(aclrtStream stream, int *status, unsigned long long *id_out,
+                                      void *graph_out, const void **dependencies_out,
+                                      size_t *numDependencies_out) {
+    (void)stream;
+    if (status != nullptr) {
+        *status = 0;
+    }
+    if (id_out != nullptr) {
+        *id_out = 0;
+    }
+    if (graph_out != nullptr) {
+        *(void **)graph_out = nullptr;
+    }
+    if (dependencies_out != nullptr) {
+        *dependencies_out = nullptr;
+    }
+    if (numDependencies_out != nullptr) {
+        *numDependencies_out = 0;
+    }
+    return ACL_ERROR_API_NOT_SUPPORT;
+}
+
 /* ---------------- Event Management ---------------- */
 
 aclError wcudaEventCreate(aclrtEvent *event) {

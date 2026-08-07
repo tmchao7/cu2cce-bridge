@@ -87,3 +87,49 @@ aclError wcublasDgemm(aclblasHandle handle, aclTransType transa, aclTransType tr
      * 真机上若需 double，可转 FP32 或确认 CANN 是否有 double 变体；当前返回"不支持"。 */
     return ACL_ERROR_API_NOT_SUPPORT;
 }
+
+/* ---------------- BLAS1/BLAS2 占位 ----------------
+ * ⚠️ 昇腾 aclblas 是否提供 FP32 的 gemv/axpy/copy/dot/scal/swap/nrm2 需真机核对。
+ * 目前只确认 GemmEx（FP16/FP32/int8）与 S8gemv。若真机存在对应接口，替换为真实调用。 */
+
+static aclError not_supported_placeholder() { return ACL_ERROR_API_NOT_SUPPORT; }
+
+aclError wcublasSgemv(aclblasHandle handle, aclTransType trans, int m, int n, const float *alpha,
+                      const float *A, int lda, const float *x, int incx, const float *beta,
+                      float *y, int incy) {
+    (void)handle; (void)trans; (void)m; (void)n; (void)alpha; (void)A; (void)lda;
+    (void)x; (void)incx; (void)beta; (void)y; (void)incy;
+    return not_supported_placeholder();
+}
+
+aclError wcublasSaxpy(aclblasHandle handle, int n, const float *alpha, const float *x, int incx,
+                      float *y, int incy) {
+    (void)handle; (void)n; (void)alpha; (void)x; (void)incx; (void)y; (void)incy;
+    return not_supported_placeholder();
+}
+
+aclError wcublasScopy(aclblasHandle handle, int n, const float *x, int incx, float *y, int incy) {
+    (void)handle; (void)n; (void)x; (void)incx; (void)y; (void)incy;
+    return not_supported_placeholder();
+}
+
+aclError wcublasSdot(aclblasHandle handle, int n, const float *x, int incx, const float *y,
+                     int incy, float *result) {
+    (void)handle; (void)n; (void)x; (void)incx; (void)y; (void)incy; (void)result;
+    return not_supported_placeholder();
+}
+
+aclError wcublasSscal(aclblasHandle handle, int n, const float *alpha, float *x, int incx) {
+    (void)handle; (void)n; (void)alpha; (void)x; (void)incx;
+    return not_supported_placeholder();
+}
+
+aclError wcublasSswap(aclblasHandle handle, int n, float *x, int incx, float *y, int incy) {
+    (void)handle; (void)n; (void)x; (void)incx; (void)y; (void)incy;
+    return not_supported_placeholder();
+}
+
+aclError wcublasSnrm2(aclblasHandle handle, int n, const float *x, int incx, float *result) {
+    (void)handle; (void)n; (void)x; (void)incx; (void)result;
+    return not_supported_placeholder();
+}

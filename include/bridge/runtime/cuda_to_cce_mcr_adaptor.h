@@ -117,6 +117,22 @@
 #define cudaStreamQuery wcudaStreamQuery
 #define cudaStreamWaitEvent wcudaStreamWaitEvent
 
+/* Stream capture（CUDA Graph 捕获）：昇腾无对应，占位返回 not-support。
+ * 枚举值沿用 CUDA 标准 ABI。 */
+#define cudaStreamCaptureMode int
+#define cudaStreamCaptureModeGlobal 0
+#define cudaStreamCaptureModeThreadLocal 1
+#define cudaStreamCaptureModeRelaxed 2
+#define cudaStreamCaptureStatus int
+#define cudaStreamCaptureStatusNone 0
+#define cudaStreamCaptureStatusActive 1
+#define cudaStreamCaptureStatusInvalidated 2
+#define cudaStreamBeginCapture wcudaStreamBeginCapture
+#define cudaStreamEndCapture wcudaStreamEndCapture
+#define cudaStreamIsCapturing wcudaStreamIsCapturing
+#define cudaStreamGetCaptureInfo wcudaStreamGetCaptureInfo
+#define cudaStreamGetCaptureInfo_v2 wcudaStreamGetCaptureInfo_v2
+
 // Event Management
 #define cudaEventCreate wcudaEventCreate
 #define cudaEventCreateWithFlags wcudaEventCreateWithFlags
