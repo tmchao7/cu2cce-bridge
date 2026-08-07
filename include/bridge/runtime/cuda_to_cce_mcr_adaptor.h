@@ -76,6 +76,16 @@
 #define cudaDeviceReset wcudaDeviceReset
 #define cudaGetDeviceProperties wcudaGetDeviceProperties
 #define cudaDeviceGetAttribute wcudaDeviceGetAttribute
+/* Device 配置类（昇腾无对应/语义不同，声明保证可编译） */
+#define cudaDeviceGetPCIBusId wcudaDeviceGetPCIBusId
+#define cudaDeviceGetByPCIBusId wcudaDeviceGetByPCIBusId
+#define cudaDeviceGetStreamPriorityRange wcudaDeviceGetStreamPriorityRange
+#define cudaDeviceGetCacheConfig wcudaDeviceGetCacheConfig
+#define cudaDeviceSetCacheConfig wcudaDeviceSetCacheConfig
+#define cudaDeviceGetSharedMemConfig wcudaDeviceGetSharedMemConfig
+#define cudaDeviceSetSharedMemConfig wcudaDeviceSetSharedMemConfig
+#define cudaDeviceGetLimit wcudaDeviceGetLimit
+#define cudaDeviceSetLimit wcudaDeviceSetLimit
 
 /* cudaDeviceAttr 枚举常量（CUDA 标准 ABI 编号，昇腾侧用 int 简化，wrapper 内 switch）。
  * 常用值：MaxThreadsPerBlock=1..MaxGridDimZ=7, MaxSharedMemoryPerBlock=8, ClockRate=12,

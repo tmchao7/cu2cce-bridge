@@ -150,6 +150,82 @@ aclError wcudaGetDeviceProperties(_cceDeviceProp_t *prop, int device) {
     WCUDA_RETURN(ACL_ERROR_NONE);
 }
 
+/* ---- Device 配置类（昇腾无对应或语义不同；返回默认/not-support） ---- */
+
+aclError wcudaDeviceGetPCIBusId(char *pciBusId, int len, int device) {
+    (void)device;
+    /* 昇腾无 PCI 总线概念，用 SOC 型号近似填充（便于应用打印设备名）。 */
+    if (pciBusId == nullptr || len <= 0) {
+        WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
+    }
+    const char *soc = aclrtGetSocName();
+    if (soc != nullptr) {
+        strncpy(pciBusId, soc, (size_t)len - 1);
+        pciBusId[len - 1] = '\0';
+    } else {
+        pciBusId[0] = '\0';
+    }
+    WCUDA_RETURN(ACL_ERROR_NONE);
+}
+
+aclError wcudaDeviceGetByPCIBusId(int *device, const char *pciBusId) {
+    (void)pciBusId;
+    if (device == nullptr) {
+        WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
+    }
+    /* 昇腾无 PCI 标识定位设备，返回 device 0（若有多个设备需真机扩展）。 */
+    *device = 0;
+    WCUDA_RETURN(ACL_ERROR_NONE);
+}
+
+aclError wcudaDeviceGetStreamPriorityRange(int *leastPriority, int *greatestPriority) {
+    /* 昇腾无 stream 优先级概念，返回 [0,0]（单优先级）。 */
+    if (leastPriority != nullptr) {
+        *leastPriority = 0;
+    }
+    if (greatestPriority != nullptr) {
+        *greatestPriority = 0;
+    }
+    WCUDA_RETURN(ACL_ERROR_NONE);
+}
+
+aclError wcudaDeviceGetCacheConfig(int *pCacheConfig) {
+    (void)pCacheConfig;
+    /* 昇腾无 L1/L2 cache 配置概念，返回 not-support。 */
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaDeviceSetCacheConfig(int cacheConfig) {
+    (void)cacheConfig;
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaDeviceGetSharedMemConfig(int *pConfig) {
+    (void)pConfig;
+    /* 昇腾无 shared memory 配置概念，返回 not-support。 */
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaDeviceSetSharedMemConfig(int config) {
+    (void)config;
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaDeviceGetLimit(size_t *pValue, int limit) {
+    (void)limit;
+    if (pValue == nullptr) {
+        WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
+    }
+    /* 昇腾无 cudaLimit 对应，返回 not-support（或按 limit 类型给默认值）。 */
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaDeviceSetLimit(int limit, size_t value) {
+    (void)limit;
+    (void)value;
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
 aclError wcudaDeviceGetAttribute(int *value, int attr, int device) {
     if (value == nullptr) {
         WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);

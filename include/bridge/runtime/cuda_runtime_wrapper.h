@@ -40,6 +40,17 @@ aclError CUBRIDGE_API wcudaGetDeviceProperties(_cceDeviceProp_t *prop, int devic
  * 昇腾无 aclrtDeviceGetAttribute，从 _cceDeviceProp_t 字段映射。 */
 aclError CUBRIDGE_API wcudaDeviceGetAttribute(int *value, int attr, int device);
 
+/* Device 配置类（昇腾无对应或语义不同；声明保证应用可编译，实现返回默认/not-support） */
+aclError CUBRIDGE_API wcudaDeviceGetPCIBusId(char *pciBusId, int len, int device);
+aclError CUBRIDGE_API wcudaDeviceGetByPCIBusId(int *device, const char *pciBusId);
+aclError CUBRIDGE_API wcudaDeviceGetStreamPriorityRange(int *leastPriority, int *greatestPriority);
+aclError CUBRIDGE_API wcudaDeviceGetCacheConfig(int *pCacheConfig);
+aclError CUBRIDGE_API wcudaDeviceSetCacheConfig(int cacheConfig);
+aclError CUBRIDGE_API wcudaDeviceGetSharedMemConfig(int *pConfig);
+aclError CUBRIDGE_API wcudaDeviceSetSharedMemConfig(int config);
+aclError CUBRIDGE_API wcudaDeviceGetLimit(size_t *pValue, int limit);
+aclError CUBRIDGE_API wcudaDeviceSetLimit(int limit, size_t value);
+
 /* ============ Peer Device Memory Access ============ */
 aclError CUBRIDGE_API wcudaDeviceCanAccessPeer(int *canAccessPeer, int device, int peerDevice);
 aclError CUBRIDGE_API wcudaDeviceEnablePeerAccess(int peerDevice, unsigned int flags);
