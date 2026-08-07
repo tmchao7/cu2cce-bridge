@@ -52,6 +52,9 @@ int aclrtDeviceDisablePeerAccess(int32_t peerDeviceId);
 typedef void (*aclrtCallback)(void *userData);
 typedef enum { ACL_CALLBACK_NO_BLOCK=0, ACL_CALLBACK_BLOCK=1 } aclrtCallbackBlockType;
 int aclrtLaunchCallback(aclrtCallback fn, void *userData, aclrtCallbackBlockType blockType, aclrtStream stream);
+struct dim3 { unsigned int x, y, z; dim3(unsigned int _x=1,unsigned int _y=1,unsigned int _z=1):x(_x),y(_y),z(_z){} };
+typedef void *aclrtLaunchKernelCfg;
+int aclrtLaunchSIMTKernelWithArgsArray(void *func, dim3 gridDim, dim3 blockDim, size_t dynUbufSize, aclrtStream stream, aclrtLaunchKernelCfg *cfg, void **args);
 int aclrtGetVersion(int32_t *version);
 #ifdef __cplusplus
 }

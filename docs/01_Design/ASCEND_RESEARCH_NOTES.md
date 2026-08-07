@@ -218,6 +218,13 @@ aclError aclRet = aclrtGetLastError(ACL_RT_THREAD_LEVEL);
 `kernel<<<blocks_per_grid, threads_per_block, dyn_ubuf_size, stream>>>`，**不是 3 参**。
 warp/原子函数在 `#if (__NPU_ARCH__ == 3510) || (__NPU_ARCH__ == 5102)` 下启用。
 
+**⚠️ 显式启动 API（cann/runtime 官方 14_kerne_loading_and_execution.md 确认，2026-08-07）**：
+- **`aclrtLaunchSIMTKernelWithArgsArray(void *func, dim3 gridDim, dim3 blockDim, size_t dynUbufSize, aclrtStream stream, aclrtLaunchKernelCfg *cfg, void **args)`** —— SIMT 核函数专用启动，**Ascend 950PR/950DT 支持**（A2/A3/910B 不支持）。`cudaLaunchKernel` 的真实映射目标。
+- 另有 `aclrtLaunchSIMTKernelWithHostArgs`（Host 内存参数区）。
+- `aclrtLaunchKernelV2`（Ascend 950PR/950DT 支持）：argsData 需 Device 内存。
+- 完整流程：aclrtCreateBinary → aclrtBinaryGetFunction → aclrtLaunchKernelV2/SIMT 启动 → aclrtBinaryUnLoad。
+- `dim3` 是官方类型（bisheng 提供，25-04_Structs.md#dim3）。
+
 另有函数形式：`AscendC::Simt::GetThreadIdx<<0>>()`、`GetBlockIdx()`、`GetThreadNum<<0>>()`、`GetBlockNum()`。
 
 ### 2.4 SIMT kernel 代码示例（官方/社区）

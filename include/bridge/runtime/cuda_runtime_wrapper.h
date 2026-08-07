@@ -208,12 +208,11 @@ aclError CUBRIDGE_API wcudaOccupancyMaxPotentialBlockSize(int *minGridSize, int 
                                                          int blockSizeLimit /* =0 */);
 
 /* ============ Execution Control ============ */
-/* CUDA 的 cudaLaunchKernel(hostFunction, grid, block, args, smem, stream) 需要函数指针→kernel stub。
- * 昇腾 SIMT 的主流启动是 kernel<<<blocks, threads, stream>>>(...) 语法糖（bisheng 原生处理），
- * 显式 cudaLaunchKernel 的完整桥接需 aclrtLaunchKernelV2 + kernel stub 注册（Phase A3 收尾，真机验证）。
- * 当前返回 not-support，应用请用 <<<>>> 启动。 */
-aclError CUBRIDGE_API wcudaLaunchKernel(const void *hostFunction, int gridDimX, int gridDimY,
-                                        int gridDimZ, int blockDimX, int blockDimY, int blockDimZ,
+/* cudaLaunchKernel(func, gridDim, blockDim, args, sharedMem, stream)
+ * 昇腾映射 aclrtLaunchSIMTKernelWithArgsArray(func, gridDim, blockDim, dynUbufSize, stream, cfg, args)
+ * （官方 14_kerne_loading_and_execution.md 确认，Ascend 950PR/950DT 支持）。
+ * dim3 由 bisheng 提供（CUDA 同构）。 */
+aclError CUBRIDGE_API wcudaLaunchKernel(const void *hostFunction, dim3 gridDim, dim3 blockDim,
                                         void **args, size_t sharedMemBytes, aclrtStream stream);
 
 /* ============ Profiler Control ============ */

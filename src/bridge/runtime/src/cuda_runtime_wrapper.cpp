@@ -1154,15 +1154,16 @@ aclError wcudaOccupancyMaxPotentialBlockSize(int *minGridSize, int *blockSize, c
 
 /* ---------------- Execution Control ---------------- */
 
-aclError wcudaLaunchKernel(const void *hostFunction, int gridDimX, int gridDimY, int gridDimZ,
-                           int blockDimX, int blockDimY, int blockDimZ, void **args,
+aclError wcudaLaunchKernel(const void *hostFunction, dim3 gridDim, dim3 blockDim, void **args,
                            size_t sharedMemBytes, aclrtStream stream) {
-    (void)hostFunction; (void)gridDimX; (void)gridDimY; (void)gridDimZ;
-    (void)blockDimX; (void)blockDimY; (void)blockDimZ;
-    (void)args; (void)sharedMemBytes; (void)stream;
-    /* ⚠️ 昇腾 SIMT 请用 kernel<<<blocks, threads, stream>>>(...) 语法糖启动（bisheng 原生）。
-     * 显式 cudaLaunchKernel 桥接需 aclrtLaunchKernelV2 + kernel stub（Phase A3 收尾）。 */
-    return ACL_ERROR_API_NOT_SUPPORT;
+    if (hostFunction == nullptr) {
+        WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
+    }
+    /* 昇腾 aclrtLaunchSIMTKernelWithArgsArray(func, gridDim, blockDim, dynUbufSize, stream, cfg, args)
+     * 官方文档确认：Ascend 950PR/950DT 支持（A2/A3/910B 不支持）。
+     * cfg 传 nullptr（默认配置）。dynUbufSize = CUDA 的 sharedMemBytes。 */
+    WCUDA_RETURN(aclrtLaunchSIMTKernelWithArgsArray((void *)hostFunction, gridDim, blockDim,
+                                                    sharedMemBytes, stream, nullptr, args));
 }
 
 /* ---------------- Profiler Control ----------------
