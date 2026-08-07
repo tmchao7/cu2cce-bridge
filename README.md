@@ -4,6 +4,8 @@
 
 **目标**：GPU 程序员只用 CUDA 编程语言写一个应用程序，就能生成跑在昇腾 NPU 上的目标文件（编译 / 链接 / 运行时透明替换）。
 
+**目标硬件（D0，2026-08-07 定稿）**：昇腾 950 系列（Ascend 950PR/950DT），bisheng `--npu-arch=dav-310`。950 系列 AI Core 原生支持 SIMT，kernel 可直通编译（路线 A）。
+
 ## 状态
 
 🚧 **开发中（Phase A1）**：host Runtime API 桥最小核心集已完成骨架。

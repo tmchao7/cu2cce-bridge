@@ -21,8 +21,10 @@ CUCC_PATH=${CUCC_PATH:-}
 ASCEND_TOOLKIT_HOME=${ASCEND_TOOLKIT_HOME:-/usr/local/Ascend/ascend-toolkit/latest}
 # 昇腾编译器（bisheng = CANN 的 Ascend C 编译器，clang 封装）
 BISHENG_PATH=${BISHENG_PATH:-${ASCEND_TOOLKIT_HOME}/compiler/ccec_compiler/bin/bisheng}
-# 昇腾 SOC 型号（对应 cu-bridge 的 --offload-arch）
-CUCC_SOC=${CUCC_SOC:-Ascend910B}
+# 昇腾 NPU 架构（对应 cu-bridge 的 --offload-arch）。
+# D0 已定：目标为昇腾 950 系列（Ascend 950PR/950DT），bisheng 用 --npu-arch=dav-310 指定。
+#   950 系列 AI Core 原生支持 SIMT → kernel 可直通编译（路线 A），仅需 SIMT 适配宏表。
+CUCC_NPU_ARCH=${CUCC_NPU_ARCH:-dav-310}
 # 模拟的 CUDA 版本（对应 cu-bridge 的 CUCC_CUDA_VERSION）
 CUCC_CUDA_VERSION=${CUCC_CUDA_VERSION:-11060}
 
@@ -59,10 +61,9 @@ params+=("-I" "${ASCEND_TOOLKIT_HOME}/include")
 # 模拟 CUDA 版本（对应 nvcc 的 --cudart 版本宏）
 params+=("-D" "CUDA_VERSION=${CUCC_CUDA_VERSION}")
 
-# SOC 型号：bisheng 用 --npu-arch=dav-<arch>（新）或 --cce-soc-version（旧）
-# TODO: 根据 bisheng 版本选择正确选项。示例：
-# params+=("--npu-arch=dav-${CUCC_SOC}")
-# params+=("--cce-soc-version=${CUCC_SOC}")
+# NPU 架构：bisheng 用 --npu-arch=dav-<arch>（新版本）。目标 950 系列 = dav-310。
+# 旧版本 bisheng 用 --cce-soc-version=<AscendXXXXY>，真机上若 dav-310 不被识别再切换。
+params+=("--npu-arch=${CUCC_NPU_ARCH}")
 
 # ---------- 调用 ----------
 # TODO: 完整实现应像 cu-bridge 一样处理：
