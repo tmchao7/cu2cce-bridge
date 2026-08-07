@@ -312,6 +312,23 @@ aclError wcudaMemcpyAsync(void *dst, const void *src, size_t count, aclrtMemcpyK
     WCUDA_RETURN(aclrtMemcpyAsync(dst, count, src, count, kind, stream));
 }
 
+aclError wcudaMemcpy2D(void *dst, size_t dpitch, const void *src, size_t spitch, size_t width,
+                       size_t height, aclrtMemcpyKind kind) {
+    if (dst == nullptr || src == nullptr) {
+        WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
+    }
+    /* 昇腾 aclrtMemcpy2d 签名与 cudaMemcpy2D 完全一致（dst,dpitch,src,spitch,width,height,kind） */
+    WCUDA_RETURN(aclrtMemcpy2d(dst, dpitch, src, spitch, width, height, kind));
+}
+
+aclError wcudaMemcpy2DAsync(void *dst, size_t dpitch, const void *src, size_t spitch, size_t width,
+                            size_t height, aclrtMemcpyKind kind, aclrtStream stream) {
+    if (dst == nullptr || src == nullptr || stream == nullptr) {
+        WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
+    }
+    WCUDA_RETURN(aclrtMemcpy2dAsync(dst, dpitch, src, spitch, width, height, kind, stream));
+}
+
 aclError wcudaMemset(void *devPtr, int value, size_t count) {
     if (devPtr == nullptr) {
         WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
@@ -319,6 +336,57 @@ aclError wcudaMemset(void *devPtr, int value, size_t count) {
     /* aclrtMemset(devPtr, maxCount, value, count) —— 注意 maxCount 是目的内存最大长度，
      * CUDA 无此参数，此处填 count。 */
     WCUDA_RETURN(aclrtMemset(devPtr, count, value, count));
+}
+
+aclError wcudaMemset2D(void *devPtr, size_t pitch, int value, size_t width, size_t height) {
+    if (devPtr == nullptr) {
+        WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
+    }
+    /* 昇腾无 aclrtMemset2d，用逐行 aclrtMemset 模拟（对 2D 矩阵清零）。
+     * 注意 height 行、每行 width 字节、行距 pitch。 */
+    char *row = (char *)devPtr;
+    for (size_t y = 0; y < height; ++y) {
+        aclError ret = aclrtMemset(row + y * pitch, width, value, width);
+        if (ret != ACL_ERROR_NONE) {
+            WCUDA_RETURN(ret);
+        }
+    }
+    WCUDA_RETURN(ACL_ERROR_NONE);
+}
+
+aclError wcudaMemset2DAsync(void *devPtr, size_t pitch, int value, size_t width, size_t height,
+                            aclrtStream stream) {
+    if (devPtr == nullptr || stream == nullptr) {
+        WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
+    }
+    /* 昇腾无 aclrtMemset2dAsync，用逐行 aclrtMemsetAsync 模拟。 */
+    char *row = (char *)devPtr;
+    for (size_t y = 0; y < height; ++y) {
+        aclError ret = aclrtMemsetAsync(row + y * pitch, width, value, width, stream);
+        if (ret != ACL_ERROR_NONE) {
+            WCUDA_RETURN(ret);
+        }
+    }
+    WCUDA_RETURN(ACL_ERROR_NONE);
+}
+
+aclError wcudaMallocPitch(void **devPtr, size_t *pitch, size_t width, size_t height) {
+    if (devPtr == nullptr || pitch == nullptr || width == 0 || height == 0) {
+        WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
+    }
+    /* 昇腾无 aclrtMallocPitch。模拟 CUDA 的 pitch 语义：
+     *   每行按 width 字节对齐（CUDA 默认 256B 对齐行），分配 height 行。
+     * ⚠️ 简化实现：行对齐取 width 本身（无对齐填充），若应用依赖 pitch 对齐
+     *   需真机按实际对齐规则调整。 */
+    size_t rowPitch = width;
+    size_t total = rowPitch * height;
+    void *mem = nullptr;
+    aclError ret = aclrtMalloc(&mem, total, ACL_MEM_MALLOC_HUGE_FIRST);
+    if (ret == ACL_ERROR_NONE) {
+        *devPtr = mem;
+        *pitch = rowPitch;
+    }
+    WCUDA_RETURN(ret);
 }
 
 aclError wcudaMemsetAsync(void *devPtr, int value, size_t count, aclrtStream stream) {

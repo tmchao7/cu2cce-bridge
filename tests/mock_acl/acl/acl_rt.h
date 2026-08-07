@@ -34,6 +34,8 @@ int aclrtMallocHost(void **hostPtr, size_t size);
 int aclrtFreeHost(void *hostPtr);
 int aclrtMemcpy(void *dst, size_t destMax, const void *src, size_t count, int kind);
 int aclrtMemcpyAsync(void *dst, size_t destMax, const void *src, size_t count, int kind, aclrtStream stream);
+int aclrtMemcpy2d(void *dst, size_t dpitch, const void *src, size_t spitch, size_t width, size_t height, int kind);
+int aclrtMemcpy2dAsync(void *dst, size_t dpitch, const void *src, size_t spitch, size_t width, size_t height, int kind, aclrtStream stream);
 int aclrtMemset(void *devPtr, size_t maxCount, int32_t value, size_t count);
 int aclrtMemsetAsync(void *devPtr, size_t maxCount, int32_t value, size_t count, aclrtStream stream);
 int aclrtCreateContext(aclrtContext *context, int32_t deviceId);

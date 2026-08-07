@@ -111,8 +111,13 @@
 #define cudaFree wcudaFree
 #define cudaMemcpy wcudaMemcpy
 #define cudaMemcpyAsync wcudaMemcpyAsync
+#define cudaMemcpy2D wcudaMemcpy2D
+#define cudaMemcpy2DAsync wcudaMemcpy2DAsync
 #define cudaMemset wcudaMemset
 #define cudaMemsetAsync wcudaMemsetAsync
+#define cudaMemset2D wcudaMemset2D
+#define cudaMemset2DAsync wcudaMemset2DAsync
+#define cudaMallocPitch wcudaMallocPitch
 #define cudaMemGetInfo wcudaMemGetInfo
 #define cudaMallocHost wcudaMallocHost
 #define cudaFreeHost wcudaFreeHost

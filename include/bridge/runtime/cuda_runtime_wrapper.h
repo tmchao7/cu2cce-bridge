@@ -76,10 +76,21 @@ aclError CUBRIDGE_API wcudaFree(void *ptr);
 aclError CUBRIDGE_API wcudaMemcpy(void *dst, const void *src, size_t count, aclrtMemcpyKind kind);
 aclError CUBRIDGE_API wcudaMemcpyAsync(void *dst, const void *src, size_t count,
                                        aclrtMemcpyKind kind, aclrtStream stream /* =0 */);
+aclError CUBRIDGE_API wcudaMemcpy2D(void *dst, size_t dpitch, const void *src, size_t spitch,
+                                    size_t width, size_t height, aclrtMemcpyKind kind);
+aclError CUBRIDGE_API wcudaMemcpy2DAsync(void *dst, size_t dpitch, const void *src, size_t spitch,
+                                         size_t width, size_t height, aclrtMemcpyKind kind,
+                                         aclrtStream stream /* =0 */);
 aclError CUBRIDGE_API wcudaMemset(void *devPtr, int value, size_t count);
 aclError CUBRIDGE_API wcudaMemsetAsync(void *devPtr, int value, size_t count,
                                        aclrtStream stream /* =0 */);
+aclError CUBRIDGE_API wcudaMemset2D(void *devPtr, size_t pitch, int value, size_t width,
+                                    size_t height);
+aclError CUBRIDGE_API wcudaMemset2DAsync(void *devPtr, size_t pitch, int value, size_t width,
+                                         size_t height, aclrtStream stream /* =0 */);
 aclError CUBRIDGE_API wcudaMemGetInfo(size_t *free, size_t *total);
+/* 昇腾无 pitch 分配接口，wcudaMallocPitch 用 aclrtMalloc 模拟（宽度对齐，见实现） */
+aclError CUBRIDGE_API wcudaMallocPitch(void **devPtr, size_t *pitch, size_t width, size_t height);
 aclError CUBRIDGE_API wcudaMallocHost(void **ptr, size_t size);
 aclError CUBRIDGE_API wcudaMallocHostWithFlags(void **ptr, size_t size, unsigned int flags);
 aclError CUBRIDGE_API wcudaFreeHost(void *ptr);
