@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "deny": [
+      "Bash(cmake *)",
+      "Bash(make *)",
+      "Bash(cucc *)",
+      "Bash(bisheng *)",
+      "Bash(msopgen *)",
+      "Bash(mkdir build)"
+    ],
+    "allow": [
+      "Read(/Users/tmchao7/repos/09_expLearn/cu-bridge/**)",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)"
+    ]
+  }
+}

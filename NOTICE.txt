@@ -1,0 +1,39 @@
+MetaX cu-bridge
+
+MetaX cu-bridge is adapted from P4ul/cu-bridge at https://gitee.com/p4ul/cu-bridge, P4ul/cu-bridge is licensed under Apache 2.0.
+Modification copyright 2025 MetaX Integrated Circuits (Shanghai) Co.,Ltd.
+MetaX cu-bridge is also licensed under Apache 2.0, Please see the LICENSE for the license for this project.
+
+The MetaX cu-bridge project contains third-party components with 
+separate copyright notices and license terms. Your use of the source 
+code for the these third-party components are subject to the terms and 
+conditions of their licenses. 
+
+The following files may have been Modified by MetaX Integrated Circuits (Shanghai) Co., Ltd. in 2025.  
+README.md
+CMakeLists.txt
+bin/conf.json
+bin/conf_bazel.json
+bin/conf_gnu.json
+bin/conf_gnu_bazel.json
+bin/cucc
+bin/gfortran
+bin/gnu
+docs/02_User_Manual/README
+docs/02_User_Manual/CUDA_APP_PORTING_GUIDE.pdf
+docs/02_User_Manual/PYTORCH_COMPILING_GUIDE.pdf
+include/bridge/runtime/cuda_benchmark_targets.h
+include/bridge/runtime/cuda_driver_wrapper.h
+include/bridge/runtime/cuda_runtime_wrapper.h
+include/bridge/runtime/cuda_to_maca_mcr_adaptor.h
+include/bridge/sml/nvml_wrapper.h
+include/crt/common_functions.h
+include/nccl.h
+src/bridge/runtime/src/cuda_driver_wrapper.cpp
+src/bridge/runtime/src/cuda_runtime_wrapper.cpp
+src/bridge/tools_ext/src/nvtx_wrapper.cpp
+src/symbol_cu/src/symbol_cu_driver.cpp
+src/symbol_cu/src/symbol_cu_runtime.cpp
+tools/link.json
+tools/make_maca
+tools_src/python/wnvml/wnvml/nvml_wrapper.py

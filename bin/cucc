@@ -1,0 +1,76 @@
+#!/bin/bash
+# ============================================================
+# cucc —— nvcc 兼容编译器驱动（Phase A2 骨架版）
+#
+# 仿照 cu-bridge 的 bin/cucc（Apache-2.0）：
+#   - 解析 nvcc 命令行参数（含 --options-file）
+#   - 找到昇腾编译器（bisheng，即 ccec_compiler/bin）
+#   - 注入 cu2cce-bridge 的 include / link 参数
+#   - 把 --offload-arch / CUDA 版本宏翻译成昇腾编译器选项
+#   - 最终调用 bisheng 编译
+#
+# ⚠️ 本机（macOS）无 CANN、无 bisheng，此脚本仅作框架参考，
+#    勿在本机执行。真机环境变量见 docs/01_Design/CUDA_TO_CCE_PORTING_PLAN.md §6。
+# ============================================================
+set -u
+
+# ---------- 环境 ----------
+# CUCC_PATH: cu2cce-bridge 安装目录（对应 cu-bridge 的 CUCC_PATH）
+CUCC_PATH=${CUCC_PATH:-}
+# ASCEND_TOOLKIT_HOME: CANN 安装目录
+ASCEND_TOOLKIT_HOME=${ASCEND_TOOLKIT_HOME:-/usr/local/Ascend/ascend-toolkit/latest}
+# 昇腾编译器（bisheng = CANN 的 Ascend C 编译器，clang 封装）
+BISHENG_PATH=${BISHENG_PATH:-${ASCEND_TOOLKIT_HOME}/compiler/ccec_compiler/bin/bisheng}
+# 昇腾 SOC 型号（对应 cu-bridge 的 --offload-arch）
+CUCC_SOC=${CUCC_SOC:-Ascend910B}
+# 模拟的 CUDA 版本（对应 cu-bridge 的 CUCC_CUDA_VERSION）
+CUCC_CUDA_VERSION=${CUCC_CUDA_VERSION:-11060}
+
+# ---------- 参数收集 ----------
+listp=()
+for arg in "$@"; do
+    listp+=("$arg")
+done
+
+# ---------- 找编译器 ----------
+if [ ! -f "${BISHENG_PATH}" ]; then
+    # 回退：${ASCEND_TOOLKIT_HOME}/compiler/ccec_compiler/bin/bisheng
+    BISHENG_PATH="${ASCEND_TOOLKIT_HOME}/compiler/ccec_compiler/bin/bisheng"
+fi
+if [ ! -f "${BISHENG_PATH}" ]; then
+    echo "cucc: cannot find bisheng compiler at ${BISHENG_PATH}" >&2
+    echo "      set BISHENG_PATH or ASCEND_TOOLKIT_HOME" >&2
+    exit 1
+fi
+
+# ---------- 追加参数 ----------
+params=("${listp[@]}")
+
+# include：注入 cu2cce-bridge 的 CUDA 兼容头
+if [ -n "${CUCC_PATH}" ]; then
+    params+=("-I" "${CUCC_PATH}/include")
+fi
+# include：昇腾 ACL 头
+params+=("-I" "${ASCEND_TOOLKIT_HOME}/include")
+
+# link：昇腾运行库
+# params+=("-L" "${ASCEND_TOOLKIT_HOME}/lib64" "-lascendcl")
+
+# 模拟 CUDA 版本（对应 nvcc 的 --cudart 版本宏）
+params+=("-D" "CUDA_VERSION=${CUCC_CUDA_VERSION}")
+
+# SOC 型号：bisheng 用 --npu-arch=dav-<arch>（新）或 --cce-soc-version（旧）
+# TODO: 根据 bisheng 版本选择正确选项。示例：
+# params+=("--npu-arch=dav-${CUCC_SOC}")
+# params+=("--cce-soc-version=${CUCC_SOC}")
+
+# ---------- 调用 ----------
+# TODO: 完整实现应像 cu-bridge 一样处理：
+#   - --options-file 展开
+#   - -dc / -c / 链接阶段区分（compile / link / compile_and_link）
+#   - host 侧与 device 侧分开编译（bisheng 支持异构单命令，也可分步）
+#   - 生成 aclrtlaunch_{kernel}.h 的启动头
+# 骨架先直接透传给 bisheng，便于真机上手工验证单文件编译。
+
+echo "cucc: ${BISHENG_PATH} ${params[@]}" >&2
+exec "${BISHENG_PATH}" "${params[@]}"
