@@ -170,6 +170,15 @@ aclError CUBRIDGE_API wcudaThreadSynchronize(void);
 aclError CUBRIDGE_API wcudaThreadExit(void);
 aclError CUBRIDGE_API wcudaThreadGetCacheConfig(int *cacheConfig);
 
+/* ============ Host Function & Func 属性 ============ */
+/* cudaLaunchHostFunc(stream, fn, userData)：昇腾有 aclrtLaunchCallback 对应。
+ * cudaHostFn_t 签名 void(*)(void*) 与 aclrtCallback 一致。 */
+typedef void (*wcceHostFn_t)(void *);
+aclError CUBRIDGE_API wcudaLaunchHostFunc(aclrtStream stream, wcceHostFn_t fn, void *userData);
+/* 昇腾无 func 属性/名字接口，声明保证编译 */
+aclError CUBRIDGE_API wcudaFuncSetAttribute(const void *func, int attr, int value);
+aclError CUBRIDGE_API wcudaFuncGetName(const char **name, const void *func);
+
 /* ============ Version ============ */
 aclError CUBRIDGE_API wcudaRuntimeGetVersion(int *runtimeVersion);
 aclError CUBRIDGE_API wcudaDriverGetVersion(int *driverVersion);

@@ -853,6 +853,33 @@ aclError wcudaThreadGetCacheConfig(int *cacheConfig) {
     return ACL_ERROR_API_NOT_SUPPORT;
 }
 
+/* ---------------- Host Function & Func 属性 ---------------- */
+
+aclError wcudaLaunchHostFunc(aclrtStream stream, wcceHostFn_t fn, void *userData) {
+    if (stream == nullptr || fn == nullptr) {
+        WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
+    }
+    /* 昇腾 aclrtLaunchCallback(fn, userData, blockType, stream)。
+     * blockType 用 ACL_CALLBACK_NO_BLOCK（不阻塞，语义接近 cudaLaunchHostFunc）。 */
+    WCUDA_RETURN(aclrtLaunchCallback(fn, userData, ACL_CALLBACK_NO_BLOCK, stream));
+}
+
+aclError wcudaFuncSetAttribute(const void *func, int attr, int value) {
+    (void)func;
+    (void)attr;
+    (void)value;
+    /* 昇腾无 func 属性设置接口，返回 not-support。 */
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaFuncGetName(const char **name, const void *func) {
+    (void)func;
+    if (name != nullptr) {
+        *name = "kernel";
+    }
+    WCUDA_RETURN(ACL_ERROR_NONE);
+}
+
 /* ---------------- Version ---------------- */
 
 aclError wcudaRuntimeGetVersion(int *runtimeVersion) {

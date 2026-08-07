@@ -187,6 +187,12 @@
 #define cudaOccupancyMaxActiveBlocksPerMultiprocessor wcudaOccupancyMaxActiveBlocksPerMultiprocessor
 #define cudaOccupancyMaxPotentialBlockSize wcudaOccupancyMaxPotentialBlockSize
 
+// Host Function & Func 属性
+#define cudaLaunchHostFunc wcudaLaunchHostFunc
+#define cudaHostFn_t wcceHostFn_t
+#define cudaFuncSetAttribute wcudaFuncSetAttribute
+#define cudaFuncGetName wcudaFuncGetName
+
 // Error Handling
 #define cudaGetLastError wcudaGetLastError
 #define cudaPeekAtLastError wcudaPeekAtLastError

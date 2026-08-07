@@ -45,6 +45,9 @@ int aclrtGetCurrentContext(aclrtContext *context);
 int aclrtDeviceCanAccessPeer(int32_t *canAccessPeer, int32_t deviceId, int32_t peerDeviceId);
 int aclrtDeviceEnablePeerAccess(int32_t peerDeviceId, uint32_t flags);
 int aclrtDeviceDisablePeerAccess(int32_t peerDeviceId);
+typedef void (*aclrtCallback)(void *userData);
+typedef enum { ACL_CALLBACK_NO_BLOCK=0, ACL_CALLBACK_BLOCK=1 } aclrtCallbackBlockType;
+int aclrtLaunchCallback(aclrtCallback fn, void *userData, aclrtCallbackBlockType blockType, aclrtStream stream);
 int aclrtGetVersion(int32_t *version);
 #ifdef __cplusplus
 }
