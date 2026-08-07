@@ -131,19 +131,23 @@ aclError wcudaGetDeviceProperties(_cceDeviceProp_t *prop, int device) {
         prop->totalGlobalMem = totalMem;
     }
 
-    /* 昇腾 SIMT 语义：warp=32、block 内线程上限 2048、AIV 核数为 multiProcessorCount。
-     * 具体核数建议真机上用 aclrtGetDeviceProperties 补齐（ACL 的 aclrtDeviceProperties
-     * 结构与 cudaDeviceProp 字段不同，这里先用保守值，需要精确值时在真机核对）。 */
+    /* 昇腾 SIMT 语义（官方确认）：warp=32、block 上限 2048、gridDim 乘积 ≤65535。
+     * 具体核数建议真机上用 aclrtGetDeviceInfo(deviceId, attr, &value) 补齐
+     * （昇腾无 aclrtGetDeviceProperties，正确查询 API 是 aclrtGetDeviceInfo；
+     *   这里先用保守值，需要精确值时在真机核对）。 */
     prop->warpSize = 32;
     prop->maxThreadsPerBlock = 2048;
     prop->maxThreadsDim[0] = 2048;
     prop->maxThreadsDim[1] = 1;
     prop->maxThreadsDim[2] = 1;
+    /* ⚠️ 昇腾 gridDim 约束是 乘积 ≤65535（非每维）；此处按 CUDA 语义填每维上限，
+     * 应用若算出超出乘积的 grid 需真机调整。 */
     prop->maxGridSize[0] = 65535;
     prop->maxGridSize[1] = 65535;
     prop->maxGridSize[2] = 65535;
     prop->sharedMemPerBlock = 256 * 1024; /* SIMT 下 UB 容量约 256KB */
-    prop->multiProcessorCount = 20;       /* 保守值，真机按 aclrtGetDeviceProperties 校准 */
+    prop->multiProcessorCount = 20;       /* 保守值，真机按 aclrtGetDeviceInfo 校准 */
+    prop->clockRate = 0;                  /* 昇腾无时钟频率语义，填 0 */
     prop->major = 0;
     prop->minor = 0;
 
@@ -1194,12 +1198,19 @@ aclError wcudaThreadGetCacheConfig(int *cacheConfig) {
 
 /* ---------------- Host Function & Func 属性 ---------------- */
 
+/* ⚠️ 昇腾回调机制（官方 12_execution_control.md 确认）与 cudaLaunchHostFunc 有实质差异：
+ *   1. 需先创建线程并 aclrtSubscribeReport(threadId, stream) 注册；
+ *   2. 再 aclrtLaunchCallback(fn, userData, blockType, stream) 下发；
+ *   3. 回调在注册线程中执行（配合 aclrtProcessReport 等待）。
+ * CUDA 无此注册步骤。当前只做 aclrtLaunchCallback 调用（签名正确），
+ * 完整的线程注册流程需真机验证 aclrtSubscribeReport 的线程-流绑定语义后补全。 */
+
 aclError wcudaLaunchHostFunc(aclrtStream stream, wcceHostFn_t fn, void *userData) {
     if (stream == nullptr || fn == nullptr) {
         WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
     }
-    /* 昇腾 aclrtLaunchCallback(fn, userData, blockType, stream)。
-     * blockType 用 ACL_CALLBACK_NO_BLOCK（不阻塞，语义接近 cudaLaunchHostFunc）。 */
+    /* blockType 用 ACL_CALLBACK_NO_BLOCK（不阻塞 stream 后续任务，语义接近 cudaLaunchHostFunc）。
+     * ⚠️ 待真机：需先 aclrtSubscribeReport 注册回调线程，否则回调可能不触发。 */
     WCUDA_RETURN(aclrtLaunchCallback(fn, userData, ACL_CALLBACK_NO_BLOCK, stream));
 }
 

@@ -6,9 +6,9 @@
  *
  * 仿照 cu-bridge：wrapper 声明用 mc 类型，宏表把 cuda 替换为 mc。
  * cu2cce 的目标 API 是昇腾 acl，但 `cudaDeviceProp` 这类"结构化描述"没有一一对应的
- * acl 结构（aclrtDeviceProperties 的字段名与 cudaDeviceProp 不同），
+ * acl 结构（昇腾无 aclrtDeviceProperties；查询用 aclrtGetDeviceInfo + aclrtGetSocName），
  * 因此由本头定义一个 _cceDeviceProp_t 模拟 cudaDeviceProp 常用字段，
- * 由 wcudaGetDeviceProperties 从 aclrtGetDeviceProperties 填充。
+ * 由 wcudaGetDeviceProperties 组装填充。
  *
  * 字段集合刻意只覆盖 CUDA 应用最常用的子集（vectorAdd / matrixMul 等 sample 够用），
  * 需要更多字段时按 cuda_runtime_api.h 的 cudaDeviceProp 定义补充即可。
@@ -39,7 +39,7 @@ typedef struct _cceDeviceProp_t {
     int maxGridSize[3];
     int clockRate;
     size_t totalConstMem;
-    int multiProcessorCount; /**< 昇腾对应 AIV 核数（blockDim 上限），从 aclrtGetDeviceProperties 查询 */
+    int multiProcessorCount; /**< 昇腾对应 AIV 核数，真机用 aclrtGetDeviceInfo 查询 */
     int l2CacheSize;
     int maxThreadsPerMultiProcessor;
     int computeMode;
