@@ -360,7 +360,52 @@ aclError aclblasGemmEx(aclTransType transA, aclTransType transB, aclTransType tr
 
 ---
 
-## 8. 来源链接
+## 8. cu2cce-bridge wrapper API 覆盖清单（2026-08-07，91 个函数）
+
+> 来源：`include/bridge/runtime/cuda_runtime_wrapper.h` + `src/bridge/runtime/src/cuda_runtime_wrapper.cpp`。
+> 状态：`✅`=真实映射昇腾 API，`🔧`=占位/简化/not-support，`⚠️`=需真机核对签名。
+
+### 8.1 真实映射（昇腾有对应）✅
+
+| CUDA 函数 | 昇腾调用 | 备注 |
+|---|---|---|
+| cudaMalloc/cudaFree | aclrtMalloc(HUGE_FIRST)/aclrtFree | policy 差异 |
+| cudaMallocHost/cudaFreeHost | aclrtMallocHost/aclrtFreeHost | |
+| cudaMallocPitch | aclrtMalloc 模拟 | ⚠️ pitch 对齐规则待真机 |
+| cudaMemcpy/cudaMemcpyAsync | aclrtMemcpy/Async | 补 destMax |
+| cudaMemcpy2D/2DAsync | aclrtMemcpy2d/2dAsync | 签名一致 |
+| cudaMemcpyPeer/PeerAsync | aclrtMemcpy(D2D) | 需先 EnablePeerAccess |
+| cudaMemset/MemsetAsync | aclrtMemset/Async | 4/5 参 |
+| cudaMemset2D/2DAsync | 逐行 aclrtMemset | 模拟 |
+| cudaMemGetInfo | aclrtGetMemInfo(HBM) | |
+| cudaGetDeviceCount/SetDevice/GetDevice | aclrtGetDeviceCount/SetDevice/GetDevice | |
+| cudaDeviceSynchronize | aclrtSynchronizeDevice | |
+| cudaDeviceReset | aclrtGetDevice+ResetDevice | ResetDevice 带参 |
+| cudaDeviceGetAttribute | 从 _cceDeviceProp_t 映射 | 13 个属性 |
+| cudaGetDeviceProperties | soc name + mem info 组装 | ⚠️ aclrtGetDeviceProperties 签名待核 |
+| cudaDeviceCanAccessPeer/Enable/Disable | aclrtDeviceCanAccessPeer/... | |
+| cudaCtxCreate/Destroy/SetCurrent/GetCurrent | aclrtCreateContext/... | |
+| cudaStreamCreate/Destroy/Synchronize/WaitEvent | aclrtCreateStream/... | |
+| cudaEventCreate/Destroy/Record/Synchronize/Query/ElapsedTime | aclrtCreateEvent/... | QueryEvent 带 status |
+| cudaLaunchHostFunc | aclrtLaunchCallback | blockType=NO_BLOCK |
+| cudaMallocManaged | fallback aclrtMalloc | ⚠️ 无自动迁移 |
+| cudaDeviceGetPCIBusId/GetByPCIBusId | soc name 近似 | |
+
+### 8.2 占位（昇腾无对应，返回 not-support / no-op）🔧
+
+- **返回 not-support**：HostGetDevicePointer、HostRegister/Unregister/HostGetFlags、LaunchKernel（显式 API）、Dgemm（无 double）、BLAS1/2（Sgemv/Saxpy/Scopy/Sdot/Sscal/Sswap/Snrm2）、Stream capture 全组、FuncGetAttributes/SetAttribute、Symbol 组、PointerGetAttributes、DeviceGet/SetCacheConfig、DeviceGet/SetSharedMemConfig、DeviceGet/SetLimit、ThreadGetCacheConfig
+- **no-op 返回成功**：MemAdvise、MemPrefetchAsync、ProfilerStart/Stop
+- **废弃旧名映射**：ThreadSynchronize→DeviceSynchronize、ThreadExit→DeviceReset
+
+### 8.3 未实现（cu-bridge 有但昇腾无，尚未声明）
+
+- Graph 全组（cudaGraphCreate 等 100+）、Texture/Surface、Array（MallocArray/MemcpyToArray）、EGL/GL 互操作、ExternalMemory/Semaphore、cudaMemcpy3D、Occupancy 其余变体、cudaDeviceGetMemPool 等 SOMA、cudaCG 协作组。
+
+> 真机验证建议：对照 §8.1 逐函数跑 smoke test；§8.2 验证 not-support 返回码正确；§8.3 评估应用是否依赖。
+
+---
+
+## 9. 来源链接
 
 - [昇腾社区 - AI Core SIMT 编译/算子编译简介](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910beta1/programug/Ascendcopdevg/docs/guide/%E7%BC%96%E7%A8%8B%E6%8C%87%E5%8D%97/%E7%BC%96%E8%AF%91%E4%B8%8E%E8%BF%90%E8%A1%8C/AI-Core-SIMT%E7%BC%96%E8%AF%91/%E7%AE%97%E5%AD%90%E7%BC%96%E8%AF%91%E7%AE%80%E4%BB%8B.md)
 - [昇腾社区 - SIMT BuiltIn 关键字](https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/910beta3/programug/Ascendcopdevg/docs/guide/%E7%BC%96%E7%A8%8B%E6%8C%87%E5%8D%97/%E8%AF%AD%E8%A8%80%E6%89%A9%E5%B1%95%E5%B1%82/SIMT-BuiltIn%E5%85%B3%E9%94%AE%E5%AD%97.md)
