@@ -165,6 +165,10 @@
 #define cudaMemset2D wcudaMemset2D
 #define cudaMemset2DAsync wcudaMemset2DAsync
 #define cudaMallocPitch wcudaMallocPitch
+#define cudaGetSymbolAddress wcudaGetSymbolAddress
+#define cudaGetSymbolSize wcudaGetSymbolSize
+#define cudaMemcpyToSymbol wcudaMemcpyToSymbol
+#define cudaMemcpyFromSymbol wcudaMemcpyFromSymbol
 #define cudaMallocManaged wcudaMallocManaged
 #define cudaMemAdvise wcudaMemAdvise
 #define cudaMemPrefetchAsync wcudaMemPrefetchAsync
@@ -190,6 +194,7 @@
 // Host Function & Func 属性
 #define cudaLaunchHostFunc wcudaLaunchHostFunc
 #define cudaHostFn_t wcceHostFn_t
+#define cudaFuncGetAttributes wcudaFuncGetAttributes
 #define cudaFuncSetAttribute wcudaFuncSetAttribute
 #define cudaFuncGetName wcudaFuncGetName
 

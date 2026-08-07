@@ -587,6 +587,44 @@ aclError wcudaMallocPitch(void **devPtr, size_t *pitch, size_t width, size_t hei
     WCUDA_RETURN(ret);
 }
 
+/* ---- Symbol 内存（昇腾无 device symbol 概念，返回 not-support） ---- */
+
+aclError wcudaGetSymbolAddress(void **devPtr, const void *symbol) {
+    (void)symbol;
+    if (devPtr != nullptr) {
+        *devPtr = nullptr;
+    }
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGetSymbolSize(size_t *size, const void *symbol) {
+    (void)symbol;
+    if (size != nullptr) {
+        *size = 0;
+    }
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaMemcpyToSymbol(const void *symbol, const void *src, size_t count, size_t offset,
+                             int kind) {
+    (void)symbol;
+    (void)src;
+    (void)count;
+    (void)offset;
+    (void)kind;
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaMemcpyFromSymbol(void *dst, const void *symbol, size_t count, size_t offset,
+                               int kind) {
+    (void)dst;
+    (void)symbol;
+    (void)count;
+    (void)offset;
+    (void)kind;
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
 /* ---- Unified Memory（昇腾无 managed memory，fallback device 分配） ---- */
 
 aclError wcudaMallocManaged(void **devPtr, size_t size, unsigned int flags) {
@@ -862,6 +900,13 @@ aclError wcudaLaunchHostFunc(aclrtStream stream, wcceHostFn_t fn, void *userData
     /* 昇腾 aclrtLaunchCallback(fn, userData, blockType, stream)。
      * blockType 用 ACL_CALLBACK_NO_BLOCK（不阻塞，语义接近 cudaLaunchHostFunc）。 */
     WCUDA_RETURN(aclrtLaunchCallback(fn, userData, ACL_CALLBACK_NO_BLOCK, stream));
+}
+
+aclError wcudaFuncGetAttributes(void *attr, const void *func) {
+    (void)attr;
+    (void)func;
+    /* 昇腾无 kernel 属性查询接口，返回 not-support。 */
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
 }
 
 aclError wcudaFuncSetAttribute(const void *func, int attr, int value) {

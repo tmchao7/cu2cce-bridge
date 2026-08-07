@@ -115,6 +115,13 @@ aclError CUBRIDGE_API wcudaMemsetAsync(void *devPtr, int value, size_t count,
                                        aclrtStream stream /* =0 */);
 aclError CUBRIDGE_API wcudaMemset2D(void *devPtr, size_t pitch, int value, size_t width,
                                     size_t height);
+/* Symbol 内存（昇腾无 device symbol 概念，返回 not-support） */
+aclError CUBRIDGE_API wcudaGetSymbolAddress(void **devPtr, const void *symbol);
+aclError CUBRIDGE_API wcudaGetSymbolSize(size_t *size, const void *symbol);
+aclError CUBRIDGE_API wcudaMemcpyToSymbol(const void *symbol, const void *src, size_t count,
+                                          size_t offset /* =0 */, int kind /* =H2D */);
+aclError CUBRIDGE_API wcudaMemcpyFromSymbol(void *dst, const void *symbol, size_t count,
+                                            size_t offset /* =0 */, int kind /* =D2H */);
 aclError CUBRIDGE_API wcudaMemset2DAsync(void *devPtr, size_t pitch, int value, size_t width,
                                          size_t height, aclrtStream stream /* =0 */);
 aclError CUBRIDGE_API wcudaMemGetInfo(size_t *free, size_t *total);
@@ -144,6 +151,10 @@ aclError CUBRIDGE_API wcudaGetLastError(void);
 aclError CUBRIDGE_API wcudaPeekAtLastError(void);
 const char CUBRIDGE_API *wcudaGetErrorString(aclError error);
 const char CUBRIDGE_API *wcudaGetErrorName(aclError error);
+
+/* ============ Func 属性 ============ */
+/* 昇腾无 kernel 属性查询，返回 not-support */
+aclError CUBRIDGE_API wcudaFuncGetAttributes(void *attr, const void *func);
 
 /* ============ Occupancy ============ */
 /* 昇腾无 occupancy 计算接口，给 SIMT 合理默认值（block 上限 2048）。 */
