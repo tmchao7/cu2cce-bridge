@@ -11,6 +11,7 @@ extern "C" {
 #endif
 int aclInit(const char *config);
 int aclFinalize(void);
+const char *aclGetRecentErrMsg(void);
 int aclrtGetDeviceCount(uint32_t *count);
 int aclrtSetDevice(int32_t deviceId);
 int aclrtResetDevice(int32_t deviceId);

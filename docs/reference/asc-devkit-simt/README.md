@@ -26,3 +26,20 @@ curl -L "https://gitcode.com/api/v5/repos/cann/asc-devkit/contents/include/simt_
 - warp 函数（asc_shfl 等）在 `#if (__NPU_ARCH__ == 3510) || (__NPU_ARCH__ == 5102)` 下启用。
 - `warpSize`/`threadIdx`/`blockIdx`/`blockDim`/`gridDim` 是内置变量。
 - host 侧：`aclInit → aclrtSetDevice → aclrtCreateStream → <<<>>> → aclrtSynchronizeStream → aclrtResetDevice → aclFinalize`。
+
+| gather_1d.asc | 端到端 SIMT 示例：kernel 声明 + host 启动 + 内存拷贝 + 校验（最完整参考） |
+
+## 端到端流程（gather_1d.asc 确认，2026-08-07）
+
+```
+aclInit(nullptr)
+aclrtSetDevice(device_id)
+aclrtCreateStream(&stream)
+aclrtMallocHost / aclrtMalloc(HUGE_FIRST) / aclrtMemcpy(H2D)
+kernel<<<blocks_per_grid, threads_per_block, dyn_ubuf_size, stream>>>(args...)
+aclrtSynchronizeStream(stream)
+aclrtMemcpy(D2H) / aclrtFree / aclrtFreeHost
+aclrtDestroyStream(stream) / aclrtResetDevice(device_id) / aclFinalize()
+```
+
+kernel 声明无 __aicore__（bisheng 自动处理）；host 侧错误查 aclGetRecentErrMsg()。

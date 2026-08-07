@@ -1022,10 +1022,34 @@ aclError wcudaGetLastError(void) {
 aclError wcudaPeekAtLastError(void) { return g_last_error; }
 
 const char *wcudaGetErrorString(aclError error) {
-    /* 昇腾 aclrtGetErrorInfo 可查错误描述；此处先返回固定串，真机核对后完善。 */
-    static const char *unknown = "unknown error";
-    (void)error;
-    return unknown;
+    /* 昇腾 aclGetRecentErrMsg()（const char*，无参）返回最近一次失败的错误描述。
+     * ⚠️ 语义差异：CUDA 的 cudaGetErrorString(error) 按错误码查描述，可重复调用；
+     *   昇腾的是"获取并清空"最近错误，且指针仅最后一次有效。
+     * 这里优先返回最近错误描述，退化到通用错误码串。 */
+    if (error != ACL_ERROR_NONE) {
+        const char *msg = aclGetRecentErrMsg();
+        if (msg != nullptr && msg[0] != '\0') {
+            return msg;
+        }
+    }
+    switch (error) {
+    case ACL_ERROR_NONE:
+        return "no error";
+    case ACL_ERROR_INVALID_PARAM:
+        return "invalid parameter";
+    case ACL_ERROR_RT_MEMORY_ALLOCATION:
+        return "memory allocation failed";
+    case ACL_ERROR_RT_INTERNAL_ERROR:
+        return "runtime internal error";
+    case ACL_ERROR_INVALID_DEVICE:
+        return "invalid device";
+    case ACL_ERROR_RT_NO_DEVICE:
+        return "no device";
+    case ACL_ERROR_API_NOT_SUPPORT:
+        return "operation not supported on this platform";
+    default:
+        return "unknown error";
+    }
 }
 
 const char *wcudaGetErrorName(aclError error) {
