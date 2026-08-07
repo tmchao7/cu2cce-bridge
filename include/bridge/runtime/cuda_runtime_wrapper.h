@@ -107,6 +107,10 @@ aclError CUBRIDGE_API wcudaMemcpyAsync(void *dst, const void *src, size_t count,
                                        aclrtMemcpyKind kind, aclrtStream stream /* =0 */);
 aclError CUBRIDGE_API wcudaMemcpy2D(void *dst, size_t dpitch, const void *src, size_t spitch,
                                     size_t width, size_t height, aclrtMemcpyKind kind);
+/* 3D 拷贝（昇腾无 3D 参数结构，用 void* 简化；返回 not-support） */
+aclError CUBRIDGE_API wcudaMemcpy3D(const void *p);
+aclError CUBRIDGE_API wcudaMemcpy3DAsync(const void *p, aclrtStream stream);
+
 /* Peer 拷贝（昇腾有 peer access：aclrtDeviceCanAccessPeer 等） */
 aclError CUBRIDGE_API wcudaMemcpyPeer(void *dst, int dstDevice, const void *src, int srcDevice,
                                       size_t count);

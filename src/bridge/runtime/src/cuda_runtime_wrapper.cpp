@@ -789,6 +789,19 @@ aclError wcudaMemcpyFromSymbol(void *dst, const void *symbol, size_t count, size
     WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
 }
 
+/* ---- 3D 拷贝（昇腾无 3D 参数结构，not-support） ---- */
+
+aclError wcudaMemcpy3D(const void *p) {
+    (void)p;
+    return ACL_ERROR_API_NOT_SUPPORT;
+}
+
+aclError wcudaMemcpy3DAsync(const void *p, aclrtStream stream) {
+    (void)p;
+    (void)stream;
+    return ACL_ERROR_API_NOT_SUPPORT;
+}
+
 /* ---- Peer 拷贝 ---- */
 
 aclError wcudaMemcpyPeer(void *dst, int dstDevice, const void *src, int srcDevice, size_t count) {

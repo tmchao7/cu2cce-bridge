@@ -160,6 +160,8 @@
 #define cudaMemcpyAsync wcudaMemcpyAsync
 #define cudaMemcpy2D wcudaMemcpy2D
 #define cudaMemcpy2DAsync wcudaMemcpy2DAsync
+#define cudaMemcpy3D wcudaMemcpy3D
+#define cudaMemcpy3DAsync wcudaMemcpy3DAsync
 #define cudaMemcpyPeer wcudaMemcpyPeer
 #define cudaMemcpyPeerAsync wcudaMemcpyPeerAsync
 #define cudaMemset wcudaMemset
