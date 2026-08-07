@@ -8,12 +8,21 @@
 
 ## 状态
 
-🚧 **开发中（Phase A1）**：host Runtime API 桥最小核心集已完成骨架。
-- `include/`：CUDA 兼容头 + 宏表（`cudaMalloc → wcudaMalloc`）+ wcuda* 声明
-- `src/bridge/runtime/src/`：wcuda* → aclrt* 实现
-- `bin/cucc`：nvcc 兼容驱动骨架（Phase A2）
+🚧 **开发中（Phase A1-A4 骨架完成，真机验证待做）**：
 
-⚠️ 本机（macOS）无昇腾硬件/无 CANN，**代码仅供阅读与移植参考，不可本地构建**。需在装有 CANN 的昇腾真机上编译（见 `docs/01_Design/CUDA_TO_CCE_PORTING_PLAN.md`）。
+| Phase | 内容 | 状态 |
+|---|---|---|
+| A1 | host Runtime API 桥（宏表 + wcuda*→aclrt*，126 个错误码 + 40+ 函数） | ✅ 骨架完成 |
+| A2 | cucc 驱动 + make_cce/cmake_cce/mock 工程胶水 | ✅ 骨架完成 |
+| A3 | SIMT 适配宏表 + kernel 直通（`__syncthreads→asc_syncthreads` 等） | ✅ 宏表完成，`cudaLaunchKernel` 显式 API 待真机 |
+| A4 | cublas→aclblas 最小子集（Sgemm/GemmEx） | ✅ 骨架完成 |
+
+- `include/`：CUDA 兼容头链（`cuda_runtime.h → __cuda_runtime.h → 宏表 → wcuda* 声明`）+ `cublas_v2.h`
+- `src/bridge/`：wcuda*→aclrt* 实现 + wcublas*→aclblas 实现
+- `bin/cucc` + `tools/`：nvcc 兼容驱动 + make_cce/cmake_cce/mock
+- `tests/mock_acl/`：mock ACL 头 + 本机语法验证脚本（`bash tests/mock_acl/syntax_check.sh`，3/3 通过）
+
+⚠️ 本机（macOS）无昇腾硬件/无 CANN，**代码仅供阅读与移植参考，不可本地构建**。需在装有 CANN 的昇腾真机上编译（见 `docs/01_Design/CUDA_TO_CCE_PORTING_PLAN.md`）。真机验证清单见 `docs/03_Comparison/mapping.md`。
 
 ## 文档
 
