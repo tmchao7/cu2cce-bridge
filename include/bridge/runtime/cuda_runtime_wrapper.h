@@ -145,6 +145,17 @@ aclError CUBRIDGE_API wcudaPeekAtLastError(void);
 const char CUBRIDGE_API *wcudaGetErrorString(aclError error);
 const char CUBRIDGE_API *wcudaGetErrorName(aclError error);
 
+/* ============ Occupancy ============ */
+/* 昇腾无 occupancy 计算接口，给 SIMT 合理默认值（block 上限 2048）。 */
+aclError CUBRIDGE_API wcudaOccupancyMaxActiveBlocksPerMultiprocessor(int *numBlocks,
+                                                                    const void *func,
+                                                                    int blockSize,
+                                                                    size_t dynamicSMemSize);
+aclError CUBRIDGE_API wcudaOccupancyMaxPotentialBlockSize(int *minGridSize, int *blockSize,
+                                                         const void *func,
+                                                         size_t dynamicSMemSize /* =0 */,
+                                                         int blockSizeLimit /* =0 */);
+
 /* ============ Execution Control ============ */
 /* CUDA 的 cudaLaunchKernel(hostFunction, grid, block, args, smem, stream) 需要函数指针→kernel stub。
  * 昇腾 SIMT 的主流启动是 kernel<<<blocks, threads, stream>>>(...) 语法糖（bisheng 原生处理），

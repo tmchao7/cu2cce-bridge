@@ -790,6 +790,38 @@ aclError wcudaCtxSynchronize(void) {
     WCUDA_RETURN(aclrtSynchronizeDevice());
 }
 
+/* ---------------- Occupancy ----------------
+ * 昇腾无 occupancy 计算接口。给 SIMT 合理默认值：block 上限 2048。
+ * 仅供应用据此选 blockSize；精确的硬件 occupancy 需真机用 aclrtGetDeviceProperties 校准。 */
+
+aclError wcudaOccupancyMaxActiveBlocksPerMultiprocessor(int *numBlocks, const void *func,
+                                                        int blockSize, size_t dynamicSMemSize) {
+    (void)func;
+    (void)dynamicSMemSize;
+    if (numBlocks == nullptr || blockSize <= 0) {
+        WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
+    }
+    /* 昇腾 SIMT 单 block 最多 2048 线程；假设每核至少能放 1 个 block。 */
+    *numBlocks = 1;
+    WCUDA_RETURN(ACL_ERROR_NONE);
+}
+
+aclError wcudaOccupancyMaxPotentialBlockSize(int *minGridSize, int *blockSize, const void *func,
+                                             size_t dynamicSMemSize, int blockSizeLimit) {
+    (void)func;
+    (void)dynamicSMemSize;
+    if (minGridSize == nullptr || blockSize == nullptr) {
+        WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
+    }
+    int limit = (blockSizeLimit > 0) ? blockSizeLimit : 2048;
+    if (limit > 2048) {
+        limit = 2048; /* 昇腾 SIMT block 上限 */
+    }
+    *blockSize = limit;
+    *minGridSize = 1;
+    WCUDA_RETURN(ACL_ERROR_NONE);
+}
+
 /* ---------------- Execution Control ---------------- */
 
 aclError wcudaLaunchKernel(const void *hostFunction, int gridDimX, int gridDimY, int gridDimZ,
