@@ -73,6 +73,9 @@
 | 7 | kernel 启动 3 参 `<<<b,t,0>>>` | 4 参 `<<<blocks,threads,dyn_ubuf_size,stream>>>`；vectorAdd 已改 |
 | 8 | `asc_shfl` 有 mask | 无 mask：`asc_shfl(var, src_lane, width=warpSize)` |
 | 9 | `aclrtMemset` 5 参 | 4 参 `(devPtr, maxCount, value, count)` |
+| 10 | 成功码用 `ACL_ERROR_NONE` | 官方 aclError 文档：**`ACL_SUCCESS` 是当前正确，`ACL_ERROR_NONE` 将废弃**；48 处已改回 |
+| 11 | `wcublasSgemv` 占位 not-support | `aclblasGemvEx` 存在（FP32 gemv）；已真实映射 |
+| 12 | `aclrtGetDeviceProperties`（注释提到） | **不存在**；正确 API 是 `aclrtGetDeviceInfo(deviceId, attr, int64_t*)`；wrapper 用 SocName+MemInfo 组装，未调用它 |
 
 ## 5. 待实机确认项（真机 /usr/local/Ascend/.../include/acl/ 核实）
 

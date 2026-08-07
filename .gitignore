@@ -1,2 +1,57 @@
+# ============================================================
+# cu2cce-bridge .gitignore
+# 本机 macOS 无 CANN 不构建；以下主要为真机构建/开发准备。
+# ============================================================
+
+# macOS
 .DS_Store
-docs/.DS_Store
+**/.DS_Store
+
+# 构建产物
+/build/
+build/
+build_out/
+*.o
+*.obj
+*.a
+*.so
+*.so.*
+*.dylib
+*.exe
+a.out
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CTestTestfile.cmake
+Makefile
+CMakePresets.json.local
+
+# cucc/make_cce 临时工作目录（对应 cu-bridge 的 CUBRIDGE_HOME）
+# 默认 ~/cu2cce-bridge，若在仓库内运行 make_cce 会生成
+cu2cce-bridge/
+.ninja_log
+.ninja_deps
+
+# 昇腾算子工程产物（cmake_cce / build.sh）
+custom_opp_*.run
+*.o.npu
+tiling*.h
+
+# 编辑器 / IDE
+.vscode/*
+!.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# 日志
+*.log
