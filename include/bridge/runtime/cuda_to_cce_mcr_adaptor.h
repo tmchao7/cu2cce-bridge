@@ -225,6 +225,16 @@
 #define cudaProfilerStart wcudaProfilerStart
 #define cudaProfilerStop wcudaProfilerStop
 
+// Graph（昇腾无 CUDA Graph，核心函数 not-support）
+#define cudaGraphCreate wcudaGraphCreate
+#define cudaGraphDestroy wcudaGraphDestroy
+#define cudaGraphInstantiate wcudaGraphInstantiate
+#define cudaGraphLaunch wcudaGraphLaunch
+#define cudaGraphExecDestroy wcudaGraphExecDestroy
+#define cudaGraphExecUpdate wcudaGraphExecUpdate
+#define cudaGraphAddKernelNode wcudaGraphAddKernelNode
+#define cudaGraphMemcpyNodeSetParams1D wcudaGraphMemcpyNodeSetParams1D
+
 // Texture/Surface（昇腾无对应，全部 not-support）
 #define cudaCreateChannelDesc wcudaCreateChannelDesc
 #define cudaCreateTextureObject wcudaCreateTextureObject

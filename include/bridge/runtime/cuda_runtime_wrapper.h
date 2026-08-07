@@ -233,6 +233,21 @@ aclError CUBRIDGE_API wcudaThreadSynchronize(void);
 aclError CUBRIDGE_API wcudaThreadExit(void);
 aclError CUBRIDGE_API wcudaThreadGetCacheConfig(int *cacheConfig);
 
+/* ============ Graph（昇腾无 CUDA Graph 对应，核心函数 not-support；句柄用 void* 简化） ============ */
+aclError CUBRIDGE_API wcudaGraphCreate(void *pGraph, unsigned int flags);
+aclError CUBRIDGE_API wcudaGraphDestroy(void *graph);
+aclError CUBRIDGE_API wcudaGraphInstantiate(void *pGraphExec, void *graph, void *pErrorNode,
+                                            char *pLogBuffer, size_t bufferSize);
+aclError CUBRIDGE_API wcudaGraphLaunch(void *graphExec, aclrtStream stream);
+aclError CUBRIDGE_API wcudaGraphExecDestroy(void *graphExec);
+aclError CUBRIDGE_API wcudaGraphExecUpdate(void *hGraphExec, void *hGraph, void *hErrorNode_out,
+                                           int *updateResult_out);
+aclError CUBRIDGE_API wcudaGraphAddKernelNode(void *pGraphNode, void *graph,
+                                             const void *pDependencies, size_t numDependencies,
+                                             const void *pNodeParams);
+aclError CUBRIDGE_API wcudaGraphMemcpyNodeSetParams1D(void *node, void *dst, const void *src,
+                                                      size_t count, int kind);
+
 /* ============ Host Function & Func 属性 ============ */
 /* cudaLaunchHostFunc(stream, fn, userData)：昇腾有 aclrtLaunchCallback 对应。
  * cudaHostFn_t 签名 void(*)(void*) 与 aclrtCallback 一致。 */

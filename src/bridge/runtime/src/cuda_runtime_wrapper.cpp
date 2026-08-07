@@ -689,6 +689,68 @@ aclError wcudaBindTexture(size_t *offset, const void *texref, const void *devPtr
     return ACL_ERROR_API_NOT_SUPPORT;
 }
 
+/* ---- Graph（昇腾无 CUDA Graph，核心函数 not-support） ---- */
+
+aclError wcudaGraphCreate(void *pGraph, unsigned int flags) {
+    (void)flags;
+    if (pGraph != nullptr) {
+        *(void **)pGraph = nullptr;
+    }
+    return ACL_ERROR_API_NOT_SUPPORT;
+}
+
+aclError wcudaGraphDestroy(void *graph) {
+    (void)graph;
+    return ACL_ERROR_API_NOT_SUPPORT;
+}
+
+aclError wcudaGraphInstantiate(void *pGraphExec, void *graph, void *pErrorNode, char *pLogBuffer,
+                               size_t bufferSize) {
+    (void)graph; (void)pErrorNode; (void)pLogBuffer; (void)bufferSize;
+    if (pGraphExec != nullptr) {
+        *(void **)pGraphExec = nullptr;
+    }
+    return ACL_ERROR_API_NOT_SUPPORT;
+}
+
+aclError wcudaGraphLaunch(void *graphExec, aclrtStream stream) {
+    (void)graphExec;
+    (void)stream;
+    return ACL_ERROR_API_NOT_SUPPORT;
+}
+
+aclError wcudaGraphExecDestroy(void *graphExec) {
+    (void)graphExec;
+    return ACL_ERROR_API_NOT_SUPPORT;
+}
+
+aclError wcudaGraphExecUpdate(void *hGraphExec, void *hGraph, void *hErrorNode_out,
+                              int *updateResult_out) {
+    (void)hGraphExec; (void)hGraph;
+    if (hErrorNode_out != nullptr) {
+        *(void **)hErrorNode_out = nullptr;
+    }
+    if (updateResult_out != nullptr) {
+        *updateResult_out = 0;
+    }
+    return ACL_ERROR_API_NOT_SUPPORT;
+}
+
+aclError wcudaGraphAddKernelNode(void *pGraphNode, void *graph, const void *pDependencies,
+                                 size_t numDependencies, const void *pNodeParams) {
+    (void)graph; (void)pDependencies; (void)numDependencies; (void)pNodeParams;
+    if (pGraphNode != nullptr) {
+        *(void **)pGraphNode = nullptr;
+    }
+    return ACL_ERROR_API_NOT_SUPPORT;
+}
+
+aclError wcudaGraphMemcpyNodeSetParams1D(void *node, void *dst, const void *src, size_t count,
+                                         int kind) {
+    (void)node; (void)dst; (void)src; (void)count; (void)kind;
+    return ACL_ERROR_API_NOT_SUPPORT;
+}
+
 /* ---- Symbol 内存（昇腾无 device symbol 概念，返回 not-support） ---- */
 
 aclError wcudaGetSymbolAddress(void **devPtr, const void *symbol) {
