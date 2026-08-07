@@ -116,6 +116,12 @@
 #define cudaMemGetInfo wcudaMemGetInfo
 #define cudaMallocHost wcudaMallocHost
 #define cudaFreeHost wcudaFreeHost
+/* 昇腾部分支持/不支持：HostAlloc 等价转发；HostGetDevicePointer/Register 等运行时返回"不支持" */
+#define cudaHostAlloc wcudaHostAlloc
+#define cudaHostGetDevicePointer wcudaHostGetDevicePointer
+#define cudaHostRegister wcudaHostRegister
+#define cudaHostUnregister wcudaHostUnregister
+#define cudaHostGetFlags wcudaHostGetFlags
 
 // Error Handling
 #define cudaGetLastError wcudaGetLastError

@@ -348,11 +348,56 @@ aclError wcudaMallocHost(void **ptr, size_t size) {
     WCUDA_RETURN(ret);
 }
 
+aclError wcudaMallocHostWithFlags(void **ptr, size_t size, unsigned int flags) {
+    /* 昇腾无 flags 变体，忽略 flags（cudaHostAllocMapped 等无对应语义） */
+    (void)flags;
+    return wcudaMallocHost(ptr, size);
+}
+
 aclError wcudaFreeHost(void *ptr) {
     if (ptr == nullptr) {
         WCUDA_RETURN(ACL_ERROR_NONE);
     }
     WCUDA_RETURN(aclrtFreeHost(ptr));
+}
+
+/* ---- 昇腾无对应：返回"不支持"，保证应用能编译、运行时明确报错 ---- */
+
+aclError wcudaHostAlloc(void **pHost, size_t size, unsigned int flags) {
+    /* cudaHostAlloc 与 cudaMallocHost 语义接近（pinned memory）。
+     * 昇腾 aclrtMallocHost 已是 pinned host 内存，此处等价转发。 */
+    return wcudaMallocHostWithFlags(pHost, size, flags);
+}
+
+aclError wcudaHostGetDevicePointer(void **pDevice, void *pHost, unsigned int flags) {
+    (void)pHost;
+    (void)flags;
+    /* 昇腾无"host 指针映射为 device 可访问指针"的等价接口（昇腾 host 内存
+     * 由 aclrtMallocHost 分配后即可在 memcpy 中直接使用）。返回不支持。 */
+    if (pDevice != nullptr) {
+        *pDevice = nullptr;
+    }
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaHostRegister(void *ptr, size_t size, unsigned int flags) {
+    (void)ptr;
+    (void)size;
+    (void)flags;
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaHostUnregister(void *ptr) {
+    (void)ptr;
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaHostGetFlags(unsigned int *pFlags, void *pHost) {
+    (void)pHost;
+    if (pFlags != nullptr) {
+        *pFlags = 0;
+    }
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
 }
 
 /* ---------------- Error Handling ---------------- */

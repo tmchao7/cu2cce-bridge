@@ -81,7 +81,14 @@ aclError CUBRIDGE_API wcudaMemsetAsync(void *devPtr, int value, size_t count,
                                        aclrtStream stream /* =0 */);
 aclError CUBRIDGE_API wcudaMemGetInfo(size_t *free, size_t *total);
 aclError CUBRIDGE_API wcudaMallocHost(void **ptr, size_t size);
+aclError CUBRIDGE_API wcudaMallocHostWithFlags(void **ptr, size_t size, unsigned int flags);
 aclError CUBRIDGE_API wcudaFreeHost(void *ptr);
+/* 昇腾无对应或语义不同，声明以保证宏表可映射、编译通过；运行时返回"不支持" */
+aclError CUBRIDGE_API wcudaHostGetDevicePointer(void **pDevice, void *pHost, unsigned int flags);
+aclError CUBRIDGE_API wcudaHostAlloc(void **pHost, size_t size, unsigned int flags);
+aclError CUBRIDGE_API wcudaHostRegister(void *ptr, size_t size, unsigned int flags);
+aclError CUBRIDGE_API wcudaHostUnregister(void *ptr);
+aclError CUBRIDGE_API wcudaHostGetFlags(unsigned int *pFlags, void *pHost);
 
 /* ============ Error Handling ============ */
 aclError CUBRIDGE_API wcudaGetLastError(void);

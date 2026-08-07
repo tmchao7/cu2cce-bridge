@@ -30,6 +30,7 @@ cu-bridge 的三条迁移线在昇腾上的对应（详见 `docs/01_Design/CUDA_
 
 - `include/` — CUDA 头文件替代品（cuda_runtime.h、cuda_runtime_api.h、__cuda_runtime.h、bridge/ 等），编译时通过 `-I$CUDA_PATH/include`（CUDA_PATH 指向 cu2cce-bridge 安装目录）注入
 - `include/bridge/runtime/` — `cuda_to_cce_mcr_adaptor.h`（核心宏表）、`cuda_runtime_wrapper.h`（wcuda* 声明）、`cuda_wrapper_types.h`（_cceDeviceProp_t）、`cuda_wrapper_internal.h`（bridge_init）、`cuda_benchmark_targets.h`（版本/导出宏）
+- `include/bridge/kernel/` — `simt_adaptor.h`（Phase A3：AI Core SIMT 适配宏表，`__syncthreads`→`asc_syncthreads`、`__shared__`→`__ubuf__`）
 - `src/bridge/runtime/src/` — `cuda_runtime_wrapper.cpp`（wcuda* → aclrt* 实现）
 - `bin/cucc` — nvcc 兼容编译器驱动骨架（Phase A2，解析 nvcc 参数、找 bisheng、注入 include/link、`--npu-arch=dav-*`、`-DCUDA_VERSION`）
 - `tools/` — （规划）make_cce / cmake_cce / mock，Phase A2+
@@ -38,6 +39,7 @@ cu-bridge 的三条迁移线在昇腾上的对应（详见 `docs/01_Design/CUDA_
 
 ## 环境变量（真机编译/运行时）
 
+- **CANN 版本基准：9.x 系列**（发布版 9.1.0，用户服务器 9.2.0）。API 用 9.x 新增面：`aclrtLaunchKernelV2`、`aclrtCreateEventWithFlag`、AI Core SIMT；不用 8.x 旧命名。
 - `ASCEND_TOOLKIT_HOME=/usr/local/Ascend/ascend-toolkit/latest` — CANN 根目录（bisheng 在 `compiler/ccec_compiler/bin/`，ACL 头在 `include/`，库在 `lib64/`）
 - `CUCC_PATH` — cu2cce-bridge 安装位置；`CUDA_PATH=${CUCC_PATH}`（让 `-I$CUDA_PATH/include` 落到 cu2cce）
 - `CUCC_NPU_ARCH` — bisheng NPU 架构参数（**D0 已定：`dav-310`，对应昇腾 950 系列 Ascend 950PR/950DT**，AI Core 原生支持 SIMT）

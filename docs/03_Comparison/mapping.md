@@ -20,6 +20,12 @@
 | 10 | include/cuda_runtime_api.h | include/cuda_runtime_api.h | 已移植 | 转发入口 |
 | 11 | CMakeLists.txt | CMakeLists.txt | 已移植 | 构建 cce_bridge_runtime.so，链 ASCEND 库 |
 
+## Phase A3：SIMT 适配宏表（路线 A 核心新增）
+
+| # | cu-bridge 源文件 | cu2cce 目标文件 | 状态 | 备注 |
+|---|---|---|---|---|
+| 19 | （cu-bridge 无，昇腾新增） | include/bridge/kernel/simt_adaptor.h | 已移植 | SIMT↔CUDA 宏表；__syncthreads/__shared__/__threadfence 已映射，__shfl/atomic 待真机核对签名 |
+
 ## Phase A2：cucc 驱动 + CMake 探测（骨架）
 
 | # | cu-bridge 源文件 | cu2cce 目标文件 | 状态 | 备注 |

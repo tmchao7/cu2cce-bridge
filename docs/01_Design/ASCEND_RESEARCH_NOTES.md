@@ -3,6 +3,10 @@
 > 状态：2026-08-07 调研记录（Web 检索，未真机验证）
 > 用途：cu2cce-bridge 移植 cu-bridge 到昇腾的参考资料库。与 `CUDA_TO_CCE_PORTING_PLAN.md`（决策型）配套，本文件是**事实型**存档。
 > 说明：本机无昇腾硬件、无 CANN，以下事实来自 CANN 官方文档检索与开源工程，标注 ✅=官方文档/源码确认，⚠️=需真机二次核对。
+>
+> **CANN 版本基准（2026-08-07 用户确认）：按 CANN 9.x 系列开发（发布版 9.1.0，用户服务器实际为 9.2.0）**。
+> 因此优先采用 9.x 新增 API：`aclrtLaunchKernelV2`（9.0+）、`aclrtCreateEventWithFlag`（新版命名）、AI Core SIMT（9.0+ 支持）。
+> 8.x 及更早的旧命名（如 `aclrtCreateEventWithFlags`）不作为基准。
 
 ---
 

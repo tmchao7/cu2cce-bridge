@@ -94,14 +94,16 @@
 > 前提 ✅：目标硬件是 Ascend 950 系列（950PR/950DT，bisheng `--npu-arch=dav-310`），AI Core 原生支持 SIMT。
 
 - **Phase A0**：仓库骨架 + 工作区（见 CLAUDE_WORKSPACE_PLAN.md）+ D0 确认。✅ 完成（2026-08-07）。
-- **Phase A1**：host Runtime API 桥（宏表 + wrapper → aclrt*）。✅ 骨架完成，剩余：补全错误码枚举映射、逐函数真机核对。
-- **Phase A1**：Host Runtime API 桥。`cuda_to_maca_mcr_adaptor.h` → `cuda_to_cce_mcr_adaptor.h`（宏表结构原样，mc*→acl*）；`cuda_runtime_wrapper.h`（签名不变）+ `cuda_runtime_wrapper.cpp`（实现调 aclrt*）。错误码 `mcError_t`→`aclError` 全枚举映射。
+- **Phase A1**：Host Runtime API 桥。`cuda_to_maca_mcr_adaptor.h` → `cuda_to_cce_mcr_adaptor.h`（宏表结构原样，mc*→acl*）；`cuda_runtime_wrapper.h`（签名不变）+ `cuda_runtime_wrapper.cpp`（实现调 aclrt*）。错误码 `mcError_t`→`aclError`。
+  - ✅ 完成：错误码按真实 acl_base.h / rt_error_codes.h 对齐（ACL_ERROR_NONE 成功码）；含 Device/Peer/Context/Stream/Event/Memory/Host/Error/Version 各组 wcuda* 声明+实现；声明↔实现↔宏表三方一致。
+  - ⚠️ 剩余：`aclrtGetDeviceProperties`/`aclrtGetVersion` 等 9.x 新 API 的确切签名待真机核对（镜像头为 CANN 7/8 早期）。
   - 验收：host 侧 `.cu` 编译链接后，仅调 host API 即可在昇腾机跑通（kernel 体先置空）。
-- **Phase A2**：`bin/cucc` 驱动 + CMake 探测。复用 cucc 的 nvcc 参数解析；`--offload-arch`→`--npu-arch=dav-*`；找 bisheng（`ccec_compiler/bin`）而非 mxcc；注入 `-I$CUDA_PATH/include`；生成 `aclrtlaunch_{kernel}.h`。移植 make_maca/cmake_maca→make_cce/cmake_cce、tools/mock/。
+- **Phase A2**：`bin/cucc` 驱动 + CMake 探测。复用 cucc 的 nvcc 参数解析；`--offload-arch`→`--npu-arch=dav-310`；找 bisheng（`ccec_compiler/bin`）而非 mxcc；注入 `-I$CUDA_PATH/include`；生成 `aclrtlaunch_{kernel}.h`。移植 make_maca/cmake_maca→make_cce/cmake_cce、tools/mock/。
   - 验收：`cucc vectorAdd.cu -o vectorAdd` 全流程编链成功。
 - **Phase A3**：**SIMT 适配宏表 + kernel 直通**。这是路线 A 与 cu-bridge 唯一实质差异：
-  - 新增 kernel 侧宏表：`__syncthreads`→`asc_syncthreads`、`__shared__`→`__ubuf__`、`__shfl_*`→`asc_shfl`、`atomic*`→`asc_atomic_*`、`warpSize` 用 `cudaGetDeviceProperties` 等。
-  - 处理 `<<<>>>` 启动 → 生成 aclrtlaunch 头或走 `ACLRT_LAUNCH_KERNEL`。
+  - ✅ 已建 `include/bridge/kernel/simt_adaptor.h`：`__syncthreads`→`asc_syncthreads`、`__shared__`→`__ubuf__`、`__threadfence`→`asc_threadfence`；`__shfl_*`/`atomic*` 因签名待真机核对暂注释。
+  - `<<<>>>` 启动：昇腾 SIMT 用 `kernel<<<blocks_per_grid, threads_per_block, stream>>>` 语法糖，由 bisheng 原生识别（无需宏替换）；也可走 `ACLRT_LAUNCH_KERNEL` 宏或 `aclrtLaunchKernelV2`。
+  - ⚠️ 待真机核对：`asc_shfl`/`asc_atomic_*` 的确切签名、SIMT kernel 的 host 启动头文件（aclrtlaunch_xxx.h）。
   - 先 `ICPU_RUN_KF` CPU 模拟验证，再真机。
   - 验收：vectorAdd / matrixTranspose（SIMT 示例级）在昇腾上跑通且结果正确。
 - **Phase A4**：库与多文件工程。cublas→aclblas 子集（参考 ops-blas / acl_cblas.h）；make_cce/cmake_cce 多子工程；PyTorch 编译指南参照 cu-bridge。
