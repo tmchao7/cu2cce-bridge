@@ -110,11 +110,19 @@ if [[ "${xlang}" == "cu" ]]; then
     fi
 fi
 
+# C++17（昇腾编译 Ascend C/SIMT 必选）
+params+=("-std=c++17")
+
 # 模拟 CUDA 版本
 params+=("-D" "CUDA_VERSION=${CUCC_CUDA_VERSION}")
 
 # NPU 架构（D0 已定：dav-310）
 params+=("--npu-arch=${CUCC_NPU_ARCH}")
+
+# 设备侧代码标注（编译 .cu 时 bisheng 需要 -xcce 识别含设备代码的源）
+if [[ "${xlang}" == "cu" ]]; then
+    params+=("-xcce")
+fi
 
 # 链接阶段：追加昇腾运行库（bisheng 同 clang 风格 -L/-l）
 if [[ ${dotofilefound} -eq 1 ]]; then
