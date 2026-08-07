@@ -93,6 +93,8 @@ aclError CUBRIDGE_API wcudaEventCreate(aclrtEvent *event);
 aclError CUBRIDGE_API wcudaEventCreateWithFlags(aclrtEvent *event, unsigned int flags);
 aclError CUBRIDGE_API wcudaEventDestroy(aclrtEvent event);
 aclError CUBRIDGE_API wcudaEventRecord(aclrtEvent event, aclrtStream stream /* =0 */);
+aclError CUBRIDGE_API wcudaEventRecordWithFlags(aclrtEvent event, aclrtStream stream /* =0 */,
+                                                unsigned int flags /* =0 */);
 aclError CUBRIDGE_API wcudaEventSynchronize(aclrtEvent event);
 aclError CUBRIDGE_API wcudaEventQuery(aclrtEvent event);
 aclError CUBRIDGE_API wcudaEventElapsedTime(float *ms, aclrtEvent start, aclrtEvent end);
@@ -142,6 +144,11 @@ const char CUBRIDGE_API *wcudaGetErrorName(aclError error);
 aclError CUBRIDGE_API wcudaLaunchKernel(const void *hostFunction, int gridDimX, int gridDimY,
                                         int gridDimZ, int blockDimX, int blockDimY, int blockDimZ,
                                         void **args, size_t sharedMemBytes, aclrtStream stream);
+
+/* ============ Thread Management（废弃 API，映射到等价运行时调用） ============ */
+aclError CUBRIDGE_API wcudaThreadSynchronize(void);
+aclError CUBRIDGE_API wcudaThreadExit(void);
+aclError CUBRIDGE_API wcudaThreadGetCacheConfig(int *cacheConfig);
 
 /* ============ Version ============ */
 aclError CUBRIDGE_API wcudaRuntimeGetVersion(int *runtimeVersion);

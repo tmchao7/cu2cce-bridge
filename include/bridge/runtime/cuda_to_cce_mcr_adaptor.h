@@ -148,6 +148,7 @@
 #define cudaEventCreateWithFlags wcudaEventCreateWithFlags
 #define cudaEventDestroy wcudaEventDestroy
 #define cudaEventRecord wcudaEventRecord
+#define cudaEventRecordWithFlags wcudaEventRecordWithFlags
 #define cudaEventSynchronize wcudaEventSynchronize
 #define cudaEventQuery wcudaEventQuery
 #define cudaEventElapsedTime wcudaEventElapsedTime
@@ -183,6 +184,11 @@
 #define cudaPeekAtLastError wcudaPeekAtLastError
 #define cudaGetErrorString wcudaGetErrorString
 #define cudaGetErrorName wcudaGetErrorName
+
+// Thread Management（废弃 API）
+#define cudaThreadSynchronize wcudaThreadSynchronize
+#define cudaThreadExit wcudaThreadExit
+#define cudaThreadGetCacheConfig wcudaThreadGetCacheConfig
 
 // Version
 #define cudaRuntimeGetVersion wcudaRuntimeGetVersion

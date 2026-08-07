@@ -430,6 +430,12 @@ aclError wcudaEventRecord(aclrtEvent event, aclrtStream stream) {
     WCUDA_RETURN(aclrtRecordEvent(event, stream));
 }
 
+aclError wcudaEventRecordWithFlags(aclrtEvent event, aclrtStream stream, unsigned int flags) {
+    /* 昇腾无 flags 变体，忽略 flags，等价于 wcudaEventRecord */
+    (void)flags;
+    return wcudaEventRecord(event, stream);
+}
+
 aclError wcudaEventSynchronize(aclrtEvent event) {
     if (event == nullptr) {
         WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
@@ -755,6 +761,24 @@ aclError wcudaLaunchKernel(const void *hostFunction, int gridDimX, int gridDimY,
     (void)args; (void)sharedMemBytes; (void)stream;
     /* ⚠️ 昇腾 SIMT 请用 kernel<<<blocks, threads, stream>>>(...) 语法糖启动（bisheng 原生）。
      * 显式 cudaLaunchKernel 桥接需 aclrtLaunchKernelV2 + kernel stub（Phase A3 收尾）。 */
+    return ACL_ERROR_API_NOT_SUPPORT;
+}
+
+/* ---------------- Thread Management（废弃 API） ---------------- */
+
+aclError wcudaThreadSynchronize(void) {
+    /* cudaThreadSynchronize 是 cudaDeviceSynchronize 的旧名 */
+    return wcudaDeviceSynchronize();
+}
+
+aclError wcudaThreadExit(void) {
+    /* cudaThreadExit 旧名，昇腾无线程退出概念，等价 device reset */
+    return wcudaDeviceReset();
+}
+
+aclError wcudaThreadGetCacheConfig(int *cacheConfig) {
+    /* 废弃 API，昇腾无 cache 配置，返回 not-support */
+    (void)cacheConfig;
     return ACL_ERROR_API_NOT_SUPPORT;
 }
 
