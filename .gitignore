@@ -47,6 +47,10 @@ tiling*.h
 *.swo
 *~
 
+# Claude Code 本地会话配置（保留 settings.json 和 agents/commands，忽略本地权限文件）
+.claude/settings.local.json
+.claude/*.local.json
+
 # Python
 __pycache__/
 *.py[cod]
