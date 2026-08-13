@@ -9,9 +9,9 @@
  *   export ASCEND_TOOLKIT_HOME=/usr/local/Ascend/ascend-toolkit/latest
  *   cucc vectorAdd.cu -o vectorAdd
  *
- * 本示例当前只验证 host 侧 API 替换（kernel 部分 Phase A3 后启用）：
+ * 本示例验证 host 侧 API 替换 + kernel 直通端到端链路（Phase A3）：
  *   cudaMalloc/cudaMemcpy/cudaDeviceSynchronize/cudaGetDeviceCount
- *   → wcudaMalloc/aclrtMalloc 等。
+ *   → wcudaMalloc/aclrtMalloc 等；kernel 经 bisheng 直编后校验 c = a + b。
  */
 #include <cuda_runtime.h>
 #include <stdio.h>
@@ -78,7 +78,11 @@ int main(void) {
     int threads = 256;
     int blocks = (N + threads - 1) / threads;
     cudaStream_t stream = nullptr;
-    cudaStreamCreate(&stream);
+    err = cudaStreamCreate(&stream);
+    if (err != cudaSuccess) {
+        printf("cudaStreamCreate failed: %d\n", (int)err);
+        return 1;
+    }
     vectorAddKernel<<<blocks, threads, 0, stream>>>(d_c, d_a, d_b, N);
     cudaStreamSynchronize(stream);
     cudaStreamDestroy(stream);
@@ -92,8 +96,18 @@ int main(void) {
         return 1;
     }
 
-    /* 校验（host 侧当前只验证 API 链路，结果由 kernel 完成后校验） */
-    printf("vectorAdd host-side API bridge OK\n");
+    /* 数值校验：kernel 直通跑通后 c 应全为 1+2=3 */
+    int mismatch = 0;
+    for (int i = 0; i < N; ++i) {
+        if (h_c[i] != 3.0f) {
+            mismatch++;
+        }
+    }
+    if (mismatch != 0) {
+        printf("vectorAdd FAILED: %d/%d mismatch\n", mismatch, N);
+        return 1;
+    }
+    printf("vectorAdd OK (N=%d)\n", N);
 
     cudaFree(d_a);
     cudaFree(d_b);
