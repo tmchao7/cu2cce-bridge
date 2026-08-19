@@ -1,0 +1,64 @@
+============================================================
+SERVER_STEPS_107002_ROUND11.txt —— 107002 排查第 11 轮 · 服务器操作
+============================================================
+（本文件由 ZCode 推送。cat 本文件后，把 ---- 之间的命令块
+整段复制粘贴执行；# 开头为说明行，粘贴时自动当注释。）
+
+背景（第 10 轮结论——决定性）：
+  · host_bridge_smoke（cucc 编译、**先 cudaGetDeviceCount → cudaSetDevice(0)
+    → cudaMalloc**）PASS；[wcuda] 压印全 OK（wcudaMalloc enter/aclrtMalloc
+    call ret=0/exit）
+  · iter_malloc（带 wrapper，aclInit→GetDeviceCount→SetDevice→6 次 malloc）
+    全部成功；iter_raw（不带 wrapper）也全成功
+  · minimal / echo（**无 cudaGetDeviceCount，直接 cudaMalloc**）稳定 107002
+  → 差异不只是"先后顺序"（iter 也没先 GetDeviceCount 但过）——
+    **必须是 smoke 与 minimal 在编译产物/宏替换上的差异**。二者都由
+    cucc 编 .cu（smoke 无 kernel，minimal 有 kernel）。下一步：
+    用"保留中间产物"的方式逐行 diff smoke 与 minimal 的编译输出。
+
+------------------------------------------------------------
+0. 拉最新 + 看本文件
+------------------------------------------------------------
+cd /home/t50063365/workspace/repos/cu2cce-bridge && git pull
+pwd
+cat tools/real_test/SERVER_STEPS_107002_ROUND11.txt
+
+------------------------------------------------------------
+1. 用 cucc 编译 host_bridge_smoke 并保留中间产物（看 kernel_convert 是否夹带）
+------------------------------------------------------------
+export CUCC_PATH=$PWD/build/real_test/install
+export CUDA_PATH=$CUCC_PATH
+export PATH=$CUCC_PATH/bin:$PATH
+
+# 把 kernel_convert 的产物保留下来（cucc 临时文件在 /tmp/cu2cce_*.cce，
+# 跑一次后立刻 ls 出来看是不是真被转换/内容是什么）
+rm -f /tmp/cu2cce_*.cce
+"$CUCC_PATH/bin/cucc" -c tests/host_bridge_smoke.cu -o /tmp/smoke2.o 2>&1 | tail -5
+ls -la /tmp/cu2cce_*.cce 2>/dev/null && head -30 /tmp/cu2cce_*.cce
+
+# 同一命令再跑 minimal，保留它的中间产物体检
+rm -f /tmp/cu2cce_*.cce
+"$CUCC_PATH/bin/cucc" -c examples/minimal/minimal.cu -o /tmp/minimal2.o 2>&1 | tail -5
+ls -la /tmp/cu2cce_*.cce 2>/dev/null && grep -n "kernel\|simt\|async_invoke\|__global__\|__gm__" /tmp/cu2cce_*.cce | head -20
+
+------------------------------------------------------------
+2. （关键）用 g++/ccec 直接编译 smoke 的 .o 再跑一次（绕开 cucc 差异）
+------------------------------------------------------------
+# 若第 1 步两者中间产物一致 → 问题在链接/运行时的最终二进制差异
+# 加 --verbose 看 cucc 实际调用了什么（编译器/参数）
+"$CUCC_PATH/bin/cucc" -v -c examples/minimal/echo.cce -o /tmp/echo_v.o 2>&1 | grep -E "ccec|bisheng|bin/|cc1|-v" | head -20
+
+------------------------------------------------------------
+3. 判读（贴回第 1、2 步输出）
+------------------------------------------------------------
+【第 1 步】smoke 与 minimal 的 /tmp/cu2cce_*.cce 是否都存在？
+   - smoke 有（host-only 无 kernel 也被转？还是原样输出？）
+   - minimal 有（含 __simt_vf__/async_invoke 转换）
+   - 若 smoke 根本没有 .cce（未被转）→ smoke 是"纯 host 编译"路径，
+     minimal 是"kernel 转换"路径 → 两条路径的编译参数/头注入不同
+     → 很可能 minimal 在 kernel_convert 生成的代码里引入了
+       cuda_runtime.h 的重复 include 或宏冲突，导致 wcudaMalloc 的位置
+       被改/静默错调
+【第 2 步】-v 输出显示实际调用的是哪个编译器/参数——若有差异，贴回
+
+============================================================
