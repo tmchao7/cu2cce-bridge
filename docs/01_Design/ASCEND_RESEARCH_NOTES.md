@@ -384,7 +384,7 @@ ${CANN_BASE}/bin/ccec -O2 --cce-aicore-arch=dav-c310 -std=c++17 <src>.cce \
 
 **设备可用性（2026-08-19 实测）**：`/dev/davinci0 /dev/davinci_manager` 设备节点存在；`probe_device`（aclInit→aclrtGetDeviceCount→aclrtGetSocName）**运行成功** → 本机**直连可用 NPU**（此前 npu-smi 缺失仅是无查询工具，不影响运行）。`DEVICE_QUERY=1`。
 
-**SIMT include 依赖（编译要点）**：simt_api 头依赖链很长（asc_simt.h → common_functions.h → device_types.h → utils/base/sys_macros.h → **impl/utils/sys_macros.h**，跨目录），单靠 `-I simt_api 父目录` 不够。env_probe 第 7 节已实现**缺头自动修复**：解析 `fatal error: 'xxx'` → 在 ASCEND_HOME 下 find → 补 `-I` 重试（最多 3 轮）。
+**SIMT include 依赖（编译要点）**：simt_api 头依赖链很长（asc_simt.h → common_functions.h → device_types.h → utils/base/sys_macros.h → **impl/utils/sys_macros.h**，跨目录），单靠 `-I simt_api 父目录` 不够；且 **impl/ 不在 include/ 下**，实际位于 `cann-9.2.0/x86_64-linux/asc/impl/utils/`。env_probe 第 7 节已实现**缺头自动修复**：解析 `fatal error: 'xxx'` → ASCEND_HOME 下 find → 补 **能解析该相对 include 的根目录**（文件路径去掉 miss_hdr 相对路径，如补 `.../asc` 而非 `.../asc/impl/utils`）→ 重试（最多 3 轮）。真机确认：`ccec + dav-c310` 预处理得到 **`__NPU_ARCH__=3510`**，与 simt_api 门控 3510 匹配（→ dav-c310 与门控 3510 硬件对应关系确认）。
 
 **API 差异（真机头文件，修正此前基于公开版的判断）**
 

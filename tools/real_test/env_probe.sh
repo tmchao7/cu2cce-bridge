@@ -196,6 +196,7 @@ if [ -f "$ATH/include/simt_api/asc_simt.h" ]; then
     SIMT_API_INCLUDE="$ATH/include/simt_api"
     ok "simt_api 位于 CANN include 内：$SIMT_API_INCLUDE"
 else
+    found=""
     # 候选 A：版本化目录布局（真机 9.2.0 实测：cann-*/x86_64-linux/asc/include/simt_api）
     for found_cand in \
         "$ASCEND_HOME"/cann-*/x86_64-linux/asc/include/simt_api \
@@ -415,18 +416,24 @@ try_compile() {
     fi
     args+=( -c "$arch_tmp/arch_probe.asc" -o "$arch_tmp/arch_probe.o" )
     rm -f "$arch_tmp/arch_probe.o"
-    local try=0 miss_hdr hdr_dir
+    local try=0 miss_hdr miss_file hdr_dir
     while [ "$try" -lt 3 ]; do
         if "$cc" "${args[@]}" >"$lg" 2>&1 && [ -f "$arch_tmp/arch_probe.o" ]; then
             return 0
         fi
         miss_hdr="$(grep -oE "fatal error: '[^']+'" "$lg" | head -1 | sed "s/^fatal error: '//;s/'$//")"
         [ -z "$miss_hdr" ] && return 1
-        hdr_dir="$(dirname "$(find "${ASCEND_HOME:-/usr/local/Ascend}" -maxdepth 12 -type f -path "*/${miss_hdr}" 2>/dev/null | head -1)")"
-        if [ -z "$hdr_dir" ] || [ "$hdr_dir" = "." ]; then
+        miss_file="$(find "${ASCEND_HOME:-/usr/local/Ascend}" -maxdepth 12 -type f -path "*/${miss_hdr}" 2>/dev/null | head -1)"
+        if [ -z "$miss_file" ]; then
             log "    （${name}：缺失头 ${miss_hdr} 在 ASCEND_HOME 下未找到，停止重试）"
             return 1
         fi
+        # 关键：补的是能解析 include 相对路径的根目录。
+        # 例：include "impl/utils/sys_macros.h"，文件在 .../asc/impl/utils/sys_macros.h
+        #     → 需要的 -I 是 .../asc（从文件路径去掉 miss_hdr 相对路径），
+        #       而不是 dirname（.../asc/impl/utils，那样永远解析不到）——真机实测教训
+        hdr_dir="${miss_file%/${miss_hdr}}"
+        [ -z "$hdr_dir" ] && hdr_dir="$(dirname "$miss_file")"
         args+=( -I "$hdr_dir" )
         try=$((try+1))
         log "    （${name}：自动补 include：${hdr_dir}）"
@@ -457,12 +464,15 @@ if [ -n "$CCEC_PATH" ]; then
         COMPILER_KIND="ccec"
         ARCH_FALLBACK="${CUCC_NPU_ARCH}"
         ARCH_COMPILE_OK="1"
-        NPU_ARCH_MACRO="$("$CCEC_PATH" -E -xcce "--cce-aicore-arch=${CUCC_NPU_ARCH}" "$arch_tmp/macro_probe.cce" 2>/dev/null | grep -vE '^#' | tr -d ' \n')"
+        # 宏值：-dM -E 精确提取（ccec -E 会展开大段内置头，不能整段 grep；真机实测
+        # ccec+dav-c310 → __NPU_ARCH__=3510，与 simt_api 门控 3510 匹配）
+        NPU_ARCH_MACRO="$("$CCEC_PATH" -dM -E -xcce "--cce-aicore-arch=${CUCC_NPU_ARCH}" -x cce - 2>/dev/null | grep -oE '__NPU_ARCH__[[:space:]]+[0-9]+' | awk '{print $2}' | head -1)"
+        [ -z "$NPU_ARCH_MACRO" ] && NPU_ARCH_MACRO="$("$CCEC_PATH" -E -xcce "--cce-aicore-arch=${CUCC_NPU_ARCH}" "$arch_tmp/macro_probe.cce" 2>/dev/null | grep -oE '[0-9]+' | tail -1)"
         [ -n "$NPU_ARCH_MACRO" ] && log "    __NPU_ARCH__=${NPU_ARCH_MACRO}"
         check_gate "$NPU_ARCH_MACRO"
     else
-        warn "ccec + ${CUCC_NPU_ARCH} 编译失败，末 8 行错误如下："
-        tail -8 "$arch_tmp/ccec.log" | tee -a "$PROBE_LOG"
+        warn "ccec + ${CUCC_NPU_ARCH} 编译失败，末 10 行错误如下："
+        tail -10 "$arch_tmp/ccec.log" | tee -a "$PROBE_LOG"
     fi
 else
     warn "ccec 未找到（CANN 自带编译器，--cce-aicore-arch=dav-c310）"
