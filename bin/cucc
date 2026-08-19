@@ -222,11 +222,17 @@ if [[ ${dotofilefound} -eq 1 ]]; then
     params+=("-lstdc++" "-lpthread" "-lm")
 fi
 
-# 链接时注入 cu2cce 的 wcuda* wrapper 库
-if [[ ${dotofilefound} -eq 1 ]] && [ -n "${CUCC_PATH}" ]; then
-    params+=("-L" "${CUCC_PATH}/lib")
-    params+=("-lcce_bridge_runtime")
-fi
+# 链接时注入 cu2cce 的 wcuda* wrapper 库（并写 rpath 指向它，
+    # 运行时不需手工设 LD_LIBRARY_PATH）
+    if [[ ${dotofilefound} -eq 1 ]] && [ -n "${CUCC_PATH}" ]; then
+        params+=("-L" "${CUCC_PATH}/lib")
+        params+=("-Wl,-rpath,${CUCC_PATH}/lib")
+        params+=("-lcce_bridge_runtime")
+        # 昇腾库 rpath（真机：libascendcl 等依赖 CANN lib64/driver；运行需找到）
+        params+=("-Wl,-rpath,${ASCEND_TOOLKIT_HOME}/lib64")
+        params+=("-Wl,-rpath,${CANN_BASE}/lib64")
+        params+=("-Wl,-rpath,${CANN_BASE}/runtime/lib64")
+    fi
 
 debug_echo "final cmd: ${CC_CMD} ${params[*]}"
 

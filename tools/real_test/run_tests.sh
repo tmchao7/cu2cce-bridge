@@ -130,7 +130,8 @@ direct_compile() {
 }
 direct_link() {
     local link_args=( "$DIRECT_CC" "$1" -o "$2" \
-        -L "$CUCC_PATH/lib" -lcce_bridge_runtime \
+        -L "$CUCC_PATH/lib" -Wl,-rpath,"$CUCC_PATH/lib" -lcce_bridge_runtime \
+        -Wl,-rpath,"$ASCEND_LIB" -Wl,-rpath,"${CANN_BASE:-}/lib64" -Wl,-rpath,"${CANN_BASE:-}/runtime/lib64" \
         -L "$ASCEND_LIB" "${ACL_RT_LIB:-}" \
         -L "${CANN_BASE:-}/runtime/lib64" -lruntime \
         -lstdc++ -lpthread -lm )
