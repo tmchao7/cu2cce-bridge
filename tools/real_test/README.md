@@ -43,6 +43,7 @@ tools/real_test/run_tests.sh all --direct
 
 ## 已知限制（脚本按仓库当前状态适配）
 
+0. **换行符 / 执行方式（真机教训）**：脚本若经非 git 方式（压缩包/网盘/粘贴）传到服务器，可能被转成 CRLF，报 `syntax error near unexpected token $'do\r'`。修复：`sed -i 's/\r$//' tools/real_test/*.sh && chmod +x tools/real_test/*.sh`（仓库已加 `.gitattributes` 强制 LF，用 `git pull` 更新不受影响）。**执行用 `bash tools/real_test/xxx.sh` 或 `./xxx.sh`，不要用 `source`**（脚本末尾 `exit` 会关闭交互 shell）。
 1. **两步法编译**：`bin/cucc` 目前只在命令行出现 `*.o` 时才追加链接库，故统一 `cucc -c x.cu -o x.o` → `cucc x.o -o x`。
 2. **CMakeLists 直接引用 .so 文件名**：`libascendcl.so`/`libacl_cblas.so` 若在真机不存在（如只有 `libacl_rt.so`），`build_bridge.sh` 会在预检处提示，需按真机改 `CMakeLists.txt` 第 48-49 行。
 3. **SIMT 头来源**：`env_probe.sh` 自动找 `simt_api` 目录；若 kernel 用到 `__syncthreads/__shared__` 等宏而真机未装 asc-devkit，需先补装。

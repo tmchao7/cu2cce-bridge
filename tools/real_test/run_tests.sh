@@ -14,6 +14,13 @@
 #
 # 退出码：0 = 全部通过；1 = 有失败（日志见 build/real_test/logs/）
 # ============================================================
+
+# 防误用：本脚本末尾会 exit，被 source 会直接退出交互 shell
+if [ "${BASH_SOURCE[0]}" != "$0" ]; then
+    echo "❌ 请勿用 source 执行本脚本，请直接运行：bash ${BASH_SOURCE[0]}" >&2
+    return 2 2>/dev/null || exit 2
+fi
+
 set -u
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"

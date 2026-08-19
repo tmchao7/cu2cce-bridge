@@ -19,6 +19,13 @@
 #
 # 退出码：0 = 环境齐备；1 = 缺 CANN/编译器/核心库（签名未命中只 WARN 不阻断）
 # ============================================================
+
+# 防误用：本脚本末尾会 exit，被 source 会直接退出交互 shell（真机教训）
+if [ "${BASH_SOURCE[0]}" != "$0" ]; then
+    echo "❌ 请勿用 source 执行本脚本，请直接运行：bash ${BASH_SOURCE[0]}" >&2
+    return 2 2>/dev/null || exit 2
+fi
+
 set -u
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -71,13 +78,45 @@ fi
 # ---------------- 2. 编译器 / 工具链 ----------------
 log "== 2. 编译器 / 工具链 =="
 BISHENG=""
+# 候选 1：常见路径（不同 CANN 版本布局不同）
 for cand in \
     "$ATH/compiler/ccec_compiler/bin/bisheng" \
     "$ATH/compiler/ccec_compiler/bin/ccec" \
-    $(find "${ATH:-/nonexistent}" -maxdepth 6 -type f -name "bisheng" 2>/dev/null | head -3); do
+    "$ATH/compiler/bisheng/bin/bisheng" \
+    "$ATH/compiler/tikcpp/bin/bisheng"; do
     if [ -x "$cand" ]; then BISHENG="$cand"; break; fi
 done
-if [ -n "$BISHENG" ]; then ok "bisheng=$BISHENG"; else miss "未找到 bisheng 编译器"; MISS=$((MISS+1)); fi
+# 候选 2：PATH 里的 bisheng
+if [ -z "$BISHENG" ] && command -v bisheng >/dev/null 2>&1; then
+    BISHENG="$(command -v bisheng)"
+fi
+# 候选 3：全盘搜索（ASCEND_HOME 下 maxdepth 8）
+if [ -z "$BISHENG" ]; then
+    log "  常规路径未命中，在 ${ASCEND_HOME:-/usr/local/Ascend} 下搜索 bisheng/ccec（maxdepth 8）..."
+    found="$(find "${ASCEND_HOME:-/usr/local/Ascend}" -maxdepth 8 -type f \( -name "bisheng" -o -name "ccec" \) 2>/dev/null | head -5)"
+    for cand in $found; do
+        if [ -x "$cand" ]; then BISHENG="$cand"; break; fi
+    done
+fi
+if [ -n "$BISHENG" ]; then
+    ok "bisheng=$BISHENG"
+else
+    miss "未找到 bisheng 编译器"
+    log "  请手动排查并把结果发回，例如："
+    log "    find /usr/local/Ascend -maxdepth 8 -type f \\( -name bisheng -o -name ccec \\) 2>/dev/null"
+    log "    ls \$ASCEND_TOOLKIT_HOME/compiler/ 2>/dev/null"
+    MISS=$((MISS+1))
+fi
+# 打印 compiler 目录结构帮助排查（只读）
+if [ -d "$ATH/compiler" ]; then
+    log "  --- $ATH/compiler/ 目录内容 ---"
+    ls "$ATH/compiler" 2>/dev/null | tee -a "$PROBE_LOG"
+    for sub in "$ATH"/compiler/*/bin; do
+        [ -d "$sub" ] || continue
+        log "  --- $sub 内容（前 20 项） ---"
+        ls "$sub" 2>/dev/null | head -20 | tee -a "$PROBE_LOG"
+    done
+fi
 [ -f "$ATH/bin/setenv.bash" ] && ok "setenv.bash=$ATH/bin/setenv.bash" || warn "无 $ATH/bin/setenv.bash（依赖 shell 已配置 PATH/LD_LIBRARY_PATH）"
 
 for tool in gcc g++ make cmake; do
@@ -119,11 +158,15 @@ if [ -f "$ATH/include/simt_api/asc_simt.h" ]; then
     SIMT_API_INCLUDE="$ATH/include/simt_api"
     ok "simt_api 位于 CANN include 内：$SIMT_API_INCLUDE"
 else
-    found="$(find "$ATH" -maxdepth 6 -type d -name "simt_api" 2>/dev/null | head -1)"
-    if [ -n "$found" ]; then
+    # 在 ASCEND_HOME 下找 simt_api 目录或 asc_simt.h（内部工具链布局可能与公开版不同）
+    found="$(find "${ASCEND_HOME:-$ATH}" -maxdepth 10 -type d -name "simt_api" 2>/dev/null | head -1)"
+    [ -z "$found" ] && found="$(dirname "$(find "${ASCEND_HOME:-$ATH}" -maxdepth 10 -name "asc_simt.h" 2>/dev/null | head -1)" 2>/dev/null)"
+    if [ -n "$found" ] && [ -f "$found/asc_simt.h" ]; then
         SIMT_API_INCLUDE="$found"; ok "simt_api 目录：$found"
     else
         warn "未找到 simt_api 头（asc_simt.h）。kernel 用到 __syncthreads/__shared__ 宏时需先装 asc-devkit"
+        log "  请手动排查并把结果发回，例如："
+        log "    find /usr/local/Ascend -maxdepth 10 \\( -type d -name simt_api -o -name asc_simt.h \\) 2>/dev/null"
     fi
 fi
 if [ -n "$SIMT_API_INCLUDE" ]; then
