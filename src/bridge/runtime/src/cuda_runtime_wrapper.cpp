@@ -41,6 +41,13 @@ void bridge_init() {
      * aclInit 参数传 nullptr 表示默认配置（对应 CUDA 的惰性初始化）。 */
     int32_t ret = aclInit(nullptr);
     (void)ret; /* 若返回非 0，后续 wcuda 调用会通过 WCUDA_RETURN 观察到错误 */
+
+    /* CUDA 语义：默认 device 0（首次 API 调用隐式设置，用户可不写 cudaSetDevice）。
+     * 昇腾 aclrtMalloc 等必须先 aclrtSetDevice——真机实测：未设置时 cudaMalloc
+     * 报 107002（内存分配失败）。失败忽略：无设备时 cudaGetDeviceCount 仍应
+     * 返回 0 而非报错（与 CUDA 一致）。 */
+    aclError dr = aclrtSetDevice(0);
+    (void)dr;
 }
 
 } // namespace cubridge::internal
