@@ -97,7 +97,9 @@ def convert(src):
         args = ", ".join(arg_names(params))
         # 注意顺序：VF 定义必须在 kernel 之前（kernel 里 async_invoke<VF> 引用它）；
         # __global__[aicore] 显式写出（ccec 内置 __global__ 宏，重定义无效——
-        # simt_adaptor.h 不再提供 __global__ 宏，真机实测）
+        # simt_adaptor.h 不再提供 __global__ 宏，真机实测）；
+        # kernel 包装参数与 VF 一样带 __gm__（async_invoke 参数类型需匹配，
+        # 真机实测报 'expecting parameter to have memory qualifier __gm__'）
         out.append(
             f"""/* kernel 自动转换（tools/kernel_convert.py v0）：CUDA kernel {name} 零改写，
  * 此处生成昇腾 SIMT VF 等价实现（模板经真机 2026-08-19 验证） */
@@ -106,7 +108,7 @@ void {vf_name}({gm_params}) {{
 {body}
 }}
 
-__global__[aicore] void {name}({params}) {{
+__global__[aicore] void {name}({gm_params}) {{
     cce::async_invoke<{vf_name}>({VF_THREADS}, {args});
 }}
 """
