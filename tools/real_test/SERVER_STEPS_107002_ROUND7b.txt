@@ -1,0 +1,68 @@
+============================================================
+SERVER_STEPS_107002_ROUND7b.txt —— 107002 排查第 7 轮补发 · 服务器操作
+============================================================
+（本文件由 ZCode 推送。cat 本文件后，把 ---- 之间的命令块
+整段复制粘贴执行；# 开头为说明行，粘贴时自动当注释。）
+
+背景（第 7 轮已完成的/遇到的）：
+  · wrapper 的 DT_NEEDED 里确实有 libacl_cblas.so；且有 .init_array
+    （8 字节，1 个构造器项）——构造器嫌疑仍未排除
+  · ctor_probe（只链接 wrapper、不调用任何 API）运行退出码 0 → 进程能起
+  · ctor_alloc 因 gcc 不认 nullptr（C 文件）编译失败 → 本轮改用 NULL
+    + -lstdc++（ctor_alloc.c 里用的是 C 但不依赖 C++ 运行库的话可去掉，
+    但 acl/acl_rt.h 可能需要；保留无害）
+
+------------------------------------------------------------
+0. 在任何目录执行（命令用绝对路径）
+------------------------------------------------------------
+
+------------------------------------------------------------
+1. 重新编译并运行 ctor_alloc（关键判据！）
+------------------------------------------------------------
+cat > /tmp/ctor_alloc.c <<'EOF'
+#include "acl/acl_rt.h"
+#include <stdio.h>
+#include <stdlib.h>
+int main(void) {
+    printf("ctor_alloc: start\n");
+    int32_t r = aclInit(NULL);
+    printf("ctor_alloc: aclInit ret=%d\n", (int)r);
+    uint32_t cnt = 0;
+    r = aclrtGetDeviceCount(&cnt);
+    printf("ctor_alloc: cnt=%u ret=%d\n", cnt, (int)r);
+    r = aclrtSetDevice(0);
+    printf("ctor_alloc: setdev ret=%d\n", (int)r);
+    void *p = NULL;
+    r = aclrtMalloc(&p, 1024, ACL_MEM_MALLOC_HUGE_FIRST);
+    printf("ctor_alloc: malloc ret=%d ptr=%p\n", (int)r, (void *)p);
+    if (r == ACL_SUCCESS) aclrtFree(p);
+    return 0;
+}
+EOF
+gcc -o /tmp/ctor_alloc /tmp/ctor_alloc.c \
+    -I/usr/local/Ascend/latest/include \
+    -L/usr/local/Ascend/latest/lib64 -lascendcl \
+    -Wl,-rpath,/usr/local/Ascend/latest/lib64 \
+    -L/home/t50063365/workspace/repos/cu2cce-bridge/build/real_test/install/lib \
+    -lcce_bridge_runtime -Wl,-rpath,/home/t50063365/workspace/repos/cu2cce-bridge/build/real_test/install/lib \
+    -lstdc++
+echo "ctor_alloc 编译退出码: $?"
+/tmp/ctor_alloc
+echo "ctor_alloc 运行退出码: $?"
+
+------------------------------------------------------------
+2. 判读（贴回第 1 步输出）
+------------------------------------------------------------
+【malloc ret=107002 → 坐实：wrapper 的 .init_array（libacl_cblas 或别的）
+   在进程启动时搞脏 ACL 全局 → 修复：CMake 去掉 libacl_cblas 链接，
+   或把 blas 桥改惰性 dlopen】
+【malloc ret=0 → 构造器不是根因；wrapper 运行时另有问题（wcudaMalloc
+   参数/上下文），下一步深挖】
+
+------------------------------------------------------------
+3. 顺手确认 .init_array 里那个构造器是谁的（objdump 反汇编看地址）
+------------------------------------------------------------
+objdump -d -j .init_array build/real_test/install/lib/libcce_bridge_runtime.so | head -30
+nm -D build/real_test/install/lib/libcce_bridge_runtime.so | grep -iE "init|constructor|aclblas|cblas" | head
+
+============================================================
