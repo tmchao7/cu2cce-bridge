@@ -322,6 +322,12 @@ bisheng main.cpp example.asc -o main --npu-arch=dav-xxxx
 - `__aicore__`：AI Core 函数（`__global__` + `__aicore__` = AI Core kernel）。
 - `__aicpu__`：AI CPU 内核（须与 `__global__` 同用，入参仅一个指针，不能返回 void）。
 
+### 3.5 `--npu-arch=dav-310` 的来历与注意事项（2026-08-19）
+
+- **dav-310 = 内部昇腾 950 系列架构参数（导师提供，公司内部硬件，公开文档无此值）**。公开资料只有 dav-3510（Atlas 350/351x）等，**不要把 dav-310 当笔误改掉**。
+- ⚠️ 风险点：公开 asc-devkit 的 simt_api 头里 warp/atomic 函数按 `__NPU_ARCH__ == 3510 || 5102` 条件编译启用；内部头文件的门控数字宏未必相同。若真机头文件的门控不含 dav-310 对应的数字宏，`asc_shfl`/`asc_atomic_*` 会被裁掉，simt_adaptor 映射静默失效。
+- 验证方式：`tools/real_test/env_probe.sh` 第 7 节会自动做 ①`-dM -E` dump `__NPU_ARCH__` 宏值 ②grep simt_api 头门控值并比对 ③最小 SIMT kernel（asc_shfl+asc_syncthreads）实测编译。
+
 ---
 
 ## 4. 库

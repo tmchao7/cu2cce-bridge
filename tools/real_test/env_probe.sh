@@ -7,7 +7,10 @@
 #   2. 定位工具链：bisheng 编译器、ACL 头/库、acl_cblas、simt_api SIMT 头、npu-smi
 #   3. 只读核对 docs/03_Comparison/CURRENT_STATE.md 的"待真机确认项"
 #      （grep 头文件签名，不调用任何昇腾运行时 API）
-#   4. 结果写 OUT_DIR/probe.env（供 build_bridge.sh / run_tests.sh source）
+#   4. 核对目标架构 --npu-arch=dav-310（内部 950 系列，导师提供）：
+#      dump __NPU_ARCH__ 宏值、比对 simt_api 门控、最小 SIMT kernel 实测编译
+#      （产物写 /tmp，不触碰仓库构建目录）
+#   5. 结果写 OUT_DIR/probe.env（供 build_bridge.sh / run_tests.sh source）
 #      + OUT_DIR/logs/probe.log（完整明细）
 #
 # 用法：
@@ -212,9 +215,83 @@ else
     warn "跳过 SIMT 签名核对（未找到 simt_api 目录）"
 fi
 
-# ---------------- 7. 汇总 + 写 probe.env ----------------
+# ---------------- 7. 目标架构核对（dav-310，内部 950 系列） ----------------
+log "== 7. 目标架构 --npu-arch 核对（dav-310，内部 950 系列） =="
+CUCC_NPU_ARCH="${CUCC_NPU_ARCH:-dav-310}"
+NPU_ARCH_MACRO=""
+SIMT_GATE_ARCHS=""
+ARCH_COMPILE_OK="0"
+
+if [ -z "$BISHENG" ]; then
+    warn "bisheng 未找到，跳过架构核对"
+else
+    # 7.1 编译器身份
+    log "  --- bisheng --version ---"
+    "$BISHENG" --version 2>&1 | head -3 | tee -a "$PROBE_LOG"
+
+    # 7.2 --help 里架构相关选项（判断 dav-310 是否出现在文档列表）
+    log "  --- bisheng --help 中架构相关行 ---"
+    "$BISHENG" --help 2>&1 | grep -iE "npu-arch|cce-soc-version|offload-arch" | head -10 | tee -a "$PROBE_LOG"
+
+    arch_tmp="$(mktemp -d)"
+
+    # 7.3 预处理宏值：dav-310 对应的 __NPU_ARCH__ 数字宏（-E 预处理，不真正编译）
+    log "  --- --npu-arch=${CUCC_NPU_ARCH} 对应的 __NPU_ARCH__ 宏 ---"
+    printf '__NPU_ARCH__\n' > "$arch_tmp/macro_probe.cce"
+    NPU_ARCH_MACRO="$("$BISHENG" -E -xcce --npu-arch="${CUCC_NPU_ARCH}" "$arch_tmp/macro_probe.cce" 2>/dev/null | grep -vE '^#' | tr -d ' \n')"
+    if ! echo "$NPU_ARCH_MACRO" | grep -qE '^[0-9]+$'; then
+        # 兜底：-dM 宏 dump
+        NPU_ARCH_MACRO="$(printf '' | "$BISHENG" -dM -E -xcce --npu-arch="${CUCC_NPU_ARCH}" - 2>/dev/null | grep -oE '__NPU_ARCH__ [0-9]+' | awk '{print $2}' | head -1)"
+    fi
+    if echo "$NPU_ARCH_MACRO" | grep -qE '^[0-9]+$'; then
+        ok "--npu-arch=${CUCC_NPU_ARCH} → __NPU_ARCH__=${NPU_ARCH_MACRO}"
+    else
+        warn "未能取到 __NPU_ARCH__ 宏值（以 7.5 编译实测为准）"
+    fi
+
+    # 7.4 simt_api 头里 warp/atomic 的条件编译门控值
+    if [ -n "$SIMT_API_INCLUDE" ]; then
+        SIMT_GATE_ARCHS="$(grep -rhoE '__NPU_ARCH__ *== *[0-9]+' "$SIMT_API_INCLUDE" 2>/dev/null | grep -oE '[0-9]+' | sort -u | tr '\n' ' ')"
+        log "  simt_api 头中出现的 __NPU_ARCH__ 门控值：${SIMT_GATE_ARCHS:-（无）}"
+        if [ -n "$NPU_ARCH_MACRO" ] && echo " ${SIMT_GATE_ARCHS} " | grep -q " ${NPU_ARCH_MACRO} "; then
+            ok "门控覆盖 ${NPU_ARCH_MACRO}：warp/atomic 原语可用"
+        elif [ -n "$NPU_ARCH_MACRO" ]; then
+            warn "门控不含 ${NPU_ARCH_MACRO}！asc_shfl/asc_atomic_* 可能被条件编译裁掉"
+            WARN=$((WARN+1))
+        fi
+    else
+        warn "无 simt_api 目录，跳过门控比对"
+    fi
+
+    # 7.5 决定性测试：最小 SIMT kernel（asc_shfl + asc_syncthreads）实测编译
+    log "  --- 最小 SIMT kernel 实测编译 ---"
+    cat > "$arch_tmp/arch_probe.asc" <<'EOF'
+#include "asc_simt.h"
+__global__ void arch_probe_kernel(float *gmOut, const float *gmIn, int n) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    float v = gmIn[i];
+    v = asc_shfl(v, 0);
+    asc_syncthreads();
+    gmOut[i] = v;
+}
+EOF
+    arch_args=( -std=c++17 -xcce --npu-arch="${CUCC_NPU_ARCH}" )
+    [ -n "$SIMT_API_INCLUDE" ] && arch_args+=( -I "$SIMT_API_INCLUDE" )
+    arch_args+=( -c "$arch_tmp/arch_probe.asc" -o "$arch_tmp/arch_probe.o" )
+    if "$BISHENG" "${arch_args[@]}" >>"$PROBE_LOG" 2>&1 && [ -f "$arch_tmp/arch_probe.o" ]; then
+        ok "最小 SIMT kernel（asc_shfl + asc_syncthreads）编译通过"
+        ARCH_COMPILE_OK="1"
+    else
+        warn "最小 SIMT kernel 编译失败（无产物或报错），末 10 行日志："
+        tail -10 "$PROBE_LOG" | tee -a "$PROBE_LOG"
+        WARN=$((WARN+1))
+    fi
+    rm -rf "$arch_tmp"
+fi
+
+# ---------------- 8. 汇总 + 写 probe.env ----------------
 log ""
-log "== 7. 汇总 =="
+log "== 8. 汇总 =="
 {
     echo "# 由 env_probe.sh 生成（$(date '+%F %T')），供 build_bridge.sh / run_tests.sh source"
     echo "ASCEND_HOME=\"$ASCEND_HOME\""
@@ -228,6 +305,10 @@ log "== 7. 汇总 =="
     echo "NPU_SMI=\"$NPU_SMI\""
     echo "OUT_DIR=\"$OUT_DIR\""
     echo "CUCC_PATH=\"${CUCC_PATH:-$OUT_DIR/install}\""
+    echo "CUCC_NPU_ARCH=\"$CUCC_NPU_ARCH\""
+    echo "NPU_ARCH_MACRO=\"$NPU_ARCH_MACRO\""
+    echo "SIMT_GATE_ARCHS=\"$SIMT_GATE_ARCHS\""
+    echo "ARCH_COMPILE_OK=\"$ARCH_COMPILE_OK\""
 } > "$PROBE_ENV"
 ok "probe.env 已写入：$PROBE_ENV"
 ok "probe.log 已写入：$PROBE_LOG"
