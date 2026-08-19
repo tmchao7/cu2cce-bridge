@@ -210,10 +210,16 @@ if [[ "${xlang}" == "cu" ]]; then
     params+=("-xcce")
 fi
 
-# 链接阶段：追加昇腾运行库（clang 风格 -L/-l）
+# 链接阶段：追加昇腾运行库（clang 风格 -L/-l；真机实测：
+# CCE 运行时 rt* 符号（rtKernelLaunch 等）在 ${CANN_BASE}/runtime/lib64 的 -lruntime，
+# 用户实测脚本 04_build_exec.sh 同款）
 if [[ ${dotofilefound} -eq 1 ]]; then
     params+=("-L" "${ASCEND_TOOLKIT_HOME}/lib64")
+    params+=("-L" "${CANN_BASE}/runtime/lib64")
+    params+=("-L" "${CANN_BASE}/lib64")
     params+=("-lascendcl")   # 或 -lacl_rt，视 CANN 版本
+    params+=("-lruntime")    # CCE 运行时（rtKernelLaunch/rtFunctionRegister 等）
+    params+=("-lstdc++" "-lpthread" "-lm")
 fi
 
 # 链接时注入 cu2cce 的 wcuda* wrapper 库

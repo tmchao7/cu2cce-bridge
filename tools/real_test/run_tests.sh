@@ -131,7 +131,9 @@ direct_compile() {
 direct_link() {
     local link_args=( "$DIRECT_CC" "$1" -o "$2" \
         -L "$CUCC_PATH/lib" -lcce_bridge_runtime \
-        -L "$ASCEND_LIB" "${ACL_RT_LIB:-}" )
+        -L "$ASCEND_LIB" "${ACL_RT_LIB:-}" \
+        -L "${CANN_BASE:-}/runtime/lib64" -lruntime \
+        -lstdc++ -lpthread -lm )
     [ "${HAS_ACL_CBLAS:-0}" = "1" ] && link_args+=( -lacl_cblas )
     "${link_args[@]}"
 }
