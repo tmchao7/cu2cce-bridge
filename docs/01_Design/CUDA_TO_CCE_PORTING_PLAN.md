@@ -89,6 +89,25 @@
 
 ## 3. 工作路径（D0 已定：950 系列 dav-c310 → 路线 A）
 
+### 0. 昇腾语法"藏匿架构"（2026-08-19 真机验证后确立的设计原则）
+
+> 原则：**用户只写 CUDA，昇腾 cce 特有语法 100% 藏在 cu2cce 内部**。ccec 不认
+> CUDA kernel 语法（真机逐条证实），因此 cu2cce 与 cu-bridge 的实质差异是
+> **kernel 侧需要一层"藏匿"**——宏表只能做符号级替换，'一个 kernel 变
+> VF+包装+启动'是结构级转换，必须由转换工具完成。
+
+| 昇腾特有语法 | 藏匿机制 | 位置 | 状态 |
+|---|---|---|---|
+| `__global__[aicore]` 限定符 | 宏表 | `include/bridge/kernel/simt_adaptor.h` | ✅ |
+| `__launch_bounds__`→`LAUNCH_BOUND` | 宏表 | simt_adaptor.h | ✅ |
+| warp 原语（asc_syncthreads 等） | 宏表 | simt_adaptor.h | ✅ |
+| blockIdx/threadIdx/blockDim | include `simt_api/asc_simt.h` | simt_adaptor.h + cucc `-I` | ✅ |
+| `__simt_vf__`+`__gm__`+`cce::async_invoke`（结构转换） | 转换器（cucc 编译前自动调用） | `tools/kernel_convert.py` | ✅ v0 |
+| ccec 选择/`--cce-aicore-arch=dav-c310`/`-xcce` | 驱动 | `bin/cucc` | ✅ |
+| host API（cudaMalloc→aclrtMalloc） | 宏表+wrapper 库 | `include/`+`src/bridge/` | ✅ A1 |
+| `<<<>>>` 启动（ccec 是否支持待真机验证） | 若不支持：cucc 转 `aclrtLaunchSIMTKernelWithArgsArray`（wcudaLaunchKernel 已映射） | `bin/cucc`/wrapper | ⏳ |
+| 模板 kernel/函数指针/动态并行 | 转换器 v1（AST 级） | kernel_convert.py | 📋 |
+
 ### 路线 A — SIMT 型号：cu-bridge 三线照搬（已锁定）
 
 > 前提 ✅：目标硬件是 Ascend 950 系列（950PR/950DT，bisheng `--npu-arch=dav-c310`），AI Core 原生支持 SIMT。
@@ -100,12 +119,13 @@
   - 验收：host 侧 `.cu` 编译链接后，仅调 host API 即可在昇腾机跑通（kernel 体先置空）。
 - **Phase A2**：`bin/cucc` 驱动 + CMake 探测。复用 cucc 的 nvcc 参数解析；`--offload-arch`→`--npu-arch=dav-c310`；找 bisheng（`ccec_compiler/bin`）而非 mxcc；注入 `-I$CUDA_PATH/include`；生成 `aclrtlaunch_{kernel}.h`。移植 make_maca/cmake_maca→make_cce/cmake_cce、tools/mock/。
   - 验收：`cucc vectorAdd.cu -o vectorAdd` 全流程编链成功。
-- **Phase A3**：**SIMT 适配宏表 + kernel 直通**。这是路线 A 与 cu-bridge 唯一实质差异：
-  - ✅ 已建 `include/bridge/kernel/simt_adaptor.h`：`__syncthreads`→`asc_syncthreads`、`__shared__`→`__ubuf__`、`__threadfence`→`asc_threadfence`；`__shfl_*`/`atomic*` 因签名待真机核对暂注释。
-  - `<<<>>>` 启动：昇腾 SIMT 用 `kernel<<<blocks_per_grid, threads_per_block, stream>>>` 语法糖，由 bisheng 原生识别（无需宏替换）；也可走 `ACLRT_LAUNCH_KERNEL` 宏或 `aclrtLaunchKernelV2`。
-  - ⚠️ 待真机核对：`asc_shfl`/`asc_atomic_*` 的确切签名、SIMT kernel 的 host 启动头文件（aclrtlaunch_xxx.h）。
-  - 先 `ICPU_RUN_KF` CPU 模拟验证，再真机。
-  - 验收：vectorAdd / matrixTranspose（SIMT 示例级）在昇腾上跑通且结果正确。
+- **Phase A3**：**SIMT 适配 + kernel 零改写转换**。这是路线 A 与 cu-bridge 唯一实质差异（真机 2026-08-19 定稿）：
+  - ✅ 编译器主线 = **ccec**（`/usr/local/Ascend/latest/bin/ccec`，`--cce-aicore-arch=dav-c310`）；bisheng 的 `--npu-arch` 不认识 dav-c310，降为对照。
+  - ✅ 真机确认的 ccec SIMT VF 模板：kernel 入口 `__global__[aicore]`（裸 `__global__` 报错）、计算体放 `__simt_vf__`（warp 原语只能在此上下文，`[aicore]` kernel 也不行）、`blockIdx/blockDim/threadIdx` 可用（include `simt_api/asc_simt.h`）、指针需 `__gm__`、kernel 内 `cce::async_invoke<VF>(cce::dim3{...})` 启动。
+  - ✅ `simt_adaptor.h`：`__global__`→`__global__[aicore]`（自引用宏）、`__launch_bounds__`→`LAUNCH_BOUND`、warp/atomic 映射、条件 include `simt_api/asc_simt.h`。
+  - ✅ `tools/kernel_convert.py`（cucc 编译 .cu 前自动调用）：CUDA kernel 零改写 → VF 模板（VF 计算体 + `__global__` 包装 + `async_invoke`，指针自动加 `__gm__`）；v0 支持简单 `__global__ void k(...)`，模板/复杂参数待 v1。
+  - ⏳ `<<<>>>` 启动：ccec 是否支持语法糖待真机验证；不支持则 cucc 转 `aclrtLaunchSIMTKernelWithArgsArray`（wrapper 的 `wcudaLaunchKernel` 已映射）。
+  - 验收：vectorAdd（纯 CUDA 源码）经 cucc 全流程在 davinci0 上跑通且结果正确。
 - **Phase A4**：库与多文件工程。cublas→aclblas 子集（参考 ops-blas / acl_cblas.h）；make_cce/cmake_cce 多子工程；PyTorch 编译指南参照 cu-bridge。
 - **Phase A5**：非 SIMT 能力补齐（可选）。矩阵/Cube 类 kernel 走 aclblas 或 tile 模型；`__asm__` 内联处理。
 
