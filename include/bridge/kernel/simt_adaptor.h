@@ -26,11 +26,10 @@
 #endif
 
 //==================== kernel 声明 ====================//
-/* ⚠️ 不提供 __global__ 宏：ccec 内置 __global__（重定义无效，真机实测）。
- * kernel 入口限定符由 tools/kernel_convert.py 显式生成 __global__[aicore] */
-
-/* CUDA __launch_bounds__(n) -> 昇腾 LAUNCH_BOUND(n)（1 参形式；多参形式需人工改写） */
-#define __launch_bounds__(n) LAUNCH_BOUND(n)
+/* ⚠️ 不提供 __global__ / __launch_bounds__ 宏：ccec 内置两者
+ * （__launch_bounds__(N) = __attribute__((cce_launch_bounds(N)))，
+ * 重定义会警告，真机实测）。kernel 入口限定符由 tools/kernel_convert.py
+ * 显式生成 __global__[aicore] */
 
 //==================== 同步 ====================//
 /* ⚠️ 以下原语只能在 __simt_vf__ 函数内调用（simt_callee 上下文限制，真机实测） */

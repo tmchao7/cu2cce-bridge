@@ -83,8 +83,25 @@ def add_gm(params):
                   lambda m: (m.group(1) or "") + "__gm__ " + m.group(2) + " " + m.group(4), params)
 
 
+def convert_launch_config(src):
+    """CUDA <<<grid, block, sharedMem, stream>>> -> 昇腾 <<<blocks, threads, stream>>>
+    （昇腾 SIMT 语法糖只支持 3 参，真机实测报 'too many arguments, expected 7,
+    have 8'；sharedMem 由昇腾 UB 动态内存机制替代，=0 场景直接丢弃）"""
+    pat = re.compile(r"<<<\s*([^,>]+?)\s*,\s*([^,>]+?)\s*,\s*([^,>]+?)\s*,\s*([^>]+?)\s*>>>")
+
+    def repl(m):
+        shared = m.group(3).strip()
+        if shared not in ("0", "0u", "0U", "0UL", "0L", "0LL"):
+            print(f"kernel_convert: WARN 启动配置 sharedMem={shared} 非 0，昇腾语义不同，已丢弃（TODO）",
+                  file=sys.stderr)
+        return f"<<<{m.group(1).strip()}, {m.group(2).strip()}, {m.group(4).strip()}>>>"
+
+    return pat.sub(repl, src)
+
+
 def convert(src):
     """返回 (转换后源码, 转换的 kernel 数)。无 kernel 时原样返回。"""
+    src = convert_launch_config(src)
     kernels = find_kernels(src)
     if not kernels:
         return src, 0
