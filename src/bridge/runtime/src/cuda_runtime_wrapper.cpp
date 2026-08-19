@@ -20,6 +20,7 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <unistd.h> /* usleep */
 
 /* ---------------- 内部状态 ---------------- */
 
@@ -43,11 +44,18 @@ void bridge_init() {
     (void)ret; /* 若返回非 0，后续 wcuda 调用会通过 WCUDA_RETURN 观察到错误 */
 
     /* CUDA 语义：默认 device 0（首次 API 调用隐式设置，用户可不写 cudaSetDevice）。
-     * 昇腾 aclrtMalloc 等必须先 aclrtSetDevice——真机实测：未设置时 cudaMalloc
-     * 报 107002（内存分配失败）。失败忽略：无设备时 cudaGetDeviceCount 仍应
-     * 返回 0 而非报错（与 CUDA 一致）。 */
-    aclError dr = aclrtSetDevice(0);
-    (void)dr;
+     * 昇腾 aclrtMalloc 等必须先 aclrtSetDevice——vectorAdd 真机实测：未设置时
+     * cudaMalloc 报 107002。但若本进程 host 代码还没调过任何 wcuda API
+     * （最小示例只调 cudaMalloc 的路径），此时 device 计数可能为 0（aclInit
+     * 未完成）→ aclrtSetDevice 返回 100006 等错误，后续分配 107002。
+     * 兜底：失败时不再忽略，连续重试几次（ACL 初始化/驱动握手需要时间）。 */
+    for (int i = 0; i < 5; ++i) {
+        aclError dr = aclrtSetDevice(0);
+        if (dr == ACL_SUCCESS) {
+            break;
+        }
+        usleep(100 * 1000);  /* 100ms */
+    }
 }
 
 } // namespace cubridge::internal
