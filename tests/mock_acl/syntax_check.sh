@@ -13,17 +13,17 @@ PASS=0; FAIL=0
 check() {
     local name="$1"; shift
     if clang++ -std=c++17 -fsyntax-only \
-        -D__CU2CCE_NO_LIBC__ \
         -I "$INCLUDE" -I "$INCLUDE/bridge/runtime" -I "$INCLUDE/bridge/blas" -I "$MOCK" "$@" 2>&1; then
         echo "✓ $name"; PASS=$((PASS+1))
     else
         echo "✗ $name"; FAIL=$((FAIL+1))
     fi
 }
-# host 冒烟（用户代码路径：include <stdio.h> 等需命中 shadow 遮蔽头——
-# ccec+glibc 2.39 系统头不兼容，真机实测）
-check "host_bridge_smoke.cu" -x c++ -I "$INCLUDE/shadow" "$ROOT/tests/host_bridge_smoke.cu"
-# wrapper 实现（wrapper 库路径：g++ 编译系统头，不需要 shadow）
+# host 冒烟（用户代码路径：include <stdio.h> 等需命中 shadow 遮蔽头，
+# 走 __CU2CCE_NO_LIBC__ 简化分支——ccec+glibc 2.39 系统头不兼容，真机实测）
+check "host_bridge_smoke.cu" -x c++ -D__CU2CCE_NO_LIBC__ -I "$INCLUDE/shadow" "$ROOT/tests/host_bridge_smoke.cu"
+# wrapper 实现（wrapper 库路径：g++ 编译系统头，不带 NO_LIBC——
+# 覆盖 std::call_once / <mutex> 真实分支）
 check "cuda_runtime_wrapper.cpp" -x c++ "$SRC/cuda_runtime_wrapper.cpp"
 check "cublas_v2_wrapper.cpp" -x c++ "$BLAS_SRC/cublas_v2_wrapper.cpp"
 echo "---"; echo "PASS=$PASS FAIL=$FAIL"

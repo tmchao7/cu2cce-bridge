@@ -31,6 +31,10 @@ namespace cubridge::internal {
 
 void bridge_init();
 
+#if !defined(__CU2CCE_NO_LIBC__)
+static std::once_flag bridge_init_flag_;
+#endif
+
 } // namespace cubridge::internal
 
 #if defined(__CU2CCE_NO_LIBC__)
@@ -47,8 +51,6 @@ void bridge_init();
 #else
 /* bridge 初始化：第一次任何 wcuda 调用时执行一次。
  * 仿照 cu-bridge 的 BRIDGE_INIT 宏（见 cuda_driver_wrapper.h）。 */
-static std::once_flag bridge_init_flag_;
-
 #define BRIDGE_INIT()                                                                              \
     do {                                                                                           \
         std::call_once(cubridge::internal::bridge_init_flag_, cubridge::internal::bridge_init);    \
