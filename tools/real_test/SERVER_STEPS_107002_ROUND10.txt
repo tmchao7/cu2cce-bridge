@@ -1,0 +1,56 @@
+============================================================
+SERVER_STEPS_107002_ROUND10.txt —— 107002 排查第 10 轮 · 服务器操作
+============================================================
+（本文件由 ZCode 推送。cat 本文件后，把 ---- 之间的命令块
+整段复制粘贴执行；# 开头为说明行，粘贴时自动当注释。）
+
+背景（第 9 轮结论）：
+  · echo_cc（cucc/wrapper 原样编译的无 kernel 程序）也稳定 107002
+    → 与 kernel 段、宏替换都无关，问题就在 wrapper 运行时内部
+  · 先前 host_bridge_smoke（先 cudaGetDeviceCount 后 cudaMalloc）PASS；
+    minimal/echo（无 GetDeviceCount）FAIL，且 bridge_init 里明明就做了
+    aclrtGetDeviceCount + aclrtSetDevice(0) 都 OK ——这组"矛盾"非常关键：
+    它们同样是"进程里先做了一次 GetDeviceCount+SetDevice（bridge_init）
+    再 cudaMalloc"，却一个过一个挂 → 说明差异集中在 wrapper 进程内
+    "首次调用是否真的走了 bridge_init"或"bridge_init 的 aclrtSetDevice(0)
+    后 wrapper 进程被某状态切换"。
+  本轮一次性产出一个"自包含对照":把 host_bridge_smoke 与 minimal 的
+  main 样式对齐跑一遍，逐行打 print，看哪一行开始 107002。
+
+------------------------------------------------------------
+0. 拉最新 + 看本文件
+------------------------------------------------------------
+cd /home/t50063365/workspace/repos/cu2cce-bridge && git pull
+pwd
+cat tools/real_test/SERVER_STEPS_107002_ROUND10.txt
+
+------------------------------------------------------------
+1. 编译并运行 host_bridge_smoke（已知 PASS 的对照）→ 贴输出
+------------------------------------------------------------
+export CUCC_PATH=$PWD/build/real_test/install
+export CUDA_PATH=$CUCC_PATH
+export PATH=$CUCC_PATH/bin:$PATH
+"$CUCC_PATH/bin/cucc" -c tests/host_bridge_smoke.cu -o /tmp/smoke.o
+"$CUCC_PATH/bin/cucc" /tmp/smoke.o -o /tmp/smoke
+WCUDA_DEBUG=1 /tmp/smoke
+echo "smoke 运行退出码: $?"
+
+------------------------------------------------------------
+2. 迭代 malloc 探针（同一进程 6 次 malloc，观察次数对 107002 的影响）
+------------------------------------------------------------
+bash tools/real_test/run_iterate_malloc.sh
+
+------------------------------------------------------------
+3. 判读（贴回第 1、2 步输出）
+------------------------------------------------------------
+【第 1 步】host_bridge_smoke 是否真的 PASS（输出含 host bridge smoke OK）
+   - 若 PASS，再看它的 [wcuda] 压印（wcudaGetDeviceCount/wcudaMalloc 序列）
+     vs minimal（只有 wcudaMalloc）——差异就是 bridge 内部的"首次调用
+     是谁、走的哪条路径"
+【第 2 步】关键判据：
+   - iter（带 wrapper）malloc[0..5] 全 107002 → 任何一次 malloc 在 wrapper
+     进程里都失败 → 说明不是"第一次"而是"该进程所有分配都失败"
+   - 若第 N 次起成功/某次失败 → 与次数/状态有关
+   - iter_raw（不链接 wrapper）全成功 → 再次确认裸进程 OK
+
+============================================================
