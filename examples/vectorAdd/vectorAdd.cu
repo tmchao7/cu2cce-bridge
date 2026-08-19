@@ -20,9 +20,24 @@
 
 #define N 1024
 
-/* SIMT VF 计算体（CUDA kernel 体迁移到这里；blockIdx/blockDim/threadIdx 可用，
- * warp 原语（asc_syncthreads 等）也放此上下文——simt_callee 限制，真机实测）。
- * 指针需 __gm__ 地址空间（CUDA 裸指针的自动处理待真机验证）。 */
+/* ==================== kernel（双端兼容） ====================
+ * 同一份源码双端编译：
+ *   - nvcc（原生 GPU）：走 __CUDACC__ 分支，纯 CUDA kernel
+ *   - ccec（昇腾 NPU，cucc 调用）：走 #else 分支——计算体 __simt_vf__
+ *     （blockIdx/threadIdx 可用，warp 原语放此上下文）+ __global__[aicore]
+ *     入口（__global__ 由 simt_adaptor.h 展开）+ cce::async_invoke 启动
+ *   - host 侧共用（cudaMalloc 等：nvcc 用真 CUDA，ccec 用宏表替换为 aclrt*） */
+#if defined(__CUDACC__)
+
+__global__ void vectorAddKernel(float *c, const float *a, const float *b, int n) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < n) {
+        c[i] = a[i] + b[i];
+    }
+}
+
+#else  /* 昇腾 ccec：真机 v4 模板（2026-08-19 验证） */
+
 __simt_vf__ [aicore] __attribute__((always_inline)) inline
 void vectorAddVF(__gm__ float *c, const __gm__ float *a, const __gm__ float *b, int n) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -31,11 +46,11 @@ void vectorAddVF(__gm__ float *c, const __gm__ float *a, const __gm__ float *b, 
     }
 }
 
-/* kernel 入口：__global__ 由 simt_adaptor.h 展开为 __global__[aicore]；
- * 经 cce::async_invoke 启动 VF（256 线程/block，blockIdx 由启动配置决定） */
 __global__ void vectorAddKernel(__gm__ float *c, const __gm__ float *a, const __gm__ float *b, int n) {
     cce::async_invoke<vectorAddVF>(cce::dim3{256, 1, 1}, c, a, b, n);
 }
+
+#endif
 
 int main(void) {
     int devCount = 0;
@@ -80,9 +95,10 @@ int main(void) {
         return 1;
     }
 
-    /* kernel 启动（昇腾 SIMT 语法糖：<<<blocks, threads, dyn_ubuf_size, stream>>>，4 参，
-     * 与 CUDA 的 <<<grid, block, sharedMem, stream>>> 一致，由 bisheng 原生识别。
-     * 依据：asc-devkit hello_world_simt 示例。
+    /* kernel 启动（双端兼容 4 参）：
+     *   nvcc：<<<grid, block, sharedMem, stream>>>
+     *   ccec：<<<blocks, threads, dyn_ubuf_size, stream>>>（昇腾 SIMT 语法糖，
+     *         依据 asc-devkit hello_world_simt 示例）
      * 注意：CUDA 里 cudaStream_t stream = 0 表示默认 stream；昇腾需显式创建。 */
     int threads = 256;
     int blocks = (N + threads - 1) / threads;
