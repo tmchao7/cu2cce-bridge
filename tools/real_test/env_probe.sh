@@ -102,6 +102,19 @@ if [ -z "$BISHENG" ]; then
 fi
 if [ -n "$BISHENG" ]; then
     ok "bisheng=$BISHENG"
+    # bisheng 内置架构线索：conf/lib 文本资源里的 dav-* 架构名（只读）
+    BISHENG_ROOT="$(dirname "$(dirname "$BISHENG")")"
+    log "  --- ${BISHENG_ROOT} 中的 dav-* 架构线索（conf/lib 文本文件） ---"
+    for dir in "$BISHENG_ROOT"/conf "$BISHENG_ROOT"/lib; do
+        [ -d "$dir" ] || continue
+        hits="$(grep -rhoE 'dav-[a-z0-9]+' "$dir" \
+                --include="*.h" --include="*.td" --include="*.def" --include="*.json" \
+                --include="*.txt" --include="*.cfg" 2>/dev/null | sort -u | head -15)"
+        if [ -n "$hits" ]; then
+            log "  $dir:"
+            echo "$hits" | tee -a "$PROBE_LOG"
+        fi
+    done
 else
     miss "未找到 bisheng 编译器"
     log "  请手动排查并把结果发回，例如："
@@ -190,21 +203,69 @@ if [ -n "$SIMT_API_INCLUDE" ]; then
     done
 fi
 
-# ---------------- 5. 硬件 / 驱动（只读查询） ----------------
-log "== 5. 硬件 / 驱动 =="
+# ---------------- 5. 硬件 / 驱动 / 运行时设备探测 ----------------
+log "== 5. 硬件 / 驱动 / 运行时设备探测 =="
+
+# 5.1 昇腾相关环境变量（一次看清 PATH/设备 ID/工具链配置）
+log "  --- 昇腾相关环境变量 ---"
+env | grep -iE "ascend|cann|npu" | sort | tee -a "$PROBE_LOG" || log "  （无）"
+
+# 5.2 设备节点（判断是否有直连 NPU）
+DEV_NODES="$(ls /dev/davinci* 2>/dev/null | head -10)"
+if [ -n "$DEV_NODES" ]; then
+    ok "设备节点存在：$(echo "$DEV_NODES" | tr '\n' ' ')"
+else
+    warn "无 /dev/davinci* 设备节点（编译机 / 容器无设备映射；能否运行见 5.5）"
+fi
+
+# 5.3 查询工具（npu-smi / ascend-dmi）
 NPU_SMI=""
 command -v npu-smi >/dev/null 2>&1 && NPU_SMI="$(command -v npu-smi)"
+[ -z "$NPU_SMI" ] && command -v ascend-dmi >/dev/null 2>&1 && NPU_SMI="$(command -v ascend-dmi)"
 [ -z "$NPU_SMI" ] && [ -n "$ASCEND_HOME" ] && [ -x "$ASCEND_HOME/driver/tools/npu-smi" ] && NPU_SMI="$ASCEND_HOME/driver/tools/npu-smi"
 if [ -n "$NPU_SMI" ]; then
-    ok "npu-smi=$NPU_SMI"
-    log "  --- npu-smi info（前 20 行：芯片型号 / 健康状态 / CANN 版本） ---"
+    ok "查询工具=$NPU_SMI"
+    log "  --- $NPU_SMI info（前 20 行：芯片型号 / 健康状态） ---"
     "$NPU_SMI" info 2>&1 | head -20 | tee -a "$PROBE_LOG"
 else
-    warn "未找到 npu-smi（无昇腾驱动？纯编译验证可忽略本项）"
+    warn "未找到 npu-smi / ascend-dmi（无昇腾驱动工具；能否运行见 5.5）"
 fi
-if [ -n "$ASCEND_HOME" ] && [ -f "$ASCEND_HOME/driver/version.info" ]; then
-    log "  --- driver/version.info ---"
-    cat "$ASCEND_HOME/driver/version.info" | tee -a "$PROBE_LOG"
+
+# 5.4 版本信息文件（driver / cann / toolkit）
+for vf in \
+    "$ASCEND_HOME/driver/version.info" \
+    "$ASCEND_HOME/cann-"*/version.cfg \
+    "$ATH/version.cfg" \
+    "$ATH/compiler/version.info"; do
+    for f in $vf; do
+        if [ -f "$f" ]; then
+            log "  --- $f ---"
+            cat "$f" | tee -a "$PROBE_LOG"
+        fi
+    done
+done
+
+# 5.5 运行时设备探测：编译运行最小 ACL 查询程序（只读：GetDeviceCount + GetSocName）
+log "  --- 运行时设备探测（probe_device） ---"
+PROBE_SRC="$ROOT/tools/real_test/probe_device.cpp"
+PROBE_BIN="$OUT_DIR/probe_device"
+DEVICE_QUERY="0"
+if [ -f "$PROBE_SRC" ] && command -v g++ >/dev/null 2>&1 && [ -n "$ATH" ]; then
+    if g++ "$PROBE_SRC" -o "$PROBE_BIN" -I "$ATH/include" -L "$ATH/lib64" \
+           -lascendcl -lpthread -ldl >>"$PROBE_LOG" 2>&1; then
+        if LD_LIBRARY_PATH="$ATH/lib64:$ASCEND_HOME/driver/lib64:${LD_LIBRARY_PATH:-}" \
+           "$PROBE_BIN" >>"$PROBE_LOG" 2>&1; then
+            DEVICE_QUERY="1"
+            ok "运行时设备查询成功（有可用 NPU，输出见 probe.log）"
+        else
+            warn "运行时设备查询失败（无设备或依赖缺失），输出见 probe.log"
+            WARN=$((WARN+1))
+        fi
+    else
+        warn "probe_device 编译失败（g++ 链接 libascendcl 出错），不影响其余探测"
+    fi
+else
+    warn "跳过运行时探测（缺 probe_device.cpp / g++ / CANN）"
 fi
 
 # ---------------- 6. API 签名只读核对（对照 CURRENT_STATE.md） ----------------
@@ -399,6 +460,7 @@ log "== 8. 汇总 =="
     echo "ACL_RT_LIB=\"$ACL_RT_LIB\""
     echo "HAS_ACL_CBLAS=\"$HAS_ACL_CBLAS\""
     echo "NPU_SMI=\"$NPU_SMI\""
+    echo "DEVICE_QUERY=\"$DEVICE_QUERY\""
     echo "OUT_DIR=\"$OUT_DIR\""
     echo "CUCC_PATH=\"${CUCC_PATH:-$OUT_DIR/install}\""
     echo "CUCC_NPU_ARCH=\"$CUCC_NPU_ARCH\""
