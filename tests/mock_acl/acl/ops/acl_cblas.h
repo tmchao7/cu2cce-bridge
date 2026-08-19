@@ -9,8 +9,8 @@ typedef int aclError;
 typedef void *aclopHandle;
 /* 与真实 acl_cblas.h 一致：N=0,T=1,NZ=2,NZ_T=3（无 C） */
 typedef enum { ACL_TRANS_N=0, ACL_TRANS_T=1, ACL_TRANS_NZ=2, ACL_TRANS_NZ_T=3 } aclTransType;
-/* aclDataType 部分（真实无 ACL_DT_DOUBLE） */
-typedef enum { ACL_DT_FLOAT16=1, ACL_DT_FLOAT=0, ACL_DT_INT8=2, ACL_DT_INT32=3 } aclDataType;
+/* aclDataType 部分（真机 9.2.0 实测：ACL_FLOAT 等命名，无 ACL_DT_* 前缀；无 double） */
+typedef enum { ACL_FLOAT16=1, ACL_FLOAT=0, ACL_INT8=2, ACL_INT32=3 } aclDataType;
 typedef enum { ACL_COMPUTE_HIGH_PRECISION=0, ACL_COMPUTE_LOW_PRECISION=1 } aclComputeType;
 #define ACL_ERROR_NONE 0
 #define ACL_SUCCESS 0

@@ -8,8 +8,8 @@
  * 关键转换：cublasSgemm → aclblasGemmEx
  *   cublasSgemm(handle, transa, transb, m, n, k, &alpha, A, lda, B, ldb, &beta, C, ldc)
  *   → aclblasGemmEx(transa, transb, ACL_TRANS_N, m, n, k,
- *                   &alpha, A, lda, ACL_DT_FLOAT, B, ldb, ACL_DT_FLOAT,
- *                   &beta, C, ldc, ACL_DT_FLOAT, computeType, stream)
+ *                   &alpha, A, lda, ACL_FLOAT, B, ldb, ACL_FLOAT,
+ *                   &beta, C, ldc, ACL_FLOAT, computeType, stream)
  * 差异（2026-08-07 核实 torch_npu acl_cblas.h）：
  *   - aclblasGemmEx 无 handle、直接传 aclrtStream；
  *   - 无 aclblasCreate/Destroy/SetStream/GetStream；
@@ -84,8 +84,8 @@ static aclError gemm_impl(cublasHandle_t handle, aclTransType transa, aclTransTy
 aclError wcublasSgemm(cublasHandle_t handle, aclTransType transa, aclTransType transb, int m, int n,
                       int k, const float *alpha, const float *A, int lda, const float *B, int ldb,
                       const float *beta, float *C, int ldc) {
-    return gemm_impl(handle, transa, transb, m, n, k, alpha, A, lda, ACL_DT_FLOAT, B, ldb,
-                     ACL_DT_FLOAT, beta, C, ldc, ACL_DT_FLOAT);
+    return gemm_impl(handle, transa, transb, m, n, k, alpha, A, lda, ACL_FLOAT, B, ldb,
+                     ACL_FLOAT, beta, C, ldc, ACL_FLOAT);
 }
 
 aclError wcublasDgemm(cublasHandle_t handle, aclTransType transa, aclTransType transb, int m, int n,
@@ -111,8 +111,8 @@ aclError wcublasSgemv(cublasHandle_t handle, aclTransType trans, int m, int n, c
         return ACL_ERROR_INVALID_PARAM;
     }
     /* aclblasGemvEx(transA, m, n, alpha, a, lda, dtA, x, incx, dtX, beta, y, incy, dtY, type, stream) */
-    return aclblasGemvEx(trans, m, n, alpha, A, lda, ACL_DT_FLOAT, x, incx, ACL_DT_FLOAT, beta, y,
-                         incy, ACL_DT_FLOAT, ACL_COMPUTE_HIGH_PRECISION, handle->stream);
+    return aclblasGemvEx(trans, m, n, alpha, A, lda, ACL_FLOAT, x, incx, ACL_FLOAT, beta, y,
+                         incy, ACL_FLOAT, ACL_COMPUTE_HIGH_PRECISION, handle->stream);
 }
 
 aclError wcublasSaxpy(cublasHandle_t handle, int n, const float *alpha, const float *x, int incx,
