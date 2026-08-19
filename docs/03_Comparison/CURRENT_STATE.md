@@ -93,13 +93,14 @@
 
 | 项 | 结论 | 说明 |
 |---|---|---|
+| **端到端里程碑** | ✅ **vectorAdd 8/8 PASS** | 纯 CUDA `vectorAdd.cu` 零改写：cucc → kernel_convert（SIMT VF）→ ccec（dav-c310）→ 链接 → davinci0 运行 → `vectorAdd OK` 数值校验通过（2026-08-19） |
+| **编译器主线** | ✅ **ccec**（`/usr/local/Ascend/latest/bin/ccec`） | `--cce-aicore-arch=dav-c310` 被 ccec 接受；bisheng `--npu-arch` 不认识 dav-c310，降为对照 |
 | 待确认 #2（aclrtGetVersion） | ✅ **存在但已废弃**：`(int32_t*, int32_t*, int32_t*)`，官方建议 `aclSysGetVersion` | wrapper 应改用 aclSysGetVersion（签名待核） |
 | 待确认 #4（BLAS1 axpy/copy/dot/scal/swap/nrm2） | ✅ **确认不存在** | not-support 占位维持 |
 | 待确认 #4 追加（aclblasCreate） | ✅ **修正误报：无独立 aclblasCreate**，实为 `aclblasCreateHandleFor*` 系列 | 原"自定义 handle"判断正确，cublas 桥不动 |
-| 待确认 #6（原子/地址空间） | ⚠️ 签名全部存在 | 仍待编译实测（架构参数未定） |
-| **架构参数：dav-c310 复测仍不被接受** | ❌ `Unsupported NPU architecture` | bisheng 15.0.5 接受 **dav-2201 / dav-3510**（宏 2201/3510），拒绝 dav-5102；待与导师确认 950 正确参数 |
-| **编译器主线切换：ccec** | ✅ `--cce-aicore-arch=dav-c310` **被 ccec 接受** | `/usr/local/Ascend/latest/bin/ccec`（CANN 自带，与 CANN 绑定）；用户实测脚本已编译+运行成功 → **cucc/env_probe 已改 ccec 优先**；bisheng 降为备选（详见 ASCEND_RESEARCH_NOTES §3.6） |
-| **simt_api 非自包含** | ⚠️ `asc_simt.h` include `simt_api/common_functions.h` | 编译 `-I` 必须加 simt_api **父目录**（已修 env_probe/run_tests，`SIMT_API_ROOT`） |
+| 待确认 #6（原子/地址空间） | ⚠️ 签名全部存在 | warp/atomic 原语真机调用待验证（simt_callee 上下文） |
+| **kernel 转换模板** | ✅ 真机验证（v4） | `__simt_vf__` 计算体（warp 原语上下文）+ `__global__[aicore]` 入口 + `cce::async_invoke` 启动 + `__gm__` 指针 |
+| **系统标准库头** | ⚠️ ccec+glibc 2.39 不兼容 | shadow 遮蔽头方案：`include/shadow/` 提供 stdio/stdlib/string/math 最小声明版，用户代码零改动 |
 | aclrtGetSocName | ✅ 全目录可搜到 | wrapper 依赖它，可编译 |
 
 ## 6. 联网检查修正历史（按轮次，附来源）
