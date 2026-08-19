@@ -18,6 +18,7 @@
 #include "cuda_wrapper_internal.h"
 #include "cuda_wrapper_types.h"
 
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <unistd.h> /* usleep */
@@ -31,6 +32,20 @@ static thread_local aclError g_last_error = ACL_SUCCESS;
 static thread_local bool g_has_context_created = false;
 
 #define ACTIVE_CONTEXT() g_has_context_created = true;
+
+/* 107002 排查压印（INVESTIGATION_107002.md §5.6）：bridge_init 与 wcudaMalloc
+ * 逐行打时间戳，先定位"minimal 进程内 aclInit/SetDevice 全 OK 却紧跟 107002"
+ * 的第三个动作在哪个进程空间发生。走 WCUDA_DEBUG（无 env 不输出）。 */
+static bool wcuda_dbg() {
+    const char *env = getenv("WCUDA_DEBUG");
+    return env != nullptr && env[0] != '\0';
+}
+static void wcuda_mark(const char *label, aclError e) {
+    if (wcuda_dbg()) {
+        fprintf(stderr, "[wcuda] %-26s ret=%d (%s)\n", label, (int)e,
+                e == ACL_SUCCESS ? "OK" : "FAIL");
+    }
+}
 
 /* ---------------- bridge 初始化 ---------------- */
 
@@ -521,15 +536,19 @@ aclError wcudaEventElapsedTime(float *ms, aclrtEvent start, aclrtEvent end) {
 
 aclError wcudaMalloc(void **ptr, size_t sizeBytes) {
     if (ptr == nullptr || sizeBytes == 0) {
+        wcuda_mark("wcudaMalloc(invalid)", ACL_ERROR_INVALID_PARAM);
         WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
     }
+    wcuda_mark("wcudaMalloc enter", ACL_SUCCESS);
     /* aclrtMalloc 第三参是内存分配规则（大页/普通页）。
      * 选大页优先（ACL_MEM_MALLOC_HUGE_FIRST），与 CUDA 大块分配的默认行为接近。 */
     void *devPtr = nullptr;
     aclError ret = aclrtMalloc(&devPtr, sizeBytes, ACL_MEM_MALLOC_HUGE_FIRST);
+    wcuda_mark("aclrtMalloc call", ret);
     if (ret == ACL_SUCCESS) {
         *ptr = devPtr;
     }
+    wcuda_mark("wcudaMalloc exit", ret);
     WCUDA_RETURN(ret);
 }
 
