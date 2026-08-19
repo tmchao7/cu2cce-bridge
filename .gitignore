@@ -59,3 +59,30 @@ venv/
 
 # 日志
 *.log
+
+# ============================================================
+# 107002 排查后清理（2026-08-19）
+# diag 探针在真机运行产生的中间产物/二进制；仓库内不落盘
+# ============================================================
+
+# 诊断探针运行时产物（tools/real_test/diag/ 下临时编译的二进制/宿主）
+tools/real_test/diag/*.o
+tools/real_test/diag/compose_*
+tools/real_test/diag/acl_probe
+tools/real_test/diag/acl_diff
+tools/real_test/diag/echo
+tools/real_test/diag/trunc_raw
+tools/real_test/diag/minimal_echo
+
+# kernel_convert / cucc 的中间 .cce（真机正常路径只写 /tmp；仓库内兜底忽略）
+*.cce.tmp
+*_conv.cce
+
+# 服务器操作步骤清单（不再纳入版本库；结论沉淀在 docs/ 与 diag/README）
+tools/real_test/SERVER_STEPS_*.txt
+
+# 常见补丁/临时文件
+*.orig
+*.rej
+*.bak
+*.tmp
