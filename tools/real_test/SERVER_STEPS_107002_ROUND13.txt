@@ -1,0 +1,89 @@
+============================================================
+SERVER_STEPS_107002_ROUND13.txt —— 107002 排查第 13 轮 · 服务器操作
+============================================================
+（本文件由 ZCode 推送。cat 本文件后，把 ---- 之间的命令块
+整段复制粘贴执行；# 开头为说明行，粘贴时自动当注释。）
+
+背景（第 12 轮结论）：
+  · echo_host.cu（纯 host、.cu、cucc 无损、无 kernel 转换）运行仍 107002
+  · kernel_convert 对 host-only .cu 不转换（passthrough，diff 无差异）
+  → 排除 .cce/.cu、kernel 转换。唯一剩余差异 = main 的调用序列：
+    smoke（先 cudaGetDeviceCount → cudaSetDevice(0) → cudaMalloc）PASS
+    minimal / echo / echo_host（直接 cudaMalloc）FAIL
+  → 本轮用 4 个逐字节拉近的程序，定位到底是哪个 API 前置翻转了 107002。
+
+------------------------------------------------------------
+0. 拉最新 + 看本文件
+------------------------------------------------------------
+cd /home/t50063365/workspace/repos/cu2cce-bridge && git pull
+pwd
+cat tools/real_test/SERVER_STEPS_107002_ROUND13.txt
+
+------------------------------------------------------------
+1. 生成 4 个 host-only .cu（差异只在 main 的第 1 个 API）
+------------------------------------------------------------
+cat > /tmp/prog_a.cu <<'EOF'
+#include <cuda_runtime.h>
+#include <stdio.h>
+int main(void) {
+    void *d = nullptr;
+    cudaError_t err = cudaMalloc(&d, 256 * sizeof(float));
+    printf("A(直调Malloc): err=%d\n", (int)err);
+    return 0;
+}
+EOF
+sed 's/A(直调Malloc)/B(先GetDeviceCount)/' /tmp/prog_a.cu | \
+    sed '/int main(void) {/a\    int cnt = 0; cudaGetDeviceCount(\&cnt); (void)cnt;' \
+    > /tmp/prog_b.cu
+cat > /tmp/prog_c.cu <<'EOF'
+#include <cuda_runtime.h>
+#include <stdio.h>
+int main(void) {
+    int dev = 0; cudaGetDevice(&dev); (void)dev;
+    void *d = nullptr;
+    cudaError_t err = cudaMalloc(&d, 256 * sizeof(float));
+    printf("C(先GetDevice): err=%d\n", (int)err);
+    return 0;
+}
+EOF
+cat > /tmp/prog_d.cu <<'EOF'
+#include <cuda_runtime.h>
+#include <stdio.h>
+int main(void) {
+    cudaSetDevice(0);
+    void *d = nullptr;
+    cudaError_t err = cudaMalloc(&d, 256 * sizeof(float));
+    printf("D(先SetDevice): err=%d\n", (int)err);
+    return 0;
+}
+EOF
+echo "== 已生成 4 个源文件（a/b/c/d）=="
+ls -la /tmp/prog_?.cu
+
+------------------------------------------------------------
+2. 用 cucc 编译 + 运行 4 个程序
+------------------------------------------------------------
+export CUCC_PATH=$PWD/build/real_test/install
+export CUDA_PATH=$CUCC_PATH
+export PATH=$CUCC_PATH/bin:$PATH
+for p in a b c d; do
+    echo "----- prog_$p -----"
+    "$CUCC_PATH/bin/cucc" -c /tmp/prog_$p.cu -o /tmp/prog_$p.o 2>/dev/null
+    "$CUCC_PATH/bin/cucc" /tmp/prog_$p.o -o /tmp/prog_$p 2>/dev/null
+    WCUDA_DEBUG=1 /tmp/prog_$p 2>&1 | grep -E "err=|wcudaMalloc|aclrtMalloc call|bridge_init"
+    echo "退出码: $?"
+done
+
+------------------------------------------------------------
+3. 判读（贴回第 2 步完整输出）
+------------------------------------------------------------
+【哪种前置让 malloc 从 107002 翻转成 0？】
+  b（先 GetDeviceCount）成功 vs a 失败 → 需先枚举
+  b 失败 / c（先 GetDevice）成功 → 需先 GetDevice
+  b/c 失败 / d（先 SetDevice）成功 → 需显式 SetDevice
+  全部成功且 4 种都 OK → 说明不是某个 API 前置，而是"任意一次
+  wcuda 调用先触发 bridge_init 后分配就 OK"（时序/上下文相关）
+  全部失败 → 与前置无关，回到 wrapper 内部（再回到第 9 轮 extract
+  wcudaMalloc 参数）
+
+============================================================
