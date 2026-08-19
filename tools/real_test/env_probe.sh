@@ -422,7 +422,7 @@ fi
 # 用法：try_compile <名称> <编译器> <架构参数(含=)> <日志文件>；成功=0 失败=1
 try_compile() {
     local name="$1" cc="$2" flag="$3" lg="$4"
-    local args=( -std=c++17 -xcce "${flag}" )
+    local args=( -std=gnu++17 -xcce "${flag}" )
     if [ -n "$SIMT_API_INCLUDE" ]; then
         # asc_simt.h 内部 include "simt_api/xxx.h"，必须加父目录；
         # 深层依赖 impl/ 在 asc 根（真机实测 cann-*/x86_64-linux/asc/impl/）

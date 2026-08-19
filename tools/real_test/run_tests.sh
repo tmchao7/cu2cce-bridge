@@ -116,7 +116,7 @@ fi
 
 # 路径 2（--direct）：绕过 cucc 直接调编译器，用于排查驱动问题时隔离变量
 direct_compile() {
-    local inc_args=( "$DIRECT_CC" -std=c++17 -xcce "${DIRECT_ARCH_FLAG}=${CUCC_NPU_ARCH:-dav-c310}" \
+    local inc_args=( "$DIRECT_CC" -std=gnu++17 -xcce "${DIRECT_ARCH_FLAG}=${CUCC_NPU_ARCH:-dav-c310}" \
         -include "$CUCC_PATH/include/bridge/kernel/simt_adaptor.h" \
         -I "$CUCC_PATH/include" -I "$ASCEND_INCLUDE" \
         -D__CU2CCE_NO_MATH_H__ -D_Float32=float -D_Float64=double )
