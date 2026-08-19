@@ -36,21 +36,43 @@ static thread_local bool g_has_context_created = false;
 
 namespace cubridge::internal {
 
+/* 107002 排查（INVESTIGATION_107002.md §5.1）：初始化各步返回码全部打印，
+ * 不再静默吞掉——minimal 路径首次 API 即 cudaMalloc，上游是 aclInit、
+ * aclrtGetDeviceCount 还是 aclrtSetDevice 失败，从输出一眼看出。 */
+static bool bridge_debug_enabled() {
+    const char *env = getenv("WCUDA_DEBUG");
+    return env != nullptr && env[0] != '\0';
+}
+
+static void bridge_log(const char *step, int32_t ret) {
+    if (bridge_debug_enabled()) {
+        fprintf(stderr, "[bridge_init] %-24s ret=%d (%s)\n", step, (int)ret,
+                ret == ACL_SUCCESS ? "OK" : "FAIL");
+    }
+}
+
 void bridge_init() {
     /* 只跑一次（由 BRIDGE_INIT 的 std::call_once 保证）。
      * 昇腾 ACL 应用在首次调用运行时 API 前需 aclInit。
      * aclInit 参数传 nullptr 表示默认配置（对应 CUDA 的惰性初始化）。 */
     int32_t ret = aclInit(nullptr);
-    (void)ret; /* 若返回非 0，后续 wcuda 调用会通过 WCUDA_RETURN 观察到错误 */
+    bridge_log("aclInit", ret);
+
+    /* 对齐 vectorAdd 的调用顺序（INVESTIGATION_107002.md §5.2 候选根因 1）：
+     * 先 aclrtGetDeviceCount 完成设备枚举，再 aclrtSetDevice(0)。vectorAdd
+     * 能跑正是因为 main 第一个 API 是 cudaGetDeviceCount（先枚举后设设备）。 */
+    uint32_t devCnt = 0;
+    ret = aclrtGetDeviceCount(&devCnt);
+    bridge_log("aclrtGetDeviceCount", ret);
 
     /* CUDA 语义：默认 device 0（首次 API 调用隐式设置，用户可不写 cudaSetDevice）。
-     * 昇腾 aclrtMalloc 等必须先 aclrtSetDevice——vectorAdd 真机实测：未设置时
-     * cudaMalloc 报 107002。但若本进程 host 代码还没调过任何 wcuda API
-     * （最小示例只调 cudaMalloc 的路径），此时 device 计数可能为 0（aclInit
-     * 未完成）→ aclrtSetDevice 返回 100006 等错误，后续分配 107002。
-     * 兜底：失败时不再忽略，连续重试几次（ACL 初始化/驱动握手需要时间）。 */
+     * 昇腾 aclrtMalloc 等必须先 aclrtSetDevice。失败时连续重试几次
+     * （ACL 初始化/驱动握手需要时间），并打印每次结果。 */
     for (int i = 0; i < 5; ++i) {
         aclError dr = aclrtSetDevice(0);
+        char step[32];
+        snprintf(step, sizeof(step), "aclrtSetDevice(0) #%d", i);
+        bridge_log(step, (int32_t)dr);
         if (dr == ACL_SUCCESS) {
             break;
         }
