@@ -26,9 +26,8 @@
 #endif
 
 //==================== kernel 声明 ====================//
-/* CUDA __global__ -> 昇腾 __global__[aicore]（限定符必须，真机实测）。
- * 自引用宏技巧：替换列表里的 __global__ 在同一次展开中不再展开。 */
-#define __global__ __global__[aicore]
+/* ⚠️ 不提供 __global__ 宏：ccec 内置 __global__（重定义无效，真机实测）。
+ * kernel 入口限定符由 tools/kernel_convert.py 显式生成 __global__[aicore] */
 
 /* CUDA __launch_bounds__(n) -> 昇腾 LAUNCH_BOUND(n)（1 参形式；多参形式需人工改写） */
 #define __launch_bounds__(n) LAUNCH_BOUND(n)
@@ -66,7 +65,7 @@
 /* CUDA atomicAdd(a,b) -> 昇腾 asc_atomic_add(addr, val)。
  * ⚠️ 昇腾原子接口参数带地址空间修饰（__ubuf__/__gm__ 指针），签名（来自
  *   asc-devkit device_atomic_functions.h）：
- *     asc_atomic_add(__ubuf__/__gm__ int32_t*/uint32_t*/float* addr, ...)
+ *     asc_atomic_add(__ubuf__ 或 __gm__ 指针, ...)
  *   若 a 是全局/共享内存指针，编译器应能匹配重载；真机验证。 */
 #define atomicAdd(a, b) asc_atomic_add((a), (b))
 #define atomicSub(a, b) asc_atomic_sub((a), (b))
