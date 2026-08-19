@@ -14,7 +14,13 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+/* glibc 2.39（Ubuntu 24.04）的 math.h 使用 C23 类型 _Float32，ccec（clang 15）
+ * 不识别（真机实测 20 个错误，2026-08-19）。cucc 编译时传
+ * -D__CU2CCE_NO_MATH_H__ 跳过系统 math.h；host 侧数学函数（sinf 等）的
+ * 昇腾映射 TODO（见 ASCEND_RESEARCH_NOTES）。 */
+#if !defined(__CU2CCE_NO_MATH_H__)
 #include <math.h>
+#endif
 #include <string.h>
 #ifdef __cplusplus
 #include <fstream>
