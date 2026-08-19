@@ -59,6 +59,7 @@ cucc my_program.o -o my_program
 | [昇腾调研笔记](docs/01_Design/ASCEND_RESEARCH_NOTES.md) | ACL/SIMT/bisheng 事实库（API 签名、来源链接） |
 | [Claude 工作区方案](docs/01_Design/CLAUDE_WORKSPACE_PLAN.md) | 目录结构、.claude 配置、对照开发工作流 |
 | [对照表](docs/03_Comparison/mapping.md) | 与 cu-bridge 的逐文件移植状态 |
+| **[107002 排查交接](docs/01_Design/INVESTIGATION_107002.md)** | 当前活跃问题：minimal 示例 cudaMalloc 107002（自包含，新会话接手用） |
 
 ## 环境变量（真机）
 
