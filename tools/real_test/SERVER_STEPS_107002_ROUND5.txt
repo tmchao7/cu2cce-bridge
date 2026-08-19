@@ -1,0 +1,53 @@
+============================================================
+SERVER_STEPS_107002_ROUND5.txt —— 107002 排查第 5 轮 · 服务器操作
+============================================================
+（本文件由 ZCode 推送。cat 本文件后，把 ---- 之间的命令块
+整段复制粘贴执行；# 开头为说明行，粘贴时自动当注释。）
+
+背景（第 4 轮结论）：
+  · ldd 显示 minimal 的真实解析：
+      libascendcl.so => /usr/local/Ascend/cann-9.2.0/lib64/libascendcl.so  ← 小心！这台机有两个 CANN 根
+      libruntime.so   => /usr/local/Ascend/cann-9.2.0/lib64/libruntime.so
+      libcce_bridge_runtime.so => build/real_test/install/lib/...（wrapper，正常）
+  · Part0 复刻探针（单独链接到 latest）分配成功；minimal（进程里还带
+    libruntime.so + wrapper + kernel 设备代码）稳定 107002
+  → 差异可能来自"多带 libruntime.so"或"两台 CANN 根名同实异"。
+  本轮用库组合探针（同一段分配代码、4 种链接）定位。
+
+------------------------------------------------------------
+0. 先回到仓库根，拉取最新，看本文件
+------------------------------------------------------------
+cd /home/t50063365/workspace/repos/cu2cce-bridge && git pull
+pwd
+cat tools/real_test/SERVER_STEPS_107002_ROUND5.txt
+
+------------------------------------------------------------
+1. 编译并运行库组合探针（一条命令）
+------------------------------------------------------------
+bash tools/real_test/run_acl_compose_probe.sh
+
+------------------------------------------------------------
+2. 判读（贴回第 1 步完整输出）
+------------------------------------------------------------
+【关键看 4 个 mode 的 aclrtMalloc ret 与第 3 节 ldd 解析路径】
+  · 只有 +runtime（run tim/both）失败 → libruntime.so 拖累 ACL 分配
+    （改法：链接/运行期消除 libruntime 依赖，或对齐用户 04_build_exec）
+  · 只有 +wrapper 失败 → wrapper 初始化副作用（bridge_init 已跑过）
+  · 只有 +both 失败    → 组合效应
+  · 全部成功           → minimal 差异另有其处，继续第 3 步
+
+【第 0 节 CANN 多根核查 的看重点】
+  · /usr/local/Ascend/latest -> ?（readlink 目标）
+  · latest/lib64/libascendcl.so 与 cann-9.2.0/lib64/libascendcl.so 的 md5
+    （若不同 → 双加载嫌疑；若相同/软链 → 排除）
+
+------------------------------------------------------------
+3.（视情况）若 4 个组合全成功且 md5 相同 → 跑 minimal 对照组
+------------------------------------------------------------
+# 清掉可能的表情包 .so 的影响，重编译 minimal 再跑一次压印
+cd "$PWD/build/real_test/install" && CUCC_PATH=$PWD CUDA_PATH=$PWD \
+  ./bin/cucc -c examples/minimal/minimal.cu -o /tmp/minimal.o
+CUCC_PATH=$PWD ./bin/cucc /tmp/minimal.o -o /tmp/minimal
+WCUDA_DEBUG=1 /tmp/minimal
+
+============================================================
