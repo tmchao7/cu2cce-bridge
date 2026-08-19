@@ -424,8 +424,10 @@ try_compile() {
     local name="$1" cc="$2" flag="$3" lg="$4"
     local args=( -std=c++17 -xcce "${flag}" )
     if [ -n "$SIMT_API_INCLUDE" ]; then
-        # asc_simt.h 内部 include "simt_api/xxx.h"，必须加父目录
-        args+=( -I "$(dirname "$SIMT_API_INCLUDE")" -I "$SIMT_API_INCLUDE" )
+        # asc_simt.h 内部 include "simt_api/xxx.h"，必须加父目录；
+        # 深层依赖 impl/ 在 asc 根（真机实测 cann-*/x86_64-linux/asc/impl/）
+        args+=( -I "$(dirname "$SIMT_API_INCLUDE")" -I "$SIMT_API_INCLUDE"
+                -I "$(dirname "$(dirname "$SIMT_API_INCLUDE")")" )
     fi
     args+=( -c "$arch_tmp/arch_probe.asc" -o "$arch_tmp/arch_probe.o" )
     rm -f "$arch_tmp/arch_probe.o"

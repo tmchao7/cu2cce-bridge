@@ -119,9 +119,10 @@ direct_compile() {
     local inc_args=( "$DIRECT_CC" -std=c++17 -xcce "${DIRECT_ARCH_FLAG}=${CUCC_NPU_ARCH:-dav-c310}" \
         -include "$CUCC_PATH/include/bridge/kernel/simt_adaptor.h" \
         -I "$CUCC_PATH/include" -I "$ASCEND_INCLUDE" )
-    # simt_api 头非自包含：加父目录 + 自身（真机实测）
+    # simt_api 头非自包含：加父目录 + 自身 + asc 根（impl/ 依赖，真机实测）
     if [ -n "${SIMT_API_INCLUDE:-}" ]; then
-        inc_args+=( -I "${SIMT_API_ROOT:-$(dirname "$SIMT_API_INCLUDE")}" -I "$SIMT_API_INCLUDE" )
+        inc_args+=( -I "${SIMT_API_ROOT:-$(dirname "$SIMT_API_INCLUDE")}" -I "$SIMT_API_INCLUDE" \
+                    -I "$(dirname "${SIMT_API_ROOT:-$(dirname "$SIMT_API_INCLUDE")}")" )
     fi
     inc_args+=( -D CUDA_VERSION=11060 -c "$1" -o "$2" )
     "${inc_args[@]}"

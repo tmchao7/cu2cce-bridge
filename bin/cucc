@@ -175,6 +175,9 @@ if [ -z "${SIMT_API_ROOT:-}" ]; then
 fi
 if [ -n "${SIMT_API_ROOT:-}" ] && [ -d "${SIMT_API_ROOT}/simt_api" ]; then
     params+=("-I" "${SIMT_API_ROOT}")
+    # simt_api 头链深层依赖在 asc 根目录（impl/utils/sys_macros.h 等，真机实测
+    # 位于 cann-9.2.0/x86_64-linux/asc/impl/，不在 asc/include 下）
+    params+=("-I" "$(dirname "${SIMT_API_ROOT}")")
 fi
 
 # SIMT 适配宏表：编译 device 侧（.cu）时强制注入
