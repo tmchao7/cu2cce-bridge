@@ -48,8 +48,9 @@ export ASCEND_TOOLKIT_HOME ASCEND_INCLUDE ASCEND_LIB BISHENG_PATH
 export PATH="$CUCC_PATH/bin:$PATH"
 export LD_LIBRARY_PATH="$CUCC_PATH/lib:$ASCEND_LIB:${LD_LIBRARY_PATH:-}"
 # kernel 若用 __syncthreads/__shared__ 宏，simt_api 头需进 include 路径（clang 认 CPLUS_INCLUDE_PATH）
+# 注意：asc_simt.h 内部 include "simt_api/xxx.h"，父目录也要加（真机实测）
 if [ -n "${SIMT_API_INCLUDE:-}" ]; then
-    export CPLUS_INCLUDE_PATH="$SIMT_API_INCLUDE:${CPLUS_INCLUDE_PATH:-}"
+    export CPLUS_INCLUDE_PATH="${SIMT_API_ROOT:-$(dirname "$SIMT_API_INCLUDE")}:$SIMT_API_INCLUDE:${CPLUS_INCLUDE_PATH:-}"
 fi
 # CANN 环境（若 setenv.bash 存在，补齐运行时需要的变量）
 [ -f "$ASCEND_TOOLKIT_HOME/bin/setenv.bash" ] && source "$ASCEND_TOOLKIT_HOME/bin/setenv.bash"
@@ -98,10 +99,15 @@ cucc_link()    { cucc "$1" -o "$2"; }
 
 # 路径 2（--direct）：绕过 cucc 直接调 bisheng，用于排查驱动问题时隔离变量
 direct_compile() {
-    "$BISHENG_PATH" -std=c++17 -xcce --npu-arch="${CUCC_NPU_ARCH:-dav-c310}" \
+    local inc_args=( "$BISHENG_PATH" -std=c++17 -xcce --npu-arch="${CUCC_NPU_ARCH:-dav-c310}" \
         -include "$CUCC_PATH/include/bridge/kernel/simt_adaptor.h" \
-        -I "$CUCC_PATH/include" -I "$ASCEND_INCLUDE" \
-        -D CUDA_VERSION=11060 -c "$1" -o "$2"
+        -I "$CUCC_PATH/include" -I "$ASCEND_INCLUDE" )
+    # simt_api 头非自包含：加父目录 + 自身（真机实测）
+    if [ -n "${SIMT_API_INCLUDE:-}" ]; then
+        inc_args+=( -I "${SIMT_API_ROOT:-$(dirname "$SIMT_API_INCLUDE")}" -I "$SIMT_API_INCLUDE" )
+    fi
+    inc_args+=( -D CUDA_VERSION=11060 -c "$1" -o "$2" )
+    "${inc_args[@]}"
 }
 direct_link() {
     local link_args=( "$BISHENG_PATH" "$1" -o "$2" \

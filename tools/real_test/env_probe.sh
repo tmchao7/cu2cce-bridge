@@ -180,7 +180,12 @@ else
     fi
 fi
 if [ -n "$SIMT_API_INCLUDE" ]; then
-    for h in asc_simt.h device_sync_functions.h device_warp_functions.h device_atomic_functions.h; do
+    # asc_simt.h 并非自包含：内部 #include "simt_api/common_functions.h"，
+    # 编译时 -I 需同时加 simt_api 的父目录（真机 2026-08-19 实测）
+    SIMT_API_ROOT="$(dirname "$SIMT_API_INCLUDE")"
+    log "  simt_api 父目录（-I 需要）：$SIMT_API_ROOT"
+    for h in asc_simt.h common_functions.h device_types.h device_functions.h \
+             device_sync_functions.h device_warp_functions.h device_atomic_functions.h; do
         [ -f "$SIMT_API_INCLUDE/$h" ] && ok "simt_api/$h" || warn "simt_api/$h 缺失"
     done
 fi
@@ -256,9 +261,11 @@ log "  [待真机确认项（CURRENT_STATE.md §5）]"
 sig_absent aclrtGetDeviceProperties "$ACL_RT_H" "aclrtGetDeviceProperties"
 sig_absent ACL_DT_DOUBLE            "$ACL_BASE_H" "ACL_DT_DOUBLE"
 
-log "  [真机新发现：公开版不存在、内部 9.2.0 存在 → 打印签名供 wrapper 改造]"
+log "  [真机新发现核对：aclrtGetVersion 签名（已废弃，官方建议 aclSysGetVersion）；"
+log "   aclblasCreate 实为 aclblasCreateHandleFor* 系列（无独立 aclblasCreate）]"
 show_sig aclrtGetVersion "$ACL_INC_DIR"
-show_sig aclblasCreate   "$ACL_INC_DIR"
+show_sig aclSysGetVersion "$ACL_INC_DIR"
+show_sig aclblasCreateHandleFor "$ACL_INC_DIR"
 
 log "  [cublas→aclblas（待确认项 #4）]"
 sig_dir aclblasGemmEx "$ACL_INC_DIR" "aclblasGemmEx"
@@ -342,11 +349,14 @@ EOF
         else
             log "    （取不到 __NPU_ARCH__ 宏值，以编译实测为准）"
         fi
-        # 编译实测（检查 .o 产物，防假编译器误判）
+        # 编译实测（检查 .o 产物，防假编译器误判；输出隔离到单文件避免日志串扰）
         arch_args=( -std=c++17 -xcce --npu-arch="${ARCH}" )
-        [ -n "$SIMT_API_INCLUDE" ] && arch_args+=( -I "$SIMT_API_INCLUDE" )
+        if [ -n "$SIMT_API_INCLUDE" ]; then
+            # asc_simt.h 内部 include "simt_api/xxx.h"，必须加父目录
+            arch_args+=( -I "$(dirname "$SIMT_API_INCLUDE")" -I "$SIMT_API_INCLUDE" )
+        fi
         arch_args+=( -c "$arch_tmp/arch_probe.asc" -o "$arch_tmp/arch_probe.o" )
-        if "$BISHENG" "${arch_args[@]}" >>"$PROBE_LOG" 2>&1 && [ -f "$arch_tmp/arch_probe.o" ]; then
+        if "$BISHENG" "${arch_args[@]}" >"$arch_tmp/compile_${ARCH#dav-}.log" 2>&1 && [ -f "$arch_tmp/arch_probe.o" ]; then
             ok "✅ ${ARCH}：最小 SIMT kernel（asc_shfl + asc_syncthreads）编译通过"
             ARCH_FALLBACK="$ARCH"
             NPU_ARCH_MACRO="$MACRO"
@@ -362,8 +372,8 @@ EOF
             fi
             break
         else
-            warn "${ARCH} 编译失败（不支持或报错，末 8 行日志见下）"
-            tail -8 "$PROBE_LOG" | tee -a "$PROBE_LOG"
+            warn "${ARCH} 编译失败，末 8 行错误如下："
+            tail -8 "$arch_tmp/compile_${ARCH#dav-}.log" | tee -a "$PROBE_LOG"
             WARN=$((WARN+1))
         fi
     done
@@ -385,6 +395,7 @@ log "== 8. 汇总 =="
     echo "ASCEND_LIB=\"$ATH/lib64\""
     echo "BISHENG_PATH=\"$BISHENG\""
     echo "SIMT_API_INCLUDE=\"$SIMT_API_INCLUDE\""
+    echo "SIMT_API_ROOT=\"${SIMT_API_ROOT:-}\""
     echo "ACL_RT_LIB=\"$ACL_RT_LIB\""
     echo "HAS_ACL_CBLAS=\"$HAS_ACL_CBLAS\""
     echo "NPU_SMI=\"$NPU_SMI\""

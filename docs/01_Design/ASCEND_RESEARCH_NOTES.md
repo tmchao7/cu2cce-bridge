@@ -344,18 +344,29 @@ bisheng main.cpp example.asc -o main --npu-arch=dav-xxxx
 
 **编译器**：bisheng = clang 15.0.5（2026-08-13 构建，x86_64-linux）。`--npu-arch`、`--cce-soc-version`、`--offload-arch` 均支持；`--help` 未列出合法架构值。
 
-**架构参数**：`--npu-arch=dav-310` 实测**不被接受**（见 §3.5，导师纠正为 `dav-c310`，待真机复测）。
+**架构参数（2026-08-19 实测，bisheng clang 15.0.5 / cann-9.2.0）**：
+
+| 参数 | 结果 | 说明 |
+|---|---|---|
+| `--npu-arch=dav-c310` | ❌ `Unsupported NPU architecture` | 导师提供的 950 系列参数，bisheng 15.0.5 **不认识** |
+| `--npu-arch=dav-2201` | ✅ 被接受，`__NPU_ARCH__=2201` | 编译进行到 include 阶段 |
+| `--npu-arch=dav-3510` | ✅ 被接受，`__NPU_ARCH__=3510` | 编译进行到 include 阶段（公开文档 Atlas 350 = dav-3510） |
+| `--npu-arch=dav-5102` | ❌ Unsupported | 不被支持（但门控里有 5102） |
+
+→ **待与导师确认 950 系列的正确参数**：dav-3510 或 dav-2201 是可用候选（env_probe 第 7 节会按 dav-c310 → dav-2201 → dav-3510 → dav-5102 顺序自动尝试）。
 
 **API 差异（真机头文件，修正此前基于公开版的判断）**
 
 | API | 公开版判断 | 真机 9.2.0 | 影响 |
 |---|---|---|---|
-| aclrtGetVersion | 不存在（wrapper 用模拟版本宏） | **存在** | wrapper 可改真实调用（签名待确认） |
-| aclblasCreate/Destroy/SetStream/GetStream | 不存在（自定义 handle 结构） | **aclblasCreate 存在** | cublas 桥可改用真实 handle（签名待确认） |
-| aclrtGetSocName | 在 acl_rt.h | acl_rt.h 未匹配 | 需在 include/acl 全目录定位或换名（wrapper 依赖它） |
+| aclrtGetVersion | 不存在（wrapper 用模拟版本宏） | **存在但已废弃**：`aclError aclrtGetVersion(int32_t* major, int32_t* minor, int32_t* patch)`，带 `ACL_DEPRECATED_MESSAGE`，官方建议 **aclSysGetVersion** | wrapper 应改用 aclSysGetVersion（签名待核） |
+| aclblasCreate | 不存在（自定义 handle 结构） | **仍无独立 aclblasCreate**；存在 `aclblasCreateHandleForGemvEx/Hgemv/...` 系列 | cublas 桥维持自定义 handle 结构 ✅ 原判断正确 |
+| aclrtGetSocName | 在 acl_rt.h | acl_rt.h 未匹配，但 **include/acl 全目录可搜到** | wrapper 依赖它，可编译（所在头待定位） |
 | aclblasAxpy/Copy/Dot/Scal/Swap/Nrm2 | 待核 | **不存在** | BLAS1 维持 not-support 占位 ✅ 结论确认 |
 | aclrtGetDeviceProperties | 不存在 | 不存在 ✅ | 维持 aclrtGetDeviceInfo |
 | ACL_DT_DOUBLE | 无 | 无 ✅ | Dgemm 维持 not-support |
+
+**SIMT 头非自包含（编译依赖）**：`asc_simt.h` 内部 `#include "simt_api/common_functions.h"`（还依赖 device_types.h/device_functions.h 等），因此编译时必须把 **simt_api 的父目录**（cann-9.2.0/x86_64-linux/asc/include）加入 `-I`，只加 simt_api 目录本身会报 `fatal error: 'simt_api/common_functions.h' file not found`。env_probe/run_tests 已处理（`SIMT_API_ROOT`）。
 
 **SIMT 函数签名**：asc_syncthreads/threadfence/block、asc_shfl(_up/down/xor)、asc_all/any/ballot、asc_atomic_add/sub/exch/max/min、asc_reduce_add **全部存在** ✅（simt_adaptor.h 映射目标确认）。
 

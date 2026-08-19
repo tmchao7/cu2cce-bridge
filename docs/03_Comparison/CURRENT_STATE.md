@@ -93,12 +93,13 @@
 
 | 项 | 结论 | 说明 |
 |---|---|---|
-| 待确认 #2（aclrtGetVersion） | ✅ **存在**（推翻"不存在"判断） | wrapper 可改真实调用（签名待确认，见 ASCEND_RESEARCH_NOTES §3.6） |
+| 待确认 #2（aclrtGetVersion） | ✅ **存在但已废弃**：`(int32_t*, int32_t*, int32_t*)`，官方建议 `aclSysGetVersion` | wrapper 应改用 aclSysGetVersion（签名待核） |
 | 待确认 #4（BLAS1 axpy/copy/dot/scal/swap/nrm2） | ✅ **确认不存在** | not-support 占位维持 |
-| 待确认 #4 追加（aclblasCreate） | ✅ **存在**（推翻"不存在"判断） | cublas 桥可改真实 handle（签名待确认） |
-| 待确认 #6（原子/地址空间） | ⚠️ 签名全部存在 | 仍待编译实测（架构参数未复测） |
-| **新问题：dav-310 不被 bisheng 接受** | ❌ `Unsupported NPU architecture` | 导师纠正为 **dav-c310**（已全仓库统一）；门控值 2201/3510/5102，dav-c310 待复测 |
-| aclrtGetSocName | ⚠️ acl_rt.h 未匹配 | wrapper 依赖它，需全目录定位（可能改名/换头） |
+| 待确认 #4 追加（aclblasCreate） | ✅ **修正误报：无独立 aclblasCreate**，实为 `aclblasCreateHandleFor*` 系列 | 原"自定义 handle"判断正确，cublas 桥不动 |
+| 待确认 #6（原子/地址空间） | ⚠️ 签名全部存在 | 仍待编译实测（架构参数未定） |
+| **架构参数：dav-c310 复测仍不被接受** | ❌ `Unsupported NPU architecture` | bisheng 15.0.5 接受 **dav-2201 / dav-3510**（宏 2201/3510），拒绝 dav-5102；待与导师确认 950 正确参数 |
+| **simt_api 非自包含** | ⚠️ `asc_simt.h` include `simt_api/common_functions.h` | 编译 `-I` 必须加 simt_api **父目录**（已修 env_probe/run_tests，`SIMT_API_ROOT`） |
+| aclrtGetSocName | ✅ 全目录可搜到 | wrapper 依赖它，可编译 |
 
 ## 6. 联网检查修正历史（按轮次，附来源）
 
