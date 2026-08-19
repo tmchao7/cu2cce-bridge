@@ -152,3 +152,70 @@ aclInit → 设备设置 → 内存分配 → kernel 启动的完整顺序），
 3. 若 5.3 解决：定稿 alloc policy 策略 + 文档
 4. 无论哪种解法，把根因与修复记回本文件（追加"结论"节），并跑一次
    `bash tools/real_test/run_tests.sh all` 确认 8/8 仍通过
+
+---
+
+## 8. 结论（2026-08-19 定案，issue 关闭）
+
+**根因**：`wcudaMalloc` 把原生调用 `aclrtMalloc` 写在了**会触发 `BRIDGE_INIT` 的
+`WCUDA_RETURN` 宏之前**。用户程序首个 API 就是 `cudaMalloc` 时，`aclrtMalloc`
+在 `aclInit`（乃至任何 ACL 初始化）**之前**执行 → ACL 未初始化状态下的设备分配
+失败，返回 `107002`（`ACL_ERROR_RT_MEMORY_ALLOCATION`）。
+
+**压印顺序铁证**（ROUND 9/12/13/15 每次 `WCUDA_DEBUG=1` 的输出顺序）：
+
+```
+[wcuda] wcudaMalloc enter
+[wcuda] aclrtMalloc call      ret=107002   ← 打印在 bridge_init 之前！
+[bridge_init] aclInit
+[bridge_init] aclrtGetDeviceCount
+[bridge_init] aclrtSetDevice(0)
+```
+
+**为什么前置 API 都成功、只有直调 cudaMalloc 挂**（ROUND13）：
+`wcudaGetDeviceCount`/`wcudaGetDevice`/`wcudaSetDevice` 内部调用的
+`aclrtGetDeviceCount`/`aclrtGetDevice` 会**隐式触发 ACL 初始化**，恰好先完成
+初始化才轮到 malloc。裸 ACL 探针、ctor_alloc、prog_b/c/d 全成功也是同一原因
+——它们都在 malloc 前有会隐式初始化的调用。
+
+**修复**（commit `e34ee02`）：
+`wcudaMalloc` 函数体**开头显式 `BRIDGE_INIT()`**（`call_once`、幂等）——
+任何调用都先走完 `aclInit → aclrtGetDeviceCount → aclrtSetDevice(0)`
+（含调试打印里的 `aclrtCreateContext+SetCurrentContext`）再轮到 `aclrtMalloc`。
+
+**验证**（真机 2026-08-19，ROUND17）：
+- `minimal` 手动跑输出 **`minimal OK (N=256)`**，且压印顺序变为
+  `[bridge_init]` 全在前、`[wcuda]` 在后（修复前顺序颠倒）
+- `bash tools/real_test/run_tests.sh all` **8/8 PASS**（host 冒烟 + vectorAdd
+  端到端，与修复前一致，无回归）
+- 顺带加固：`wcudaGetDeviceProperties`/`wcudaStreamQuery`/`wcudaEventQuery`
+  三个同样「原生调用在 WCUDA_RETURN 之前」的入口也补了 `BRIDGE_INIT()`
+  函数头（commit 定稿时一并提交）
+
+**未来防重回**：凡 `wcuda*` 函数体里出现**直接对 `aclrt*`/`acl` 的原生调用**
+（不在 `WCUDA_RETURN` 宏内），必须在函数体第一个语句放 `BRIDGE_INIT()`。
+排查期加的 size/policy 压印保留（仅 `WCUDA_DEBUG` 输出，无 env 无开销）。
+
+### 排查过程附录（17 轮证据链，压缩版）
+
+| 轮 | 实验 | 结论 |
+|---|---|---|
+| 1-3 | bridge_init 加打印、调整顺序；minimal 重跑 | aclInit/GetDeviceCount/SetDevice 全 0，仍 107002 |
+| 4 | 裸 ACL 探针（同序 5 种组合） | 全部成功，HBM 97GB 空闲 → 排除 ACL/环境 |
+| 5 | 库组合探针 base/+runtime/+wrapper/+both + 双 CANN 根核查 | 4 组合全成功、md5 一致 → 排除库链/多根 |
+| 6 | echo（无 kernel 子集） | 仍 107002，errMsg 空 → 问题在 host 侧本身 |
+| 7 | wrapper DT_NEEDED/INIT_ARRAY/构造器探针 | ctor_alloc 成功、.init_array 仅 frame_dummy → 排除构造器污染 |
+| 8 | trunc_raw（不连 wrapper 裸流程）+ gdb/LD_DEBUG | 裸流程成功、库 init 全在 main 前 → 排除顺序/环境/库 init |
+| 9 | echo 用 cucc 原样编 | 仍 107002，与 kernel 无关 |
+| 10 | smoke 对照（先 GetDeviceCount）PASS + 迭代 malloc 各 6 次成功 | 差异在"首个 API 是否枚举/设设备" |
+| 11 | 保留中间产物 .cce | 有/无 kernel 转换差异；smoke 无损、minimal 被转换（后证与根因无关） |
+| 12 | echo 改 .cu 无损编 | 仍 107002 → 排除 .cce/.cu、kernel 转换 |
+| 13 | 4 个 host-only .cu（直调/先枚举/先 GetDevice/先 SetDevice） | **决定性：A 直调 malloc 107002，B/C/D 前置任意枚举即成功** |
+| 14-15 | SetDevice 后加 CreateContext / SetCurrentContext | 均 ret=0 仍 107002 → context 方向排除（CreateContext 不自设当前，且非本因） |
+| 16 | wcudaMalloc 打印 size/policy 原值 + C 对照 | size=1024 policy=0 正常 → 参数无恙 |
+| 17 | **压印顺序铁证 + wcudaMalloc 开头 BRIDGE_INIT()** | **minimal OK (N=256)，8/8 PASS —— 定案 ✅** |
+
+**遗留（非本 issue 范围）**：`aclrtResetDevice` 在重复调用时返回
+`507007`（`ACL_ERROR_RT_DRV_INTERNAL_ERROR`，ROUND4 探针末尾观测到一次，
+单次调用正常）；`wcuda` 其余入口的 BRIDGE_INIT 完整性已审计（除上述 4 处
+外，其余入口要么无原生调用、要么原生调用已在 WCUDA_RETURN 宏内）。

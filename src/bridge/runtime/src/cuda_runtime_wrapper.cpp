@@ -191,6 +191,7 @@ aclError wcudaDeviceReset(void) {
 }
 
 aclError wcudaGetDeviceProperties(_cceDeviceProp_t *prop, int device) {
+    BRIDGE_INIT(); /* 首次调用即本函数时先完成 ACL 初始化（107002 教训） */
     if (prop == nullptr) {
         WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
     }
@@ -401,6 +402,7 @@ aclError wcudaStreamSynchronize(aclrtStream stream) {
 }
 
 aclError wcudaStreamQuery(aclrtStream stream) {
+    BRIDGE_INIT(); /* 首次调用即本函数时先完成 ACL 初始化（107002 教训） */
     if (stream == nullptr) {
         WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
     }
@@ -535,6 +537,7 @@ aclError wcudaEventSynchronize(aclrtEvent event) {
 }
 
 aclError wcudaEventQuery(aclrtEvent event) {
+    BRIDGE_INIT(); /* 首次调用即本函数时先完成 ACL 初始化（107002 教训） */
     if (event == nullptr) {
         WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
     }
