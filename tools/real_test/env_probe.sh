@@ -386,17 +386,27 @@ COMPILER_KIND=""
 
 arch_tmp="$(mktemp -d)"
 printf '__NPU_ARCH__\n' > "$arch_tmp/macro_probe.cce"
-# 探测 kernel 对齐官方 SIMT 示例（docs/reference/asc-devkit-simt/hello_world.asc、
-# gather_1d.asc）：只用 __global__ + threadIdx/blockIdx + GM 读写。
-# ⚠️ 不要用 asc_shfl/asc_syncthreads：它们带 simt_callee 属性，只能被
-#   simt_vf/simt_callee 函数调用（真机实测报 "simt_callee function can only be
-#   called by simt_vf/simt_callee function"）；warp 原语验证留到 vectorAdd 阶段
+# 探测 kernel 使用用户实测验证过的 ccec SIMT VF 语法（vector.cce，2026-08-19 编译通过）：
+#   - kernel 入口必须 `__global__[aicore]`（裸 `__global__` 报
+#     "requires the __aicore__ or __aicpu__ qualifier"——真机实测）
+#   - VF 函数 `__simt_vf__` + threadIdx.x（blockIdx 未内置，报 undeclared）
+#   - kernel 内 cce::async_invoke<VF>(cce::dim3{...}, args...) 启动
+#   - 指针带 __gm__ 地址空间；half/内置类型来自 <__clang_cce_types.h>
+#     （${CANN_BASE}/tools/bisheng_compiler/lib/clang/15.0.5/include，auto-fix 自动补）
+#   - asc_syncthreads/asc_shfl 等 warp 原语（simt_callee）验证留到 vectorAdd 阶段
 cat > "$arch_tmp/arch_probe.asc" <<'EOF'
-__global__ void arch_probe_kernel(float *gmOut, const float *gmIn, int n) {
-    int i = blockIdx.x * blockDim.x + threadIdx.x;
-    if (i < n) {
-        gmOut[i] = gmIn[i];
+#include <__clang_cce_types.h>
+
+__simt_vf__ LAUNCH_BOUND(1024) [aicore] __attribute__((always_inline))
+inline void arch_probe_vf(__gm__ float *in, __gm__ float *out, int n) {
+    int tid = threadIdx.x;
+    if (tid < n) {
+        out[tid] = in[tid];
     }
+}
+
+__global__[aicore] void arch_probe_kernel(__gm__ float *in, __gm__ float *out, int n) {
+    cce::async_invoke<arch_probe_vf>(cce::dim3{256, 1, 1}, in, out, n);
 }
 EOF
 
@@ -463,7 +473,7 @@ if [ -n "$CCEC_PATH" ]; then
     "$CCEC_PATH" --version 2>&1 | head -3 | tee -a "$PROBE_LOG"
     log "  --- 编译器 1/2：ccec + --cce-aicore-arch=${CUCC_NPU_ARCH} ---"
     if try_compile "ccec" "$CCEC_PATH" "--cce-aicore-arch=${CUCC_NPU_ARCH}" "$arch_tmp/ccec.log"; then
-        ok "✅ ccec：最小 SIMT kernel（__global__ + threadIdx + GM 读写）编译通过（--cce-aicore-arch=${CUCC_NPU_ARCH}）"
+        ok "✅ ccec：最小 SIMT VF kernel（__global__[aicore] + cce::async_invoke）编译通过（--cce-aicore-arch=${CUCC_NPU_ARCH}）"
         COMPILER_KIND="ccec"
         ARCH_FALLBACK="${CUCC_NPU_ARCH}"
         ARCH_COMPILE_OK="1"
@@ -503,7 +513,7 @@ if [ "$ARCH_COMPILE_OK" = "0" ] && [ -n "$BISHENG" ]; then
         [ -z "$MACRO" ] && MACRO="$("$BISHENG" -E -xcce --npu-arch="${ARCH}" "$arch_tmp/macro_probe.cce" 2>/dev/null | grep -oE '[0-9]+' | tail -1)"
         [ -n "$MACRO" ] && log "    __NPU_ARCH__=${MACRO}"
         if try_compile "bisheng/${ARCH}" "$BISHENG" "--npu-arch=${ARCH}" "$arch_tmp/bisheng_${ARCH#dav-}.log"; then
-            ok "✅ bisheng：最小 SIMT kernel（__global__ + threadIdx + GM 读写）编译通过（--npu-arch=${ARCH}）"
+            ok "✅ bisheng：最小 SIMT VF kernel（__global__[aicore] + cce::async_invoke）编译通过（--npu-arch=${ARCH}）"
             COMPILER_KIND="bisheng"
             ARCH_FALLBACK="$ARCH"
             ARCH_COMPILE_OK="1"

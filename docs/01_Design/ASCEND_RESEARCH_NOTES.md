@@ -384,6 +384,27 @@ ${CANN_BASE}/bin/ccec -O2 --cce-aicore-arch=dav-c310 -std=c++17 <src>.cce \
 
 **设备可用性（2026-08-19 实测）**：`/dev/davinci0 /dev/davinci_manager` 设备节点存在；`probe_device`（aclInit→aclrtGetDeviceCount→aclrtGetSocName）**运行成功** → 本机**直连可用 NPU**（此前 npu-smi 缺失仅是无查询工具，不影响运行）。`DEVICE_QUERY=1`。
 
+**ccec SIMT VF 编程语法要点（用户实测验证，vector.cce 编译通过，2026-08-19）**：
+
+```cpp
+#include <__clang_cce_types.h>   // half 等内置类型（bisheng_compiler/lib/clang/15.0.5/include）
+
+__simt_vf__ LAUNCH_BOUND(1024) [aicore] __attribute__((always_inline))
+inline void vector_add_kernel(__gm__ half* a, __gm__ half* b, __gm__ half* o, int n) {
+    int tid = threadIdx.x;
+    if (tid < n) { o[tid] = a[tid] + b[tid]; }
+}
+__global__[aicore] void test_vector(__gm__ half* a, __gm__ half* b, __gm__ half* o, int n) {
+    cce::async_invoke<vector_add_kernel>(cce::dim3{256, 1, 1}, a, b, o, n);
+}
+```
+
+- **kernel 入口必须带限定符**：`__global__[aicore]`（裸 `__global__` 报 `expecting global function ... requires the __aicore__ or __aicpu__ qualifier`）
+- **内置变量**：`threadIdx` / `blockDim` 有；**`blockIdx` / `gridDim` 无**（报 `use of undeclared identifier 'blockIdx'`；是否 include simt_api 头后可用待测）
+- **VF 启动**：kernel 内 `cce::async_invoke<VF>(cce::dim3{256,1,1}, args...)`；VF 用 `__simt_vf__` + `LAUNCH_BOUND` 标注
+- **指针地址空间**：kernel/VF 参数需显式 `__gm__`（全局内存）
+- **对 cu2cce 的影响**：simt_adaptor.h 需处理 `__global__`→`__global__[aicore]`（或 `__global__ __aicore__`）、blockIdx 缺失（待确认 simt_api 方案）、指针地址空间；warp 原语（asc_syncthreads 等，simt_callee）调用方式待 vectorAdd 阶段验证
+
 **SIMT 原语上下文限制（2026-08-19 真机实测）**：`asc_syncthreads`/`asc_shfl` 等带 `simt_callee` 属性，**只能被 simt_vf/simt_callee 函数调用**；直接在一个未被识别为 SIMT 的 `__global__` kernel 里调用会报 `simt_callee function can only be called by simt_vf/simt_callee function`。官方示例（hello_world.asc / gather_1d.asc）的 kernel **只用 `__global__` + threadIdx/blockIdx + GM 读写，不调用 warp 原语**。→ 探测 kernel 已对齐官方姿势；warp 原语的调用方式（kernel 如何成为 simt_vf）留待 vectorAdd 真机阶段验证。
 
 **SIMT include 依赖（编译要点）**：simt_api 头依赖链很长（asc_simt.h → common_functions.h → device_types.h → utils/base/sys_macros.h → **impl/utils/sys_macros.h**，跨目录），单靠 `-I simt_api 父目录` 不够；且 **impl/ 不在 include/ 下**，实际位于 `cann-9.2.0/x86_64-linux/asc/impl/utils/`。env_probe 第 7 节已实现**缺头自动修复**：解析 `fatal error: 'xxx'` → ASCEND_HOME 下 find → 补 **能解析该相对 include 的根目录**（文件路径去掉 miss_hdr 相对路径，如补 `.../asc` 而非 `.../asc/impl/utils`）→ 重试（最多 3 轮）。真机确认：`ccec + dav-c310` 预处理得到 **`__NPU_ARCH__=3510`**，与 simt_api 门控 3510 匹配（→ dav-c310 与门控 3510 硬件对应关系确认）。
