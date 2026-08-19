@@ -9,9 +9,10 @@
  *   export ASCEND_TOOLKIT_HOME=/usr/local/Ascend/ascend-toolkit/latest
  *   cucc vectorAdd.cu -o vectorAdd
  *
- * 本示例验证 host 侧 API 替换 + kernel 直通端到端链路（Phase A3）：
+ * 本示例验证 host 侧 API 替换 + SIMT VF kernel 直通端到端链路（Phase A3，真机模板）：
  *   cudaMalloc/cudaMemcpy/cudaDeviceSynchronize/cudaGetDeviceCount
- *   → wcudaMalloc/aclrtMalloc 等；kernel 经 bisheng 直编后校验 c = a + b。
+ *   → wcudaMalloc/aclrtMalloc 等；kernel 按 __simt_vf__ + cce::async_invoke 模板
+ *   （真机 v4 验证通过），运行后校验 c = a + b。
  */
 #include <cuda_runtime.h>
 #include <stdio.h>
@@ -19,13 +20,21 @@
 
 #define N 1024
 
-/* SIMT kernel：昇腾 950 系列（dav-310）由 bisheng 直编。
- * __global__ 同名；同步原语由 simt_adaptor.h 映射（__syncthreads→asc_syncthreads）。 */
-__global__ void vectorAddKernel(float *c, const float *a, const float *b, int n) {
+/* SIMT VF 计算体（CUDA kernel 体迁移到这里；blockIdx/blockDim/threadIdx 可用，
+ * warp 原语（asc_syncthreads 等）也放此上下文——simt_callee 限制，真机实测）。
+ * 指针需 __gm__ 地址空间（CUDA 裸指针的自动处理待真机验证）。 */
+__simt_vf__ [aicore] __attribute__((always_inline)) inline
+void vectorAddVF(__gm__ float *c, const __gm__ float *a, const __gm__ float *b, int n) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i < n) {
         c[i] = a[i] + b[i];
     }
+}
+
+/* kernel 入口：__global__ 由 simt_adaptor.h 展开为 __global__[aicore]；
+ * 经 cce::async_invoke 启动 VF（256 线程/block，blockIdx 由启动配置决定） */
+__global__ void vectorAddKernel(__gm__ float *c, const __gm__ float *a, const __gm__ float *b, int n) {
+    cce::async_invoke<vectorAddVF>(cce::dim3{256, 1, 1}, c, a, b, n);
 }
 
 int main(void) {

@@ -2,23 +2,39 @@
 #define __BRIDGE_KERNEL_SIMT_ADAPTOR_H__
 
 /*
- * AI Core SIMT 适配宏表（Phase A3，路线 A 核心）。
+ * AI Core SIMT 适配头（Phase A3，2026-08-19 真机 v4 模板验证后更新）
  *
- * 背景：昇腾 950 系列（dav-310）的 AI Core 原生支持 SIMT 编程模型（CANN 9.0+），
- *   与 CUDA 高度同构（__global__、threadIdx/blockIdx、<<<>>>、warp=32），
- *   但部分原语命名不同。本头把 CUDA kernel 侧符号映射到昇腾 SIMT 对应物，
- *   让用户 .cu 里的 kernel 代码不经改写即可由 bisheng 编译。
+ * 真机确认的 ccec SIMT 编程模型（cann-9.2.0 / dav-c310 / clang 15.0.5）：
+ *   - kernel 入口必须 __global__[aicore]（裸 __global__ 报
+ *     "requires the __aicore__ or __aicpu__ qualifier"）
+ *   - 计算体放 __simt_vf__ 函数：warp 原语（asc_syncthreads/asc_shfl 等）只能
+ *     在 simt_vf/simt_callee 上下文调用（__global__[aicore] kernel 也不行）
+ *   - kernel 内用 cce::async_invoke<VF>(cce::dim3{...}, args...) 启动 VF
+ *   - blockIdx/blockDim/threadIdx 可用（include simt_api/asc_simt.h 后）
+ *   - kernel/VF 指针需 __gm__ 地址空间（CUDA 裸指针的自动处理待真机验证）
  *
- * 映射依据（2026-08-07 权威核对）：cann/asc-devkit include/simt_api/ 真实头文件
- *   - asc_simt.h / device_sync_functions.h / device_warp_functions.h
- *   - device_atomic_functions.h（Copyright 2026 Huawei，CANN 9.x）
- *
- * 本头由 bin/cucc 在编译 kernel 时自动注入（-include）。
- * 被注入前需保证 simt_api 头在 include 路径（asc-devkit 或 CANN 提供）。
+ * 本头由 bin/cucc 编译 .cu 时 -include 注入。映射依据：cann-9.2.0 真机头文件
+ * + 用户实测 vector.cce（编译通过）+ asc-devkit simt_api（docs/reference/）。
  */
 
+// simt_api 头（提供 blockIdx/threadIdx/blockDim 与 asc_* 原语）
+// 需要 -I 指向其父目录（如 cann-9.2.0/x86_64-linux/asc/include），cucc 自动注入
+#if defined(__has_include)
+#if __has_include("simt_api/asc_simt.h")
+#include "simt_api/asc_simt.h"
+#endif
+#endif
+
+//==================== kernel 声明 ====================//
+/* CUDA __global__ -> 昇腾 __global__[aicore]（限定符必须，真机实测）。
+ * 自引用宏技巧：替换列表里的 __global__ 在同一次展开中不再展开。 */
+#define __global__ __global__[aicore]
+
+/* CUDA __launch_bounds__(n) -> 昇腾 LAUNCH_BOUND(n)（1 参形式；多参形式需人工改写） */
+#define __launch_bounds__(n) LAUNCH_BOUND(n)
+
 //==================== 同步 ====================//
-/* CUDA: __syncthreads() -> 昇腾 SIMT: asc_syncthreads() */
+/* ⚠️ 以下原语只能在 __simt_vf__ 函数内调用（simt_callee 上下文限制，真机实测） */
 #define __syncthreads() asc_syncthreads()
 #define __threadfence() asc_threadfence()
 #define __threadfence_block() asc_threadfence_block()
@@ -28,7 +44,7 @@
 #define __shared__ __ubuf__
 
 //==================== 线程块/网格索引（同名内置，无需宏） ====================//
-/* threadIdx / blockIdx / blockDim / gridDim 在 SIMT 下同名内置变量，无需映射 */
+/* threadIdx / blockIdx / blockDim / gridDim 在 include simt_api/asc_simt.h 后可用 */
 
 //==================== Warp 原语 ====================//
 /* CUDA __shfl_sync(mask, var, srcLane) -> 昇腾 asc_shfl(var, src_lane, width=warpSize)。

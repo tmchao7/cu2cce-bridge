@@ -135,6 +135,20 @@ fi
 # 注入昇腾 ACL 头
 params+=("-I" "${ASCEND_TOOLKIT_HOME}/include")
 
+# simt_api 头父目录（simt_adaptor.h include "simt_api/asc_simt.h" 需要；
+# 真机布局：cann-9.2.0/x86_64-linux/asc/include；可用 SIMT_API_ROOT 覆盖）
+if [ -z "${SIMT_API_ROOT:-}" ]; then
+    for cand in \
+        /usr/local/Ascend/cann-*/x86_64-linux/asc/include \
+        "${ASCEND_TOOLKIT_HOME}"/x86_64-linux/asc/include \
+        /usr/local/Ascend/cann-*/aarch64-linux/asc/include; do
+        if [ -d "${cand}/simt_api" ]; then SIMT_API_ROOT="${cand}"; break; fi
+    done
+fi
+if [ -n "${SIMT_API_ROOT:-}" ] && [ -d "${SIMT_API_ROOT}/simt_api" ]; then
+    params+=("-I" "${SIMT_API_ROOT}")
+fi
+
 # SIMT 适配宏表：编译 device 侧（.cu）时强制注入
 if [[ "${xlang}" == "cu" ]]; then
     if [ -n "${CUCC_PATH}" ] && [ -f "${CUCC_PATH}/include/bridge/kernel/simt_adaptor.h" ]; then
