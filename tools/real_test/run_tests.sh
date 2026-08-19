@@ -58,6 +58,13 @@ fi
 [ -x "$CUCC_PATH/bin/cucc" ] || { echo "❌ 未找到 $CUCC_PATH/bin/cucc（先跑 build_bridge.sh）"; exit 1; }
 [ -f "$CUCC_PATH/lib/libcce_bridge_runtime.so" ] || { echo "❌ 未找到 $CUCC_PATH/lib/libcce_bridge_runtime.so（先跑 build_bridge.sh）"; exit 1; }
 
+# CRLF 自愈：bin/cucc 无扩展名，.gitattributes 的 *.sh 规则覆盖不到，
+# 传输损坏时 shebang 带 \r → "cannot execute: required file not found"（真机教训）
+if head -1 "$CUCC_PATH/bin/cucc" 2>/dev/null | grep -q $'\r'; then
+    echo "  [自愈] $CUCC_PATH/bin/cucc 含 CRLF，自动修复换行"
+    sed -i 's/\r$//' "$CUCC_PATH/bin/cucc"
+fi
+
 mkdir -p "$OUT_DIR/logs"
 
 PASS=0; FAIL=0

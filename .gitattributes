@@ -15,3 +15,9 @@
 *.yaml text eol=lf
 *.json text eol=lf
 *.cmake text eol=lf
+
+# 无扩展名可执行脚本（通配 *.sh 覆盖不到，2026-08-19 真机教训：cucc 被转 CRLF
+# 后报 "cannot execute: required file not found"——shebang 带 \r）
+bin/cucc text eol=lf
+tools/make_cce text eol=lf
+tools/cmake_cce text eol=lf
