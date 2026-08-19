@@ -93,6 +93,26 @@ void bridge_init() {
         }
         usleep(100 * 1000);  /* 100ms */
     }
+
+    /* 107002 根因修复（INVESTIGATION_107002.md 结论节，2026-08-19 定案）：
+     * 仅 SetDevice(0) 还不足以让后续 aclrtMalloc 成功——需显式创建 context。
+     * 证据：同一台机、同一 wrapper：
+     *   - ctor_alloc（aclInit→GetDeviceCount→SetDevice→aclrtMalloc）malloc ret=0
+     *   - prog_b/c/d（main 里先 cudaGetDeviceCount/GetDevice/SetDevice 任一前置
+     *     API，触发 bridge_init 后再 cudaMalloc）全部 success
+     *   - prog_a/minimal/echo（首个 API 即 cudaMalloc，bridge_init 在
+     *     '0 前置'下 SetDevice 完立刻 aclrtMalloc）稳定 107002
+     * 区别：前置 API（wcudaGetDeviceCount/wcudaGetDevice/wcudaSetDevice）内部
+     * 的 aclrtGetDeviceCount/aclrtGetDevice 调用隐式建立了 ACL 的当前上下文；
+     * 而 minimal 路径在 aclrtMalloc 前没有任何一次会隐式建上下文的 API。
+     * 修复：SetDevice 成功后显式 aclrtCreateContext(0)（与 ctor_alloc 的
+     * 成功路径一致：SetDevice 后建 ctx 再分配）。 */
+    aclrtContext ctx = nullptr;
+    aclError cc = aclrtCreateContext(&ctx, 0);
+    bridge_log("aclrtCreateContext(0)", (int32_t)cc);
+    /* context 保持当前/默认（不主动 destroy：CUDA 默认 context 生命周期为进程，
+     * 应用后续 API 需在固定当前 context 上工作；aclFinalize 在无 res 时统一收尾） */
+    (void)ctx;
 }
 
 } // namespace cubridge::internal

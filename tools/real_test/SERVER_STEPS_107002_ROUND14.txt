@@ -1,0 +1,57 @@
+============================================================
+SERVER_STEPS_107002_ROUND14.txt —— 107002 修复验证 · 服务器操作
+============================================================
+（本文件由 ZCode 推送。cat 本文件后，把 ---- 之间的命令块
+整段复制粘贴执行；# 开头为说明行，粘贴时自动当注释。）
+
+背景（ROUND13 决定性结论）：
+  A（直调 Malloc）                         → 107002
+  B（先 cudaGetDeviceCount 再 malloc）     → 成功
+  C（先 cudaGetDevice 再 malloc）          → 成功
+  D（先 cudaSetDevice(0) 再 malloc）       → 成功
+  → 只要 main 首个 API 是任意前置（枚举/设备），malloc 就成功；
+    首个 API 直调 cudaMalloc 就 107002。区别在于：前置 API（wcudaGetDeviceCount
+    /GetDevice/SetDevice）内部会隐式建立 ACL 当前上下文；minimal 路径
+    aclInit→GetDeviceCount→SetDevice 后没有任何会建上下文的调用。
+  修复（已在 wrapper 源码落地）：bridge_init 里 SetDevice 成功后显式
+    aclrtCreateContext(0)（对齐 ctor_alloc 成功路径）。
+
+------------------------------------------------------------
+0. 拉最新（含修复）+ 看本文件
+------------------------------------------------------------
+cd /home/t50063365/workspace/repos/cu2cce-bridge && git pull
+pwd
+cat tools/real_test/SERVER_STEPS_107002_ROUND14.txt
+
+------------------------------------------------------------
+1. 重新构建 wrapper（让修复进 .so）
+------------------------------------------------------------
+bash tools/real_test/build_bridge.sh
+echo "build 退出码: $?"
+
+------------------------------------------------------------
+2. 验证 minimal（此前稳定 107002）——预期 minimal OK
+------------------------------------------------------------
+export CUCC_PATH=$PWD/build/real_test/install
+export CUDA_PATH=$CUCC_PATH
+export PATH=$CUCC_PATH/bin:$PATH
+"$CUCC_PATH/bin/cucc" -c examples/minimal/minimal.cu -o /tmp/minimal.o
+"$CUCC_PATH/bin/cucc" /tmp/minimal.o -o /tmp/minimal
+WCUDA_DEBUG=1 /tmp/minimal
+echo "minimal 运行退出码: $?"
+
+------------------------------------------------------------
+3. 回归 run_tests.sh all（确认 8/8 不倒退）
+------------------------------------------------------------
+bash tools/real_test/run_tests.sh all
+echo "run_tests 退出码: $?"
+
+------------------------------------------------------------
+4. 顺带验证 prog_a（直调 Malloc）也被修复
+------------------------------------------------------------
+"$CUCC_PATH/bin/cucc" -c /tmp/prog_a.cu -o /tmp/prog_a.o
+"$CUCC_PATH/bin/cucc" /tmp/prog_a.o -o /tmp/prog_a
+WCUDA_DEBUG=1 /tmp/prog_a
+echo "prog_a 运行退出码: $?"
+
+============================================================
