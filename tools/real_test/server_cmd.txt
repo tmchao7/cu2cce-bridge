@@ -1,0 +1,29 @@
+# server_cmd.txt —— 服务器操作命令（当前轮）
+
+> 用法：本文件是"当前这一轮要在昇腾服务器上执行的操作"的唯一来源。
+> 服务器侧只做：
+>   cd /home/t50063365/workspace/repos/cu2cce-bridge && git pull
+>   cat tools/real_test/server_cmd.txt
+> 然后按文件内容整段复制粘贴执行。每次推送新代码时本文件随之更新。
+
+============================================================
+【当前无待执行操作】
+============================================================
+（107002 已定案并清理完毕，最近一次推送是产物整理，无需服务器操作。）
+
+如后续轮次需要服务器验证，本文件会被更新为对应命令块，例如：
+
+------------------------------------------------------------
+示例：重建 + 回归（真实内容以推送时的块为准）
+------------------------------------------------------------
+cd /home/t50063365/workspace/repos/cu2cce-bridge && git pull
+bash tools/real_test/build_bridge.sh
+export CUCC_PATH=$PWD/build/real_test/install
+export CUDA_PATH=$CUCC_PATH
+export PATH=$CUCC_PATH/bin:$PATH
+"$CUCC_PATH/bin/cucc" -c examples/minimal/minimal.cu -o /tmp/minimal.o
+"$CUCC_PATH/bin/cucc" /tmp/minimal.o -o /tmp/minimal
+WCUDA_DEBUG=1 /tmp/minimal
+bash tools/real_test/run_tests.sh all
+
+============================================================

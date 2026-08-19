@@ -78,3 +78,15 @@ make && make install
 2. 本机只读不构建：任何 `cmake`/`make`/`cucc`/`bisheng`/`msopgen` 类命令在本机一律禁止执行
 3. 新增 wrapper 函数照抄 cu-bridge 声明行，把 `mc*` 类型换成 `acl*` 类型
 4. 昇腾 API 事实不确定时先查 `docs/01_Design/ASCEND_RESEARCH_NOTES.md`（已收录 ACL/SIMT 调研笔记），再查官方文档，不要臆造 API 名
+5. **服务器命令交付约定（重要）**：
+   - 任何需要用户在昇腾服务器上执行的命令，**在推送到云端之前，先写入 `tools/real_test/server_cmd.txt`**，与代码改动同一 commit 一起推送（服务器只 `git pull` 即可拿到）。
+   - 服务器侧的操作流程固定为：
+     ```bash
+     cd /home/t50063365/workspace/repos/cu2cce-bridge && git pull
+     cat tools/real_test/server_cmd.txt
+     ```
+     然后按文件内容整段复制粘贴执行（`#` 开头是说明行，粘贴时自动当注释）。
+   - **只维护这一份 `server_cmd.txt`**：每次推送时覆盖为"最新一轮服务器要做的操作"。不再为每一轮新建 `SERVER_STEPS_*.txt`（2026-08-19 曾因每轮一个文件产生 19 个归档，教训：过于冗余，已全删）。
+   - 需要保留的长期说明放 `docs/` 或 `tools/real_test/diag/README.md`；`server_cmd.txt` 只承载"当前这一轮要跑的命令"。
+   - 命令块要求：自包含（含 export 环境变量）、`#` 注释说明每段目的、能整段粘贴执行、执行完有判读提示（让用户把哪段输出贴回来）。
+6. 每次推送后，聊天正文里不要重复粘贴命令块（用户直接 `cat server_cmd.txt` 即可），但要在最终回复里说明"已更新 server_cmd.txt，服务器上 git pull + cat 后执行"。
