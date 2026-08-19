@@ -41,6 +41,10 @@ target_include_directories(cce_bridge_runtime
         ${CMAKE_CURRENT_SOURCE_DIR}/include
     PRIVATE
         ${ASCEND_INCLUDE}
+        # wrapper 源文件 #include "cuda_runtime_wrapper.h" / "cublas_v2_wrapper.h"
+        # 等（相对 include/bridge/{runtime,blas}），需补子目录（与 mock syntax_check 一致）
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/bridge/runtime
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/bridge/blas
 )
 
 target_link_libraries(cce_bridge_runtime
