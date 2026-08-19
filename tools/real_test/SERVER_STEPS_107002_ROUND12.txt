@@ -1,0 +1,72 @@
+============================================================
+SERVER_STEPS_107002_ROUND12.txt —— 107002 排查第 12 轮 · 服务器操作
+============================================================
+（本文件由 ZCode 推送。cat 本文件后，把 ---- 之间的命令块
+整段复制粘贴执行；# 开头为说明行，粘贴时自动当注释。）
+
+背景（第 11 轮结论——决定性差异找到了）：
+  · smoke 的 /tmp/cu2cce_*.cce —— 没有 kernel 转换（原样透传，
+    host-only 未被 kernel_convert 处理）
+  · minimal 的 /tmp/cu2cce_*.cce —— 被 kernel_convert 转换（生成
+    __simt_vf__ + __global__[aicore] + cce::async_invoke）
+  · -v 显示两条路径的编译参数几乎一致（bisheng clang 15.0.5，
+    dav-c310-cube/vec 双 target，include 相同）
+  → 唯一实质差异就是「有无 kernel 转换」。但之前 echo（无 kernel 的
+    .cce 直接 -x cce 编）也 107002…… 而 smoke（无 kernel 的 .cu 走
+    cucc 无损）PASS。
+
+  本轮要回答：为什么同样"无 kernel 转换"的 smoke PASS、echo FAIL？
+  —— smoke 是 .cu（cucc 无损编 host-only），echo 是 .cce（-x cce 直接编）。
+  → 把 echo 改名成 .cu（含 host 侧 + 不写 kernel），用 cucc 走"host-only
+    .cu 无损路径"再跑一次。若它 PASS → 差异就是 .cce vs .cu 的编译路径
+    （kernel_convert 对 .cce 的处理/ -x cce 标志）。若仍 FAIL →
+    差异在 smoke 的代码本身（先 GetDeviceCount/SetDevice/具体 API 序列）。
+
+------------------------------------------------------------
+0. 拉最新 + 看本文件
+------------------------------------------------------------
+cd /home/t50063365/workspace/repos/cu2cce-bridge && git pull
+pwd
+cat tools/real_test/SERVER_STEPS_107002_ROUND12.txt
+
+------------------------------------------------------------
+1. 做一个"host-only 的 .cu"（复刻 echo 的 main，但文件扩展名 .cu）
+------------------------------------------------------------
+cp examples/minimal/echo.cce /tmp/echo_host.cu   # 内容已是纯 host（无 kernel）
+echo "== echo_host.cu 内容头部 =="
+head -30 /tmp/echo_host.cu
+
+------------------------------------------------------------
+2. 用 cucc 走 host-only .cu 路径编译 + 运行
+------------------------------------------------------------
+export CUCC_PATH=$PWD/build/real_test/install
+export CUDA_PATH=$CUCC_PATH
+export PATH=$CUCC_PATH/bin:$PATH
+"$CUCC_PATH/bin/cucc" -c /tmp/echo_host.cu -o /tmp/echo_host.o
+echo "编译退出码: $?"
+"$CUCC_PATH/bin/cucc" /tmp/echo_host.o -o /tmp/echo_host
+echo "链接退出码: $?"
+WCUDA_DEBUG=1 /tmp/echo_host
+echo "运行退出码: $?"
+
+------------------------------------------------------------
+3. 判读（贴回第 2 步完整输出）
+------------------------------------------------------------
+【echo_host PASS（cudaMalloc OK）】
+  → 差异 = .cce vs .cu 编译路径：之前 echo 用 -x cce（.cce 直接编），
+    这里 echo_host 是 .cu（cucc 无损编）。根因可能就是 kernel_convert
+    对 .cce 的处理或 -x cce 注入的编译标志使 wcudaMalloc 静默异常
+    → 下一步：查 kernel_convert 对 .cce 的转换逻辑 + -x cce 的具体参数
+【echo_host FAIL（107002）】
+  → 差异 = smoke 的代码/逻辑（先 GetDeviceCount+SetDevice+固定 API 序列）
+    → 下一步：把 echo 的 main 改成 smoke 的"先 GetDeviceCount 再 malloc"
+      再跑，看是否翻转
+
+------------------------------------------------------------
+4.（补充）顺带确认 kernel_convert 对 .cce 是否也强制转换
+------------------------------------------------------------
+python3 "$CUCC_PATH/tools/kernel_convert.py" /tmp/echo_host.cu -o /tmp/echo_host_conv.cce
+echo "kernel_convert 退出码: $?"
+diff /tmp/echo_host.cu /tmp/echo_host_conv.cce && echo "【无转换：/.cu host-only 不转换】" || echo "【有转换：请贴 diff】"
+
+============================================================
