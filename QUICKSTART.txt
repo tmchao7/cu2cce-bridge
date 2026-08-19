@@ -35,13 +35,28 @@ cucc my_program.o -o my_program
 # 方式 B：一步法
 cucc my_program.cu -o my_program
 
-# 运行（device 0）
+# 运行（device 0；rpath 已内置，无需 LD_LIBRARY_PATH）
 ./my_program
 
 # 注意：
 # - kernel 用纯 CUDA 写（__global__ + blockIdx/threadIdx），cucc 自动转换
 # - include <stdio.h>/<stdlib.h> 等照常写（shadow 遮蔽头处理）
 # - 目前转换器 v0 只支持简单 __global__ void k(...)（无模板/函数指针参数）
+# - 改了 src/ 或 bin/cucc 后需重新构建：bash tools/real_test/build_bridge.sh
+
+# 3.1 快速验证：minimal 示例（最小可跑，纯 CUDA 零改写）
+cd ~/workspace/repos/cu2cce-bridge
+git pull                                   # 拉到最新（含 rpath 逻辑）
+bash tools/real_test/build_bridge.sh       # 重新构建（install/bin/cucc 更新）
+
+export CUCC_PATH=$PWD/build/real_test/install
+export CUDA_PATH=$CUCC_PATH
+export PATH=$CUCC_PATH/bin:$PATH
+
+cucc -c examples/minimal/minimal.cu -o /tmp/minimal.o
+cucc /tmp/minimal.o -o /tmp/minimal
+/tmp/minimal
+# 预期输出：minimal OK (N=256)
 
 # ---------- 4. 本机（macOS）：开发与推送 ----------
 cd ~/repos/09_expLearn/cu2cce-bridge
