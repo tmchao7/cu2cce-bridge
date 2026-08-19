@@ -386,14 +386,17 @@ COMPILER_KIND=""
 
 arch_tmp="$(mktemp -d)"
 printf '__NPU_ARCH__\n' > "$arch_tmp/macro_probe.cce"
+# 探测 kernel 对齐官方 SIMT 示例（docs/reference/asc-devkit-simt/hello_world.asc、
+# gather_1d.asc）：只用 __global__ + threadIdx/blockIdx + GM 读写。
+# ⚠️ 不要用 asc_shfl/asc_syncthreads：它们带 simt_callee 属性，只能被
+#   simt_vf/simt_callee 函数调用（真机实测报 "simt_callee function can only be
+#   called by simt_vf/simt_callee function"）；warp 原语验证留到 vectorAdd 阶段
 cat > "$arch_tmp/arch_probe.asc" <<'EOF'
-#include "asc_simt.h"
 __global__ void arch_probe_kernel(float *gmOut, const float *gmIn, int n) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
-    float v = gmIn[i];
-    v = asc_shfl(v, 0);
-    asc_syncthreads();
-    gmOut[i] = v;
+    if (i < n) {
+        gmOut[i] = gmIn[i];
+    }
 }
 EOF
 
@@ -460,7 +463,7 @@ if [ -n "$CCEC_PATH" ]; then
     "$CCEC_PATH" --version 2>&1 | head -3 | tee -a "$PROBE_LOG"
     log "  --- 编译器 1/2：ccec + --cce-aicore-arch=${CUCC_NPU_ARCH} ---"
     if try_compile "ccec" "$CCEC_PATH" "--cce-aicore-arch=${CUCC_NPU_ARCH}" "$arch_tmp/ccec.log"; then
-        ok "✅ ccec：最小 SIMT kernel（asc_shfl + asc_syncthreads）编译通过（--cce-aicore-arch=${CUCC_NPU_ARCH}）"
+        ok "✅ ccec：最小 SIMT kernel（__global__ + threadIdx + GM 读写）编译通过（--cce-aicore-arch=${CUCC_NPU_ARCH}）"
         COMPILER_KIND="ccec"
         ARCH_FALLBACK="${CUCC_NPU_ARCH}"
         ARCH_COMPILE_OK="1"
@@ -496,10 +499,11 @@ if [ "$ARCH_COMPILE_OK" = "0" ] && [ -n "$BISHENG" ]; then
     log "  bisheng 候选架构顺序：${ARCH_CANDIDATES}"
     for ARCH in ${ARCH_CANDIDATES}; do
         log "  --- bisheng + --npu-arch=${ARCH} ---"
-        MACRO="$("$BISHENG" -E -xcce --npu-arch="${ARCH}" "$arch_tmp/macro_probe.cce" 2>/dev/null | grep -vE '^#' | tr -d ' \n')"
+        MACRO="$("$BISHENG" -dM -E -xcce --npu-arch="${ARCH}" -x cce - 2>/dev/null | grep -oE '__NPU_ARCH__[[:space:]]+[0-9]+' | awk '{print $2}' | head -1)"
+        [ -z "$MACRO" ] && MACRO="$("$BISHENG" -E -xcce --npu-arch="${ARCH}" "$arch_tmp/macro_probe.cce" 2>/dev/null | grep -oE '[0-9]+' | tail -1)"
         [ -n "$MACRO" ] && log "    __NPU_ARCH__=${MACRO}"
         if try_compile "bisheng/${ARCH}" "$BISHENG" "--npu-arch=${ARCH}" "$arch_tmp/bisheng_${ARCH#dav-}.log"; then
-            ok "✅ bisheng：最小 SIMT kernel（asc_shfl + asc_syncthreads）编译通过（--npu-arch=${ARCH}）"
+            ok "✅ bisheng：最小 SIMT kernel（__global__ + threadIdx + GM 读写）编译通过（--npu-arch=${ARCH}）"
             COMPILER_KIND="bisheng"
             ARCH_FALLBACK="$ARCH"
             ARCH_COMPILE_OK="1"
