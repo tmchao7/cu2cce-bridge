@@ -7,7 +7,7 @@
 
 | 脚本 | 分工 | 是否执行命令 |
 |---|---|---|
-| `env_probe.sh` | **只找包的位置**：定位 CANN/bisheng/ACL 头库/simt_api/npu-smi；grep 头文件只读核对 `docs/03_Comparison/CURRENT_STATE.md` 里的待真机确认项；**核对目标架构 `--npu-arch=dav-310`**（内部 950 系列：dump `__NPU_ARCH__` 宏、比对 simt_api 门控、最小 SIMT kernel 实测编译） | 仅只读查询 + 最小文件实测编译（产物在 /tmp，不触碰仓库构建） |
+| `env_probe.sh` | **只找包的位置**：定位 CANN/bisheng/ACL 头库/simt_api/npu-smi；grep 头文件只读核对 `docs/03_Comparison/CURRENT_STATE.md` 里的待真机确认项；**核对目标架构 `--npu-arch=dav-c310`**（内部 950 系列：dump `__NPU_ARCH__` 宏、比对 simt_api 门控、最小 SIMT kernel 实测编译） | 仅只读查询 + 最小文件实测编译（产物在 /tmp，不触碰仓库构建） |
 | `build_bridge.sh` | **真实构建**：cmake 配置 → 编译 → 安装 wrapper 库到 CUCC_PATH | 执行 cmake/make/install |
 | `run_tests.sh` | **真实运行启动命令**：用 cucc 编译测试程序并在 NPU 上运行（host 冒烟 + vectorAdd 端到端） | 执行 cucc/bisheng 编译、链接、运行二进制 |
 | `run_all.sh` | 一键串联 1→2→3 | 以上全部 |
@@ -36,7 +36,7 @@ tools/real_test/run_tests.sh all --direct
 
 ## 通过标准
 
-- `env_probe.sh`：退出码 0（硬缺失=0；签名未命中只 WARN，需人工比对 CURRENT_STATE.md 修正代码）。**第 7 节架构核对**：`--npu-arch=dav-310` 通过最小 SIMT kernel（asc_shfl+asc_syncthreads）编译、且 `__NPU_ARCH__` 宏在 simt_api 门控内 —— 这两条是路线 A 成立的前提，若 WARN 需把 probe.log 第 7 节输出反馈给开发侧
+- `env_probe.sh`：退出码 0（硬缺失=0；签名未命中只 WARN，需人工比对 CURRENT_STATE.md 修正代码）。**第 7 节架构核对**：`--npu-arch=dav-c310` 通过最小 SIMT kernel（asc_shfl+asc_syncthreads）编译、且 `__NPU_ARCH__` 宏在 simt_api 门控内 —— 这两条是路线 A 成立的前提，若 WARN 需把 probe.log 第 7 节输出反馈给开发侧
 - `build_bridge.sh`：`libcce_bridge_runtime.so`、`include/cuda_runtime.h`、`bin/cucc` 等 6 项产物齐备
 - `run_tests.sh host`：输出含 `host bridge smoke OK`
 - `run_tests.sh vectoradd`：输出含 `vectorAdd OK`（kernel 直通编译 + 1024 个元素全部 1+2=3 数值校验）
@@ -48,4 +48,4 @@ tools/real_test/run_tests.sh all --direct
 2. **CMakeLists 直接引用 .so 文件名**：`libascendcl.so`/`libacl_cblas.so` 若在真机不存在（如只有 `libacl_rt.so`），`build_bridge.sh` 会在预检处提示，需按真机改 `CMakeLists.txt` 第 48-49 行。
 3. **SIMT 头来源**：`env_probe.sh` 自动找 `simt_api` 目录；若 kernel 用到 `__syncthreads/__shared__` 等宏而真机未装 asc-devkit，需先补装。
 4. **待真机确认的 7 项**（见 `docs/03_Comparison/CURRENT_STATE.md` §5）：probe 脚本已把能 grep 的部分自动核对，其余（pitch 对齐、原子操作地址空间、null stream 语义）需看 vectorAdd/扩展用例的运行结果。
-5. **dav-310 是内部 950 系列架构参数**（导师提供，公开文档无此值，勿当笔误修改），见 `docs/01_Design/ASCEND_RESEARCH_NOTES.md` §3.5。
+5. **dav-c310 是内部 950 系列架构参数**（导师 2026-08-19 提供；此前误记 dav-310，真机 bisheng 实测不接受，已全部改正），见 `docs/01_Design/ASCEND_RESEARCH_NOTES.md` §3.5。

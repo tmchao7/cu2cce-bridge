@@ -322,11 +322,46 @@ bisheng main.cpp example.asc -o main --npu-arch=dav-xxxx
 - `__aicore__`：AI Core 函数（`__global__` + `__aicore__` = AI Core kernel）。
 - `__aicpu__`：AI CPU 内核（须与 `__global__` 同用，入参仅一个指针，不能返回 void）。
 
-### 3.5 `--npu-arch=dav-310` 的来历与注意事项（2026-08-19）
+### 3.5 `--npu-arch=dav-c310` 的来历与注意事项（2026-08-19 纠正）
 
-- **dav-310 = 内部昇腾 950 系列架构参数（导师提供，公司内部硬件，公开文档无此值）**。公开资料只有 dav-3510（Atlas 350/351x）等，**不要把 dav-310 当笔误改掉**。
-- ⚠️ 风险点：公开 asc-devkit 的 simt_api 头里 warp/atomic 函数按 `__NPU_ARCH__ == 3510 || 5102` 条件编译启用；内部头文件的门控数字宏未必相同。若真机头文件的门控不含 dav-310 对应的数字宏，`asc_shfl`/`asc_atomic_*` 会被裁掉，simt_adaptor 映射静默失效。
-- 验证方式：`tools/real_test/env_probe.sh` 第 7 节会自动做 ①`-dM -E` dump `__NPU_ARCH__` 宏值 ②grep simt_api 头门控值并比对 ③最小 SIMT kernel（asc_shfl+asc_syncthreads）实测编译。
+- **dav-c310 = 内部昇腾 950 系列架构参数（导师提供，公司内部硬件，公开文档无此值）**。公开资料只有 dav-3510（Atlas 350/351x）等，**不要把 dav-c310 当笔误改掉**。
+- ⚠️ 历史教训：2026-08-19 之前文档/脚本一直误记为 **dav-310**，真机 bisheng（clang 15.0.5，cann-9.2.0）实测编译报 `Unsupported NPU architecture or soc: NPU arch is not supported!!!`，无法编译任何 kernel。导师纠正为 **dav-c310** 后已全仓库统一（grep dav-310 应为 0）。**任何文档若再见 dav-310 均为过时写法，需改 dav-c310。**
+- ⚠️ 风险点：公开 asc-devkit 的 simt_api 头里 warp/atomic 函数按 `__NPU_ARCH__ == 3510 || 5102`（真机头为 2201/3510/5102）条件编译启用；dav-c310 对应的 `__NPU_ARCH__` 数字宏尚未确认。若真机头文件的门控不含该值，`asc_shfl`/`asc_atomic_*` 会被裁掉，simt_adaptor 映射静默失效。
+- 验证方式：`tools/real_test/env_probe.sh` 第 7 节会自动做 ①`-E`/`-dM` 取 `__NPU_ARCH__` 宏值 ②grep simt_api 头门控值并比对 ③最小 SIMT kernel（asc_shfl+asc_syncthreads）实测编译；dav-c310 失败时自动尝试门控值对应的 dav-3510/5102/2201。
+
+### 3.6 真机核实记录（2026-08-19，cann-9.2.0 / x86_64 / driver 7.0.t9.0.B880）
+
+> 环境：`root@bisheng` 服务器（`/home/t50063365/workspace/repos/cu2cce-bridge`）。本机（macOS 无 CANN）无法验证的内容，以本节为准。
+
+**真实路径布局（与公开文档不同！）**
+
+| 组件 | 公开文档假设 | 真机实际（cann-9.2.0） |
+|---|---|---|
+| bisheng | `${ASCEND_TOOLKIT_HOME}/compiler/ccec_compiler/bin/bisheng` | `/usr/local/Ascend/cann-9.2.0/tools/bisheng_compiler/bin/bisheng`（独立于 ascend-toolkit） |
+| simt_api | `${ASCEND_TOOLKIT_HOME}/include/simt_api` | `/usr/local/Ascend/cann-9.2.0/x86_64-linux/asc/include/simt_api` |
+| ACL 头/库 | `${ASCEND_TOOLKIT_HOME}/include` + `/lib64` | ✅ 与公开布局一致 |
+| ascend-toolkit/compiler/ | ccec_compiler | 实为 asc/ascendc/bin/conf/python/tikcpp（无 ccec_compiler，无 bisheng） |
+
+**编译器**：bisheng = clang 15.0.5（2026-08-13 构建，x86_64-linux）。`--npu-arch`、`--cce-soc-version`、`--offload-arch` 均支持；`--help` 未列出合法架构值。
+
+**架构参数**：`--npu-arch=dav-310` 实测**不被接受**（见 §3.5，导师纠正为 `dav-c310`，待真机复测）。
+
+**API 差异（真机头文件，修正此前基于公开版的判断）**
+
+| API | 公开版判断 | 真机 9.2.0 | 影响 |
+|---|---|---|---|
+| aclrtGetVersion | 不存在（wrapper 用模拟版本宏） | **存在** | wrapper 可改真实调用（签名待确认） |
+| aclblasCreate/Destroy/SetStream/GetStream | 不存在（自定义 handle 结构） | **aclblasCreate 存在** | cublas 桥可改用真实 handle（签名待确认） |
+| aclrtGetSocName | 在 acl_rt.h | acl_rt.h 未匹配 | 需在 include/acl 全目录定位或换名（wrapper 依赖它） |
+| aclblasAxpy/Copy/Dot/Scal/Swap/Nrm2 | 待核 | **不存在** | BLAS1 维持 not-support 占位 ✅ 结论确认 |
+| aclrtGetDeviceProperties | 不存在 | 不存在 ✅ | 维持 aclrtGetDeviceInfo |
+| ACL_DT_DOUBLE | 无 | 无 ✅ | Dgemm 维持 not-support |
+
+**SIMT 函数签名**：asc_syncthreads/threadfence/block、asc_shfl(_up/down/xor)、asc_all/any/ballot、asc_atomic_add/sub/exch/max/min、asc_reduce_add **全部存在** ✅（simt_adaptor.h 映射目标确认）。
+
+**driver**：Version=7.0.t9.0.B880（2026-08-12 构建）；npu-smi 未安装（纯编译验证可忽略）。
+
+**后续动作**：①确认 dav-c310 可编译（或确认正确参数）；②确认 aclrtGetVersion/aclblasCreate 签名后改造 wrapper；③定位 aclrtGetSocName。
 
 ---
 

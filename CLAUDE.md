@@ -22,8 +22,8 @@ cu-bridge 的三条迁移线在昇腾上的对应（详见 `docs/01_Design/CUDA_
 2. **主机侧 Driver API（cuMalloc 等）**：昇腾无同形 CUDA Driver API，映射表大幅缩水，**当前未做**（Phase A2+）
 3. **设备侧 kernel**：这是 cu-bridge 与 cu2cce 的最大差异
    - cu-bridge 靠 mxcc（clang 系）原生认识 CUDA SIMT kernel 语法，**不需要转换**
-   - 昇腾 bisheng 编译器认识 `__global__ __aicore__` + `<<<>>>` 语法；且 **Ascend 950PR/950DT 架构（`--npu-arch=dav-310`）的 AI Core 原生支持 SIMT 编程模型**（warp=32、`threadIdx`/`blockIdx`、`asc_syncthreads`/`asc_shfl` 等），与 CUDA 高度同构
-   - **D0 已定（2026-08-07）：目标硬件 = 950 系列 dav-310 → kernel 直通编译（路线 A）**，仅需一个 SIMT 适配宏表（`__syncthreads`→`asc_syncthreads`、`__shared__`→`__ubuf__` 等）；老型号（910B/910C，无 SIMT）才需要 SIMT→tile 转换层（已排除）
+   - 昇腾 bisheng 编译器认识 `__global__ __aicore__` + `<<<>>>` 语法；且 **Ascend 950PR/950DT 架构（`--npu-arch=dav-c310`）的 AI Core 原生支持 SIMT 编程模型**（warp=32、`threadIdx`/`blockIdx`、`asc_syncthreads`/`asc_shfl` 等），与 CUDA 高度同构
+   - **D0 已定（2026-08-07）：目标硬件 = 950 系列 dav-c310 → kernel 直通编译（路线 A）**，仅需一个 SIMT 适配宏表（`__syncthreads`→`asc_syncthreads`、`__shared__`→`__ubuf__` 等）；老型号（910B/910C，无 SIMT）才需要 SIMT→tile 转换层（已排除）
    - **当前 Phase A1 未处理 kernel 启动（`<<<>>>`→aclrtLaunchKernel），留待 Phase A3**
 
 ## 关键目录
@@ -42,7 +42,7 @@ cu-bridge 的三条迁移线在昇腾上的对应（详见 `docs/01_Design/CUDA_
 - **CANN 版本基准：9.x 系列**（发布版 9.1.0，用户服务器 9.2.0）。API 用 9.x 新增面：`aclrtLaunchKernelV2`、`aclrtCreateEventWithFlag`、AI Core SIMT；不用 8.x 旧命名。
 - `ASCEND_TOOLKIT_HOME=/usr/local/Ascend/ascend-toolkit/latest` — CANN 根目录（bisheng 在 `compiler/ccec_compiler/bin/`，ACL 头在 `include/`，库在 `lib64/`）
 - `CUCC_PATH` — cu2cce-bridge 安装位置；`CUDA_PATH=${CUCC_PATH}`（让 `-I$CUDA_PATH/include` 落到 cu2cce）
-- `CUCC_NPU_ARCH` — bisheng NPU 架构参数（**D0 已定：`dav-310`，对应昇腾 950 系列 Ascend 950PR/950DT**，AI Core 原生支持 SIMT）
+- `CUCC_NPU_ARCH` — bisheng NPU 架构参数（**D0 已定：`dav-c310`，对应昇腾 950 系列 Ascend 950PR/950DT**，AI Core 原生支持 SIMT）
 - `CUCC_CUDA_VERSION` — 模拟的 CUDA 版本（默认 11060）
 - `source ${ASCEND_TOOLKIT_HOME}/bin/setenv.bash` — 配置 CANN 环境
 

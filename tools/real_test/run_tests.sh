@@ -98,7 +98,7 @@ cucc_link()    { cucc "$1" -o "$2"; }
 
 # 路径 2（--direct）：绕过 cucc 直接调 bisheng，用于排查驱动问题时隔离变量
 direct_compile() {
-    "$BISHENG_PATH" -std=c++17 -xcce --npu-arch="${CUCC_NPU_ARCH:-dav-310}" \
+    "$BISHENG_PATH" -std=c++17 -xcce --npu-arch="${CUCC_NPU_ARCH:-dav-c310}" \
         -include "$CUCC_PATH/include/bridge/kernel/simt_adaptor.h" \
         -I "$CUCC_PATH/include" -I "$ASCEND_INCLUDE" \
         -D CUDA_VERSION=11060 -c "$1" -o "$2"

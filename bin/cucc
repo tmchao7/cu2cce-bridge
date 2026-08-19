@@ -7,7 +7,7 @@
 #   1. 解析/展开 nvcc 命令行（含 @file / --options-file、-D 宏、-Xcompiler）
 #   2. 识别编译单元（.cu / .cpp / .o）与阶段（compile / link）
 #   3. 注入 cu2cce-bridge 的 CUDA 兼容头 + SIMT 适配宏表
-#   4. 把 CUDA 特有参数翻译成 bisheng 参数（--offload-arch → --npu-arch=dav-310 等）
+#   4. 把 CUDA 特有参数翻译成 bisheng 参数（--offload-arch → --npu-arch=dav-c310 等）
 #   5. 调用 bisheng
 #
 # ⚠️ 本机（macOS）无 CANN/bisheng，脚本仅作框架，勿在本机执行。
@@ -18,9 +18,18 @@ set -u
 # ---------------- 环境 ----------------
 CUCC_PATH=${CUCC_PATH:-}
 ASCEND_TOOLKIT_HOME=${ASCEND_TOOLKIT_HOME:-/usr/local/Ascend/ascend-toolkit/latest}
-BISHENG_PATH=${BISHENG_PATH:-${ASCEND_TOOLKIT_HOME}/compiler/ccec_compiler/bin/bisheng}
-# 目标 NPU 架构（D0 已定：950 系列 = dav-310）
-CUCC_NPU_ARCH=${CUCC_NPU_ARCH:-dav-310}
+# bisheng 查找顺序：显式指定 > ascend-toolkit 内 > 版本化目录（真机 9.2.0 实测）
+if [ -z "${BISHENG_PATH:-}" ]; then
+    for cand in \
+        "${ASCEND_TOOLKIT_HOME}/compiler/ccec_compiler/bin/bisheng" \
+        "${ASCEND_TOOLKIT_HOME}/compiler/bisheng/bin/bisheng" \
+        /usr/local/Ascend/cann-*/tools/bisheng_compiler/bin/bisheng; do
+        if [ -x "${cand}" ]; then BISHENG_PATH="${cand}"; break; fi
+    done
+    BISHENG_PATH=${BISHENG_PATH:-${ASCEND_TOOLKIT_HOME}/compiler/ccec_compiler/bin/bisheng}
+fi
+# 目标 NPU 架构（D0 已定：950 系列 = dav-c310；导师 2026-08-19 纠正，此前误记 dav-310）
+CUCC_NPU_ARCH=${CUCC_NPU_ARCH:-dav-c310}
 # 模拟的 CUDA 版本
 CUCC_CUDA_VERSION=${CUCC_CUDA_VERSION:-11060}
 # 调试开关
@@ -116,7 +125,7 @@ params+=("-std=c++17")
 # 模拟 CUDA 版本
 params+=("-D" "CUDA_VERSION=${CUCC_CUDA_VERSION}")
 
-# NPU 架构（D0 已定：dav-310）
+# NPU 架构（D0 已定：dav-c310）
 params+=("--npu-arch=${CUCC_NPU_ARCH}")
 
 # 设备侧代码标注（编译 .cu 时 bisheng 需要 -xcce 识别含设备代码的源）

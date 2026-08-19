@@ -1,8 +1,8 @@
 # cu2cce-bridge 技术方案：把 cu-bridge 的迁移方法搬到昇腾 CANN/CCE
 
-> 状态：v0.3（D0 已定稿：昇腾 950 系列 dav-310 → 路线 A）
+> 状态：v0.3（D0 已定稿：昇腾 950 系列 dav-c310 → 路线 A）
 > 对照基准：cu-bridge 3.8.0（沐曦 MXMACA）
-> 目标栈：华为昇腾 NPU，CANN 工具链，Ascend C / AI Core SIMT；bisheng `--npu-arch=dav-310`
+> 目标栈：华为昇腾 NPU，CANN 工具链，Ascend C / AI Core SIMT；bisheng `--npu-arch=dav-c310`
 > 说明：本机（macOS）无昇腾硬件、未安装 CANN，文档事实基于 CANN 官方文档检索（2026-08），需在真机上二次核对。
 
 ---
@@ -11,7 +11,7 @@
 
 - **目标**：让 GPU 程序员只用 CUDA 写一份源码，生成跑在昇腾 NPU 上的目标文件。
 - **重大前提变化（v0.2 调研结论）**：昇腾 **Ascend 950PR / 950DT 架构的 AI Core 原生支持 SIMT 编程模型**——`__global__`、`threadIdx/blockIdx/blockDim/gridDim`、`<<<>>>` 语法糖、warp=32、共享内存、原子操作、同步原语一应俱全（见 §2.2）。因此 **cu-bridge 的三条迁移线在 SIMT 型号上可以几乎 1:1 照搬**，原 v0.1 假设"昇腾非 SIMT、必须加 kernel 转换层"**只在老型号（无 SIMT）上成立**。
-- **核心决策 D0（已定稿 2026-08-07）：目标硬件 = 昇腾 950 系列（Ascend 950PR/950DT），bisheng 架构参数 `--npu-arch=dav-310`。** 950 系列 AI Core **原生支持 SIMT 编程模型**（见 §2.2），因此锁定 **路线 A**：
+- **核心决策 D0（已定稿 2026-08-07）：目标硬件 = 昇腾 950 系列（Ascend 950PR/950DT），bisheng 架构参数 `--npu-arch=dav-c310`。** 950 系列 AI Core **原生支持 SIMT 编程模型**（见 §2.2），因此锁定 **路线 A**：
   - **路线 A（已锁定）**：三条线照搬 + 一个"SIMT 适配宏表"（`__syncthreads`→`asc_syncthreads`、`__shared__`→`__ubuf__` 等），kernel 由 bisheng（clang 系）原生编译。**难度大幅降低**，与 cu-bridge 实现几乎同构。
   - ~~路线 B（910B/910C 老架构，无 SIMT）~~：已排除（目标非此架构）；若未来要支持老型号再启用 SIMT→tile 转换层。
 - **参考资产（调研新发现）**：社区已有 `caas-cli`（CUDA→CANN 源码转换命令行工具，含 API 映射表）、`ops-blas`（开源昇腾 BLAS）、`cann/asc-devkit`（官方算子开发工程，含 SIMT 示例）。cu2cce-bridge 可作为这些资产的"编译器驱动 + 宏表 + 兼容头"层的整合者。
@@ -87,18 +87,18 @@
 
 ---
 
-## 3. 工作路径（D0 已定：950 系列 dav-310 → 路线 A）
+## 3. 工作路径（D0 已定：950 系列 dav-c310 → 路线 A）
 
 ### 路线 A — SIMT 型号：cu-bridge 三线照搬（已锁定）
 
-> 前提 ✅：目标硬件是 Ascend 950 系列（950PR/950DT，bisheng `--npu-arch=dav-310`），AI Core 原生支持 SIMT。
+> 前提 ✅：目标硬件是 Ascend 950 系列（950PR/950DT，bisheng `--npu-arch=dav-c310`），AI Core 原生支持 SIMT。
 
 - **Phase A0**：仓库骨架 + 工作区（见 CLAUDE_WORKSPACE_PLAN.md）+ D0 确认。✅ 完成（2026-08-07）。
 - **Phase A1**：Host Runtime API 桥。`cuda_to_maca_mcr_adaptor.h` → `cuda_to_cce_mcr_adaptor.h`（宏表结构原样，mc*→acl*）；`cuda_runtime_wrapper.h`（签名不变）+ `cuda_runtime_wrapper.cpp`（实现调 aclrt*）。错误码 `mcError_t`→`aclError`。
   - ✅ 完成：错误码按真实 acl_base.h / rt_error_codes.h 对齐（ACL_ERROR_NONE 成功码）；含 Device/Peer/Context/Stream/Event/Memory/Host/Error/Version 各组 wcuda* 声明+实现；声明↔实现↔宏表三方一致。
   - ⚠️ 剩余：`aclrtGetDeviceProperties`/`aclrtGetVersion` 等 9.x 新 API 的确切签名待真机核对（镜像头为 CANN 7/8 早期）。
   - 验收：host 侧 `.cu` 编译链接后，仅调 host API 即可在昇腾机跑通（kernel 体先置空）。
-- **Phase A2**：`bin/cucc` 驱动 + CMake 探测。复用 cucc 的 nvcc 参数解析；`--offload-arch`→`--npu-arch=dav-310`；找 bisheng（`ccec_compiler/bin`）而非 mxcc；注入 `-I$CUDA_PATH/include`；生成 `aclrtlaunch_{kernel}.h`。移植 make_maca/cmake_maca→make_cce/cmake_cce、tools/mock/。
+- **Phase A2**：`bin/cucc` 驱动 + CMake 探测。复用 cucc 的 nvcc 参数解析；`--offload-arch`→`--npu-arch=dav-c310`；找 bisheng（`ccec_compiler/bin`）而非 mxcc；注入 `-I$CUDA_PATH/include`；生成 `aclrtlaunch_{kernel}.h`。移植 make_maca/cmake_maca→make_cce/cmake_cce、tools/mock/。
   - 验收：`cucc vectorAdd.cu -o vectorAdd` 全流程编链成功。
 - **Phase A3**：**SIMT 适配宏表 + kernel 直通**。这是路线 A 与 cu-bridge 唯一实质差异：
   - ✅ 已建 `include/bridge/kernel/simt_adaptor.h`：`__syncthreads`→`asc_syncthreads`、`__shared__`→`__ubuf__`、`__threadfence`→`asc_threadfence`；`__shfl_*`/`atomic*` 因签名待真机核对暂注释。
@@ -123,7 +123,7 @@
 
 | # | 决策 | 选项 | 推荐 |
 |---|---|---|---|
-| **D0** | **目标硬件型号** | 950PR/950DT 系（SIMT）vs 910B/910C 系（无 SIMT） | ✅ **已定（2026-08-07）：950 系列 dav-310 → 路线 A** |
+| **D0** | **目标硬件型号** | 950PR/950DT 系（SIMT）vs 910B/910C 系（无 SIMT） | ✅ **已定（2026-08-07）：950 系列 dav-c310 → 路线 A** |
 | D1 | kernel 策略 | A：bisheng 直编+适配宏表；B：tile 转换层；C：CPU 模拟先行 | ✅ **A（950 系列 SIMT，bisheng 直编 + 适配宏表）** |
 | D2 | 转换层技术路线 | clang libTooling / python AST / 正则 | 路线 A 不需要（已排除路线 B） |
 | D3 | 库的取舍 | cublas→aclblas 先行，其余后置 | cublas→aclblas（有现成实现参照） |
@@ -169,11 +169,11 @@ export CUDA_PATH=${CUCC_PATH}
 
 ## 7. 开放问题清单（讨论用）
 
-1. ~~D0（目标硬件型号）~~ ✅ 已定：950 系列 dav-310 → 路线 A（2026-08-07）。
+1. ~~D0（目标硬件型号）~~ ✅ 已定：950 系列 dav-c310 → 路线 A（2026-08-07）。
 2. D4 命名：wrapper 保留 `wcuda*` 还是改名？（我推荐保留）
 3. D5 仓库关系：镜像重写 vs git fork？（我推荐镜像重写）
 4. caas-cli 的 license 与代码结构是否可借鉴？（可作为一个对照参考并排读，若用其映射表需确认 license）
-5. 真机验证：可用的昇腾 950 系列环境有没有？（`--npu-arch=dav-310` 是否被当前 bisheng 版本接受，A3 的 kernel 直通就靠它验证）
+5. 真机验证：可用的昇腾 950 系列环境有没有？（`--npu-arch=dav-c310` 是否被当前 bisheng 版本接受，A3 的 kernel 直通就靠它验证）
 
 ---
 

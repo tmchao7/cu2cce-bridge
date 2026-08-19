@@ -7,7 +7,7 @@
 #   2. 定位工具链：bisheng 编译器、ACL 头/库、acl_cblas、simt_api SIMT 头、npu-smi
 #   3. 只读核对 docs/03_Comparison/CURRENT_STATE.md 的"待真机确认项"
 #      （grep 头文件签名，不调用任何昇腾运行时 API）
-#   4. 核对目标架构 --npu-arch=dav-310（内部 950 系列，导师提供）：
+#   4. 核对目标架构 --npu-arch=dav-c310（内部 950 系列，导师 2026-08-19 提供）：
 #      dump __NPU_ARCH__ 宏值、比对 simt_api 门控、最小 SIMT kernel 实测编译
 #      （产物写 /tmp，不触碰仓库构建目录）
 #   5. 结果写 OUT_DIR/probe.env（供 build_bridge.sh / run_tests.sh source）
@@ -78,12 +78,14 @@ fi
 # ---------------- 2. 编译器 / 工具链 ----------------
 log "== 2. 编译器 / 工具链 =="
 BISHENG=""
-# 候选 1：常见路径（不同 CANN 版本布局不同）
+# 候选 1：常见路径（不同 CANN 版本布局不同；真机 9.2.0 实测在 cann-*/tools/bisheng_compiler）
 for cand in \
     "$ATH/compiler/ccec_compiler/bin/bisheng" \
     "$ATH/compiler/ccec_compiler/bin/ccec" \
     "$ATH/compiler/bisheng/bin/bisheng" \
-    "$ATH/compiler/tikcpp/bin/bisheng"; do
+    "$ATH/compiler/tikcpp/bin/bisheng" \
+    "$ASCEND_HOME"/cann-*/tools/bisheng_compiler/bin/bisheng \
+    /usr/local/Ascend/cann-*/tools/bisheng_compiler/bin/bisheng; do
     if [ -x "$cand" ]; then BISHENG="$cand"; break; fi
 done
 # 候选 2：PATH 里的 bisheng
@@ -158,8 +160,16 @@ if [ -f "$ATH/include/simt_api/asc_simt.h" ]; then
     SIMT_API_INCLUDE="$ATH/include/simt_api"
     ok "simt_api 位于 CANN include 内：$SIMT_API_INCLUDE"
 else
-    # 在 ASCEND_HOME 下找 simt_api 目录或 asc_simt.h（内部工具链布局可能与公开版不同）
-    found="$(find "${ASCEND_HOME:-$ATH}" -maxdepth 10 -type d -name "simt_api" 2>/dev/null | head -1)"
+    # 候选 A：版本化目录布局（真机 9.2.0 实测：cann-*/x86_64-linux/asc/include/simt_api）
+    for found_cand in \
+        "$ASCEND_HOME"/cann-*/x86_64-linux/asc/include/simt_api \
+        "$ASCEND_HOME"/cann-*/aarch64-linux/asc/include/simt_api \
+        /usr/local/Ascend/cann-*/x86_64-linux/asc/include/simt_api \
+        /usr/local/Ascend/cann-*/aarch64-linux/asc/include/simt_api; do
+        if [ -f "$found_cand/asc_simt.h" ]; then found="$found_cand"; break; fi
+    done
+    # 候选 B：在 ASCEND_HOME 下找 simt_api 目录或 asc_simt.h（内部工具链布局可能与公开版不同）
+    [ -z "$found" ] && found="$(find "${ASCEND_HOME:-$ATH}" -maxdepth 10 -type d -name "simt_api" 2>/dev/null | head -1)"
     [ -z "$found" ] && found="$(dirname "$(find "${ASCEND_HOME:-$ATH}" -maxdepth 10 -name "asc_simt.h" 2>/dev/null | head -1)" 2>/dev/null)"
     if [ -n "$found" ] && [ -f "$found/asc_simt.h" ]; then
         SIMT_API_INCLUDE="$found"; ok "simt_api 目录：$found"
@@ -217,13 +227,26 @@ sig_absent() {
     if [ ! -f "$file" ]; then miss "${name}（头不存在：${file}）"; MISS=$((MISS+1)); return; fi
     if grep -qE "$pat" "$file"; then warn "${name}（存在，预期不存在，注意）"; WARN=$((WARN+1)); else ok "$name 不存在（符合预期）"; fi
 }
+# 打印函数声明上下文（用于确认签名）
+show_sig() {
+    local name="$1" dir="$2"
+    local hit
+    hit="$(grep -rn -A 2 "$name" "$dir" 2>/dev/null | grep -v '^\s*//' | head -8)"
+    if [ -n "$hit" ]; then
+        log "  --- ${name} 声明上下文（前 8 行，去注释） ---"
+        echo "$hit" | tee -a "$PROBE_LOG"
+    else
+        warn "${name}：整个 ${dir} 目录都未匹配"
+        WARN=$((WARN+1))
+    fi
+}
 
 log "  [runtime 已核实基线复核]"
 sig_dir aclInit              "$ACL_INC_DIR" "aclInit"
 sig     aclrtLaunchSIMTKernelWithArgsArray "$ACL_RT_H" "aclrtLaunchSIMTKernelWithArgsArray"
 sig     aclrtQueryEventStatus "$ACL_RT_H" "aclrtQueryEventStatus"
 sig     aclrtStreamQuery      "$ACL_RT_H" "aclrtStreamQuery"
-sig     aclrtGetSocName       "$ACL_RT_H" "aclrtGetSocName"
+sig_dir aclrtGetSocName       "$ACL_INC_DIR" "aclrtGetSocName"
 sig     aclrtResetDevice      "$ACL_RT_H" "aclrtResetDevice"
 sig     aclrtCreateEventWithFlag "$ACL_RT_H" "aclrtCreateEventWithFlag"
 sig     aclrtGetDeviceInfo    "$ACL_RT_H" "aclrtGetDeviceInfo"
@@ -231,8 +254,11 @@ sig_dir ACL_SUCCESS           "$ACL_INC_DIR" "ACL_SUCCESS"
 sig_dir aclrtEventRecordedStatus "$ACL_INC_DIR" "aclrtEventRecordedStatus"
 log "  [待真机确认项（CURRENT_STATE.md §5）]"
 sig_absent aclrtGetDeviceProperties "$ACL_RT_H" "aclrtGetDeviceProperties"
-sig_absent aclrtGetVersion          "$ACL_RT_H" "aclrtGetVersion"
 sig_absent ACL_DT_DOUBLE            "$ACL_BASE_H" "ACL_DT_DOUBLE"
+
+log "  [真机新发现：公开版不存在、内部 9.2.0 存在 → 打印签名供 wrapper 改造]"
+show_sig aclrtGetVersion "$ACL_INC_DIR"
+show_sig aclblasCreate   "$ACL_INC_DIR"
 
 log "  [cublas→aclblas（待确认项 #4）]"
 sig_dir aclblasGemmEx "$ACL_INC_DIR" "aclblasGemmEx"
@@ -243,7 +269,6 @@ sig_dir aclblasDot    "$ACL_INC_DIR" "aclblasDot"
 sig_dir aclblasScal   "$ACL_INC_DIR" "aclblasScal"
 sig_dir aclblasSwap   "$ACL_INC_DIR" "aclblasSwap"
 sig_dir aclblasNrm2   "$ACL_INC_DIR" "aclblasNrm2"
-sig_absent aclblasCreate "$ACL_CBLAS_H" "aclblasCreate"
 
 log "  [SIMT 适配宏表对应物（待确认项 #6）]"
 if [ -n "$SIMT_API_INCLUDE" ]; then
@@ -258,12 +283,13 @@ else
     warn "跳过 SIMT 签名核对（未找到 simt_api 目录）"
 fi
 
-# ---------------- 7. 目标架构核对（dav-310，内部 950 系列） ----------------
-log "== 7. 目标架构 --npu-arch 核对（dav-310，内部 950 系列） =="
-CUCC_NPU_ARCH="${CUCC_NPU_ARCH:-dav-310}"
+# ---------------- 7. 目标架构核对（dav-c310，内部 950 系列） ----------------
+log "== 7. 目标架构 --npu-arch 核对（dav-c310，内部 950 系列） =="
+CUCC_NPU_ARCH="${CUCC_NPU_ARCH:-dav-c310}"
 NPU_ARCH_MACRO=""
 SIMT_GATE_ARCHS=""
 ARCH_COMPILE_OK="0"
+ARCH_FALLBACK=""
 
 if [ -z "$BISHENG" ]; then
     warn "bisheng 未找到，跳过架构核对"
@@ -272,42 +298,20 @@ else
     log "  --- bisheng --version ---"
     "$BISHENG" --version 2>&1 | head -3 | tee -a "$PROBE_LOG"
 
-    # 7.2 --help 里架构相关选项（判断 dav-310 是否出现在文档列表）
+    # 7.2 --help 里架构相关选项
     log "  --- bisheng --help 中架构相关行 ---"
     "$BISHENG" --help 2>&1 | grep -iE "npu-arch|cce-soc-version|offload-arch" | head -10 | tee -a "$PROBE_LOG"
 
-    arch_tmp="$(mktemp -d)"
-
-    # 7.3 预处理宏值：dav-310 对应的 __NPU_ARCH__ 数字宏（-E 预处理，不真正编译）
-    log "  --- --npu-arch=${CUCC_NPU_ARCH} 对应的 __NPU_ARCH__ 宏 ---"
-    printf '__NPU_ARCH__\n' > "$arch_tmp/macro_probe.cce"
-    NPU_ARCH_MACRO="$("$BISHENG" -E -xcce --npu-arch="${CUCC_NPU_ARCH}" "$arch_tmp/macro_probe.cce" 2>/dev/null | grep -vE '^#' | tr -d ' \n')"
-    if ! echo "$NPU_ARCH_MACRO" | grep -qE '^[0-9]+$'; then
-        # 兜底：-dM 宏 dump
-        NPU_ARCH_MACRO="$(printf '' | "$BISHENG" -dM -E -xcce --npu-arch="${CUCC_NPU_ARCH}" - 2>/dev/null | grep -oE '__NPU_ARCH__ [0-9]+' | awk '{print $2}' | head -1)"
-    fi
-    if echo "$NPU_ARCH_MACRO" | grep -qE '^[0-9]+$'; then
-        ok "--npu-arch=${CUCC_NPU_ARCH} → __NPU_ARCH__=${NPU_ARCH_MACRO}"
-    else
-        warn "未能取到 __NPU_ARCH__ 宏值（以 7.5 编译实测为准）"
-    fi
-
-    # 7.4 simt_api 头里 warp/atomic 的条件编译门控值
+    # 7.3 simt_api 头里 warp/atomic 的条件编译门控值（先取，用于推导候选架构）
     if [ -n "$SIMT_API_INCLUDE" ]; then
         SIMT_GATE_ARCHS="$(grep -rhoE '__NPU_ARCH__ *== *[0-9]+' "$SIMT_API_INCLUDE" 2>/dev/null | grep -oE '[0-9]+' | sort -u | tr '\n' ' ')"
         log "  simt_api 头中出现的 __NPU_ARCH__ 门控值：${SIMT_GATE_ARCHS:-（无）}"
-        if [ -n "$NPU_ARCH_MACRO" ] && echo " ${SIMT_GATE_ARCHS} " | grep -q " ${NPU_ARCH_MACRO} "; then
-            ok "门控覆盖 ${NPU_ARCH_MACRO}：warp/atomic 原语可用"
-        elif [ -n "$NPU_ARCH_MACRO" ]; then
-            warn "门控不含 ${NPU_ARCH_MACRO}！asc_shfl/asc_atomic_* 可能被条件编译裁掉"
-            WARN=$((WARN+1))
-        fi
     else
         warn "无 simt_api 目录，跳过门控比对"
     fi
 
-    # 7.5 决定性测试：最小 SIMT kernel（asc_shfl + asc_syncthreads）实测编译
-    log "  --- 最小 SIMT kernel 实测编译 ---"
+    arch_tmp="$(mktemp -d)"
+    printf '__NPU_ARCH__\n' > "$arch_tmp/macro_probe.cce"
     cat > "$arch_tmp/arch_probe.asc" <<'EOF'
 #include "asc_simt.h"
 __global__ void arch_probe_kernel(float *gmOut, const float *gmIn, int n) {
@@ -318,16 +322,54 @@ __global__ void arch_probe_kernel(float *gmOut, const float *gmIn, int n) {
     gmOut[i] = v;
 }
 EOF
-    arch_args=( -std=c++17 -xcce --npu-arch="${CUCC_NPU_ARCH}" )
-    [ -n "$SIMT_API_INCLUDE" ] && arch_args+=( -I "$SIMT_API_INCLUDE" )
-    arch_args+=( -c "$arch_tmp/arch_probe.asc" -o "$arch_tmp/arch_probe.o" )
-    if "$BISHENG" "${arch_args[@]}" >>"$PROBE_LOG" 2>&1 && [ -f "$arch_tmp/arch_probe.o" ]; then
-        ok "最小 SIMT kernel（asc_shfl + asc_syncthreads）编译通过"
-        ARCH_COMPILE_OK="1"
-    else
-        warn "最小 SIMT kernel 编译失败（无产物或报错），末 10 行日志："
-        tail -10 "$PROBE_LOG" | tee -a "$PROBE_LOG"
-        WARN=$((WARN+1))
+
+    # 7.4 候选架构逐个验证：首选 dav-c310（导师 2026-08-19 提供；此前误记 dav-310，
+    #     真机实测 dav-310 报 "Unsupported NPU architecture"）；若仍不被 bisheng
+    #     接受，自动尝试 simt_api 门控值对应的架构名（门控为 2201/3510/5102）
+    ARCH_CANDIDATES="dav-c310"
+    for g in ${SIMT_GATE_ARCHS}; do ARCH_CANDIDATES="${ARCH_CANDIDATES} dav-${g}"; done
+    log "  候选架构顺序：${ARCH_CANDIDATES}"
+
+    for ARCH in ${ARCH_CANDIDATES}; do
+        log "  --- 候选架构 ${ARCH} ---"
+        # 宏值（-E 预处理；失败再 -dM 兜底）
+        MACRO="$("$BISHENG" -E -xcce --npu-arch="${ARCH}" "$arch_tmp/macro_probe.cce" 2>/dev/null | grep -vE '^#' | tr -d ' \n')"
+        if ! echo "$MACRO" | grep -qE '^[0-9]+$'; then
+            MACRO="$(printf '' | "$BISHENG" -dM -E -xcce --npu-arch="${ARCH}" - 2>/dev/null | grep -oE '__NPU_ARCH__ [0-9]+' | awk '{print $2}' | head -1)"
+        fi
+        if echo "$MACRO" | grep -qE '^[0-9]+$'; then
+            log "    __NPU_ARCH__=${MACRO}"
+        else
+            log "    （取不到 __NPU_ARCH__ 宏值，以编译实测为准）"
+        fi
+        # 编译实测（检查 .o 产物，防假编译器误判）
+        arch_args=( -std=c++17 -xcce --npu-arch="${ARCH}" )
+        [ -n "$SIMT_API_INCLUDE" ] && arch_args+=( -I "$SIMT_API_INCLUDE" )
+        arch_args+=( -c "$arch_tmp/arch_probe.asc" -o "$arch_tmp/arch_probe.o" )
+        if "$BISHENG" "${arch_args[@]}" >>"$PROBE_LOG" 2>&1 && [ -f "$arch_tmp/arch_probe.o" ]; then
+            ok "✅ ${ARCH}：最小 SIMT kernel（asc_shfl + asc_syncthreads）编译通过"
+            ARCH_FALLBACK="$ARCH"
+            NPU_ARCH_MACRO="$MACRO"
+            ARCH_COMPILE_OK="1"
+            # 门控比对（只有成功时才有关键意义）
+            if [ -n "$SIMT_API_INCLUDE" ] && echo "$NPU_ARCH_MACRO" | grep -qE '^[0-9]+$'; then
+                if echo " ${SIMT_GATE_ARCHS} " | grep -q " ${NPU_ARCH_MACRO} "; then
+                    ok "门控覆盖 ${NPU_ARCH_MACRO}：warp/atomic 原语可用"
+                else
+                    warn "门控不含 ${NPU_ARCH_MACRO}！asc_shfl/asc_atomic_* 可能被条件编译裁掉"
+                    WARN=$((WARN+1))
+                fi
+            fi
+            break
+        else
+            warn "${ARCH} 编译失败（不支持或报错，末 8 行日志见下）"
+            tail -8 "$PROBE_LOG" | tee -a "$PROBE_LOG"
+            WARN=$((WARN+1))
+        fi
+    done
+    if [ "$ARCH_COMPILE_OK" = "0" ]; then
+        warn "所有候选架构均未通过。需与导师确认 950 系列的正确参数"
+        log "    尝试：--cce-soc-version=<soc>（bisheng --help 未列出合法值，需从 CANN 文档/安装目录 conf 查找）"
     fi
     rm -rf "$arch_tmp"
 fi
@@ -352,6 +394,7 @@ log "== 8. 汇总 =="
     echo "NPU_ARCH_MACRO=\"$NPU_ARCH_MACRO\""
     echo "SIMT_GATE_ARCHS=\"$SIMT_GATE_ARCHS\""
     echo "ARCH_COMPILE_OK=\"$ARCH_COMPILE_OK\""
+    echo "ARCH_FALLBACK=\"$ARCH_FALLBACK\""
 } > "$PROBE_ENV"
 ok "probe.env 已写入：$PROBE_ENV"
 ok "probe.log 已写入：$PROBE_LOG"

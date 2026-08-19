@@ -30,7 +30,7 @@
 
 | # | cu-bridge 源文件 | cu2cce 目标文件 | 状态 | 备注 |
 |---|---|---|---|---|
-| 12 | bin/cucc | bin/cucc | 已移植 | @file/--options-file 展开、编译单元/阶段识别、注入 cu2cce include + SIMT adaptor、--npu-arch=dav-310、链接 wrapper 库；bash -n 通过 |
+| 12 | bin/cucc | bin/cucc | 已移植 | @file/--options-file 展开、编译单元/阶段识别、注入 cu2cce include + SIMT adaptor、--npu-arch=dav-c310、链接 wrapper 库；bash -n 通过 |
 | 13 | tools/make_maca | tools/make_cce | 已移植 | 包 make：建伪 CUDA 目录（bin/nvcc→cucc），设 CUDA_PATH/PATH，调 make |
 | 14 | tools/cmake_maca + cmake_mock | tools/cmake_cce + tools/mock/ | 已移植 | 包 cmake：mock nvcc 应答 CMake CUDA 探测（--version/__cmake_determine_cuda/CompilerId），真实编译透传 cucc |
 | 15 | tools/mock/ | tools/mock/ | 已移植 | mock_nvcc.py + nvcc_entry.sh；本机已测 --version 与探测应答 |

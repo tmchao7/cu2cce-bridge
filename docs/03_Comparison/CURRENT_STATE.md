@@ -18,7 +18,7 @@
 | 项 | 值 |
 |---|---|
 | 硬件 | Ascend 950 系列（950PR/950DT） |
-| bisheng 架构参数 | `--npu-arch=dav-310` |
+| bisheng 架构参数 | `--npu-arch=dav-c310` |
 | CANN 版本 | 9.1.0（发布）/ 9.2.0（用户服务器） |
 | 路线 | A（SIMT 直通，kernel 由 bisheng 原生编译） |
 
@@ -88,6 +88,17 @@
 | 5 | pitch 对齐规则 | wcudaMallocPitch 简化（width 无对齐） | ⚠️ 待真机 | 真机测对齐 |
 | 6 | 原子操作地址空间 | asc_atomic_add 参数带 __ubuf__/__gm__，CUDA 指针能否隐式匹配 | ⚠️ 待真机 | 真机编译 SIMT kernel |
 | 7 | aclrtRecordEvent stream 传 null | CUDA 默认 stream 语义 vs 昇腾 | ⚠️ 待真机 | 真机测 |
+
+### 5.1 真机核实更新（2026-08-19，cann-9.2.0，bisheng 服务器实测）
+
+| 项 | 结论 | 说明 |
+|---|---|---|
+| 待确认 #2（aclrtGetVersion） | ✅ **存在**（推翻"不存在"判断） | wrapper 可改真实调用（签名待确认，见 ASCEND_RESEARCH_NOTES §3.6） |
+| 待确认 #4（BLAS1 axpy/copy/dot/scal/swap/nrm2） | ✅ **确认不存在** | not-support 占位维持 |
+| 待确认 #4 追加（aclblasCreate） | ✅ **存在**（推翻"不存在"判断） | cublas 桥可改真实 handle（签名待确认） |
+| 待确认 #6（原子/地址空间） | ⚠️ 签名全部存在 | 仍待编译实测（架构参数未复测） |
+| **新问题：dav-310 不被 bisheng 接受** | ❌ `Unsupported NPU architecture` | 导师纠正为 **dav-c310**（已全仓库统一）；门控值 2201/3510/5102，dav-c310 待复测 |
+| aclrtGetSocName | ⚠️ acl_rt.h 未匹配 | wrapper 依赖它，需全目录定位（可能改名/换头） |
 
 ## 6. 联网检查修正历史（按轮次，附来源）
 

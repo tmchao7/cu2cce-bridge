@@ -12,7 +12,7 @@
 ### 项目背景
 
 **cu2cce-bridge** 仿照 cu-bridge（沐曦，Apache-2.0），把 CUDA 程序迁移到华为昇腾 NPU：
-- 目标硬件：**Ascend 950 系列（Ascend 950PR/950DT），bisheng 编译器 `--npu-arch=dav-310`**
+- 目标硬件：**Ascend 950 系列（Ascend 950PR/950DT），bisheng 编译器 `--npu-arch=dav-c310`**
 - 目标软件栈：**CANN 9.1.0（发布版）/ 9.2.0（用户服务器）**
 - 核心机制：三条迁移线
   1. host Runtime API：宏表 + wrapper（`cudaMalloc → wcudaMalloc → aclrtMalloc`）
