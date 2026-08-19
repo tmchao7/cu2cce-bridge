@@ -386,22 +386,27 @@ COMPILER_KIND=""
 
 arch_tmp="$(mktemp -d)"
 printf '__NPU_ARCH__\n' > "$arch_tmp/macro_probe.cce"
-# 探测 kernel v3：一次验证 cu2cce 路线 A 的三个关键问题（2026-08-19 真机实验）：
-#   ① include simt_api/asc_simt.h 后 blockIdx/blockDim 是否可用（CUDA 代码依赖）
-#   ② __global__[aicore] 限定符（裸 __global__ 报 requires __aicore__/__aicpu__）
-#   ③ [aicore] kernel 是否被视为 simt_vf → 能否直接调 asc_syncthreads
-#      （之前裸 __global__ 调它报 "simt_callee can only be called by simt_vf"）
-# 若 ③ 仍报 simt_callee：warp 原语需放进 __simt_vf__ 函数（用户 vector.cce 的 VF 模型），
-# 转换策略随之定：CUDA kernel 体 → __simt_vf__ 函数 + 自动生成 [aicore] 包装 + async_invoke
+# 探测 kernel v4（最后一个实验，2026-08-19）——v3 已确认：
+#   ① blockIdx/blockDim 可用（asc_simt.h 提供）✅
+#   ② __global__[aicore] 限定符必须 ✅
+#   ③ [aicore] kernel 不是 simt_vf → asc_syncthreads 只能放 __simt_vf__ 函数 ❌
+# v4 验证 cu2cce kernel 转换模板：CUDA kernel 体 → __simt_vf__ 函数
+#   （warp 原语放这里）+ __global__[aicore] 包装 + cce::async_invoke 启动。
+#   同时确认 VF 内 blockIdx 是否可用（决定全局索引改写方式）。
 cat > "$arch_tmp/arch_probe.asc" <<'EOF'
 #include "simt_api/asc_simt.h"
 
-__global__[aicore] void arch_probe_kernel(__gm__ float *in, __gm__ float *out, int n) {
+__simt_vf__ [aicore] __attribute__((always_inline)) inline
+void arch_probe_vf(__gm__ float *in, __gm__ float *out, int n) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i < n) {
         out[i] = in[i];
     }
     asc_syncthreads();
+}
+
+__global__[aicore] void arch_probe_kernel(__gm__ float *in, __gm__ float *out, int n) {
+    cce::async_invoke<arch_probe_vf>(cce::dim3{256, 1, 1}, in, out, n);
 }
 EOF
 
