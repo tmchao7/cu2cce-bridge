@@ -32,6 +32,25 @@
 
 ⚠️ 本机（macOS）无昇腾硬件/无 CANN，**代码仅供阅读与移植参考，不可本地构建**。需在装有 CANN 的昇腾真机上编译（见 `docs/01_Design/CUDA_TO_CCE_PORTING_PLAN.md`）。真机验证清单见 `docs/03_Comparison/mapping.md`。
 
+## 快速开始（真机，复制粘贴版见 QUICKSTART.txt）
+
+```bash
+# 服务器（昇腾 + CANN 9.2.0）：一键 探测 → 构建 → 测试
+cd <cu2cce-bridge 仓库>
+git pull
+bash tools/real_test/run_all.sh
+
+# 编译你自己的 CUDA 程序（kernel 用纯 CUDA 写，cucc 自动转换）
+export CUCC_PATH=$PWD/build/real_test/install
+export CUDA_PATH=$CUCC_PATH
+export PATH=$CUCC_PATH/bin:$PATH
+cucc -c my_program.cu -o my_program.o
+cucc my_program.o -o my_program
+./my_program
+```
+
+详细命令（含分步、本机开发推送、常见问题修复）见根目录 **`QUICKSTART.txt`**。
+
 ## 文档
 
 | 文档 | 内容 |
