@@ -23,7 +23,12 @@
 #endif
 #include <string.h>
 #ifdef __cplusplus
+/* fstream/algorithm 会拉入 wchar.h 等 glibc 2.39 头链，在 ccec(clang15) 下
+ * 兼容性问题多（真机实测 _Float32/__FILE 等）；cucc 编译时
+ * -D__CU2CCE_NO_MATH_H__ 一并跳过。host 侧流/算法支持随昇腾兼容性推进再放开。 */
+#if !defined(__CU2CCE_NO_MATH_H__)
 #include <fstream>
+#endif
 #endif
 
 #if defined CUDA_VERSION
@@ -41,7 +46,9 @@
 #include "bridge/runtime/cuda_wrapper_types.h"
 
 #ifdef __cplusplus
+#if !defined(__CU2CCE_NO_MATH_H__)
 #include <algorithm>
+#endif
 #endif
 
 #ifdef __CUDACC_EXTENDED_LAMBDA__
