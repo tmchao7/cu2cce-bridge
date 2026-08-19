@@ -1,0 +1,96 @@
+============================================================
+SERVER_STEPS_107002_ROUND16.txt —— 107002 排查第 16 轮 · 服务器操作
+============================================================
+（本文件由 ZCode 推送。cat 本文件后，把 ---- 之间的命令块
+整段复制粘贴执行；# 开头为说明行，粘贴时自动当注释。）
+
+背景（ROUND15 结论）：
+  · SetDevice(0) → aclrtCreateContext(0) → aclrtSetCurrentContext 三行
+    ret 全部 0 (OK)，但 minimal / prog_a 仍 107002，run_tests 8/8 PASS
+  → context 方向排除（CreateContext+SetCurrent 都不够）。
+    现在 wrapper 进程里 aclrtMalloc 之外的所有前置条件都已对齐
+    （aclInit/GetDeviceCount/SetDevice/CreateContext/SetCurrent 全 OK），
+    107002 只能来自 aclrtMalloc 调用本身的可变参数（size/policy）或
+    wrapper 未覆盖的某个状态。
+  · prog_b/c/d（先任一前置 API）成功 vs prog_a（直调 Malloc）失败——
+    说明"前置 API 建立的 context"是充要条件，而 bridge_init 的
+    CreateContext+SetCurrent 对本进程不生效（同一 .so、同一线程，
+    CreateContext 的 context 和 wcudaMalloc 看到的当前 context 不一致）。
+
+  本轮做两件事：① wcudaMalloc 打印 size/policy 原值（已推送压印版）；
+  ② C 对照：完全绕过 wrapper 但**先 SetDevice→CreateContext→SetCurrent+分配**
+  （复刻成功路径的 C 版本），确认这套序列在真机 C 里确实成功——若成功，
+  wrapper 里必有别的差异；若 C 也 107002，则序列本身就不是根因。
+
+------------------------------------------------------------
+0. 拉最新（含 size/policy 压印）+ 看本文件
+------------------------------------------------------------
+cd /home/t50063365/workspace/repos/cu2cce-bridge && git pull
+pwd
+cat tools/real_test/SERVER_STEPS_107002_ROUND16.txt
+
+------------------------------------------------------------
+1. 重建 wrapper（压印进 .so）
+------------------------------------------------------------
+bash tools/real_test/build_bridge.sh
+echo "build 退出码: $?"
+
+------------------------------------------------------------
+2. 重跑 minimal（看新增的 size/policy 行）
+------------------------------------------------------------
+export CUCC_PATH=$PWD/build/real_test/install
+export CUDA_PATH=$CUCC_PATH
+export PATH=$CUCC_PATH/bin:$PATH
+"$CUCC_PATH/bin/cucc" -c examples/minimal/minimal.cu -o /tmp/minimal.o
+"$CUCC_PATH/bin/cucc" /tmp/minimal.o -o /tmp/minimal
+WCUDA_DEBUG=1 /tmp/minimal
+echo "minimal 运行退出码: $?"
+
+------------------------------------------------------------
+3. C 对照：SetDevice→CreateContext→SetCurrentContext→malloc（真机 C 版本）
+------------------------------------------------------------
+cat > /tmp/ctx_alloc.c <<'EOF'
+#include "acl/acl_rt.h"
+#include <stdio.h>
+#include <stdlib.h>
+int main(void) {
+    printf("ctx: start\n");
+    int32_t r = aclInit(NULL);
+    printf("ctx: aclInit ret=%d\n", (int)r);
+    uint32_t cnt = 0;
+    r = aclrtGetDeviceCount(&cnt);
+    printf("ctx: cnt=%u ret=%d\n", cnt, (int)r);
+    r = aclrtSetDevice(0);
+    printf("ctx: setdev ret=%d\n", (int)r);
+    aclrtContext ctx = NULL;
+    r = aclrtCreateContext(&ctx, 0);
+    printf("ctx: create ret=%d ctx=%p\n", (int)r, (void *)ctx);
+    r = aclrtSetCurrentContext(ctx);
+    printf("ctx: setcur ret=%d\n", (int)r);
+    void *p = NULL;
+    r = aclrtMalloc(&p, 1024, ACL_MEM_MALLOC_HUGE_FIRST);
+    printf("ctx: malloc ret=%d ptr=%p\n", (int)r, (void *)p);
+    if (r == ACL_SUCCESS) aclrtFree(p);
+    printf("ctx: done\n");
+    return 0;
+}
+EOF
+gcc -o /tmp/ctx_alloc /tmp/ctx_alloc.c \
+    -I/usr/local/Ascend/latest/include \
+    -L/usr/local/Ascend/latest/lib64 -lascendcl \
+    -Wl,-rpath,/usr/local/Ascend/latest/lib64
+echo "编译退出码: $?"
+/tmp/ctx_alloc
+echo "ctx 运行退出码: $?"
+
+------------------------------------------------------------
+4. 判读（贴回 2、3 输出）
+------------------------------------------------------------
+【第 2 步】size=1024 policy=0x0?（看打印的 policy 值）——确认 wrapper
+  sizeBytes/policy 原值；若 size=0 或 policy 错 → 参数罪魁
+【第 3 步】ctx_alloc malloc ret=?：若 ret=0 → 这套序列在真机 C 里成功，
+  说明 wrapper 内部另有差异（回头抓 wrapper 本身）；若 ret=107002 →
+  这套序列本身不是根因（SetDevice+CreateContext+SetCurrent 不够），
+  需要再找（如 aclrtSetDevice 后的其他调用/内存配置）
+
+============================================================

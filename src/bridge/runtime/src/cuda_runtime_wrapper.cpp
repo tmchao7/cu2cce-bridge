@@ -568,6 +568,13 @@ aclError wcudaMalloc(void **ptr, size_t sizeBytes) {
         WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
     }
     wcuda_mark("wcudaMalloc enter", ACL_SUCCESS);
+    /* 107002 排查（ROUND16）：把传给 aclrtMalloc 的 size/policy 原值打出来，
+     * 确认 wrapper 是否有参数被改/硬编码（sizeBytes 应为 n*sizeof(float)，
+     * policy 应为 ACL_MEM_MALLOC_HUGE_FIRST）。 */
+    if (wcuda_dbg()) {
+        fprintf(stderr, "[wcuda] wcudaMalloc size=%zu policy=%d\n", sizeBytes,
+                (int)ACL_MEM_MALLOC_HUGE_FIRST);
+    }
     /* aclrtMalloc 第三参是内存分配规则（大页/普通页）。
      * 选大页优先（ACL_MEM_MALLOC_HUGE_FIRST），与 CUDA 大块分配的默认行为接近。 */
     void *devPtr = nullptr;
