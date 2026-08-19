@@ -1,9 +1,8 @@
 /* 纯 host 侧 API 桥冒烟测试（本机 mock 可验证，不含 kernel 语法）。
- * 真机/含 kernel 的完整链路见 examples/vectorAdd/vectorAdd.cu（需 bisheng）。
- * ⚠️ 不 include 系统标准库头（ccec+glibc 2.39 兼容问题，真机实测）；
- *    printf/malloc 等由 __cuda_runtime.h 提供最小声明。 */
+ * 真机/含 kernel 的完整链路见 examples/vectorAdd/vectorAdd.cu（需 bisheng）。 */
 #include <cuda_runtime.h>
 #include <cublas_v2.h>
+#include <stdio.h>
 
 int main(void) {
     int devCount = 0;

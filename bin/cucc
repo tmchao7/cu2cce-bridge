@@ -156,8 +156,13 @@ if [[ "${xlang}" == "cu" ]]; then
     fi
 fi
 
-# 注入 cu2cce-bridge 的 CUDA 兼容头
+# 注入 cu2cce-bridge 的 CUDA 兼容头（shadow 遮蔽头最优先：用户代码
+# #include <stdio.h> 等命中 cu2cce 最小声明版，不碰 glibc——ccec+glibc 2.39
+# 系统头不兼容，真机实测；用户 CUDA 代码保持原样不动）
 if [ -n "${CUCC_PATH}" ]; then
+    if [ -d "${CUCC_PATH}/include/shadow" ]; then
+        params+=("-I" "${CUCC_PATH}/include/shadow")
+    fi
     params+=("-I" "${CUCC_PATH}/include")
 fi
 # 注入昇腾 ACL 头

@@ -20,7 +20,10 @@ check() {
         echo "✗ $name"; FAIL=$((FAIL+1))
     fi
 }
-check "host_bridge_smoke.cu" -x c++ "$ROOT/tests/host_bridge_smoke.cu"
+# host 冒烟（用户代码路径：include <stdio.h> 等需命中 shadow 遮蔽头——
+# ccec+glibc 2.39 系统头不兼容，真机实测）
+check "host_bridge_smoke.cu" -x c++ -I "$INCLUDE/shadow" "$ROOT/tests/host_bridge_smoke.cu"
+# wrapper 实现（wrapper 库路径：g++ 编译系统头，不需要 shadow）
 check "cuda_runtime_wrapper.cpp" -x c++ "$SRC/cuda_runtime_wrapper.cpp"
 check "cublas_v2_wrapper.cpp" -x c++ "$BLAS_SRC/cublas_v2_wrapper.cpp"
 echo "---"; echo "PASS=$PASS FAIL=$FAIL"
