@@ -349,11 +349,16 @@ bisheng main.cpp example.asc -o main --npu-arch=dav-xxxx
 | 参数 | 结果 | 说明 |
 |---|---|---|
 | `--npu-arch=dav-c310` | ❌ `Unsupported NPU architecture` | 导师提供的 950 系列参数，bisheng 15.0.5 **不认识** |
+| **bisheng lib 内置架构（grep 文本资源发现）** | **`dav-920r2 / dav-l210 / dav-n350 / dav-t210`** | 内部架构命名体系（与公开 dav-3510 等不同），**950 系列最可能在其中**（如 dav-n350），env_probe 已自动加入候选并实测 |
 | `--npu-arch=dav-2201` | ✅ 被接受，`__NPU_ARCH__=2201` | 编译进行到 include 阶段 |
 | `--npu-arch=dav-3510` | ✅ 被接受，`__NPU_ARCH__=3510` | 编译进行到 include 阶段（公开文档 Atlas 350 = dav-3510） |
 | `--npu-arch=dav-5102` | ❌ Unsupported | 不被支持（但门控里有 5102） |
 
-→ **待与导师确认 950 系列的正确参数**：dav-3510 或 dav-2201 是可用候选（env_probe 第 7 节会按 dav-c310 → dav-2201 → dav-3510 → dav-5102 顺序自动尝试）。
+→ **待与导师确认 950 系列的正确参数**（候选：dav-n350 / dav-920r2 / dav-l210 / dav-t210 / dav-3510 / dav-2201；env_probe 第 7 节自动逐个实测）。
+
+**设备可用性（2026-08-19 实测）**：`/dev/davinci0 /dev/davinci_manager` 设备节点存在；`probe_device`（aclInit→aclrtGetDeviceCount→aclrtGetSocName）**运行成功** → 本机**直连可用 NPU**（此前 npu-smi 缺失仅是无查询工具，不影响运行）。`DEVICE_QUERY=1`。
+
+**SIMT include 依赖（编译要点）**：simt_api 头依赖链很长（asc_simt.h → common_functions.h → device_types.h → utils/base/sys_macros.h → **impl/utils/sys_macros.h**，跨目录），单靠 `-I simt_api 父目录` 不够。env_probe 第 7 节已实现**缺头自动修复**：解析 `fatal error: 'xxx'` → 在 ASCEND_HOME 下 find → 补 `-I` 重试（最多 3 轮）。
 
 **API 差异（真机头文件，修正此前基于公开版的判断）**
 

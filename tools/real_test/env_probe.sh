@@ -392,9 +392,17 @@ __global__ void arch_probe_kernel(float *gmOut, const float *gmIn, int n) {
 EOF
 
     # 7.4 候选架构逐个验证：首选 dav-c310（导师 2026-08-19 提供；此前误记 dav-310，
-    #     真机实测 dav-310 报 "Unsupported NPU architecture"）；若仍不被 bisheng
-    #     接受，自动尝试 simt_api 门控值对应的架构名（门控为 2201/3510/5102）
-    ARCH_CANDIDATES="dav-c310"
+    #     真机实测 dav-310 报 "Unsupported NPU architecture"）；
+    #     再加 bisheng lib 里发现的真实架构（真机实测：dav-920r2/l210/n350/t210）
+    #     和 simt_api 门控值对应的架构名（门控为 2201/3510/5102）
+    BISHENG_ARCHS=""
+    if [ -n "${BISHENG_ROOT:-}" ]; then
+        BISHENG_ARCHS="$(grep -rhoE 'dav-[a-z0-9]+' "$BISHENG_ROOT"/lib \
+                --include="*.h" --include="*.td" --include="*.def" --include="*.json" \
+                --include="*.txt" --include="*.cfg" 2>/dev/null | sort -u | tr '\n' ' ')"
+        [ -n "$BISHENG_ARCHS" ] && log "  bisheng lib 中的真实架构：${BISHENG_ARCHS}"
+    fi
+    ARCH_CANDIDATES="dav-c310 ${BISHENG_ARCHS}"
     for g in ${SIMT_GATE_ARCHS}; do ARCH_CANDIDATES="${ARCH_CANDIDATES} dav-${g}"; done
     log "  候选架构顺序：${ARCH_CANDIDATES}"
 
@@ -417,7 +425,25 @@ EOF
             arch_args+=( -I "$(dirname "$SIMT_API_INCLUDE")" -I "$SIMT_API_INCLUDE" )
         fi
         arch_args+=( -c "$arch_tmp/arch_probe.asc" -o "$arch_tmp/arch_probe.o" )
-        if "$BISHENG" "${arch_args[@]}" >"$arch_tmp/compile_${ARCH#dav-}.log" 2>&1 && [ -f "$arch_tmp/arch_probe.o" ]; then
+        # include 自动修复：simt_api 头依赖链很深（如 impl/utils/sys_macros.h 在
+        # 别的目录），缺头时在 ASCEND_HOME 下 find 并补 -I，最多 3 轮
+        try=0
+        while [ "$try" -lt 3 ]; do
+            if "$BISHENG" "${arch_args[@]}" >"$arch_tmp/compile_${ARCH#dav-}.log" 2>&1 && [ -f "$arch_tmp/arch_probe.o" ]; then
+                break
+            fi
+            miss_hdr="$(grep -oE "fatal error: '[^']+'" "$arch_tmp/compile_${ARCH#dav-}.log" | head -1 | sed "s/^fatal error: '//;s/'$//")"
+            [ -z "$miss_hdr" ] && break
+            hdr_dir="$(dirname "$(find "${ASCEND_HOME:-/usr/local/Ascend}" -maxdepth 12 -type f -path "*/${miss_hdr}" 2>/dev/null | head -1)")"
+            if [ -z "$hdr_dir" ] || [ "$hdr_dir" = "." ]; then
+                log "    （缺失头 ${miss_hdr} 在 ASCEND_HOME 下未找到，停止重试）"
+                break
+            fi
+            arch_args+=( -I "$hdr_dir" )
+            try=$((try+1))
+            log "    （自动补 include：${hdr_dir}）"
+        done
+        if [ -f "$arch_tmp/arch_probe.o" ]; then
             ok "✅ ${ARCH}：最小 SIMT kernel（asc_shfl + asc_syncthreads）编译通过"
             ARCH_FALLBACK="$ARCH"
             NPU_ARCH_MACRO="$MACRO"
@@ -468,6 +494,7 @@ log "== 8. 汇总 =="
     echo "SIMT_GATE_ARCHS=\"$SIMT_GATE_ARCHS\""
     echo "ARCH_COMPILE_OK=\"$ARCH_COMPILE_OK\""
     echo "ARCH_FALLBACK=\"$ARCH_FALLBACK\""
+    echo "BISHENG_ARCHS=\"${BISHENG_ARCHS:-}\""
 } > "$PROBE_ENV"
 ok "probe.env 已写入：$PROBE_ENV"
 ok "probe.log 已写入：$PROBE_LOG"
