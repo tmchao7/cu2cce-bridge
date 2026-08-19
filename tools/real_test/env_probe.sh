@@ -479,7 +479,7 @@ if [ -n "$CCEC_PATH" ]; then
         ARCH_COMPILE_OK="1"
         # 宏值：-dM -E 精确提取（ccec -E 会展开大段内置头，不能整段 grep；真机实测
         # ccec+dav-c310 → __NPU_ARCH__=3510，与 simt_api 门控 3510 匹配）
-        NPU_ARCH_MACRO="$("$CCEC_PATH" -dM -E -xcce "--cce-aicore-arch=${CUCC_NPU_ARCH}" -x cce - 2>/dev/null | grep -oE '__NPU_ARCH__[[:space:]]+[0-9]+' | awk '{print $2}' | head -1)"
+        NPU_ARCH_MACRO="$("$CCEC_PATH" -dM -E -xcce "--cce-aicore-arch=${CUCC_NPU_ARCH}" "$arch_tmp/macro_probe.cce" </dev/null 2>/dev/null | grep -oE '__NPU_ARCH__[[:space:]]+[0-9]+' | awk '{print $2}' | head -1)"
         [ -z "$NPU_ARCH_MACRO" ] && NPU_ARCH_MACRO="$("$CCEC_PATH" -E -xcce "--cce-aicore-arch=${CUCC_NPU_ARCH}" "$arch_tmp/macro_probe.cce" 2>/dev/null | grep -oE '[0-9]+' | tail -1)"
         [ -n "$NPU_ARCH_MACRO" ] && log "    __NPU_ARCH__=${NPU_ARCH_MACRO}"
         check_gate "$NPU_ARCH_MACRO"
@@ -509,7 +509,7 @@ if [ "$ARCH_COMPILE_OK" = "0" ] && [ -n "$BISHENG" ]; then
     log "  bisheng 候选架构顺序：${ARCH_CANDIDATES}"
     for ARCH in ${ARCH_CANDIDATES}; do
         log "  --- bisheng + --npu-arch=${ARCH} ---"
-        MACRO="$("$BISHENG" -dM -E -xcce --npu-arch="${ARCH}" -x cce - 2>/dev/null | grep -oE '__NPU_ARCH__[[:space:]]+[0-9]+' | awk '{print $2}' | head -1)"
+        MACRO="$("$BISHENG" -dM -E -xcce --npu-arch="${ARCH}" "$arch_tmp/macro_probe.cce" </dev/null 2>/dev/null | grep -oE '__NPU_ARCH__[[:space:]]+[0-9]+' | awk '{print $2}' | head -1)"
         [ -z "$MACRO" ] && MACRO="$("$BISHENG" -E -xcce --npu-arch="${ARCH}" "$arch_tmp/macro_probe.cce" 2>/dev/null | grep -oE '[0-9]+' | tail -1)"
         [ -n "$MACRO" ] && log "    __NPU_ARCH__=${MACRO}"
         if try_compile "bisheng/${ARCH}" "$BISHENG" "--npu-arch=${ARCH}" "$arch_tmp/bisheng_${ARCH#dav-}.log"; then
