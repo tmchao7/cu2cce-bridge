@@ -190,8 +190,11 @@ fi
 # C++17（昇腾编译 Ascend C/SIMT 必选）
 params+=("-std=c++17")
 
-# glibc 2.39（Ubuntu 24.04）math.h 的 _Float32 与 ccec(clang15) 不兼容（真机实测），
-# 跳过系统 math.h（__cuda_runtime.h 检查此宏）
+# glibc 2.39（Ubuntu 24.04）系统头（math.h/wchar.h 等）使用 C23 类型 _Float32/
+# _Float64，ccec(clang15) 不识别（真机实测）；宏替换为语义等价的 float/double
+# （预处理阶段生效，系统头里均为类型位置用法）
+params+=("-D" "_Float32=float")
+params+=("-D" "_Float64=double")
 params+=("-D" "__CU2CCE_NO_MATH_H__")
 
 # 模拟 CUDA 版本
