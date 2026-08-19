@@ -15,8 +15,10 @@
  *   （真机 v4 验证通过），运行后校验 c = a + b。
  */
 #include <cuda_runtime.h>
-#include <stdio.h>
-#include <stdlib.h>
+
+/* ⚠️ 不 include 系统标准库头（ccec+glibc 2.39 兼容问题，真机实测）；
+ *    printf/malloc/free 等由 __cuda_runtime.h 提供最小 C 运行库声明。
+ *    nvcc（GPU 端）下本文件可正常编译（真 CUDA 头自带）。 */
 
 #define N 1024
 

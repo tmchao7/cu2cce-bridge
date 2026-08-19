@@ -187,15 +187,12 @@ if [[ "${xlang}" == "cu" ]]; then
     fi
 fi
 
-# C++17（昇腾编译 Ascend C/SIMT 必选）
+# C++17（昇腾编译 Ascend C/SIMT 必选；gnu 模式避免 __STRICT_ANSI__ 裁剪 glibc 声明）
 params+=("-std=gnu++17")
 
-# glibc 2.39（Ubuntu 24.04）系统头（math.h/wchar.h 等）使用 C23 类型 _Float32/
-# _Float64，ccec(clang15) 不识别（真机实测）；宏替换为语义等价的 float/double
-# （预处理阶段生效，系统头里均为类型位置用法）
-params+=("-D" "_Float32=float")
-params+=("-D" "_Float64=double")
-params+=("-D" "__CU2CCE_NO_MATH_H__")
+# ccec(clang15)+glibc 2.39 系统头不可用（真机实测连锁错误）：桥接头按此宏
+# 提供简化实现 + 最小 C 运行库声明（见 __cuda_runtime.h / cuda_wrapper_internal.h）
+params+=("-D" "__CU2CCE_NO_LIBC__")
 
 # 模拟 CUDA 版本
 params+=("-D" "CUDA_VERSION=${CUCC_CUDA_VERSION}")

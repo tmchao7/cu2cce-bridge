@@ -13,6 +13,7 @@ PASS=0; FAIL=0
 check() {
     local name="$1"; shift
     if clang++ -std=c++17 -fsyntax-only \
+        -D__CU2CCE_NO_LIBC__ \
         -I "$INCLUDE" -I "$INCLUDE/bridge/runtime" -I "$INCLUDE/bridge/blas" -I "$MOCK" "$@" 2>&1; then
         echo "✓ $name"; PASS=$((PASS+1))
     else
