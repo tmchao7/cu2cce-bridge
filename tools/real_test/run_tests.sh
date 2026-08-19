@@ -97,9 +97,19 @@ expect_output() {  # expect_output <名称> <日志文件> <关键字>
 cucc_compile() { cucc -c "$1" -o "$2"; }
 cucc_link()    { cucc "$1" -o "$2"; }
 
-# 路径 2（--direct）：绕过 cucc 直接调 bisheng，用于排查驱动问题时隔离变量
+# 编译器选择：probe.env 的 COMPILER_KIND（ccec 优先）决定架构参数格式
+COMPILER_KIND="${COMPILER_KIND:-bisheng}"
+if [ "$COMPILER_KIND" = "ccec" ] && [ -n "${CCEC_PATH:-}" ]; then
+    DIRECT_CC="$CCEC_PATH"
+    DIRECT_ARCH_FLAG="--cce-aicore-arch"
+else
+    DIRECT_CC="${BISHENG_PATH:-}"
+    DIRECT_ARCH_FLAG="--npu-arch"
+fi
+
+# 路径 2（--direct）：绕过 cucc 直接调编译器，用于排查驱动问题时隔离变量
 direct_compile() {
-    local inc_args=( "$BISHENG_PATH" -std=c++17 -xcce --npu-arch="${CUCC_NPU_ARCH:-dav-c310}" \
+    local inc_args=( "$DIRECT_CC" -std=c++17 -xcce "${DIRECT_ARCH_FLAG}=${CUCC_NPU_ARCH:-dav-c310}" \
         -include "$CUCC_PATH/include/bridge/kernel/simt_adaptor.h" \
         -I "$CUCC_PATH/include" -I "$ASCEND_INCLUDE" )
     # simt_api 头非自包含：加父目录 + 自身（真机实测）
@@ -110,7 +120,7 @@ direct_compile() {
     "${inc_args[@]}"
 }
 direct_link() {
-    local link_args=( "$BISHENG_PATH" "$1" -o "$2" \
+    local link_args=( "$DIRECT_CC" "$1" -o "$2" \
         -L "$CUCC_PATH/lib" -lcce_bridge_runtime \
         -L "$ASCEND_LIB" "${ACL_RT_LIB:-}" )
     [ "${HAS_ACL_CBLAS:-0}" = "1" ] && link_args+=( -lacl_cblas )

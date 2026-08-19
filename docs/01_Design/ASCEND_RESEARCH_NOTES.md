@@ -338,9 +338,35 @@ bisheng main.cpp example.asc -o main --npu-arch=dav-xxxx
 | 组件 | 公开文档假设 | 真机实际（cann-9.2.0） |
 |---|---|---|
 | bisheng | `${ASCEND_TOOLKIT_HOME}/compiler/ccec_compiler/bin/bisheng` | `/usr/local/Ascend/cann-9.2.0/tools/bisheng_compiler/bin/bisheng`（独立于 ascend-toolkit） |
+| **ccec（CANN 自带编译器）** | 无 | **`/usr/local/Ascend/latest/bin/ccec`**（`CANN_BASE=/usr/local/Ascend/latest`，含 set_env.sh、runtime/） |
 | simt_api | `${ASCEND_TOOLKIT_HOME}/include/simt_api` | `/usr/local/Ascend/cann-9.2.0/x86_64-linux/asc/include/simt_api` |
 | ACL 头/库 | `${ASCEND_TOOLKIT_HOME}/include` + `/lib64` | ✅ 与公开布局一致 |
 | ascend-toolkit/compiler/ | ccec_compiler | 实为 asc/ascendc/bin/conf/python/tikcpp（无 ccec_compiler，无 bisheng） |
+
+**两大编译器（2026-08-19 关键发现，用户实测脚本 scripts/04_build_exec.sh 证实）**：
+
+| | **ccec**（CANN 自带，✅ 主线） | **bisheng**（独立编译器，备选） |
+|---|---|---|
+| 位置 | `/usr/local/Ascend/latest/bin/ccec` | `cann-9.2.0/tools/bisheng_compiler/bin/bisheng` |
+| 架构参数 | `--cce-aicore-arch=dav-c310` ✅ **认识 dav-c310** | `--npu-arch=dav-xxx`，**不认识 dav-c310**（lib 里只有 dav-920r2/l210/n350/t210） |
+| 与 CANN 绑定 | 是（内置当前硬件支持） | 否（通用 clang 系） |
+| 实测 | **用户脚本已用它编译 .cce + 在 davinci0 上运行成功** | 编译 SIMT kernel 进行到 include 阶段 |
+
+→ **cu2cce 主线改用 ccec + `--cce-aicore-arch=dav-c310`**（导师指定架构唯一被接受路径）；bisheng 留作对照。ccec 与 bisheng 共享同一 clang 资源（用户脚本 `-I ${CANN_BASE}/tools/bisheng_compiler/lib/clang/15.0.5/include` 含 `__clang_cce_types.h`）。
+
+**用户实测编译命令参考（tile 模型 .cce，2026-08-19 成功）**：
+```bash
+CANN_BASE=/usr/local/Ascend/latest; source ${CANN_BASE}/set_env.sh
+${CANN_BASE}/bin/ccec -O2 --cce-aicore-arch=dav-c310 -std=c++17 <src>.cce \
+  -I${CANN_BASE}/runtime/include -I${CANN_BASE}/include \
+  -I${CANN_BASE}/include/ascendc/host_api \
+  -I${CANN_BASE}/compiler/ascendc/include/highlevel_api \
+  -I${CANN_BASE}/compiler/tikcpp/tikcfw{-,/lib,/lib/matmul,/impl,/interface} \
+  -I${CANN_BASE}/tools/bisheng_compiler/lib/clang/15.0.5/include \
+  -L${CANN_BASE}/runtime/lib64 -L${CANN_BASE}/lib64 -lascendcl -lruntime \
+  -lstdc++ -lpthread -lm -Wl,-rpath=${CANN_BASE}/runtime/lib64 -o build/<name>.out
+# 运行：./build/<name>.out 0（device 0）
+```
 
 **编译器**：bisheng = clang 15.0.5（2026-08-13 构建，x86_64-linux）。`--npu-arch`、`--cce-soc-version`、`--offload-arch` 均支持；`--help` 未列出合法架构值。
 

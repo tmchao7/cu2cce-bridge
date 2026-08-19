@@ -18,15 +18,38 @@ set -u
 # ---------------- 环境 ----------------
 CUCC_PATH=${CUCC_PATH:-}
 ASCEND_TOOLKIT_HOME=${ASCEND_TOOLKIT_HOME:-/usr/local/Ascend/ascend-toolkit/latest}
-# bisheng 查找顺序：显式指定 > ascend-toolkit 内 > 版本化目录（真机 9.2.0 实测）
-if [ -z "${BISHENG_PATH:-}" ]; then
+CANN_BASE=${CANN_BASE:-/usr/local/Ascend/latest}
+# 编译器选择（真机 9.2.0 实测，2026-08-19）：
+#   1. ccec（CANN 自带，/usr/local/Ascend/latest/bin/ccec）——架构参数 --cce-aicore-arch=dav-c310，
+#      导师指定的 dav-c310 只有 ccec 认识；用户实测脚本已用它编译+运行成功 → 优先
+#   2. bisheng（独立编译器）——架构参数 --npu-arch=dav-xxx（不认识 dav-c310）
+CCEC_PATH=${CCEC_PATH:-}
+BISHENG_PATH=${BISHENG_PATH:-}
+CCE_ARCH_FLAG="--npu-arch"
+CC_CMD=""
+if [ -z "${CCEC_PATH}" ]; then
     for cand in \
-        "${ASCEND_TOOLKIT_HOME}/compiler/ccec_compiler/bin/bisheng" \
-        "${ASCEND_TOOLKIT_HOME}/compiler/bisheng/bin/bisheng" \
-        /usr/local/Ascend/cann-*/tools/bisheng_compiler/bin/bisheng; do
-        if [ -x "${cand}" ]; then BISHENG_PATH="${cand}"; break; fi
+        "${CANN_BASE}/bin/ccec" \
+        /usr/local/Ascend/latest/bin/ccec \
+        /usr/local/Ascend/cann-*/bin/ccec; do
+        if [ -x "${cand}" ]; then CCEC_PATH="${cand}"; break; fi
     done
-    BISHENG_PATH=${BISHENG_PATH:-${ASCEND_TOOLKIT_HOME}/compiler/ccec_compiler/bin/bisheng}
+fi
+if [ -n "${CCEC_PATH}" ] && [ -x "${CCEC_PATH}" ]; then
+    CC_CMD="${CCEC_PATH}"
+    CCE_ARCH_FLAG="--cce-aicore-arch"
+else
+    if [ -z "${BISHENG_PATH}" ]; then
+        for cand in \
+            "${ASCEND_TOOLKIT_HOME}/compiler/ccec_compiler/bin/bisheng" \
+            "${ASCEND_TOOLKIT_HOME}/compiler/bisheng/bin/bisheng" \
+            /usr/local/Ascend/cann-*/tools/bisheng_compiler/bin/bisheng; do
+            if [ -x "${cand}" ]; then BISHENG_PATH="${cand}"; break; fi
+        done
+        BISHENG_PATH=${BISHENG_PATH:-${ASCEND_TOOLKIT_HOME}/compiler/ccec_compiler/bin/bisheng}
+    fi
+    CC_CMD="${BISHENG_PATH}"
+    CCE_ARCH_FLAG="--npu-arch"
 fi
 # 目标 NPU 架构（D0 已定：950 系列 = dav-c310；导师 2026-08-19 纠正，此前误记 dav-310）
 CUCC_NPU_ARCH=${CUCC_NPU_ARCH:-dav-c310}
@@ -125,15 +148,15 @@ params+=("-std=c++17")
 # 模拟 CUDA 版本
 params+=("-D" "CUDA_VERSION=${CUCC_CUDA_VERSION}")
 
-# NPU 架构（D0 已定：dav-c310）
-params+=("--npu-arch=${CUCC_NPU_ARCH}")
+# NPU 架构（D0 已定：dav-c310；ccec 用 --cce-aicore-arch，bisheng 用 --npu-arch）
+params+=("${CCE_ARCH_FLAG}=${CUCC_NPU_ARCH}")
 
 # 设备侧代码标注（编译 .cu 时 bisheng 需要 -xcce 识别含设备代码的源）
 if [[ "${xlang}" == "cu" ]]; then
     params+=("-xcce")
 fi
 
-# 链接阶段：追加昇腾运行库（bisheng 同 clang 风格 -L/-l）
+# 链接阶段：追加昇腾运行库（clang 风格 -L/-l）
 if [[ ${dotofilefound} -eq 1 ]]; then
     params+=("-L" "${ASCEND_TOOLKIT_HOME}/lib64")
     params+=("-lascendcl")   # 或 -lacl_rt，视 CANN 版本
@@ -145,13 +168,13 @@ if [[ ${dotofilefound} -eq 1 ]] && [ -n "${CUCC_PATH}" ]; then
     params+=("-lcce_bridge_runtime")
 fi
 
-debug_echo "final cmd: ${BISHENG_PATH} ${params[*]}"
+debug_echo "final cmd: ${CC_CMD} ${params[*]}"
 
-# ---------------- 调用 bisheng ----------------
-if [ ! -f "${BISHENG_PATH}" ]; then
-    echo "cucc: cannot find bisheng compiler at ${BISHENG_PATH}" >&2
-    echo "      set BISHENG_PATH or ASCEND_TOOLKIT_HOME" >&2
+# ---------------- 调用编译器（ccec 优先，bisheng 兜底） ----------------
+if [ ! -f "${CC_CMD}" ]; then
+    echo "cucc: cannot find compiler at ${CC_CMD}" >&2
+    echo "      set CCEC_PATH（CANN 自带 ccec）或 BISHENG_PATH，或检查 /usr/local/Ascend/latest" >&2
     exit 1
 fi
 
-exec "${BISHENG_PATH}" "${params[@]}"
+exec "${CC_CMD}" "${params[@]}"

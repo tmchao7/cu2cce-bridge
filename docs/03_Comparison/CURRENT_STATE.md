@@ -98,6 +98,7 @@
 | 待确认 #4 追加（aclblasCreate） | ✅ **修正误报：无独立 aclblasCreate**，实为 `aclblasCreateHandleFor*` 系列 | 原"自定义 handle"判断正确，cublas 桥不动 |
 | 待确认 #6（原子/地址空间） | ⚠️ 签名全部存在 | 仍待编译实测（架构参数未定） |
 | **架构参数：dav-c310 复测仍不被接受** | ❌ `Unsupported NPU architecture` | bisheng 15.0.5 接受 **dav-2201 / dav-3510**（宏 2201/3510），拒绝 dav-5102；待与导师确认 950 正确参数 |
+| **编译器主线切换：ccec** | ✅ `--cce-aicore-arch=dav-c310` **被 ccec 接受** | `/usr/local/Ascend/latest/bin/ccec`（CANN 自带，与 CANN 绑定）；用户实测脚本已编译+运行成功 → **cucc/env_probe 已改 ccec 优先**；bisheng 降为备选（详见 ASCEND_RESEARCH_NOTES §3.6） |
 | **simt_api 非自包含** | ⚠️ `asc_simt.h` include `simt_api/common_functions.h` | 编译 `-I` 必须加 simt_api **父目录**（已修 env_probe/run_tests，`SIMT_API_ROOT`） |
 | aclrtGetSocName | ✅ 全目录可搜到 | wrapper 依赖它，可编译 |
 
