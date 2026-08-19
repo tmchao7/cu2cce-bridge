@@ -563,6 +563,14 @@ aclError wcudaEventElapsedTime(float *ms, aclrtEvent start, aclrtEvent end) {
 /* ---------------- Memory Management ---------------- */
 
 aclError wcudaMalloc(void **ptr, size_t sizeBytes) {
+    /* 107002 根因（ROUND17 定案）：BRIDGE_INIT 只在 WCUDA_RETURN 宏里触发，
+     * 而 wcudaMalloc 的 aclrtMalloc 调用写在 WCUDA_RETURN 之前——首个用户
+     * API 即 cudaMalloc 时，aclrtMalloc 在 aclInit 之前就执行，稳定 107002。
+     * 压印顺序铁证：每次输出都是 [wcuda] aclrtMalloc call → 之后才
+     * [bridge_init] aclInit。前置 API（GetDeviceCount 等）成功是因为
+     * aclrtGetDeviceCount 会隐式完成 ACL 初始化，恰好在 aclrtMalloc 之前
+     * 建立了上下文。修复：函数体开头显式 BRIDGE_INIT()（call_once 幂等）。 */
+    BRIDGE_INIT();
     if (ptr == nullptr || sizeBytes == 0) {
         wcuda_mark("wcudaMalloc(invalid)", ACL_ERROR_INVALID_PARAM);
         WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);

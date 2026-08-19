@@ -1,0 +1,61 @@
+============================================================
+SERVER_STEPS_107002_ROUND17.txt —— 107002 最终修复验证 · 服务器操作
+============================================================
+（本文件由 ZCode 推送。cat 本文件后，把 ---- 之间的命令块
+整段复制粘贴执行；# 开头为说明行，粘贴时自动当注释。）
+
+背景（根因定案——压印顺序铁证）：
+  回看第 9/12/13/15 轮每次 WCUDA_DEBUG=1 的输出顺序：
+    [wcuda] wcudaMalloc enter
+    [wcuda] aclrtMalloc call ret=107002     ← 打印在 bridge_init 之前！
+    [bridge_init] aclInit
+    [bridge_init] aclrtGetDeviceCount
+    [bridge_init] aclrtSetDevice(0)
+  → wcudaMalloc 函数体里 aclrtMalloc 的调用点在【触发 BRIDGE_INIT 的
+    WCUDA_RETURN 宏】之前，所以首个用户 API 即 cudaMalloc 时，
+    aclrtMalloc 在 aclInit 前就执行 → 稳定 107002。
+    前置 API（GetDeviceCount 等）成功是因为 aclrtGetDeviceCount 恰好
+    会隐式完成 ACL 初始化（先 init 再进后续 malloc）。
+
+  修复（已在源码落地，commit 83e8175 之后）：wcudaMalloc 函数体**开头**
+    显式 BRIDGE_INIT()（call_once，幂等）→ 任何调用都先完成
+    aclInit+GetDeviceCount+SetDevice(+CreateContext) 再走到 aclrtMalloc。
+
+------------------------------------------------------------
+0. 拉最新（含 wcudaMalloc 开头的 BRIDGE_INIT）+ 看本文件
+------------------------------------------------------------
+cd /home/t50063365/workspace/repos/cu2cce-bridge && git pull
+pwd
+cat tools/real_test/SERVER_STEPS_107002_ROUND17.txt
+
+------------------------------------------------------------
+1. 重建 wrapper
+------------------------------------------------------------
+bash tools/real_test/build_bridge.sh
+echo "build 退出码: $?"
+
+------------------------------------------------------------
+2. 验证 minimal —— 预期 minimal OK (N=256) 且压印顺序改为
+   [bridge_init] 三(四)行在前、[wcuda] 在后
+------------------------------------------------------------
+export CUCC_PATH=$PWD/build/real_test/install
+export CUDA_PATH=$CUCC_PATH
+export PATH=$CUCC_PATH/bin:$PATH
+"$CUCC_PATH/bin/cucc" -c examples/minimal/minimal.cu -o /tmp/minimal.o
+"$CUCC_PATH/bin/cucc" /tmp/minimal.o -o /tmp/minimal
+WCUDA_DEBUG=1 /tmp/minimal
+echo "minimal 运行退出码: $?"
+
+------------------------------------------------------------
+3. 回归 run_tests.sh all（预期 8/8 PASS）
+------------------------------------------------------------
+bash tools/real_test/run_tests.sh all
+echo "run_tests 退出码: $?"
+
+------------------------------------------------------------
+判读（贴回 2/3 输出）：
+  minimal OK + 压印顺序 [bridge_init] 在前 → 修复定案 ✅
+  我把结论（含 17 轮证据链）回写 INVESTIGATION_107002.md 并检查其他
+  wcuda 入口是否也要补 BRIDGE_INIT。
+
+============================================================
