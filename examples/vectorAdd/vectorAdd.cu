@@ -20,37 +20,17 @@
 
 #define N 1024
 
-/* ==================== kernel（双端兼容） ====================
- * 同一份源码双端编译：
- *   - nvcc（原生 GPU）：走 __CUDACC__ 分支，纯 CUDA kernel
- *   - ccec（昇腾 NPU，cucc 调用）：走 #else 分支——计算体 __simt_vf__
- *     （blockIdx/threadIdx 可用，warp 原语放此上下文）+ __global__[aicore]
- *     入口（__global__ 由 simt_adaptor.h 展开）+ cce::async_invoke 启动
- *   - host 侧共用（cudaMalloc 等：nvcc 用真 CUDA，ccec 用宏表替换为 aclrt*） */
-#if defined(__CUDACC__)
-
+/* ==================== kernel（纯 CUDA，零改写） ====================
+ * 本文件是标准 CUDA 代码：nvcc 可直接编译运行（GPU 端）。
+ * 昇腾端：cucc 编译时由 tools/kernel_convert.py 自动转换为 SIMT VF 模板
+ * （__simt_vf__ 计算体 + __global__[aicore] 入口 + cce::async_invoke 启动），
+ * 本文件本身无需任何昇腾专属改动。 */
 __global__ void vectorAddKernel(float *c, const float *a, const float *b, int n) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i < n) {
         c[i] = a[i] + b[i];
     }
 }
-
-#else  /* 昇腾 ccec：真机 v4 模板（2026-08-19 验证） */
-
-__simt_vf__ [aicore] __attribute__((always_inline)) inline
-void vectorAddVF(__gm__ float *c, const __gm__ float *a, const __gm__ float *b, int n) {
-    int i = blockIdx.x * blockDim.x + threadIdx.x;
-    if (i < n) {
-        c[i] = a[i] + b[i];
-    }
-}
-
-__global__ void vectorAddKernel(__gm__ float *c, const __gm__ float *a, const __gm__ float *b, int n) {
-    cce::async_invoke<vectorAddVF>(cce::dim3{256, 1, 1}, c, a, b, n);
-}
-
-#endif
 
 int main(void) {
     int devCount = 0;

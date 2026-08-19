@@ -61,8 +61,8 @@ install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
 # 安装 cucc 驱动（CUCC_PATH/bin）
 install(PROGRAMS bin/cucc DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
 
-# 安装 tools/ 工程胶水（make_cce / cmake_cce / nvcc_entry / mock）
-install(PROGRAMS tools/make_cce tools/cmake_cce tools/nvcc_entry.sh
+# 安装 tools/ 工程胶水（make_cce / cmake_cce / nvcc_entry / mock / kernel_convert）
+install(PROGRAMS tools/make_cce tools/cmake_cce tools/nvcc_entry.sh tools/kernel_convert.py
         DESTINATION ${CMAKE_INSTALL_PREFIX}/tools)
 install(DIRECTORY tools/mock DESTINATION ${CMAKE_INSTALL_PREFIX}/tools)
 
