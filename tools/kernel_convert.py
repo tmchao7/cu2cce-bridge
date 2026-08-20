@@ -1,167 +1,361 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-kernel_convert.py —— CUDA kernel → 昇腾 SIMT VF 自动转换（v0）
+kernel_convert.py —— CUDA kernel → 昇腾 SIMT VF 自动转换（v1）
 
-cu2cce-bridge 的核心组件（对应 cu-bridge 的 tools_src/ptx2cpp 职责，方向相反）：
-让用户**保持纯 CUDA kernel 源码零改写**，cucc 编译 .cu 前自动调用本工具，
-把 __global__ kernel 转换为昇腾 ccec 可编译的 VF 模板：
+将简单 CUDA ``__global__`` kernel 拆成：
+  1. ``__simt_vf__`` 计算体；
+  2. ``__global__[aicore]`` wrapper。
 
-    用户源码（不变）                        转换产物（喂给 ccec）
-    ──────────────────────────            ──────────────────────────────
-    __global__ void k(A, B, n) { body } → __global__ void k(A, B, n) {
-                                              cce::async_invoke<k_VF>(
-                                                  cce::dim3{blockDim.x,
-                                                        blockDim.y,
-                                                        blockDim.z}, a, b, n);
-                                          }
-                                          __simt_vf__ [aicore] inline
-                                          void k_VF(__gm__ A, __gm__ B, n) { body }
+B 方案（2026-08-20 真机验证）：wrapper 不读取内置 ``blockDim``，而由每个
+host launch 把 block 形状作为三个隐藏参数传入。这样同一 kernel 可按 256、
+512 或 2D/3D block 多次启动，同时避开 Bisheng 在 wrapper 读取 blockDim 时的
+前端崩溃。
 
-转换依据：真机验证的 ccec SIMT VF 模板（2026-08-19，cann-9.2.0/dav-c310）——
-kernel 入口 __global__[aicore]（由 simt_adaptor.h 的宏表统一加限定符）、
-计算体放 __simt_vf__（warp 原语只能在此上下文）、指针加 __gm__ 地址空间。
-
-v0 限制（后续迭代）：
-  - 只处理简单 __global__ void k(...) { ... }（无嵌套括号参数、无函数指针、
-    无模板 kernel）
-  - VF 线程数取 kernel 包装入口的运行时 blockDim，支持同一 kernel 多种启动配置
-  - 指针参数自动加 __gm__（const __gm__ 位置按真机反馈调整）
-  - 无 __global__ 的输入原样输出（host-only 文件不受影响）
-
-用法：
-  python3 tools/kernel_convert.py in.cu -o out.cce
+已知限制：仅处理简单的 ``__global__ void name(...)``；模板 kernel、函数指针
+launch、宏生成的 launch 和复杂参数声明仍需后续 AST 版本。
 """
 
 import argparse
 import re
 import sys
 
-VF_BLOCK_DIM = "cce::dim3{blockDim.x, blockDim.y, blockDim.z}"
+
+HIDDEN_PARAMS = (
+    "unsigned __cu2cce_bx, unsigned __cu2cce_by, unsigned __cu2cce_bz"
+)
+HIDDEN_DIM = "cce::dim3{__cu2cce_bx, __cu2cce_by, __cu2cce_bz}"
+ZERO_SHARED = {"0", "0u", "0U", "0UL", "0L", "0LL"}
+
+
+class ConversionError(ValueError):
+    """输入超出当前安全转换范围。"""
+
+
+def mask_comments_and_strings(src):
+    """用空格遮蔽注释/字符串，保留长度与换行，便于按原文位置改写。"""
+    out = list(src)
+    i = 0
+    quote = None
+    while i < len(src):
+        ch = src[i]
+        if quote:
+            if ch != "\n":
+                out[i] = " "
+            if ch == "\\" and i + 1 < len(src):
+                if src[i + 1] != "\n":
+                    out[i + 1] = " "
+                i += 2
+                continue
+            if ch == quote:
+                quote = None
+            i += 1
+            continue
+        if ch in ("'", '"'):
+            quote = ch
+            out[i] = " "
+            i += 1
+            continue
+        if src.startswith("//", i):
+            out[i] = out[i + 1] = " "
+            i += 2
+            while i < len(src) and src[i] != "\n":
+                out[i] = " "
+                i += 1
+            continue
+        if src.startswith("/*", i):
+            out[i] = out[i + 1] = " "
+            i += 2
+            while i < len(src) and not src.startswith("*/", i):
+                if src[i] != "\n":
+                    out[i] = " "
+                i += 1
+            if i < len(src):
+                out[i] = out[i + 1] = " "
+                i += 2
+            continue
+        i += 1
+    return "".join(out)
+
+
+def split_top_level(text):
+    """按顶层逗号拆分，保留括号/花括号内逗号。"""
+    parts = []
+    start = 0
+    depth = 0
+    for i, ch in enumerate(text):
+        if ch in "([{":
+            depth += 1
+        elif ch in ")]}":
+            depth -= 1
+        elif ch == "," and depth == 0:
+            parts.append(text[start:i].strip())
+            start = i + 1
+    parts.append(text[start:].strip())
+    return parts
+
+
+def find_matching(masked, start, open_char, close_char):
+    """返回从 start 的开符号对应的闭符号位置。"""
+    if start >= len(masked) or masked[start] != open_char:
+        return None
+    depth = 1
+    i = start + 1
+    while i < len(masked):
+        if masked[i] == open_char:
+            depth += 1
+        elif masked[i] == close_char:
+            depth -= 1
+            if depth == 0:
+                return i
+        i += 1
+    return None
 
 
 def find_kernels(src):
-    """定位 __global__ void name(params) { body }，返回 (name, params, body, start, end)。"""
+    """返回简单 CUDA kernel 的 (name, params, body, start, end)。"""
     kernels = []
-    # 参数内不允许出现括号（v0 限制）
-    pat = re.compile(r"__global__\s+void\s+(\w+)\s*\(([^()]*)\)\s*\{", re.S)
-    for m in pat.finditer(src):
-        name, params = m.group(1), m.group(2).strip()
-        i = m.end()
-        depth = 1
-        while i < len(src) and depth > 0:
-            if src[i] == "{":
-                depth += 1
-            elif src[i] == "}":
-                depth -= 1
-            i += 1
-        if depth != 0:
-            continue  # 括号不闭合，跳过（源码有问题）
-        body = src[m.end():i - 1]
-        kernels.append((name, params, body, m.start(), i))
+    masked = mask_comments_and_strings(src)
+    pattern = re.compile(r"__global__\s+void\s+(\w+)\s*\(([^()]*)\)\s*\{", re.S)
+    for match in pattern.finditer(masked):
+        name = match.group(1)
+        params = src[match.start(2):match.end(2)].strip()
+        body_end = find_matching(masked, match.end() - 1, "{", "}")
+        if body_end is None:
+            continue
+        body = src[match.end():body_end]
+        kernels.append((name, params, body, match.start(), body_end + 1))
     return kernels
 
 
 def arg_names(params):
-    """从参数列表提取形参名：'float *c, const float *a, int n' -> ['c', 'a', 'n']。"""
+    """从简单参数列表提取形参名。"""
     names = []
-    for p in params.split(","):
-        p = p.strip()
-        if not p:
+    for param in split_top_level(params):
+        if not param:
             continue
-        m = re.search(r"(\w+)\s*$", p)
-        if m:
-            names.append(m.group(1))
+        match = re.search(r"(\w+)\s*$", param)
+        if match:
+            names.append(match.group(1))
     return names
 
 
 def add_gm(params):
-    """指针参数加 __gm__ 地址空间（昇腾要求，真机验证）。
-    'float *c' -> '__gm__ float *c'；'const float *a' -> 'const __gm__ float *a'"""
-    def repl(m):
-        const = m.group(1) or ""
-        return const + "__gm__ " + m.group(2)
-    return re.sub(r"(\bconst\s+)?((?:unsigned\s+|signed\s+)?(?:long\s+|short\s+)?(?:char|short|int|long|float|double|half|bfloat16_t|void|\w+)\s*(\*+))\s*(\w+)",
-                  lambda m: (m.group(1) or "") + "__gm__ " + m.group(2) + " " + m.group(4), params)
+    """为简单指针参数添加 ``__gm__`` 地址空间。"""
+    return re.sub(
+        r"(\bconst\s+)?((?:unsigned\s+|signed\s+)?(?:long\s+|short\s+)?"
+        r"(?:char|short|int|long|float|double|half|bfloat16_t|void|\w+)\s*(\*+))\s*(\w+)",
+        lambda match: (match.group(1) or "")
+        + "__gm__ "
+        + match.group(2)
+        + " "
+        + match.group(4),
+        params,
+    )
 
 
-def convert_launch_config(src):
-    """CUDA <<<grid, block, sharedMem, stream>>> -> 昇腾 <<<blocks, threads, stream>>>
-    （昇腾 SIMT 语法糖只支持 3 参，真机实测报 'too many arguments, expected 7,
-    have 8'；sharedMem 由昇腾 UB 动态内存机制替代，=0 场景直接丢弃）"""
-    pat = re.compile(r"<<<\s*([^,>]+?)\s*,\s*([^,>]+?)\s*,\s*([^,>]+?)\s*,\s*([^>]+?)\s*>>>")
+def scope_at(masked, pos):
+    """返回 pos 所在花括号作用域栈。"""
+    stack = []
+    for i, ch in enumerate(masked[:pos]):
+        if ch == "{":
+            stack.append(i)
+        elif ch == "}" and stack:
+            stack.pop()
+    return tuple(stack)
 
-    def repl(m):
-        shared = m.group(3).strip()
-        if shared not in ("0", "0u", "0U", "0UL", "0L", "0LL"):
-            print(f"kernel_convert: WARN 启动配置 sharedMem={shared} 非 0，昇腾语义不同，已丢弃（TODO）",
-                  file=sys.stderr)
-        return f"<<<{m.group(1).strip()}, {m.group(2).strip()}, {m.group(4).strip()}>>>"
 
-    return pat.sub(repl, src)
+def collect_dim3_defs(src):
+    """收集可见的简单 dim3 变量声明，用于识别 block 表达式类型。"""
+    masked = mask_comments_and_strings(src)
+    pattern = re.compile(
+        r"\bdim3\s+(?P<name>\w+)\s*(?:\([^;]*\)|\{[^;]*\})\s*;"
+    )
+    return [
+        (match.start(), match.group("name"), scope_at(masked, match.start()))
+        for match in pattern.finditer(masked)
+    ]
+
+
+def is_visible_dim3(name, before, scope, definitions):
+    """判断简单标识符是否是当前 launch 可见的 dim3 变量。"""
+    candidates = []
+    for pos, item_name, item_scope in definitions:
+        if item_name != name or pos >= before:
+            continue
+        if len(item_scope) <= len(scope) and scope[: len(item_scope)] == item_scope:
+            candidates.append((len(item_scope), pos))
+    return bool(candidates)
+
+
+def block_lowering(block_expr, before, scope, dim3_defs):
+    """返回 (CCE 外层标量线程数, 隐藏 bx, by, bz)。"""
+    block = block_expr.strip()
+    if re.fullmatch(r"[A-Za-z_]\w*", block) and is_visible_dim3(
+        block, before, scope, dim3_defs
+    ):
+        x, y, z = f"{block}.x", f"{block}.y", f"{block}.z"
+        return f"({x} * {y} * {z})", x, y, z
+
+    direct_dim3 = re.fullmatch(r"dim3\s*[({](.*)[)}]", block, re.S)
+    if direct_dim3:
+        parts = split_top_level(direct_dim3.group(1))
+        if len(parts) != 3:
+            raise ConversionError(
+                f"dim3 block expression '{block}' must have 3 components"
+            )
+        x, y, z = parts
+        return f"(({x}) * ({y}) * ({z}))", x, y, z
+
+    # CCE 外层 launch 的 threads 参数是 unsigned 标量；普通 CUDA 标量 block
+    # 视作 1D，并把同一运行时表达式继续传给隐藏 bx。
+    return block, block, "1", "1"
+
+
+def find_launches(src):
+    """解析 CUDA launch 及紧随其后的实参列表。"""
+    masked = mask_comments_and_strings(src)
+    starts = re.finditer(r"\b(?P<name>\w+)\s*<<<", masked)
+    launches = []
+    for match in starts:
+        config_start = masked.find("<<<", match.start())
+        config_end = masked.find(">>>", config_start + 3)
+        if config_end < 0:
+            continue
+        config_text = src[config_start + 3:config_end]
+        config = split_top_level(config_text)
+        if len(config) != 4:
+            raise ConversionError(
+                f"kernel {match.group('name')} launch config must have 4 arguments"
+            )
+        call_start = config_end + 3
+        while call_start < len(masked) and masked[call_start].isspace():
+            call_start += 1
+        if call_start >= len(masked) or masked[call_start] != "(":
+            continue
+        call_end = find_matching(masked, call_start, "(", ")")
+        if call_end is None:
+            raise ConversionError(
+                f"kernel {match.group('name')} launch arguments are unbalanced"
+            )
+        launches.append(
+            {
+                "name": match.group("name"),
+                "start": match.start(),
+                "end": call_end + 1,
+                "config": config,
+                "args": src[call_start + 1:call_end].strip(),
+                "scope": scope_at(masked, match.start()),
+            }
+        )
+    return launches
+
+
+def rewrite_launches(src, converted_kernel_names):
+    """四参→三参，并为本次转换的 kernel 附加隐藏 block 形状参数。"""
+    launches = find_launches(src)
+    if not launches:
+        return src
+    dim3_defs = collect_dim3_defs(src)
+    out = []
+    pos = 0
+    for launch in launches:
+        out.append(src[pos:launch["start"]])
+        grid, block, shared, stream = launch["config"]
+        if shared.strip() not in ZERO_SHARED:
+            print(
+                f"kernel_convert: WARN 启动配置 sharedMem={shared.strip()} 非 0，"
+                "昇腾语义不同，已丢弃（TODO）",
+                file=sys.stderr,
+            )
+
+        args = launch["args"]
+        outer_block = block.strip()
+        if launch["name"] in converted_kernel_names:
+            outer_block, bx, by, bz = block_lowering(
+                block, launch["start"], launch["scope"], dim3_defs
+            )
+            hidden = f"{bx}, {by}, {bz}"
+            args = f"{args}, {hidden}" if args else hidden
+
+        out.append(
+            f"{launch['name']}<<<{grid.strip()}, {outer_block}, {stream.strip()}>>>"
+            f"({args})"
+        )
+        pos = launch["end"]
+    out.append(src[pos:])
+    return "".join(out)
+
+
+def append_params(params, extra):
+    return f"{params}, {extra}" if params.strip() else extra
+
+
+def append_args(args, extra):
+    return f"{args}, {extra}" if args.strip() else extra
 
 
 def convert(src):
-    """返回 (转换后源码, 转换的 kernel 数)。无 kernel 时原样返回。"""
-    src = convert_launch_config(src)
+    """返回 (转换后源码, 转换 kernel 数)。"""
     kernels = find_kernels(src)
     if not kernels:
-        return src, 0
+        return rewrite_launches(src, set()), 0
+
     out = []
     pos = 0
+    names = set()
     for name, params, body, start, end in kernels:
+        names.add(name)
         out.append(src[pos:start])
         vf_name = name + "_VF"
         gm_params = add_gm(params)
+        wrapper_params = append_params(gm_params, HIDDEN_PARAMS)
         args = ", ".join(arg_names(params))
-        # 注意顺序：VF 定义必须在 kernel 之前（kernel 里 async_invoke<VF> 引用它）；
-        # __global__[aicore] 显式写出（ccec 内置 __global__ 宏，重定义无效——
-        # simt_adaptor.h 不再提供 __global__ 宏，真机实测）；
-        # kernel 包装参数与 VF 一样带 __gm__（async_invoke 参数类型需匹配，
-        # 真机实测报 'expecting parameter to have memory qualifier __gm__'）
+        invoke_tail = f", {args}" if args else ""
         out.append(
-            f"""/* kernel 自动转换（tools/kernel_convert.py v0）：CUDA kernel {name} 零改写，
- * 此处生成昇腾 SIMT VF 等价实现（模板经真机 2026-08-19 验证） */
+            f"""/* kernel 自动转换（tools/kernel_convert.py v1）：CUDA kernel {name} 零改写，
+ * host launch 通过隐藏参数传递 block 形状（真机 2026-08-20 验证）。 */
 __simt_vf__ [aicore] __attribute__((always_inline)) inline
 void {vf_name}({gm_params}) {{
 {body}
 }}
 
-__global__[aicore] void {name}({gm_params}) {{
-    cce::async_invoke<{vf_name}>({VF_BLOCK_DIM}, {args});
+__global__[aicore] void {name}({wrapper_params}) {{
+    cce::async_invoke<{vf_name}>({HIDDEN_DIM}{invoke_tail});
 }}
 """
         )
         pos = end
     out.append(src[pos:])
-    return "".join(out), len(kernels)
+    return rewrite_launches("".join(out), names), len(kernels)
 
 
-def main():
-    ap = argparse.ArgumentParser(description="CUDA kernel -> Ascend SIMT VF converter (v0)")
-    ap.add_argument("input", help="输入 .cu 文件")
-    ap.add_argument("-o", "--output", required=True, help="输出文件（转换后喂给 ccec）")
-    args = ap.parse_args()
-
+def main(argv=None):
+    parser = argparse.ArgumentParser(
+        description="CUDA kernel -> Ascend SIMT VF converter (v1)"
+    )
+    parser.add_argument("input", help="输入 .cu 文件")
+    parser.add_argument("-o", "--output", required=True, help="转换后输出文件")
+    args = parser.parse_args(argv)
     try:
-        with open(args.input, "r", encoding="utf-8", errors="replace") as f:
-            src = f.read()
-    except OSError as e:
-        print(f"kernel_convert: cannot read {args.input}: {e}", file=sys.stderr)
+        with open(args.input, "r", encoding="utf-8", errors="replace") as handle:
+            source = handle.read()
+        converted, count = convert(source)
+        with open(args.output, "w", encoding="utf-8") as handle:
+            handle.write(converted)
+    except (OSError, ConversionError) as error:
+        print(f"kernel_convert: {error}", file=sys.stderr)
         return 1
 
-    converted, n = convert(src)
-    try:
-        with open(args.output, "w", encoding="utf-8") as f:
-            f.write(converted)
-    except OSError as e:
-        print(f"kernel_convert: cannot write {args.output}: {e}", file=sys.stderr)
-        return 1
-
-    if n:
-        print(f"kernel_convert: converted {n} kernel(s) in {args.input} -> {args.output}")
+    if count:
+        print(
+            f"kernel_convert: converted {count} kernel(s) in {args.input} -> {args.output}"
+        )
     else:
-        print(f"kernel_convert: no __global__ kernel found, passthrough {args.input} -> {args.output}")
+        print(
+            f"kernel_convert: no __global__ kernel found, passthrough "
+            f"{args.input} -> {args.output}"
+        )
     return 0
 
 
