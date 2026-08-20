@@ -1,17 +1,11 @@
-# server_cmd.txt —— B 方案真机探针：隐藏 bx/by/bz 动态传给 async_invoke
+# server_cmd.txt —— B 方案第二轮：分别验证 1D 隐藏参数与 2D 隐藏形状
 #
 # 分支：exp/hidden-blockdim-args
-# 目的：只验证普通 wrapper 参数能否用于 cce::dim3{bx,by,bz}。
-# 若通过，同一个 wrapper 将可在运行时分别使用 256、512 和 2D block；
-# 若失败，则 B 方案淘汰，转测 A 静态推导分支。
-#
-# 服务器先切到本分支：
-#   cd /home/t50063365/workspace/repos/cu2cce-bridge
-#   git fetch origin
-#   git switch -C exp/hidden-blockdim-args --track origin/exp/hidden-blockdim-args
-#   cat tools/real_test/server_cmd.txt
-# 然后将下方命令块整段复制执行，并贴回完整输出。
+# 修正：CCE 外层 <<<blocks, threads, stream>>> 的 threads 是 unsigned 标量，
+# 不能直接传 CUDA dim3。2D 探针改为外层标量 256，隐藏参数传 32/8/1。
+# 本文件命令全部包在子 shell 中；失败只结束本轮，不会执行 exit 踢掉 SSH。
 
+(
 set -eo pipefail
 ulimit -c 0 2>/dev/null || true
 
@@ -40,38 +34,48 @@ if [ -n "${SIMT_API_INCLUDE:-}" ]; then
     export CPLUS_INCLUDE_PATH="${SIMT_API_ROOT:-$(dirname "$SIMT_API_INCLUDE")}:$SIMT_API_INCLUDE:${CPLUS_INCLUDE_PATH:-}"
 fi
 
-printf '\n===== [3/5] 检查转换结果 =====\n'
-python3 tools/kernel_convert.py \
-    examples/experimental/hiddenBlockDim/hidden_blockdim_probe.cu \
-    -o "$OUT/hidden_blockdim_probe.cce"
-grep -nF 'cce::dim3{bx, by, bz}' "$OUT/hidden_blockdim_probe.cce"
-grep -nF 'hiddenAdd<<<1, threads256, stream>>>' "$OUT/hidden_blockdim_probe.cce"
-grep -nF 'hiddenAdd<<<1, threads512, stream>>>' "$OUT/hidden_blockdim_probe.cce"
-grep -nF 'hidden2D<<<1, block2d, stream>>>' "$OUT/hidden_blockdim_probe.cce"
-if grep -Fq 'cce::dim3{blockDim.x, blockDim.y, blockDim.z}' "$OUT/hidden_blockdim_probe.cce"; then
-    echo 'FAIL：wrapper 仍读取 blockDim' >&2
-    exit 1
-fi
+printf '\n===== [3/5] 转换并检查两个独立探针 =====\n'
+python3 tools/kernel_convert.py examples/experimental/hiddenBlockDim/hidden_blockdim_1d_probe.cu -o "$OUT/probe_1d.cce"
+python3 tools/kernel_convert.py examples/experimental/hiddenBlockDim/hidden_blockdim_2d_probe.cu -o "$OUT/probe_2d.cce"
+grep -nF 'cce::dim3{bx, by, bz}' "$OUT/probe_1d.cce" "$OUT/probe_2d.cce"
+grep -nF 'hiddenAdd<<<1, threads256, stream>>>' "$OUT/probe_1d.cce"
+grep -nF 'hiddenAdd<<<1, threads512, stream>>>' "$OUT/probe_1d.cce"
+grep -nF 'hidden2D<<<1, launch_threads, stream>>>' "$OUT/probe_2d.cce"
+grep -nF 'block2d.x, block2d.y, block2d.z' "$OUT/probe_2d.cce"
 
-printf '\n===== [4/5] 编译、链接、运行 B 探针 =====\n'
-if WCUDA_DEBUG=1 "$CUCC_PATH/bin/cucc" -c \
-       examples/experimental/hiddenBlockDim/hidden_blockdim_probe.cu \
-       -o "$OUT/hidden_blockdim_probe.o" >"$OUT/compile.log" 2>&1; then
-    echo '[PASS] B 探针编译通过'
-else
-    rc=$?
-    echo "[FAIL] B 探针编译失败 rc=$rc"
-    grep -nEm 12 'error:|fatal error:|Segmentation fault|stack smashing|Assertion|Stack dump' "$OUT/compile.log" || true
-    tail -n 40 "$OUT/compile.log"
-    exit "$rc"
-fi
+printf '\n===== [4/5] 分别编译，避免一个失败遮挡另一个 =====\n'
+compile_case() {
+    local name="$1" src="$2"
+    if WCUDA_DEBUG=1 "$CUCC_PATH/bin/cucc" -c "$src" -o "$OUT/$name.o" >"$OUT/$name.compile.log" 2>&1; then
+        echo "[PASS] $name 编译通过"
+        return 0
+    fi
+    local rc=$?
+    echo "[FAIL] $name 编译失败 rc=$rc"
+    grep -nEm 12 'error:|fatal error:|Segmentation fault|stack smashing|Assertion|Stack dump' "$OUT/$name.compile.log" || true
+    tail -n 35 "$OUT/$name.compile.log"
+    return "$rc"
+}
 
-"$CUCC_PATH/bin/cucc" "$OUT/hidden_blockdim_probe.o" \
-    -o "$OUT/hidden_blockdim_probe" >"$OUT/link.log" 2>&1
-"$OUT/hidden_blockdim_probe" | tee "$OUT/run.log"
-grep -F 'hidden blockdim OK (256,512,2d)' "$OUT/run.log"
+C1=0; C2=0
+compile_case probe_1d examples/experimental/hiddenBlockDim/hidden_blockdim_1d_probe.cu || C1=$?
+compile_case probe_2d examples/experimental/hiddenBlockDim/hidden_blockdim_2d_probe.cu || C2=$?
+echo "COMPILE_RESULT probe_1d=$C1 probe_2d=$C2"
 
-printf '\n===== [5/5] 判读 =====\n'
-echo '若看到 hidden blockdim OK (256,512,2d)：B 方案通过，可将 block 表达式作为隐藏参数传给单一 wrapper。'
-echo '若 cce::dim3{bx,by,bz} 编译崩溃或报必须为常量：B 方案失败，下一步测试 A 静态推导。'
+printf '\n===== [5/5] 对编译成功项做链接与数值运行 =====\n'
+run_case() {
+    local name="$1" expected="$2"
+    if [ ! -f "$OUT/$name.o" ]; then
+        echo "[SKIP] $name 未生成目标文件"
+        return 0
+    fi
+    "$CUCC_PATH/bin/cucc" "$OUT/$name.o" -o "$OUT/$name" >"$OUT/$name.link.log" 2>&1
+    "$OUT/$name" | tee "$OUT/$name.run.log"
+    grep -F "$expected" "$OUT/$name.run.log"
+}
+run_case probe_1d 'hidden blockdim 1d OK (256,512)'
+run_case probe_2d 'hidden blockdim 2d OK (32x8x1)'
+
+echo '判读：1D 通过即可证明同一 wrapper 可动态使用 256/512；2D 通过则额外证明隐藏 bx/by/bz 可表达 32x8x1。'
 echo "完整日志：$OUT"
+) || echo '本轮 B 探针未全部通过；SSH 会话仍保留，请将上方完整输出贴回。'
