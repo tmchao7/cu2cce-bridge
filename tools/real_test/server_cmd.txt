@@ -1,45 +1,148 @@
-# server_cmd.txt —— 服务器操作命令（当前轮：kernel_convert 动态 blockDim）
+# server_cmd.txt —— 服务器操作命令（当前轮：定位动态 blockDim 导致的编译器崩溃）
 #
-# 用法：本文件是本轮昇腾服务器操作的唯一来源。
-# 服务器侧先执行：
+# 背景：7391675 的 Python/文本检查通过，但 vectorAdd 真机编译时 Bisheng 前端
+# Segmentation fault + stack smashing。当前不能把编译器堆栈当成多个源码错误；本轮只做
+# 2×2 最小对照，区分“wrapper 读取 blockDim”与“512 threads”哪个变量触发崩溃。
+#
+# 服务器侧只需：
 #   cd /home/t50063365/workspace/repos/cu2cce-bridge && git pull
 #   cat tools/real_test/server_cmd.txt
-# 然后把下方命令块整段复制粘贴执行，并将完整输出粘贴回来。
-#
-# 本轮目标：
-#   1. 确认转换后的 async_invoke 使用 wrapper 运行时 blockDim.x/y/z；
-#   2. vectorAdd 与 minimal 均以 512 threads 编译并数值运行正确；
-#   3. 常态回归保持 PASS=8 FAIL=0。
+# 然后将下方命令块整段复制粘贴执行，并把完整输出贴回。
 
-set -euo pipefail
+set -eo pipefail
+ulimit -c 0 2>/dev/null || true
 
 cd /home/t50063365/workspace/repos/cu2cce-bridge
 git pull
+printf 'HEAD=' && git log -1 --oneline
 
-printf '\n===== [1/5] Python 转换器单元测试 =====\n'
+DIAG_DIR="$PWD/build/real_test/blockdim_diag"
+mkdir -p "$DIAG_DIR"
+rm -f "$DIAG_DIR"/*
+
+printf '\n===== [1/6] 本地逻辑回归 =====\n'
 python3 -m unittest discover -s tests -p 'test_kernel_convert.py'
 
-printf '\n===== [2/5] 转换两个 512-thread 示例并检查生成源码 =====\n'
-python3 tools/kernel_convert.py examples/vectorAdd/vectorAdd.cu -o /tmp/vectorAdd_blockdim.cce
-python3 tools/kernel_convert.py examples/minimal/minimal.cu -o /tmp/minimal_blockdim.cce
+printf '\n===== [2/6] 探测环境并重建安装 =====\n'
+bash tools/real_test/env_probe.sh
+bash tools/real_test/build_bridge.sh
 
-grep -nF 'cce::async_invoke<vectorAddKernel_VF>(cce::dim3{blockDim.x, blockDim.y, blockDim.z}' /tmp/vectorAdd_blockdim.cce
-grep -nF 'cce::async_invoke<addOne_VF>(cce::dim3{blockDim.x, blockDim.y, blockDim.z}' /tmp/minimal_blockdim.cce
-grep -nF 'vectorAddKernel<<<blocks, threads, stream>>>' /tmp/vectorAdd_blockdim.cce
-grep -nF 'addOne<<<1, 512, s>>>' /tmp/minimal_blockdim.cce
+# run_tests.sh 在 set -u 下 source CANN setenv 时会打印 PYTHONPATH/CMAKE_PREFIX_PATH
+# 未定义告警；它不是本次 kernel 编译崩溃根因。这里预先定义，减少诊断噪音。
+export PYTHONPATH="${PYTHONPATH:-}"
+export CMAKE_PREFIX_PATH="${CMAKE_PREFIX_PATH:-}"
 
-printf '\n===== [3/5] 环境探测 + 重建 bridge + 8/8 回归 =====\n'
-bash tools/real_test/run_all.sh
-
-printf '\n===== [4/5] 单独编译、链接、运行 minimal（512 threads） =====\n'
+source "$PWD/build/real_test/probe.env"
 export CUCC_PATH="$PWD/build/real_test/install"
 export CUDA_PATH="$CUCC_PATH"
 export PATH="$CUCC_PATH/bin:$PATH"
-"$CUCC_PATH/bin/cucc" -c examples/minimal/minimal.cu -o /tmp/minimal_blockdim.o
-"$CUCC_PATH/bin/cucc" /tmp/minimal_blockdim.o -o /tmp/minimal_blockdim
-/tmp/minimal_blockdim | tee /tmp/minimal_blockdim.log
-grep -F 'minimal OK (N=256)' /tmp/minimal_blockdim.log
+export LD_LIBRARY_PATH="$CUCC_PATH/lib:$ASCEND_LIB:${LD_LIBRARY_PATH:-}"
+if [ -n "${SIMT_API_INCLUDE:-}" ]; then
+    export CPLUS_INCLUDE_PATH="${SIMT_API_ROOT:-$(dirname "$SIMT_API_INCLUDE")}:$SIMT_API_INCLUDE:${CPLUS_INCLUDE_PATH:-}"
+fi
 
-printf '\n===== [5/5] 判读提示 =====\n'
-echo '期望：单元测试 OK；两个 async_invoke grep 命中动态 blockDim；run_all 汇总 PASS=8 FAIL=0；minimal 输出 minimal OK (N=256)。'
-echo '若 ccec 报 __global__[aicore] wrapper 内 blockDim 不可用，请保留完整编译错误；下一轮按既定方案切换到静态启动解析。'
+printf '\n===== [3/6] 生成六个单变量对照源码 =====\n'
+python3 tools/kernel_convert.py examples/vectorAdd/vectorAdd.cu -o "$DIAG_DIR/vector_dynamic512.cu"
+python3 tools/kernel_convert.py examples/minimal/minimal.cu -o "$DIAG_DIR/minimal_dynamic512.cu"
+
+python3 - "$DIAG_DIR" <<'PY'
+from pathlib import Path
+import sys
+
+d = Path(sys.argv[1])
+dynamic = "cce::dim3{blockDim.x, blockDim.y, blockDim.z}"
+
+vector = (d / "vector_dynamic512.cu").read_text()
+minimal = (d / "minimal_dynamic512.cu").read_text()
+assert dynamic in vector and dynamic in minimal
+assert "int threads = 512;" in vector
+assert "addOne<<<1, 512, s>>>" in minimal
+
+# vector：动态/静态 wrapper × 256/512 host launch，严格一次只改一个变量。
+(d / "vector_static512.cu").write_text(
+    vector.replace(dynamic, "cce::dim3{512, 1, 1}")
+)
+(d / "vector_dynamic256.cu").write_text(
+    vector.replace("int threads = 512;", "int threads = 256;")
+)
+(d / "vector_static256.cu").write_text(
+    vector.replace(dynamic, "cce::dim3{256, 1, 1}")
+          .replace("int threads = 512;", "int threads = 256;")
+)
+
+# 第二个独立样例：minimal 动态 wrapper 与静态 512 wrapper 对照。
+(d / "minimal_static512.cu").write_text(
+    minimal.replace(dynamic, "cce::dim3{512, 1, 1}")
+)
+PY
+
+for f in "$DIAG_DIR"/*.cu; do
+    echo "--- $(basename "$f") ---"
+    grep -nE 'async_invoke<|threads = (256|512)|addOne<<<1, (256|512)' "$f" || true
+done
+
+printf '\n===== [4/6] 只编译六个对照（失败后继续收集） =====\n'
+PASS=0
+FAIL=0
+run_compile_case() {
+    local name="$1"
+    local src="$DIAG_DIR/${name}.cu"
+    local obj="$DIAG_DIR/${name}.o"
+    local log="$DIAG_DIR/${name}.compile.log"
+    echo "----- $name -----"
+    if WCUDA_DEBUG=1 "$CUCC_PATH/bin/cucc" -c "$src" -o "$obj" >"$log" 2>&1; then
+        echo "  [PASS] $name"
+        PASS=$((PASS + 1))
+    else
+        local rc=$?
+        echo "  [FAIL] $name rc=$rc log=$log"
+        echo "  --- 首个诊断/崩溃标记 ---"
+        grep -nEm 8 'error:|fatal error:|Segmentation fault|stack smashing|Assertion|Stack dump' "$log" || true
+        echo "  --- 日志末尾 25 行 ---"
+        tail -n 25 "$log" | sed 's/^/      /'
+        FAIL=$((FAIL + 1))
+    fi
+}
+
+run_compile_case vector_dynamic512
+run_compile_case vector_static512
+run_compile_case vector_dynamic256
+run_compile_case vector_static256
+run_compile_case minimal_dynamic512
+run_compile_case minimal_static512
+
+echo "COMPILE_SUMMARY PASS=$PASS FAIL=$FAIL"
+
+printf '\n===== [5/6] 对所有编译成功的两个 512 静态样例做链接+数值运行 =====\n'
+run_link_and_execute() {
+    local name="$1"
+    local expected="$2"
+    local obj="$DIAG_DIR/${name}.o"
+    local bin="$DIAG_DIR/${name}"
+    local log="$DIAG_DIR/${name}.run.log"
+    if [ ! -f "$obj" ]; then
+        echo "  [SKIP] $name：编译未通过"
+        return 0
+    fi
+    echo "----- ${name}_link_run -----"
+    if "$CUCC_PATH/bin/cucc" "$obj" -o "$bin" >"$DIAG_DIR/${name}.link.log" 2>&1 \
+       && "$bin" >"$log" 2>&1 \
+       && grep -Fq "$expected" "$log"; then
+        echo "  [PASS] $name：$(cat "$log")"
+    else
+        echo "  [FAIL] $name 链接或数值运行失败"
+        tail -n 30 "$DIAG_DIR/${name}.link.log" 2>/dev/null || true
+        tail -n 30 "$log" 2>/dev/null || true
+    fi
+}
+
+run_link_and_execute vector_static512 'vectorAdd OK (N=1024)'
+run_link_and_execute minimal_static512 'minimal OK (N=256)'
+
+printf '\n===== [6/6] 判读矩阵 =====\n'
+echo 'A. dynamic256/dynamic512 都崩，而 static256/static512 都通过：wrapper 读取 blockDim 触发 Bisheng 崩溃；512 本身可用。'
+echo 'B. static512 也崩、static256 通过：主要变量是 512 threads，需确认硬件/编译器线程上限。'
+echo 'C. vector 动态崩但 minimal 动态通过：问题与 vector 的 grid/参数/代码形态组合有关，需继续缩减。'
+echo 'D. 六项全通过：原崩溃可能非确定性或旧安装残留；再跑一次原始 run_tests.sh vectoradd。'
+echo "完整日志保存在：$DIAG_DIR"
+echo '请把本轮终端完整输出贴回；不要只贴最后 15 行。'
