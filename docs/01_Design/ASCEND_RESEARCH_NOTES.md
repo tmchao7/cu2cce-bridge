@@ -407,6 +407,8 @@ __global__[aicore] void test_vector(__gm__ half* a, __gm__ half* b, __gm__ half*
 
 **SIMT 原语上下文限制（2026-08-19 真机实测 v3）**：`asc_syncthreads`/`asc_shfl` 等带 `simt_callee` 属性，**只能被 `__simt_vf__`/simt_callee 函数调用**（`__global__[aicore]` kernel 也不是 simt_vf，实测仍报 `simt_callee function can only be called by simt_vf/simt_callee function`）。**blockIdx/blockDim 可用（include `simt_api/asc_simt.h` 后，v3 实测不再报 undeclared）**。→ **cu2cce kernel 转换模板（v4 验证中）**：CUDA kernel 体 → `__simt_vf__` 函数（warp 原语放这里）+ `__global__[aicore]` 包装 + `cce::async_invoke` 启动。
 
+**动态 blockDim lowering（2026-08-20 真机定案）**：`blockDim` 在 `__simt_vf__` 计算体内可用，但在外层 `__global__[aicore]` wrapper 中用 `cce::dim3{blockDim.x, blockDim.y, blockDim.z}` 会稳定触发 Bisheng/ccec 前端 Segmentation fault + stack smashing；动态/静态 × 256/512 与 vectorAdd/minimal 对照已排除线程上限和计算体因素。可行方案是把 block 形状作为普通隐藏参数 `bx/by/bz` 从 host launch 传给 wrapper，再调用 `cce::async_invoke<VF>(cce::dim3{bx,by,bz}, ...)`。真机确认：同一 wrapper 的 256/512 两次启动和 `32×8×1` 形状均编译、链接、数值运行通过。另确认 CCE 外层 `<<<blocks, threads, stream>>>` 的 `threads` 只接受 unsigned 标量；2D/3D lowering 必须用 `x*y*z` 作为外层总线程数，同时隐藏传入 `x/y/z` 保留 VF 形状。正式自动转换分支 `619f9aa` 的 vectorAdd/minimal/dynamicBlockDim 与 1D/2D 探针完整回归 `FAIL=0`。
+
 **SIMT include 依赖（编译要点）**：simt_api 头依赖链很长（asc_simt.h → common_functions.h → device_types.h → utils/base/sys_macros.h → **impl/utils/sys_macros.h**，跨目录），单靠 `-I simt_api 父目录` 不够；且 **impl/ 不在 include/ 下**，实际位于 `cann-9.2.0/x86_64-linux/asc/impl/utils/`。env_probe 第 7 节已实现**缺头自动修复**：解析 `fatal error: 'xxx'` → ASCEND_HOME 下 find → 补 **能解析该相对 include 的根目录**（文件路径去掉 miss_hdr 相对路径，如补 `.../asc` 而非 `.../asc/impl/utils`）→ 重试（最多 3 轮）。真机确认：`ccec + dav-c310` 预处理得到 **`__NPU_ARCH__=3510`**，与 simt_api 门控 3510 匹配（→ dav-c310 与门控 3510 硬件对应关系确认）。
 
 **API 差异（真机头文件，修正此前基于公开版的判断）**

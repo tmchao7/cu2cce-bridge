@@ -123,8 +123,9 @@
   - ✅ 编译器主线 = **ccec**（`/usr/local/Ascend/latest/bin/ccec`，`--cce-aicore-arch=dav-c310`）；bisheng 的 `--npu-arch` 不认识 dav-c310，降为对照。
   - ✅ 真机确认的 ccec SIMT VF 模板：kernel 入口 `__global__[aicore]`（裸 `__global__` 报错）、计算体放 `__simt_vf__`（warp 原语只能在此上下文，`[aicore]` kernel 也不行）、`blockIdx/blockDim/threadIdx` 可用（include `simt_api/asc_simt.h`）、指针需 `__gm__`、kernel 内 `cce::async_invoke<VF>(cce::dim3{...})` 启动。
   - ✅ `simt_adaptor.h`：`__global__`→`__global__[aicore]`（自引用宏）、`__launch_bounds__`→`LAUNCH_BOUND`、warp/atomic 映射、条件 include `simt_api/asc_simt.h`。
-  - ✅ `tools/kernel_convert.py`（cucc 编译 .cu 前自动调用）：CUDA kernel 零改写 → VF 模板（VF 计算体 + `__global__` 包装 + `async_invoke`，指针自动加 `__gm__`）；v0 支持简单 `__global__ void k(...)`，模板/复杂参数待 v1。
-  - ⏳ `<<<>>>` 启动：ccec 是否支持语法糖待真机验证；不支持则 cucc 转 `aclrtLaunchSIMTKernelWithArgsArray`（wrapper 的 `wcudaLaunchKernel` 已映射）。
+  - ✅ `tools/kernel_convert.py`：CUDA kernel 零改写 → VF 模板（VF 计算体 + `__global__` wrapper + `async_invoke`，指针自动加 `__gm__`）。2026-08-20 v1 将 CUDA block 形状降低为隐藏 `bx/by/bz` 参数，避免 wrapper 读取 built-in `blockDim` 触发 Bisheng 崩溃；同一 kernel 支持运行时 256/512 与 2D `32×8×1` 多配置。
+  - ✅ `<<<>>>` 启动：CUDA 四参转 CCE 三参；1D 外层 threads 保留原标量表达式，2D/3D 使用 `x*y*z` 总线程数，隐藏传入 `x/y/z`。vectorAdd/minimal/dynamicBlockDim 与手写 1D/2D 探针真机完整回归 `FAIL=0`。
+  - 📋 长期路线：研究 `aclrtLaunchSIMTKernelWithArgsArray` 的 function handle/binary 注册，评估 host Runtime launch lowering；当前 B 隐藏参数方案为主线，A 静态推导保留 fallback。
   - 验收：vectorAdd（纯 CUDA 源码）经 cucc 全流程在 davinci0 上跑通且结果正确。
 - **Phase A4**：库与多文件工程。cublas→aclblas 子集（参考 ops-blas / acl_cblas.h）；make_cce/cmake_cce 多子工程；PyTorch 编译指南参照 cu-bridge。
 - **Phase A5**：非 SIMT 能力补齐（可选）。矩阵/Cube 类 kernel 走 aclblas 或 tile 模型；`__asm__` 内联处理。

@@ -1,120 +1,14 @@
-# server_cmd.txt —— B 正式集成真机验证：隐藏 blockDim lowering
+# server_cmd.txt —— 当前无待执行操作
 #
-# 分支：feat/hidden-blockdim-lowering
-# 本轮目标：把 B 探针结论集成到 kernel_convert.py：
-#   CUDA launch block 表达式
-#       -> CCE 外层标量 threads（1D 为 block；2D/3D 为 x*y*z）
-#       -> 隐藏 bx/by/bz 参数
-#       -> wrapper 内 cce::dim3{bx,by,bz}
+# 2026-08-20：feat/hidden-blockdim-lowering（619f9aa）已完成真机验证。
+# 结果：
+#   - vectorAdd OK (N=1024)
+#   - minimal OK (N=256)
+#   - dynamic blockdim OK (256,512,32x8x1)
+#   - hidden blockdim 1d OK (256,512)
+#   - hidden blockdim 2d OK (32x8x1)
+#   - 汇总 FAIL=0
 #
-# 注意：本命令文件不使用 exit，也不依赖末尾 ')'。即使某步失败，SSH 交互 shell
-# 仍保持连接；请执行完整文件内容，不要只从中间某个 [n/n] 段开始粘贴。
-
-set +e
-set -u
-set -o pipefail
-ulimit -c 0 2>/dev/null || true
-
-cd /home/t50063365/workspace/repos/cu2cce-bridge
-git pull --ff-only origin feat/hidden-blockdim-lowering
-printf 'HEAD=' && git log -1 --oneline
-
-OUT="$PWD/build/real_test/hidden_blockdim_lowering"
-mkdir -p "$OUT"
-rm -f "$OUT"/*
-FAIL=0
-
-printf '\n===== [1/7] Python 与结构测试 =====\n'
-python3 -m unittest discover -s tests -p 'test_*.py'
-[ $? -eq 0 ] || FAIL=$((FAIL + 1))
-
-printf '\n===== [2/7] 环境探测与 bridge 安装 =====\n'
-export PYTHONPATH="${PYTHONPATH:-}"
-export CMAKE_PREFIX_PATH="${CMAKE_PREFIX_PATH:-}"
-bash tools/real_test/env_probe.sh
-[ $? -eq 0 ] || FAIL=$((FAIL + 1))
-bash tools/real_test/build_bridge.sh
-[ $? -eq 0 ] || FAIL=$((FAIL + 1))
-
-source "$PWD/build/real_test/probe.env"
-export CUCC_PATH="$PWD/build/real_test/install"
-export CUDA_PATH="$CUCC_PATH"
-export PATH="$CUCC_PATH/bin:$PATH"
-export LD_LIBRARY_PATH="$CUCC_PATH/lib:${ASCEND_LIB:-}:${LD_LIBRARY_PATH:-}"
-if [ -n "${SIMT_API_INCLUDE:-}" ]; then
-    export CPLUS_INCLUDE_PATH="${SIMT_API_ROOT:-$(dirname "$SIMT_API_INCLUDE")}:$SIMT_API_INCLUDE:${CPLUS_INCLUDE_PATH:-}"
-fi
-
-printf '\n===== [3/7] 检查正式转换结果：1D 与 2D =====\n'
-python3 tools/kernel_convert.py examples/vectorAdd/vectorAdd.cu -o "$OUT/vectorAdd.cce"
-python3 tools/kernel_convert.py examples/minimal/minimal.cu -o "$OUT/minimal.cce"
-python3 tools/kernel_convert.py examples/experimental/hiddenBlockDim/hidden_blockdim_1d_probe.cu -o "$OUT/probe_1d.cce"
-python3 tools/kernel_convert.py examples/experimental/hiddenBlockDim/hidden_blockdim_2d_probe.cu -o "$OUT/probe_2d.cce"
-python3 tools/kernel_convert.py examples/experimental/dynamicBlockDim/dynamic_blockdim.cu -o "$OUT/dynamic_blockdim.cce"
-
-grep -nF 'cce::dim3{__cu2cce_bx, __cu2cce_by, __cu2cce_bz}' "$OUT/vectorAdd.cce"
-grep -nF 'cce::dim3{__cu2cce_bx, __cu2cce_by, __cu2cce_bz}' "$OUT/minimal.cce"
-grep -nF 'vectorAddKernel<<<blocks, threads, stream>>>(d_c, d_a, d_b, N, threads, 1, 1);' "$OUT/vectorAdd.cce"
-grep -nF 'addOne<<<1, 512, s>>>(d, n, 512, 1, 1);' "$OUT/minimal.cce"
-grep -nF 'hiddenAdd<<<1, threads256, stream>>>(d256, n256, threads256, 1, 1);' "$OUT/probe_1d.cce"
-grep -nF 'hiddenAdd<<<1, threads512, stream>>>(d512, n512, threads512, 1, 1);' "$OUT/probe_1d.cce"
-grep -nF 'hidden2D<<<1, launch_threads, stream>>>(d, width, height, block2d.x, block2d.y, block2d.z);' "$OUT/probe_2d.cce"
-grep -nF 'flexibleAdd<<<1, threads256, stream>>>(d256, n256, threads256, 1, 1);' "$OUT/dynamic_blockdim.cce"
-grep -nF 'flexibleAdd<<<1, threads512, stream>>>(d512, n512, threads512, 1, 1);' "$OUT/dynamic_blockdim.cce"
-grep -nF 'fill2D<<<1, (block2d.x * block2d.y * block2d.z), stream>>>(d2d, width, height, block2d.x, block2d.y, block2d.z);' "$OUT/dynamic_blockdim.cce"
-
-printf '\n===== [4/7] 正式样例编译 =====\n'
-compile_case() {
-    name="$1"
-    src="$2"
-    if "$CUCC_PATH/bin/cucc" -c "$src" -o "$OUT/$name.o" >"$OUT/$name.compile.log" 2>&1; then
-        echo "[PASS] $name compile"
-    else
-        rc=$?
-        echo "[FAIL] $name compile rc=$rc"
-        grep -nEm 12 'error:|fatal error:|Segmentation fault|stack smashing|Assertion|Stack dump' "$OUT/$name.compile.log" || true
-        tail -n 35 "$OUT/$name.compile.log"
-        FAIL=$((FAIL + 1))
-    fi
-}
-compile_case vectorAdd examples/vectorAdd/vectorAdd.cu
-compile_case minimal examples/minimal/minimal.cu
-compile_case dynamic_blockdim examples/experimental/dynamicBlockDim/dynamic_blockdim.cu
-
-printf '\n===== [5/7] 正式样例链接与运行 =====\n'
-run_case() {
-    name="$1"
-    expected="$2"
-    if [ ! -f "$OUT/$name.o" ]; then
-        echo "[SKIP] $name object missing"
-        FAIL=$((FAIL + 1))
-        return
-    fi
-    if "$CUCC_PATH/bin/cucc" "$OUT/$name.o" -o "$OUT/$name" >"$OUT/$name.link.log" 2>&1 \
-       && "$OUT/$name" >"$OUT/$name.run.log" 2>&1 \
-       && grep -Fq "$expected" "$OUT/$name.run.log"; then
-        echo "[PASS] $name: $(cat "$OUT/$name.run.log")"
-    else
-        echo "[FAIL] $name link/run"
-        tail -n 30 "$OUT/$name.link.log" 2>/dev/null || true
-        tail -n 30 "$OUT/$name.run.log" 2>/dev/null || true
-        FAIL=$((FAIL + 1))
-    fi
-}
-run_case vectorAdd 'vectorAdd OK (N=1024)'
-run_case minimal 'minimal OK (N=256)'
-run_case dynamic_blockdim 'dynamic blockdim OK (256,512,32x8x1)'
-
-printf '\n===== [6/7] B 探针编译、链接与运行 =====\n'
-compile_case probe_1d examples/experimental/hiddenBlockDim/hidden_blockdim_1d_probe.cu
-compile_case probe_2d examples/experimental/hiddenBlockDim/hidden_blockdim_2d_probe.cu
-run_case probe_1d 'hidden blockdim 1d OK (256,512)'
-run_case probe_2d 'hidden blockdim 2d OK (32x8x1)'
-
-printf '\n===== [7/7] 汇总 =====\n'
-echo "FAIL=$FAIL"
-if [ "$FAIL" -eq 0 ]; then
-    echo 'B formal lowering PASS：正式样例、1D/2D 探针均通过。'
-else
-    echo "B formal lowering 未全部通过；完整日志：$OUT"
-fi
+# B 方案定案：host launch 隐藏传入 bx/by/bz，wrapper 使用
+# cce::dim3{bx,by,bz}；不要恢复 wrapper 读取 built-in blockDim 的写法。
+# 下一轮真机操作仍须覆盖本文件，保持服务器命令单一来源。

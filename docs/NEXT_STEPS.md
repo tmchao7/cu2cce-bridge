@@ -5,27 +5,25 @@
 
 ## 一、后续方向（按优先级）
 
-### 方向 1 ⭐ kernel_convert.py 增强：从 `<<<>>>` 提取真实 blockDim
-- 现状：`tools/kernel_convert.py:38` 把 VF 线程数**硬编码** `cce::dim3{256,1,1}`；
-  `convert_launch_config` 已把 `<<<grid, block, shared, stream>>>` 转成昇腾 3 参，
-  但**转换后的 kernel 内 `async_invoke` 仍写死 256**，用户改 block 数不生效。
-- 改法：解析对应该 kernel 的启动 `block`，生成 `cce::dim3{b.x,b.y,b.z}`；fallback 256。
-- 验证：vectorAdd/minimal 改成 `<<<blocks, 512>>>`，真机仍 8/8。
-- 前置事实：`convert_launch_config` 已存在（kernel_convert.py:86-97）。
+### 已完成 ✅ kernel_convert.py 动态 blockDim lowering（B 方案）
+- 结论：不能在 `__global__[aicore]` wrapper 中读取 built-in `blockDim`（Bisheng 前端崩溃）；改为由 host launch 隐藏传入 `bx/by/bz`，wrapper 使用 `cce::dim3{bx,by,bz}`。
+- 能力：同一 kernel 支持运行时 256/512，多 kernel 独立启动，并支持 2D `32×8×1`；CCE 外层使用标量总线程数 `x*y*z`。
+- 真机：vectorAdd、minimal、纯 CUDA dynamicBlockDim 综合样例和 1D/2D 探针全部编译、链接、数值运行通过，`FAIL=0`（2026-08-20）。
+- 保留：A 静态推导分支作为 fallback；C Runtime launch lowering 是长期研究方向。
 
-### 方向 2 ⭐ SIMT 原语真机验证（当前显式待确认项）
+### 方向 1 ⭐ SIMT 原语真机验证（当前显式待确认项）
 - 现状：`simt_adaptor.h` 已把 `__syncthreads→asc_syncthreads`、`__shared__→__ubuf__`、
   `__shfl_sync→asc_shfl`、`atomicAdd→asc_atomic_add` 等映射好，**但只验证过 elementwise
   kernel，warp 原语/atomic 从未真机跑过**（CURRENT_STATE.md 待确认 #6 是 ⚠️）。
 - 做：reduction（用 __syncthreads+__shared__）或 histogram（atomicAdd）示例，真机跑通+数值校验。
 - 价值：把"骨架"变成"多模式可用"，直接关掉一份待确认项。
 
-### 方向 3 cublas 桥真机验证
+### 方向 2 cublas 桥真机验证
 - 现状：`cublas_v2_wrapper.cpp` 已实现 gemm/gemv 映射（自定义 handle），**从未真机运行**；
   wrapper 链接 libacl_cblas.so（运行期解析）。
 - 做：cublasSgemm 小示例，真机校验 C=A×B；注意昇腾分配不自动清零，gemm 前手动初始化 C。
 
-### 方向 4 回归加固
+### 方向 3 回归加固
 - 把 minimal.cu（首调 cudaMalloc，107002 复退防线）加进 `run_tests.sh` 固定用例并断言输出。
 
 ## 二、要维护的
@@ -41,7 +39,7 @@
 
 | 薄弱点 | 说明 |
 |---|---|
-| kernel 转换器是正则 | 167 行，不支持嵌套括号参数/模板 kernel/函数指针；多 kernel blockDim 硬编码 256 |
+| kernel 转换器仍是轻量语法重写 | 已支持隐藏 blockDim lowering，但模板 kernel、函数指针 launch、宏生成 launch 与复杂参数声明仍需 AST 版本 |
 | host 桥覆盖浅 | 124 个 wcuda 声明只有核心路径 8/8 真机验证；Graph/Texture/Symbol/Peer/Unified/SOMA 多数只有占位或未经运行 |
 | glibc 兼容是遮蔽头+宏 | ccec(clang15)+glibc2.39 靠 `include/shadow/`，新头文件可能撞 `_Float32`/`__FILE`，改影子头要回归 8/8 |
 | 107002 防复退 | 修复覆盖了 4 个入口，但"原生调用在 WCUDA_RETURN 之前"的模式要新代码守规矩 |

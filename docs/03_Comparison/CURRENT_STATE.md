@@ -94,6 +94,7 @@
 | 项 | 结论 | 说明 |
 |---|---|---|
 | **端到端里程碑** | ✅ **vectorAdd 8/8 PASS** | 纯 CUDA `vectorAdd.cu` 零改写：cucc → kernel_convert（SIMT VF）→ ccec（dav-c310）→ 链接 → davinci0 运行 → `vectorAdd OK` 数值校验通过（2026-08-19） |
+| **动态 blockDim lowering** | ✅ **B 方案正式回归 PASS** | wrapper 隐藏 `bx/by/bz` 参数；同一 kernel 256/512 + 2D `32×8×1`；vectorAdd/minimal/dynamicBlockDim + 1D/2D 探针全部编译、链接、数值运行通过，`FAIL=0`（2026-08-20） |
 | **编译器主线** | ✅ **ccec**（`/usr/local/Ascend/latest/bin/ccec`） | `--cce-aicore-arch=dav-c310` 被 ccec 接受；bisheng `--npu-arch` 不认识 dav-c310，降为对照 |
 | 待确认 #2（aclrtGetVersion） | ✅ **存在但已废弃**：`(int32_t*, int32_t*, int32_t*)`，官方建议 `aclSysGetVersion` | wrapper 应改用 aclSysGetVersion（签名待核） |
 | 待确认 #4（BLAS1 axpy/copy/dot/scal/swap/nrm2） | ✅ **确认不存在** | not-support 占位维持 |
@@ -163,6 +164,15 @@
 | 成功码 ACL_SUCCESS | 待确认项 #3 关闭 |
 | `aclrtCreateEventWithFlag`（单数）确认 | 与 wrapper 无关（用 aclrtCreateEvent） |
 | 完整 .gitignore | 已补（构建产物/CMake/CUBRIDGE_HOME/昇腾产物） |
+
+### 轮 7（2026-08-20）—— 动态 blockDim B 方案定案
+
+| 对照/验证 | 结论 |
+|---|---|
+| wrapper 内 `cce::dim3{blockDim.x,y,z}` | Bisheng/ccec 前端稳定崩溃（Segmentation fault + stack smashing） |
+| 静态 256/512 对照 | 均编译运行通过，排除线程数上限 |
+| 隐藏普通参数 `cce::dim3{bx,by,bz}` | 同一 wrapper 的 256/512 和 `32×8×1` 均通过 |
+| 正式自动 lowering | vectorAdd、minimal、纯 CUDA dynamicBlockDim、1D/2D 探针全部 PASS，汇总 `FAIL=0` |
 
 ## 7. 已知的 fallback/占位（设计如此，非错误）
 
