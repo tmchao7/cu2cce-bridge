@@ -1,29 +1,45 @@
-# server_cmd.txt —— 服务器操作命令（当前轮）
+# server_cmd.txt —— 服务器操作命令（当前轮：kernel_convert 动态 blockDim）
+#
+# 用法：本文件是本轮昇腾服务器操作的唯一来源。
+# 服务器侧先执行：
+#   cd /home/t50063365/workspace/repos/cu2cce-bridge && git pull
+#   cat tools/real_test/server_cmd.txt
+# 然后把下方命令块整段复制粘贴执行，并将完整输出粘贴回来。
+#
+# 本轮目标：
+#   1. 确认转换后的 async_invoke 使用 wrapper 运行时 blockDim.x/y/z；
+#   2. vectorAdd 与 minimal 均以 512 threads 编译并数值运行正确；
+#   3. 常态回归保持 PASS=8 FAIL=0。
 
-> 用法：本文件是"当前这一轮要在昇腾服务器上执行的操作"的唯一来源。
-> 服务器侧只做：
->   cd /home/t50063365/workspace/repos/cu2cce-bridge && git pull
->   cat tools/real_test/server_cmd.txt
-> 然后按文件内容整段复制粘贴执行。每次推送新代码时本文件随之更新。
+set -euo pipefail
 
-============================================================
-【当前无待执行操作】
-============================================================
-（107002 已定案并清理完毕，最近一次推送是产物整理，无需服务器操作。）
+cd /home/t50063365/workspace/repos/cu2cce-bridge
+git pull
 
-如后续轮次需要服务器验证，本文件会被更新为对应命令块，例如：
+printf '\n===== [1/5] Python 转换器单元测试 =====\n'
+python3 -m unittest discover -s tests -p 'test_kernel_convert.py'
 
-------------------------------------------------------------
-示例：重建 + 回归（真实内容以推送时的块为准）
-------------------------------------------------------------
-cd /home/t50063365/workspace/repos/cu2cce-bridge && git pull
-bash tools/real_test/build_bridge.sh
-export CUCC_PATH=$PWD/build/real_test/install
-export CUDA_PATH=$CUCC_PATH
-export PATH=$CUCC_PATH/bin:$PATH
-"$CUCC_PATH/bin/cucc" -c examples/minimal/minimal.cu -o /tmp/minimal.o
-"$CUCC_PATH/bin/cucc" /tmp/minimal.o -o /tmp/minimal
-WCUDA_DEBUG=1 /tmp/minimal
-bash tools/real_test/run_tests.sh all
+printf '\n===== [2/5] 转换两个 512-thread 示例并检查生成源码 =====\n'
+python3 tools/kernel_convert.py examples/vectorAdd/vectorAdd.cu -o /tmp/vectorAdd_blockdim.cce
+python3 tools/kernel_convert.py examples/minimal/minimal.cu -o /tmp/minimal_blockdim.cce
 
-============================================================
+grep -nF 'cce::async_invoke<vectorAddKernel_VF>(cce::dim3{blockDim.x, blockDim.y, blockDim.z}' /tmp/vectorAdd_blockdim.cce
+grep -nF 'cce::async_invoke<addOne_VF>(cce::dim3{blockDim.x, blockDim.y, blockDim.z}' /tmp/minimal_blockdim.cce
+grep -nF 'vectorAddKernel<<<blocks, threads, stream>>>' /tmp/vectorAdd_blockdim.cce
+grep -nF 'addOne<<<1, 512, s>>>' /tmp/minimal_blockdim.cce
+
+printf '\n===== [3/5] 环境探测 + 重建 bridge + 8/8 回归 =====\n'
+bash tools/real_test/run_all.sh
+
+printf '\n===== [4/5] 单独编译、链接、运行 minimal（512 threads） =====\n'
+export CUCC_PATH="$PWD/build/real_test/install"
+export CUDA_PATH="$CUCC_PATH"
+export PATH="$CUCC_PATH/bin:$PATH"
+"$CUCC_PATH/bin/cucc" -c examples/minimal/minimal.cu -o /tmp/minimal_blockdim.o
+"$CUCC_PATH/bin/cucc" /tmp/minimal_blockdim.o -o /tmp/minimal_blockdim
+/tmp/minimal_blockdim | tee /tmp/minimal_blockdim.log
+grep -F 'minimal OK (N=256)' /tmp/minimal_blockdim.log
+
+printf '\n===== [5/5] 判读提示 =====\n'
+echo '期望：单元测试 OK；两个 async_invoke grep 命中动态 blockDim；run_all 汇总 PASS=8 FAIL=0；minimal 输出 minimal OK (N=256)。'
+echo '若 ccec 报 __global__[aicore] wrapper 内 blockDim 不可用，请保留完整编译错误；下一轮按既定方案切换到静态启动解析。'

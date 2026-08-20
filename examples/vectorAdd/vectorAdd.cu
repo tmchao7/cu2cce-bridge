@@ -80,7 +80,7 @@ int main(void) {
      *   ccec：<<<blocks, threads, dyn_ubuf_size, stream>>>（昇腾 SIMT 语法糖，
      *         依据 asc-devkit hello_world_simt 示例）
      * 注意：CUDA 里 cudaStream_t stream = 0 表示默认 stream；昇腾需显式创建。 */
-    int threads = 256;
+    int threads = 512;
     int blocks = (N + threads - 1) / threads;
     cudaStream_t stream = nullptr;
     err = cudaStreamCreate(&stream);

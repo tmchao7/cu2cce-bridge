@@ -45,7 +45,7 @@ int main(void) {
 
     cudaStream_t s = nullptr;
     cudaStreamCreate(&s);
-    addOne<<<1, 256, 0, s>>>(d, n);
+    addOne<<<1, 512, 0, s>>>(d, n);
     cudaStreamSynchronize(s);
     cudaStreamDestroy(s);
 

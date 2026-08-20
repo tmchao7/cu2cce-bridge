@@ -11,7 +11,9 @@ cu2cce-bridge 的核心组件（对应 cu-bridge 的 tools_src/ptx2cpp 职责，
     ──────────────────────────            ──────────────────────────────
     __global__ void k(A, B, n) { body } → __global__ void k(A, B, n) {
                                               cce::async_invoke<k_VF>(
-                                                  cce::dim3{256,1,1}, a, b, n);
+                                                  cce::dim3{blockDim.x,
+                                                        blockDim.y,
+                                                        blockDim.z}, a, b, n);
                                           }
                                           __simt_vf__ [aicore] inline
                                           void k_VF(__gm__ A, __gm__ B, n) { body }
@@ -23,7 +25,7 @@ kernel 入口 __global__[aicore]（由 simt_adaptor.h 的宏表统一加限定�
 v0 限制（后续迭代）：
   - 只处理简单 __global__ void k(...) { ... }（无嵌套括号参数、无函数指针、
     无模板 kernel）
-  - VF 线程数固定 cce::dim3{256,1,1}（TODO：从 <<<>>> 启动处提取 blockDim）
+  - VF 线程数取 kernel 包装入口的运行时 blockDim，支持同一 kernel 多种启动配置
   - 指针参数自动加 __gm__（const __gm__ 位置按真机反馈调整）
   - 无 __global__ 的输入原样输出（host-only 文件不受影响）
 
@@ -35,7 +37,7 @@ import argparse
 import re
 import sys
 
-VF_THREADS = "cce::dim3{256, 1, 1}"
+VF_BLOCK_DIM = "cce::dim3{blockDim.x, blockDim.y, blockDim.z}"
 
 
 def find_kernels(src):
@@ -126,7 +128,7 @@ void {vf_name}({gm_params}) {{
 }}
 
 __global__[aicore] void {name}({gm_params}) {{
-    cce::async_invoke<{vf_name}>({VF_THREADS}, {args});
+    cce::async_invoke<{vf_name}>({VF_BLOCK_DIM}, {args});
 }}
 """
         )
