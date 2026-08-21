@@ -1,0 +1,83 @@
+#include "acl/acl.h"
+#include <stdio.h>
+
+/* puresimt 探针（导师方向 2026-08-21）：
+ * 不依赖 __simt_vf__/cce::async_invoke（新同构）；直接用 __global__ kernel +
+ * CUDA 线程索引（threadIdx/blockIdx/gridDim/blockDim）+ <<<grid,block,255,stream>>>。
+ * host 侧仅 aclrt*（aclInit/SetDevice/CreateContext/CreateStream/Malloc(Host)/Memcpy/
+ * launch/Synchronize/D2H/校验）。试图验证 ccec --enable-simt 下 puresimt 是否成立。 */
+
+__global__ void kernel(int *a, int *b, int *c) {
+    int tid = threadIdx.z * blockDim.y * blockDim.x
+            + threadIdx.y * blockDim.x + threadIdx.x;
+    int threadNum = blockDim.x * blockDim.y * blockDim.z;
+    int blockid = blockIdx.z * gridDim.y * gridDim.x
+                + blockIdx.y * gridDim.x + blockIdx.x;
+    c[blockid * threadNum + tid] =
+        a[blockid * threadNum + tid] + b[blockid * threadNum + tid];
+}
+
+int main(void) {
+    int threadNum = 1024;
+    int blockNum = 8;
+    int count = threadNum * blockNum;
+    size_t byteSize = count * sizeof(int);
+
+    aclInit(nullptr);
+    aclrtContext context = nullptr;
+    int deviceId = 0;
+    aclrtSetDevice(deviceId);
+    aclrtCreateContext(&context, deviceId);
+    aclrtStream stream = nullptr;
+    aclrtCreateStream(&stream);
+
+    int *a = nullptr, *b = nullptr, *c = nullptr;
+    aclrtMallocHost((void **)&a, byteSize);
+    aclrtMallocHost((void **)&b, byteSize);
+    aclrtMallocHost((void **)&c, byteSize);
+    for (int i = 0; i < count; i++) {
+        a[i] = i;
+        b[i] = 10;
+    }
+
+    int *d_a = nullptr, *d_b = nullptr, *d_c = nullptr;
+    aclrtMalloc((void **)&d_a, byteSize, ACL_MEM_MALLOC_HUGE_FIRST);
+    aclrtMalloc((void **)&d_b, byteSize, ACL_MEM_MALLOC_HUGE_FIRST);
+    aclrtMalloc((void **)&d_c, byteSize, ACL_MEM_MALLOC_HUGE_FIRST);
+    aclrtMemcpy(d_a, byteSize, a, byteSize, ACL_MEMCPY_HOST_TO_DEVICE);
+    aclrtMemcpy(d_b, byteSize, b, byteSize, ACL_MEMCPY_HOST_TO_DEVICE);
+    aclrtMemcpy(d_c, byteSize, c, byteSize, ACL_MEMCPY_HOST_TO_DEVICE);
+
+    dim3 gridDim(2, 2, 2);
+    dim3 blockDim(32, 16, 2);
+    kernel<<<gridDim, blockDim, 255, stream>>>((int *)d_a, (int *)d_b,
+                                               (int *)d_c);
+    aclrtSynchronizeStream(stream);
+    aclrtMemcpy(c, byteSize, d_c, byteSize, ACL_MEMCPY_DEVICE_TO_HOST);
+
+    /* 数值校验：c[i] = a[i] + b[i]（i 和 10） */
+    int bad = 0;
+    for (int i = 0; i < count; i++) {
+        if (c[i] != i + 10) {
+            if (bad < 4) printf("c[%d]=%d expected=%d\n", i, c[i], i + 10);
+            bad++;
+        }
+    }
+    if (bad != 0) {
+        printf("puresimt FAILED (%d mismatch)\n", bad);
+        return 1;
+    }
+    printf("puresimt OK (count=%d)\n", count);
+
+    aclrtFree(d_a);
+    aclrtFree(d_b);
+    aclrtFree(d_c);
+    aclrtFreeHost(a);
+    aclrtFreeHost(b);
+    aclrtFreeHost(c);
+    aclrtDestroyStream(stream);
+    aclrtDestroyContext(context);
+    aclrtResetDevice(deviceId);
+    aclFinalize();
+    return 0;
+}
