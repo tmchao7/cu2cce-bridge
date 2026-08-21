@@ -98,7 +98,7 @@ for pair in \
     'pvectoradd.cu|vectorAdd puresimt OK (N=1024)|cu' \
     'pminimal.cu|minimal puresimt OK (N=256)|cu' \
     'preduction.cu|preduction puresimt OK (N=1024, sum=523776)|cu' \
-    'pmatmul.cu|pmatmul puresimt OK (C = A*B, 16x16x16)|cu'; do
+    'pmatmul.cu|pmatmul puresimt OK (C = A*B fp16xfp16->fp32, 16x16x16)|cu'; do
     src=${pair%%|*}; rest=${pair#*|}; key=${rest%%|*}; ext=${rest#*|}
     name=$(basename "$src" .$ext)
     bin="$OUT/${name}"
