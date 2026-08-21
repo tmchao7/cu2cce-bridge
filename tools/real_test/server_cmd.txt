@@ -11,9 +11,10 @@
 #     atomicAdd 块内 reduction；puresimt 首次非 elementwise 样例）
 #   - pmatmul（cublas 桥矩阵乘真机首验，方向 2；fp32 输入由 wcublasSgemm
 #     内部降级 fp16 计算、C 保持 fp32，A/B 整数 1..16 无损）
-# 注意：wcublasSgemm 的降精度实现在 libcce_bridge_runtime.so 内，若 pmatmul
-#     编译/链接报"签名不匹配"或运行异常，需先重编 bridge 库：
-#       bash tools/real_test/build_bridge.sh
+# 注意：wcublasSgemm 的降精度实现和诊断日志都在 libcce_bridge_runtime.so 内。
+#     本脚本每轮回归都会先重编/安装 bridge，避免真机沿用旧 .so 看不到新日志；
+#     同时给测试程序写入 repo/CANN rpath 并设置 LD_LIBRARY_PATH，避免运行时
+#     捡到其他目录中的旧 libcce_bridge_runtime.so。
 # 2026-08-21 方向 A（用户定稿）：host 全部走 bridge 宏/wrapper（cuda* →
 # wcuda* → aclrt*），include <cuda_runtime.h> 由 repo 的 include/ 接住（编译
 # -I<repo>/include 在前）；kernel 保持纯 CUDA 前端直通。首调用均为
@@ -26,7 +27,7 @@ set -o pipefail
 ulimit -c 0 2>/dev/null || true
 
 cd /home/t50063365/workspace/repos/cu2cce-bridge
-git pull --ff-only origin main
+git pull --ff-only gitcode main
 printf 'HEAD=' && git log -1 --oneline
 
 OUT="$PWD/build/real_test/puresimt"
@@ -95,6 +96,31 @@ if [ ! -e "$REPO_LIB/libcce_bridge_runtime.so" ]; then
 fi
 echo "REPO_INC=$REPO_INC REPO_LIB=$REPO_LIB"
 
+printf '\n===== [2.5/5] bridge runtime 重编 + 动态库路径 =====\n'
+# wrapper 的改动不会随 puresimt 源文件自动进入已安装 .so；每轮强制重编，
+# 这是 pmatmul 诊断日志可靠出现的必要条件。build_bridge 会复用/生成 probe.env。
+if bash tools/real_test/build_bridge.sh; then
+    echo '[PASS] bridge runtime rebuild'
+else
+    echo '[FAIL] bridge runtime rebuild（后续样例可能因旧库/缺库失败）'
+    FAIL=$((FAIL + 1))
+fi
+# build_bridge 默认安装到 build/real_test/install/lib；兼容其余历史布局。
+if [ -e "$PWD/build/real_test/install/lib/libcce_bridge_runtime.so" ]; then
+    REPO_LIB="$PWD/build/real_test/install/lib"
+elif [ -e "$PWD/build/core/lib/libcce_bridge_runtime.so" ]; then
+    REPO_LIB="$PWD/build/core/lib"
+fi
+BRIDGE_SO="$REPO_LIB/libcce_bridge_runtime.so"
+if [ -e "$BRIDGE_SO" ] && strings "$BRIDGE_SO" | grep -Fq '[cce_bridge][gemm]'; then
+    echo "[PASS] diagnostic wrapper present: $BRIDGE_SO"
+else
+    echo "[FAIL] diagnostic wrapper missing from $BRIDGE_SO"
+    FAIL=$((FAIL + 1))
+fi
+export LD_LIBRARY_PATH="$REPO_LIB:$CANN_BASE/lib64:${LD_LIBRARY_PATH:-}"
+echo "RUNTIME LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+
 PS_FLAGS="-x asc --cce-aicore-arch=dav-c310-vec --enable-simt -std=c++17"
 
 printf '\n===== [3/5] puresimt 编译 + 运行 =====\n'
@@ -111,10 +137,12 @@ for pair in \
     if "$CCEC" $PS_FLAGS "examples/puresimt/$src" \
         -I"${REPO_INC}" -I"${CANN_BASE}/include" \
         -L"${CANN_BASE}/lib64" -L"${REPO_LIB}" \
+        -Wl,-rpath,"${REPO_LIB}" -Wl,-rpath,"${CANN_BASE}/lib64" \
         -lascendc_runtime -lascendcl -lruntime -lregister -lerror_manager \
         -lprofapi -lascendalog -lmmpa -lascend_dump -lc_sec -lstdc++ \
         -lcce_bridge_runtime -lacl_cblas \
         -o "$bin" >"$OUT/${name}.log" 2>&1; then
+        ldd "$bin" >"$OUT/${name}.ldd.log" 2>&1 || true
         if [ "$DEVICE_HEALTHY" -eq 1 ] && "$bin" >"$OUT/${name}.run.log" 2>&1 \
            && grep -Fq "$key" "$OUT/${name}.run.log"; then
             echo "[PASS] [$name] 运行通过：$(grep -F "$key" "$OUT/${name}.run.log")"
@@ -125,6 +153,8 @@ for pair in \
                 echo "----- [pmatmul] cublas bridge diagnostics -----"
                 grep -E '\[cce_bridge\]\[(Sgemm|gemm)\]' \
                     "$OUT/${name}.run.log" 2>/dev/null
+                echo "----- [pmatmul] linked libraries -----"
+                grep -F 'libcce_bridge_runtime' "$OUT/${name}.ldd.log" 2>/dev/null
             fi
             tail -n 10 "$OUT/${name}.log" 2>/dev/null
             FAIL=$((FAIL + 1))
