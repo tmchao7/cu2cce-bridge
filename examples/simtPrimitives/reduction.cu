@@ -50,23 +50,26 @@ __global__ void blockReduceKernel(const float *in, float *partial, int n) {
 }
 
 /* ==================== kernel：smem 原子计数探针（atomicAdd → asc_atomic_add） ==================== */
+/* ⚠️ 真机教训（d3b1294→本次空降）：ccec 的 __ubuf__（__shared__ 映射目标）不允许
+ * 非指针标量（`__shared__ unsigned sc;` 报 non-pointer not allowed to have CCE
+ * memory attribute）。CUDA 兼容写法：用长度 1 的数组（指针形态）承载标量。 */
 __global__ void smemAtomicCounterKernel(unsigned *counter, unsigned n) {
-    __shared__ unsigned sc;
+    __shared__ unsigned temp[1];
 
     if (threadIdx.x == 0) {
-        sc = 0;
+        temp[0] = 0;
     }
     __syncthreads();
 
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if (i < n) {
-        atomicAdd(&sc, 1u);
+        atomicAdd(&temp[0], 1u);
     }
 
     __syncthreads();
 
     if (threadIdx.x == 0) {
-        counter[blockIdx.x] = sc;
+        counter[blockIdx.x] = temp[0];
     }
 }
 

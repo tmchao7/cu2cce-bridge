@@ -25,7 +25,9 @@ class ReductionConvertTests(unittest.TestCase):
         self.assertIn("__global__ void blockReduceKernel", source)
         self.assertIn("__shared__ float sdata", source)
         self.assertIn("__syncthreads()", source)
-        self.assertIn("atomicAdd(&sc, 1u)", source)
+        # 真机教训：非指针标量不能带 __ubuf__，计数器用长度 1 的数组承载。
+        self.assertIn("__shared__ unsigned temp[1]", source)
+        self.assertIn("atomicAdd(&temp[0], 1u)", source)
 
     def test_conversion_produces_simt_vf_wrappers_with_hidden_dims(self):
         source = EXAMPLE.read_text()
@@ -43,7 +45,7 @@ class ReductionConvertTests(unittest.TestCase):
         # 共享内存/同步/原子写法原样保留在 VF 体内
         self.assertIn("__shared__ float sdata", converted)
         self.assertIn("__syncthreads()", converted)
-        self.assertIn("atomicAdd(&sc, 1u)", converted)
+        self.assertIn("atomicAdd(&temp[0], 1u)", converted)
 
     def test_launches_are_four_to_three_arg_with_hidden_blocks(self):
         source = EXAMPLE.read_text()
