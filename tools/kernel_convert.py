@@ -13,7 +13,11 @@ host launch 把 block 形状作为三个隐藏参数传入。这样同一 kernel
 前端崩溃。
 
 已知限制：仅处理简单的 ``__global__ void name(...)``；模板 kernel、函数指针
-launch、宏生成的 launch 和复杂参数声明仍需后续 AST 版本。
+launch、宏生成的 launch、声明中带数组形参、返回非 void 以及复杂参数声明仍
+需要后续 AST 版本。v2（2026-08-21，SIMT 原语方向）：块注释内的伪 launch 文本
+从「注释整体保留」改为「连同被注释掉的代码一起去掉」，以便像 reduction 这种
+文件头块注释包含 ``<<<...>>>`` 字样的示例也能正确转换（不影响已通过的无注释
+转换用例）。
 """
 
 import argparse
@@ -67,6 +71,9 @@ def mask_comments_and_strings(src):
             out[i] = out[i + 1] = " "
             i += 2
             while i < len(src) and not src.startswith("*/", i):
+                # v2（2026-08-21，SIMT 原语方向）：连注释内容一起去掉，避免块注释
+                # 里的伪 <<<>>>（如 reduction 文件头注释的字面 <<<grid,block,...>>>）
+                # 被后续正则命中；换行保留，其余抹成空格。
                 if src[i] != "\n":
                     out[i] = " "
                 i += 1

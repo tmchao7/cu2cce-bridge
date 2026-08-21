@@ -1,10 +1,15 @@
-# server_cmd.txt —— B 主线维护回归
-
+# server_cmd.txt —— B 主线维护回归 + SIMT 原语真机验证（方向 1）
+#
 # 分支：main（B 方案正式路径，666d129 之后）
-# 2026-08-21：方案 C（exp/runtime-simt-launch）已结案为"不支持"并归档
-# （见 00_project_journey/C_PLAN_SUMMARY.md）。回归 B：验证三个正式样例仍
-# FAIL=0（vectorAdd / minimal / dynamicBlockDim），并保持 hidden blockDim
-# 方案不被后续改动破坏。
+# 2026-08-21：方案 C 已结案为"不支持"并归档（00_project_journey/C_PLAN_SUMMARY.md）。
+# 本轮两件事：
+#   A. B 三样例回归（vectorAdd / minimal / dynamicBlockDim）确认 hidden blockDim
+#      方案不被后续改动破坏（前一轮 FAIL=0）；
+#   B. SIMT 原语真机验证（CURRENT_STATE 待确认 #6）：examples/simtPrimitives/reduction.cu
+#     使用 __shared__（→__ubuf__）+ __syncthreads（→asc_syncthreads）+ atomicAdd
+#     （→asc_atomic_add），经 cucc→kernel_convert 链路真机编译、链接、运行。
+# 判读：出现 "simt primitives OK (reduction sum=523776, atomic counter=256)" 且
+#       B 三样例全 PASS → 待确认 #6 关闭，SIMT 适配宏表真机成立。
 # 本轮只读回归，不执行任何破坏性恢复；不使用顶层 exit（防 SSH 退出）。
 
 set +e
@@ -24,11 +29,11 @@ DEVICE_HEALTHY=0
 DEVICE_ACCESS_DENIED=0
 TEST_BLOCKED_BY_DEVICE=0
 
-printf '\n===== [1/5] Python 结构测试 =====\n'
+printf '\n===== [1/6] Python 结构测试 =====\n'
 python3 -m unittest discover -s tests -p 'test_*.py' 2>&1 | tee "$OUT/python_tests.log"
 [ ${PIPESTATUS[0]} -eq 0 ] || FAIL=$((FAIL + 1))
 
-printf '\n===== [2/5] 环境探测与 bridge 安装 =====\n'
+printf '\n===== [2/6] 环境探测与 bridge 安装 =====\n'
 bash tools/real_test/env_probe.sh >"$OUT/env_probe.log" 2>&1
 [ $? -eq 0 ] || { echo '[FAIL] env_probe'; FAIL=$((FAIL + 1)); }
 bash tools/real_test/build_bridge.sh >"$OUT/build_bridge.log" 2>&1
@@ -40,7 +45,7 @@ export PATH="$CUCC_PATH/bin:$PATH"
 export LD_LIBRARY_PATH="$CUCC_PATH/lib:${ASCEND_LIB:-}:${LD_LIBRARY_PATH:-}"
 [ -n "${SIMT_API_INCLUDE:-}" ] && export CPLUS_INCLUDE_PATH="${SIMT_API_ROOT:-$(dirname "$SIMT_API_INCLUDE")}:$SIMT_API_INCLUDE:${CPLUS_INCLUDE_PATH:-}"
 
-printf '\n===== [3/5] 只读设备健康门禁 =====\n'
+printf '\n===== [3/6] 只读设备健康门禁 =====\n'
 for node in /dev/davinci0 /dev/davinci_manager /dev/hisi_hdc; do
     if [ ! -e "$node" ] || ! test -r "$node" || ! test -w "$node"; then
         echo "[BLOCKED] DEVICE_ACCESS_DENIED_OR_MISSING: $node"; DEVICE_ACCESS_DENIED=1
@@ -71,7 +76,7 @@ else
     TEST_BLOCKED_BY_DEVICE=1; echo '[BLOCKED] TEST_BLOCKED_BY_DEVICE'
 fi
 
-printf '\n===== [4/5] B 主线回归（3 个正式样例） =====\n'
+printf '\n===== [4/6] B 主线回归（3 个正式样例） =====\n'
 if [ "$DEVICE_HEALTHY" -ne 1 ]; then
     echo 'B_REGRESSION_SKIPPED_DEVICE_UNHEALTHY'
 else
@@ -94,13 +99,35 @@ else
     done
 fi
 
-printf '\n===== [5/5] 汇总 =====\n'
+printf '\n===== [5/6] SIMT 原语真机验证（reduction.cu） =====\n'
+RED_SRC=examples/simtPrimitives/reduction.cu
+RED_OBJ="$OUT/reduction.o"; RED_BIN="$OUT/reduction"
+if "$CUCC_PATH/bin/cucc" -c "$RED_SRC" -o "$RED_OBJ" >"$OUT/reduction.compile.log" 2>&1; then
+    echo '[PASS] reduction compile'
+    if "$CUCC_PATH/bin/cucc" "$RED_OBJ" -o "$RED_BIN" >"$OUT/reduction.link.log" 2>&1; then
+        echo '[PASS] reduction link'
+        if [ "$DEVICE_HEALTHY" -eq 1 ] && "$RED_BIN" >"$OUT/reduction.run.log" 2>&1 \
+           && grep -Fq 'simt primitives OK' "$OUT/reduction.run.log"; then
+            echo '[PASS] simt primitives OK（__shared__/__syncthreads/atomicAdd 真机成立）'
+        else
+            echo '[FAIL] reduction run（设备不健康或输出不正确）'
+            tail -n 20 "$OUT/reduction.run.log" "$OUT/reduction.compile.log" "$OUT/reduction.link.log" 2>/dev/null
+            FAIL=$((FAIL + 1))
+        fi
+    else
+        echo '[FAIL] reduction link'; tail -n 20 "$OUT/reduction.link.log"; FAIL=$((FAIL + 1))
+    fi
+else
+    echo '[FAIL] reduction compile'; tail -n 20 "$OUT/reduction.compile.log"; FAIL=$((FAIL + 1))
+fi
+
+printf '\n===== [6/6] 汇总 =====\n'
 echo "FAIL=$FAIL DEVICE_HEALTHY=$DEVICE_HEALTHY TEST_BLOCKED_BY_DEVICE=$TEST_BLOCKED_BY_DEVICE"
 echo "完整日志：$OUT"
 if [ "$TEST_BLOCKED_BY_DEVICE" -eq 1 ]; then
     echo 'RESULT=TEST_BLOCKED_BY_DEVICE'
 elif [ "$FAIL" -eq 0 ]; then
-    echo 'B_REGRESSION_PASS'
+    echo 'B_REGRESSION_PASS SIMT_PRIMITIVES_PASS'
 else
-    echo 'B_REGRESSION_FAIL（查看上方各 .log）'
+    echo 'B_REGRESSION_FAIL_OR_SIMT_FAIL（查看上方各 .log）'
 fi
