@@ -74,8 +74,21 @@ fi
 export ASCEND_HOME_PATH="${ASCEND_HOME_PATH:-/usr/local/Ascend/latest}"
 echo "ASCEND_HOME_PATH=$ASCEND_HOME_PATH"
 
+# 链接 bridge 运行库（host 侧 cuda* → wcuda* → aclrt* 的实现体）。
+# 真机路径科目2（2026-08-21：ld.lld undefined wcuda* 统一失败）：ccec 直编
+# 需显式 -L/-l libcce_bridge_runtime.so；BP 若未构建，先
+#   bash tools/real_test/build_bridge.sh
+# REPO_LIB 兼容两种布局：build/real_test/install/lib 或 build/core/lib。
 # repo 的 bridge 头（include/cuda_runtime.h、include/bridge/runtime/*）优先于 CANN 头
 REPO_INC="$PWD/include"
+REPO_LIB="$PWD/build/real_test/install/lib"
+if [ ! -e "$REPO_LIB/libcce_bridge_runtime.so" ]; then
+    REPO_LIB="$PWD/build/core/lib"
+fi
+if [ ! -e "$REPO_LIB/libcce_bridge_runtime.so" ]; then
+    echo "[WARN] ${REPO_LIB}/libcce_bridge_runtime.so 缺失（host 侧 wcuda* 链接会失败）"
+fi
+echo "REPO_INC=$REPO_INC REPO_LIB=$REPO_LIB"
 
 PS_FLAGS="-x asc --cce-aicore-arch=dav-c310-vec --enable-simt -std=c++17"
 
@@ -91,9 +104,10 @@ for pair in \
     echo "===== [$name] $CCEC $PS_FLAGS examples/puresimt/$src ====="
     if "$CCEC" $PS_FLAGS "examples/puresimt/$src" \
         -I"${REPO_INC}" -I"${CANN_BASE}/include" \
-        -L"${CANN_BASE}/lib64" \
+        -L"${CANN_BASE}/lib64" -L"${REPO_LIB}" \
         -lascendc_runtime -lascendcl -lruntime -lregister -lerror_manager \
         -lprofapi -lascendalog -lmmpa -lascend_dump -lc_sec -lstdc++ \
+        -lcce_bridge_runtime \
         -o "$bin" >"$OUT/${name}.log" 2>&1; then
         if [ "$DEVICE_HEALTHY" -eq 1 ] && "$bin" >"$OUT/${name}.run.log" 2>&1 \
            && grep -Fq "$key" "$OUT/${name}.run.log"; then

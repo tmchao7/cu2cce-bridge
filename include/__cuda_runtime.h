@@ -32,6 +32,9 @@
 #include "bridge/runtime/cuda_to_cce_mcr_adaptor.h"
 #include "bridge/runtime/cuda_wrapper_internal.h"
 #include "bridge/runtime/cuda_wrapper_types.h"
+/* puresimt kernel 原语（__shared__/__syncthreads/atomicAdd）在 -x asc 直通下
+ * 由本适配头映射到昇腾 SIMT（__ubuf__/asc_syncthreads/asc_atomic_add） */
+#include "bridge/kernel/simt_adaptor.h"
 
 /* puresimt host（-x asc 直通）也在 acl/acl.h 可用空间内，但 bridge 头优先：
  * 用户代码 #include <cuda_runtime.h> 时，cuda* 由上面的宏表接住。 */
