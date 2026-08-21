@@ -1,13 +1,15 @@
 /*
- * minimal.cu —— puresimt 形态的首调 cudaMalloc 最小样例（aclrt 版本）。
+ * minimal.cu —— puresimt 形态的首调 cudaMalloc 最小样例（cuda* 版本）。
  *
  * 对照 examples/minimal/minimal.cu（新同构 B 主线）+ 107002 防复退：验证
- * puresimt 链路下 aclrtMalloc 首调用（aclInit→SetDevice→CreateContext→
- * CreateStream→aclrtMalloc→aclrtMemcpy→aclrtMemset→launch→Synchronize→
- * D2H→校验）整条 host 侧与 acl 接口一致（导师：除 <<<>>> 与新同构差异外
- * 其他 acl 接口一样）。
+ * puresimt 链路下整条 host 侧与 CUDA 接口一致（导师：除 <<<>>> 与新同构差异外
+ * 其他 acl 接口一样）——cudaStreamCreate→cudaMalloc→cudaMemcpy→
+ * cudaLaunchKernel→cudaStreamSynchronize→D2H→校验，全部走 bridge 宏/wrapper
+ * （cuda* → wcuda* → aclrt*），include <cuda_runtime.h> 由 repo include 接住。
+ * 首调用 cudaStreamCreate：bridge_init 完成 aclInit→GetDeviceCount→SetDevice→
+ * CreateContext，若初始化链有任何一环失败会直接暴露。
  */
-#include "acl/acl.h"
+#include "cuda_runtime.h"
 #include <stdio.h>
 
 #define N 256
@@ -22,29 +24,30 @@ __global__ void addOneKernel(float *x, int n) {
 
 int main(void) {
     size_t byteSize = N * sizeof(float);
-    aclInit(nullptr);
-    aclrtContext context = nullptr;
-    int deviceId = 0;
-    aclrtSetDevice(deviceId);
-    aclrtCreateContext(&context, deviceId);
-    aclrtStream stream = nullptr;
-    aclrtCreateStream(&stream);
+
+    cudaStream_t stream = nullptr;
+    cudaError_t err = cudaStreamCreate(&stream);
+    if (err != cudaSuccess) {
+        printf("cudaStreamCreate failed: %d\n", (int)err);
+        return 1;
+    }
 
     float *h = nullptr;
-    aclrtMallocHost((void **)&h, byteSize);
+    cudaMallocHost((void **)&h, byteSize);
     for (int i = 0; i < N; i++) h[i] = (float)i;
 
     float *d = nullptr;
-    aclError err = aclrtMalloc((void **)&d, byteSize, ACL_MEM_MALLOC_HUGE_FIRST);
-    if (err != ACL_SUCCESS) {
-        printf("aclrtMalloc failed: %d\n", (int)err);
+    err = cudaMalloc((void **)&d, byteSize);
+    if (err != cudaSuccess) {
+        printf("cudaMalloc failed: %d\n", (int)err);
         return 1;
     }
-    aclrtMemcpy(d, byteSize, h, byteSize, ACL_MEMCPY_HOST_TO_DEVICE);
+    cudaMemcpy(d, h, byteSize, cudaMemcpyHostToDevice);
 
-    addOneKernel<<<1, THREADS, 0, stream>>>(d, N);
-    aclrtSynchronizeStream(stream);
-    aclrtMemcpy(h, byteSize, d, byteSize, ACL_MEMCPY_DEVICE_TO_HOST);
+    cudaLaunchKernel((const void *)addOneKernel, dim3(1), dim3(THREADS),
+                     nullptr, 0, stream);
+    cudaStreamSynchronize(stream);
+    cudaMemcpy(h, d, byteSize, cudaMemcpyDeviceToHost);
 
     int bad = 0;
     for (int i = 0; i < N; i++) {
@@ -59,11 +62,9 @@ int main(void) {
     }
     printf("minimal puresimt OK (N=%d)\n", N);
 
-    aclrtFree(d);
-    aclrtFreeHost(h);
-    aclrtDestroyStream(stream);
-    aclrtDestroyContext(context);
-    aclrtResetDevice(deviceId);
-    aclFinalize();
+    cudaFree(d);
+    cudaFreeHost(h);
+    cudaStreamDestroy(stream);
+    cudaDeviceReset();
     return 0;
 }

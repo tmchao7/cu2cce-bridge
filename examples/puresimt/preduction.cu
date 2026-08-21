@@ -15,15 +15,22 @@
  * 注意：不提前 return（__syncthreads 需要整块线程都到，否则死锁）。
  * 校验：sum == 1024*1023/2 == 523776。
  *
+ * host 侧（2026-08-21 方向 A 修正）：全部走 bridge 宏/wrapper（cuda* → wcuda*
+ * → aclrt*），include <cuda_runtime.h> 由 repo 的 include/cuda_runtime.h 接住，
+ * 用户源码零 acl 依赖——与"用户不改一行 CUDA 代码"承诺一致。
+ * 首调用改为 cudaStreamCreate：写入是 bridge_init（aclInit→GetDeviceCount→
+ * SetDevice→CreateContext），首 API 即 cudaStreamCreate 验证它触发初始化 OK。
+ *
  * 编译（真机，见 server_cmd）：
  *   export ASCEND_HOME_PATH=/usr/local/Ascend/latest
  *   ccec -x asc --cce-aicore-arch=dav-c310-vec --enable-simt -std=c++17 \
- *     -I/usr/local/Ascend/latest/include -L/usr/local/Ascend/latest/lib64 \
+ *     -I<repo>/include -I/usr/local/Ascend/latest/include \
+ *     -L/usr/local/Ascend/latest/lib64 \
  *     -lascendc_runtime -lascendcl -lruntime -lregister -lerror_manager \
  *     -lprofapi -lascendalog -lmmpa -lascend_dump -lc_sec -lstdc++ \
  *     examples/puresimt/preduction.cu -o preduction
  */
-#include "acl/acl.h"
+#include "cuda_runtime.h"
 #include <stdio.h>
 
 #define N 1024
@@ -53,55 +60,56 @@ __global__ void reductionKernel(int *result, const int *data, int n) {
 int main(void) {
     size_t byteSize = N * sizeof(int);
 
-    aclInit(nullptr);
-    aclrtContext context = nullptr;
-    int deviceId = 0;
-    aclrtSetDevice(deviceId);
-    aclrtCreateContext(&context, deviceId);
-    aclrtStream stream = nullptr;
-    aclrtCreateStream(&stream);
+    cudaStream_t stream = nullptr;
+    cudaError_t err = cudaStreamCreate(&stream);
+    if (err != cudaSuccess) {
+        printf("cudaStreamCreate failed: %d\n", (int)err);
+        return 1;
+    }
 
     int *h_data = nullptr, *h_result = nullptr;
-    aclrtMallocHost((void **)&h_data, byteSize);
-    aclrtMallocHost((void **)&h_result, sizeof(int));
+    err = cudaMallocHost((void **)&h_data, byteSize);
+    if (err != cudaSuccess) {
+        printf("cudaMallocHost failed: %d\n", (int)err);
+        return 1;
+    }
+    cudaMallocHost((void **)&h_result, sizeof(int));
     for (int i = 0; i < N; i++) h_data[i] = i;
     h_result[0] = 0;
 
     int *d_data = nullptr, *d_result = nullptr;
-    aclrtMalloc((void **)&d_data, byteSize, ACL_MEM_MALLOC_HUGE_FIRST);
-    aclrtMalloc((void **)&d_result, sizeof(int), ACL_MEM_MALLOC_HUGE_FIRST);
-    aclrtMemcpy(d_data, byteSize, h_data, byteSize, ACL_MEMCPY_HOST_TO_DEVICE);
-    aclrtMemcpy(d_result, sizeof(int), h_result, sizeof(int),
-                ACL_MEMCPY_HOST_TO_DEVICE);
+    err = cudaMalloc((void **)&d_data, byteSize);
+    if (err != cudaSuccess) {
+        printf("cudaMalloc failed: %d\n", (int)err);
+        return 1;
+    }
+    cudaMalloc((void **)&d_result, sizeof(int));
+    cudaMemcpy(d_data, h_data, byteSize, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_result, h_result, sizeof(int), cudaMemcpyHostToDevice);
 
-    reductionKernel<<<BLOCKS, THREADS, 0, stream>>>(d_result, d_data, N);
-    aclrtSynchronizeStream(stream);
-    aclrtMemcpy(h_result, sizeof(int), d_result, sizeof(int),
-                ACL_MEMCPY_DEVICE_TO_HOST);
+    cudaLaunchKernel((const void *)reductionKernel, dim3(BLOCKS), dim3(THREADS),
+                     nullptr, 0, stream);
+    cudaStreamSynchronize(stream);
+    cudaMemcpy(h_result, d_result, sizeof(int), cudaMemcpyDeviceToHost);
 
     int expected = N * (N - 1) / 2;
     if (h_result[0] != expected) {
         printf("preduction puresimt FAILED (sum=%d expected=%d)\n",
                h_result[0], expected);
-        aclrtFree(d_data);
-        aclrtFree(d_result);
-        aclrtFreeHost(h_data);
-        aclrtFreeHost(h_result);
-        aclrtDestroyStream(stream);
-        aclrtDestroyContext(context);
-        aclrtResetDevice(deviceId);
-        aclFinalize();
+        cudaFree(d_data);
+        cudaFree(d_result);
+        cudaFreeHost(h_data);
+        cudaFreeHost(h_result);
+        cudaStreamDestroy(stream);
         return 1;
     }
     printf("preduction puresimt OK (N=%d, sum=%d)\n", N, h_result[0]);
 
-    aclrtFree(d_data);
-    aclrtFree(d_result);
-    aclrtFreeHost(h_data);
-    aclrtFreeHost(h_result);
-    aclrtDestroyStream(stream);
-    aclrtDestroyContext(context);
-    aclrtResetDevice(deviceId);
-    aclFinalize();
+    cudaFree(d_data);
+    cudaFree(d_result);
+    cudaFreeHost(h_data);
+    cudaFreeHost(h_result);
+    cudaStreamDestroy(stream);
+    cudaDeviceReset();
     return 0;
 }

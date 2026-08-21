@@ -5,6 +5,12 @@
  * 组装成一个整体。用户代码 #include <cuda_runtime.h> 后，所有 CUDA host 侧符号
  * 都会被宏表替换为 wcuda，最终调用 aclrt* 原生 API。
  *
+ * puresimt（2026-08-21 主线）：同一份源文件在 -x asc --enable-simt 下，
+ * kernel 是纯 CUDA 前端直通（__global__/threadIdx/<<<>>> 原语由毕昇处理），
+ * host 侧经本头把 cuda* → wcuda* → aclrt*；acl 原生类型/函数由
+ * bridge/runtime/cuda_to_cce_mcr_adaptor.h 的宏表（cudaStream_t→aclrtStream）与
+ * wrapper 声明（wcudaStreamCreate(aclrtStream*)）接住。
+ *
  * ⚠️ 与 cu-bridge 的差异（2026-08-19 真机定稿）：**本头不 include 系统标准库头**
  * （ccec/clang15 + glibc 2.39 不兼容，真机实测）。用户代码的
  * #include <stdio.h> 等保持原样，由 cucc 注入的 shadow 遮蔽头（include/shadow/）
@@ -26,5 +32,8 @@
 #include "bridge/runtime/cuda_to_cce_mcr_adaptor.h"
 #include "bridge/runtime/cuda_wrapper_internal.h"
 #include "bridge/runtime/cuda_wrapper_types.h"
+
+/* puresimt host（-x asc 直通）也在 acl/acl.h 可用空间内，但 bridge 头优先：
+ * 用户代码 #include <cuda_runtime.h> 时，cuda* 由上面的宏表接住。 */
 
 #endif //__CUDA_RUNTIME_H__
