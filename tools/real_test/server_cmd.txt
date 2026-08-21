@@ -1,16 +1,13 @@
-# server_cmd.txt —— puresimt 专项验证（导师方向，CANN 9.2.0）
+# server_cmd.txt —— puresimt 主线回归（main 分支）
 #
-# 分支：main（B 方案正式路径；本专项不改 B 主线，也不跑 cublas）
-# 背景（2026-08-21 导师）：
-#   "毕昇有一套前端类似 CUDA" —— 目标是验证编译器原生能否跑纯 CUDA 写法的
-#   __global__ kernel（用 threadIdx/blockIdx/gridDim/blockDim 线性索引 +
-#   <<<grid, block, 255, stream>>> 启动），而不是我们之前写的 __simt_vf__ +
-#   cce::async_invoke（新同构）。导师给的两种编译方式：
-#     1) ccec -x dpp  + .cce  + --enable-simt + --cce-aicore-arch=dav-c310-vec
-#     2) ccec -x asc  + .asc  + --enable-simt（若方式 1 不行）
-# 本脚本只做：环境门禁 → 打印 ccec 版本/支持的 -x 与架构 → 双方式编译+运行 →
-#   dav-c310-vec 崩溃时自动用 dav-c310（无 -vec）对照。不跑 B 三样例/cublas。
-# 不使用顶层 exit（防 SSH 退出）。
+# 分支：main（puresimt 正式开发线；新同构 B 主线已归档到 exp/new-homogeneous-v1）
+# 2026-08-21 导师方向：毕昇前端复用 CUDA，"除 <<<>>> 与新同构差异外 acl 接口一致"。
+# puresimt 成立（9.2.0：-x asc + --enable-simt + --cce-aicore-arch=dav-c310-vec，
+# 必须设置 ASCEND_HOME_PATH）。本轮回归三个 puresimt 样例：
+#   - puresimt_probe（count=8192）
+#   - pvectoradd（N=1024，对应旧 B 的 vectorAdd）
+#   - pminimal（N=256，对应旧 B 的 minimal / 107002 防复退）
+# 设备不健康时跳过运行；不使用顶层 exit。
 
 set +e
 set +u
@@ -57,15 +54,12 @@ fi
 if [ "$DEVICE_ACCESS_DENIED" -eq 0 ] && [ "$DEVICE_PROBE_FAIL" -eq 0 ]; then
     DEVICE_HEALTHY=1; echo '[PASS] DEVICE_HEALTHY=1'
 else
-    TEST_BLOCKED_BY_DEVICE=1; echo '[BLOCKED] TEST_BLOCKED_BY_DEVICE（跳过 puresimt 运行，仅编译判断）'
+    TEST_BLOCKED_BY_DEVICE=1; echo '[BLOCKED] TEST_BLOCKED_BY_DEVICE（跳过运行，仅编译判断）'
 fi
 
-printf '\n===== [2/5] ccec 版本与 ASCEND_HOME_PATH =====\n'
+printf '\n===== [2/5] 环境 =====\n'
 CANN_BASE="/usr/local/Ascend/latest"
 CCEC="${CANN_BASE}/bin/ccec"
-# 导师方向（2026-08-21）：--enable-simt 需要 ASCEND_HOME_PATH（--help：
-# "-cce-enable-puresimt ... will require ASCEND_HOME_PATH to be set"）。
-# 上一轮四种都因缺失而 LLVM fatal error；先设置它（缺失时 find 探测）。
 if [ -z "${ASCEND_HOME_PATH:-}" ] || [ ! -d "${ASCEND_HOME_PATH}" ]; then
     for cand in /usr/local/Ascend/latest /usr/local/Ascend/ascend-toolkit/latest; do
         if [ -d "$cand" ] && [ -e "$cand/bin/ccec" ]; then ASCEND_HOME_PATH="$cand"; break; fi
@@ -73,48 +67,19 @@ if [ -z "${ASCEND_HOME_PATH:-}" ] || [ ! -d "${ASCEND_HOME_PATH}" ]; then
 fi
 export ASCEND_HOME_PATH="${ASCEND_HOME_PATH:-/usr/local/Ascend/latest}"
 echo "ASCEND_HOME_PATH=$ASCEND_HOME_PATH"
-echo "--- ccec --version ---"
-"$CCEC" --version 2>&1 | head -3 || true
 
-printf '\n===== [3/5] puresimt 编译 + 运行（仅 .asc + -x asc，导师推荐路径） =====\n'
-PS_DIR="examples/puresimt"
-compile_run() {  # compile_run <tag> <src> <extra_flags...>
-    local tag="$1" src="$2"; shift 2
-    local log="$OUT/puresimt_${tag}.log" bin="$OUT/puresimt_${tag}"
-    echo "===== [$tag] $CCEC $* $src ====="
-    if "$CCEC" "$@" "$src" \
-        -I"${CANN_BASE}/include" \
-        -L"${CANN_BASE}/lib64" \
-        -lascendc_runtime -lascendcl -lruntime -lregister -lerror_manager \
-        -lprofapi -lascendalog -lmmpa -lascend_dump -lc_sec -lstdc++ \
-        -o "$bin" >"$log" 2>&1; then
-        echo "[PASS] [$tag] 编译通过"
-        if [ "$DEVICE_HEALTHY" -eq 1 ] && "$bin" >"$OUT/puresimt_${tag}.run.log" 2>&1 \
-           && grep -Fq 'puresimt OK' "$OUT/puresimt_${tag}.run.log"; then
-            echo "[PASS] [$tag] 运行通过：$(grep puresimt "$OUT/puresimt_${tag}.run.log")"
-            return 0
-        fi
-        echo "[FAIL] [$tag] 运行失败（run log 首 25 行）"
-        head -n 25 "$OUT/puresimt_${tag}.run.log" 2>/dev/null
-        return 1
-    fi
-    echo "[FAIL] [$tag] 编译失败（log 首 18 行）"
-    head -n 18 "$log" 2>/dev/null
-    return 1
-}
+PS_FLAGS="-x asc --cce-aicore-arch=dav-c310-vec --enable-simt -std=c++17"
 
-# 导师推荐：仅 .asc + -x asc（"--cce-aicore-arch=dav-c310-vec --enable-simt"）。
-compile_run asc examples/puresimt/puresimt_probe.asc \
-    -x asc --cce-aicore-arch=dav-c310-vec --enable-simt -std=c++17
-# dav-c310-vec 已确认通过；再编译运行 puresimt 正式样例（vectorAdd + minimal）
+printf '\n===== [3/5] puresimt 编译 + 运行 =====\n'
 for pair in \
-    'pvectoradd|vectorAdd puresimt OK (N=1024)' \
-    'pminimal|minimal puresimt OK (N=256)'; do
-    name=${pair%%|*}; expected=${pair#*|}
-    src="examples/puresimt/${name}.cu"
+    'puresimt_probe.asc|puresimt OK (count=8192)|asc' \
+    'pvectoradd.cu|vectorAdd puresimt OK (N=1024)|cu' \
+    'pminimal.cu|minimal puresimt OK (N=256)|cu'; do
+    src=${pair%%|*}; rest=${pair#*|}; key=${rest%%|*}; ext=${rest#*|}
+    name=$(basename "$src" .$ext)
     bin="$OUT/${name}"
-    echo "===== [$name] $CCEC -x asc --cce-aicore-arch=dav-c310-vec --enable-simt $src ====="
-    if "$CCEC" -x asc --cce-aicore-arch=dav-c310-vec --enable-simt -std=c++17 "$src" \
+    echo "===== [$name] $CCEC $PS_FLAGS examples/puresimt/$src ====="
+    if "$CCEC" $PS_FLAGS "examples/puresimt/$src" \
         -I"${CANN_BASE}/include" \
         -L"${CANN_BASE}/lib64" \
         -lascendc_runtime -lascendcl -lruntime -lregister -lerror_manager \
@@ -122,11 +87,11 @@ for pair in \
         -o "$bin" >"$OUT/${name}.log" 2>&1; then
         echo "[PASS] [$name] 编译通过"
         if [ "$DEVICE_HEALTHY" -eq 1 ] && "$bin" >"$OUT/${name}.run.log" 2>&1 \
-           && grep -Fq "$expected" "$OUT/${name}.run.log"; then
-            echo "[PASS] [$name] 运行通过：$(grep -F "$expected" "$OUT/${name}.run.log")"
+           && grep -Fq "$key" "$OUT/${name}.run.log"; then
+            echo "[PASS] [$name] 运行通过：$(grep -F "$key" "$OUT/${name}.run.log")"
         else
-            echo "[FAIL] [$name] 运行失败（run log 首 20 行）"
-            head -n 20 "$OUT/${name}.run.log" 2>/dev/null
+            echo "[FAIL] [$name] 运行失败（run log 首 25 行）"
+            head -n 25 "$OUT/${name}.run.log" 2>/dev/null
             tail -n 10 "$OUT/${name}.log" 2>/dev/null
             FAIL=$((FAIL + 1))
         fi
@@ -137,20 +102,13 @@ for pair in \
     fi
 done
 
-printf '\n===== [4/5] 汇总（puresimt 判定） =====\n'
-for tag in asc pvectoradd pminimal; do
-    if grep -Fq 'OK' "$OUT/${tag}.run.log" 2>/dev/null; then
-        echo "[PURESIMT_PASS] $tag"
-    else
-        echo "[PURESIMT_FAIL] $tag"
-    fi
-done
-echo "DEVICE_HEALTHY=$DEVICE_HEALTHY TEST_BLOCKED_BY_DEVICE=$TEST_BLOCKED_BY_DEVICE"
+printf '\n===== [4/5] 汇总 =====\n'
+echo "FAIL=$FAIL DEVICE_HEALTHY=$DEVICE_HEALTHY TEST_BLOCKED_BY_DEVICE=$TEST_BLOCKED_BY_DEVICE"
 echo "完整日志：$OUT"
 if [ "$TEST_BLOCKED_BY_DEVICE" -eq 1 ]; then
     echo 'RESULT=TEST_BLOCKED_BY_DEVICE'
-elif grep -Fq 'puresimt OK' "$OUT/puresimt_dpp.run.log" "$OUT/puresimt_asc.run.log" "$OUT/puresimt_dpp_novec.run.log" "$OUT/puresimt_asc_novec.run.log" 2>/dev/null; then
-    echo 'PURESIMT_DIRECTION_PASS（至少一种方式编译+运行通过：导师方向成立）'
+elif [ "$FAIL" -eq 0 ]; then
+    echo 'PURESIMT_REGRESSION_PASS'
 else
-    echo 'PURESIMT_ALL_FAIL（9.2.0 ccec 不认可这些参数组合；需对照导师 8.5.0 环境）'
+    echo 'PURESIMT_REGRESSION_FAIL（查看上方各 .log）'
 fi

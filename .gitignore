@@ -65,6 +65,17 @@ venv/
 # diag 探针在真机运行产生的中间产物/二进制；仓库内不落盘
 # ============================================================
 
+
+# ============================================================
+# main 裁剪（2026-08-21，puresimt 主线）：新同构 B 实验产物归档到
+# exp/new-homogeneous-v1 分支，main 不再跟踪以下目录（物理保留本地）
+# ============================================================
+examples/cublasMatmul/
+examples/simtPrimitives/
+examples/experimental/
+examples/reference/
+tools/real_test/diag/
+
 # 诊断探针运行时产物（tools/real_test/diag/ 下临时编译的二进制/宿主）
 tools/real_test/diag/*.o
 tools/real_test/diag/compose_*
