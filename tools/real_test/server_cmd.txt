@@ -97,7 +97,8 @@ for pair in \
     'puresimt_probe.asc|puresimt OK (count=8192)|asc' \
     'pvectoradd.cu|vectorAdd puresimt OK (N=1024)|cu' \
     'pminimal.cu|minimal puresimt OK (N=256)|cu' \
-    'preduction.cu|preduction puresimt OK (N=1024, sum=523776)|cu'; do
+    'preduction.cu|preduction puresimt OK (N=1024, sum=523776)|cu' \
+    'pmatmul.cu|pmatmul puresimt OK (C = A*B, 16x16x16)|cu'; do
     src=${pair%%|*}; rest=${pair#*|}; key=${rest%%|*}; ext=${rest#*|}
     name=$(basename "$src" .$ext)
     bin="$OUT/${name}"
@@ -107,7 +108,7 @@ for pair in \
         -L"${CANN_BASE}/lib64" -L"${REPO_LIB}" \
         -lascendc_runtime -lascendcl -lruntime -lregister -lerror_manager \
         -lprofapi -lascendalog -lmmpa -lascend_dump -lc_sec -lstdc++ \
-        -lcce_bridge_runtime \
+        -lcce_bridge_runtime -lacl_cblas \
         -o "$bin" >"$OUT/${name}.log" 2>&1; then
         if [ "$DEVICE_HEALTHY" -eq 1 ] && "$bin" >"$OUT/${name}.run.log" 2>&1 \
            && grep -Fq "$key" "$OUT/${name}.run.log"; then
