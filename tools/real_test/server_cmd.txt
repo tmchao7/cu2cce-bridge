@@ -1,17 +1,16 @@
-# server_cmd.txt —— B 主线回归 + SIMT 原语 + cublas 桥真机验证
+# server_cmd.txt —— puresimt 专项验证（导师方向，CANN 9.2.0）
 #
-# 分支：main（B 方案正式路径，666d129 之后）
-# 2026-08-21：方案 C 已结案为"不支持"并归档（00_project_journey/C_PLAN_SUMMARY.md）。
-# 本轮三件事：
-#   A. B 三样例回归（vectorAdd / minimal / dynamicBlockDim）确认 hidden blockDim
-#      方案不被后续改动破坏；
-#   B. SIMT 原语真机验证（CURRENT_STATE 待确认 #6，上轮已 PASS，保持回归）：
-#      examples/simtPrimitives/reduction.cu（__shared__/__syncthreads/atomicAdd）；
-#   C. cublas 桥真机验证（方向 2）：examples/cublasMatmul/matmul.cu 用纯 CUDA
-#      cublasSgemm（→ wcublasSgemm → aclblasGemmEx）校验 C = alpha*A*B + beta*C。
-# 判读：三个 [PASS] B regression + "simt primitives OK" + "cublas matmul OK" +
-#       FAIL=0 → 待确认 #6 与 cublas 桥同时成立。
-# 本轮只读回归，不执行任何破坏性恢复；不使用顶层 exit（防 SSH 退出）。
+# 分支：main（B 方案正式路径；本专项不改 B 主线，也不跑 cublas）
+# 背景（2026-08-21 导师）：
+#   "毕昇有一套前端类似 CUDA" —— 目标是验证编译器原生能否跑纯 CUDA 写法的
+#   __global__ kernel（用 threadIdx/blockIdx/gridDim/blockDim 线性索引 +
+#   <<<grid, block, 255, stream>>> 启动），而不是我们之前写的 __simt_vf__ +
+#   cce::async_invoke（新同构）。导师给的两种编译方式：
+#     1) ccec -x dpp  + .cce  + --enable-simt + --cce-aicore-arch=dav-c310-vec
+#     2) ccec -x asc  + .asc  + --enable-simt（若方式 1 不行）
+# 本脚本只做：环境门禁 → 打印 ccec 版本/支持的 -x 与架构 → 双方式编译+运行 →
+#   dav-c310-vec 崩溃时自动用 dav-c310（无 -vec）对照。不跑 B 三样例/cublas。
+# 不使用顶层 exit（防 SSH 退出）。
 
 set +e
 set +u
@@ -22,7 +21,7 @@ cd /home/t50063365/workspace/repos/cu2cce-bridge
 git pull --ff-only origin main
 printf 'HEAD=' && git log -1 --oneline
 
-OUT="$PWD/build/real_test/b_maintenance"
+OUT="$PWD/build/real_test/puresimt"
 mkdir -p "$OUT"
 rm -f "$OUT"/*
 FAIL=0
@@ -30,23 +29,7 @@ DEVICE_HEALTHY=0
 DEVICE_ACCESS_DENIED=0
 TEST_BLOCKED_BY_DEVICE=0
 
-printf '\n===== [1/9] Python 结构测试 =====\n'
-python3 -m unittest discover -s tests -p 'test_*.py' 2>&1 | tee "$OUT/python_tests.log"
-[ ${PIPESTATUS[0]} -eq 0 ] || FAIL=$((FAIL + 1))
-
-printf '\n===== [2/9] 环境探测与 bridge 安装 =====\n'
-bash tools/real_test/env_probe.sh >"$OUT/env_probe.log" 2>&1
-[ $? -eq 0 ] || { echo '[FAIL] env_probe'; FAIL=$((FAIL + 1)); }
-bash tools/real_test/build_bridge.sh >"$OUT/build_bridge.log" 2>&1
-[ $? -eq 0 ] || { echo '[FAIL] build_bridge'; FAIL=$((FAIL + 1)); }
-[ -f "$PWD/build/real_test/probe.env" ] && source "$PWD/build/real_test/probe.env" || FAIL=$((FAIL + 1))
-export CUCC_PATH="$PWD/build/real_test/install"
-export CUDA_PATH="$CUCC_PATH"
-export PATH="$CUCC_PATH/bin:$PATH"
-export LD_LIBRARY_PATH="$CUCC_PATH/lib:${ASCEND_LIB:-}:${LD_LIBRARY_PATH:-}"
-[ -n "${SIMT_API_INCLUDE:-}" ] && export CPLUS_INCLUDE_PATH="${SIMT_API_ROOT:-$(dirname "$SIMT_API_INCLUDE")}:$SIMT_API_INCLUDE:${CPLUS_INCLUDE_PATH:-}"
-
-printf '\n===== [3/9] 只读设备健康门禁 =====\n'
+printf '\n===== [1/5] 只读设备健康门禁 =====\n'
 for node in /dev/davinci0 /dev/davinci_manager /dev/hisi_hdc; do
     if [ ! -e "$node" ] || ! test -r "$node" || ! test -w "$node"; then
         echo "[BLOCKED] DEVICE_ACCESS_DENIED_OR_MISSING: $node"; DEVICE_ACCESS_DENIED=1
@@ -57,9 +40,9 @@ done
 PROBE_DEVICE="$PWD/build/real_test/probe_device"
 if [ ! -x "$PROBE_DEVICE" ]; then
     g++ tools/real_test/probe_device.cpp -o "$PROBE_DEVICE" \
-        -I "${ASCEND_INCLUDE:-${ASCEND_TOOLKIT_HOME:-}/include}" \
-        -L "${ASCEND_LIB:-${ASCEND_TOOLKIT_HOME:-}/lib64}" \
-        -Wl,-rpath,"${ASCEND_LIB:-${ASCEND_TOOLKIT_HOME:-}/lib64}" \
+        -I "/usr/local/Ascend/ascend-toolkit/latest/include" \
+        -L "/usr/local/Ascend/ascend-toolkit/latest/lib64" \
+        -Wl,-rpath,"/usr/local/Ascend/ascend-toolkit/latest/lib64" \
         -lascendcl -lpthread -ldl >"$OUT/probe_device_compile.log" 2>&1
 fi
 DEVICE_PROBE_FAIL=0
@@ -74,174 +57,69 @@ fi
 if [ "$DEVICE_ACCESS_DENIED" -eq 0 ] && [ "$DEVICE_PROBE_FAIL" -eq 0 ]; then
     DEVICE_HEALTHY=1; echo '[PASS] DEVICE_HEALTHY=1'
 else
-    TEST_BLOCKED_BY_DEVICE=1; echo '[BLOCKED] TEST_BLOCKED_BY_DEVICE'
+    TEST_BLOCKED_BY_DEVICE=1; echo '[BLOCKED] TEST_BLOCKED_BY_DEVICE（跳过 puresimt 运行，仅编译判断）'
 fi
 
-printf '\n===== [4/9] B 主线回归（3 个正式样例） =====\n'
-if [ "$DEVICE_HEALTHY" -ne 1 ]; then
-    echo 'B_REGRESSION_SKIPPED_DEVICE_UNHEALTHY'
-else
-    for pair in \
-        'examples/vectorAdd/vectorAdd.cu|vectorAdd OK (N=1024)' \
-        'examples/minimal/minimal.cu|minimal OK (N=256)' \
-        'examples/experimental/dynamicBlockDim/dynamic_blockdim.cu|dynamic blockdim OK (256,512,32x8x1)'; do
-        src=${pair%%|*}; expected=${pair#*|}; name=$(basename "$src" .cu)
-        obj="$OUT/${name}.o"; bin="$OUT/${name}"
-        if "$CUCC_PATH/bin/cucc" -c "$src" -o "$obj" >"$OUT/${name}.compile.log" 2>&1 \
-           && "$CUCC_PATH/bin/cucc" "$obj" -o "$bin" >"$OUT/${name}.link.log" 2>&1 \
-           && "$bin" >"$OUT/${name}.run.log" 2>&1 \
-           && grep -Fq "$expected" "$OUT/${name}.run.log"; then
-            echo "[PASS] B regression $name"
-        else
-            echo "[FAIL] B regression $name"
-            tail -n 15 "$OUT/${name}.compile.log" "$OUT/${name}.link.log" "$OUT/${name}.run.log" 2>/dev/null
-            FAIL=$((FAIL + 1))
-        fi
-    done
-fi
-
-printf '\n===== [5/9] SIMT 原语真机验证（reduction.cu） =====\n'
-RED_SRC=examples/simtPrimitives/reduction.cu
-RED_OBJ="$OUT/reduction.o"; RED_BIN="$OUT/reduction"
-if "$CUCC_PATH/bin/cucc" -c "$RED_SRC" -o "$RED_OBJ" >"$OUT/reduction.compile.log" 2>&1; then
-    echo '[PASS] reduction compile'
-    if "$CUCC_PATH/bin/cucc" "$RED_OBJ" -o "$RED_BIN" >"$OUT/reduction.link.log" 2>&1; then
-        echo '[PASS] reduction link'
-        if [ "$DEVICE_HEALTHY" -eq 1 ] && "$RED_BIN" >"$OUT/reduction.run.log" 2>&1 \
-           && grep -Fq 'simt primitives OK' "$OUT/reduction.run.log"; then
-            echo '[PASS] simt primitives OK（__shared__/__syncthreads/atomicAdd 真机成立）'
-        else
-            echo '[FAIL] reduction run（设备不健康或输出不正确）'
-            tail -n 20 "$OUT/reduction.run.log" "$OUT/reduction.compile.log" "$OUT/reduction.link.log" 2>/dev/null
-            FAIL=$((FAIL + 1))
-        fi
-    else
-        echo '[FAIL] reduction link'; tail -n 20 "$OUT/reduction.link.log"; FAIL=$((FAIL + 1))
-    fi
-else
-    echo '[FAIL] reduction compile'; tail -n 20 "$OUT/reduction.compile.log"; FAIL=$((FAIL + 1))
-fi
-
-printf '\n===== [6/9] 只读：真机 acl_cblas.h 签名/枚举值核对（定位 100000） =====\n'
-ACL_HDR="${ASCEND_INCLUDE:-/usr/local/Ascend/ascend-toolkit/latest/include}/acl/ops/acl_cblas.h"
-if [ -f "$ACL_HDR" ]; then
-    echo "===== aclblasGemmEx 原型 ====="
-    grep -n -A 30 "aclblasGemmEx" "$ACL_HDR" | head -40
-    echo "===== 枚举定义（含数值）====="
-    grep -n "typedef enum.*aclComputeType\|typedef enum.*aclTransType\|typedef enum.*aclDataType" "$ACL_HDR"
-    grep -n -A 3 "typedef enum.*aclComputeType" "$ACL_HDR" | head -6
-    grep -n -A 6 "typedef enum.*aclTransType" "$ACL_HDR" | head -8
-    echo "===== ACL_FLOAT 数值 ====="
-    grep -n "ACL_FLOAT\s*=\|ACL_FLOAT\b\|ACL_FLOAT16" "$ACL_HDR" | head
-    echo "===== aclDataType 定义（可能在 acl_base.h 或 acl_cblas.h 顶部）====="
-    grep -rn "typedef enum.*aclDataType\|ACL_FLOAT[ ,)]\|ACL_FLOAT32" \
-        "${ASCEND_INCLUDE:-/usr/local/Ascend/ascend-toolkit/latest/include}" 2>/dev/null | head -12
-    echo "===== lda/ldb/ldc 说明（GemmEx 注释 @param）====="
-    grep -n -B1 -A4 "lda \|ldb \|ldc " "$ACL_HDR" | head -30
-else
-    echo "MISS: $ACL_HDR（改用 find 定位）"
-    find /usr/local/Ascend -name "acl_cblas.h" 2>/dev/null | head -3
-fi
-echo "===== matmul.run.log 完整内容（如有；含 stderr 全部） ====="
-    if [ -f "$OUT/matmul.run.log" ]; then
-        cat "$OUT/matmul.run.log"
-    else
-        echo "(无 matmul.run.log —— [7/8] 尚未重跑)"
-    fi
-
-printf '\n===== [7/9] puresimt 编译方式验证（导师方向，CANN 9.2.0） =====\n'
+printf '\n===== [2/5] ccec 版本与能力 =====\n'
 CANN_BASE="/usr/local/Ascend/latest"
 CCEC="${CANN_BASE}/bin/ccec"
+echo "--- ccec --version ---"
+"$CCEC" --version 2>&1 | head -3 || true
+echo "--- 支持的 -x / 架构 / simt（--help 关键字）---"
+"$CCEC" --help 2>&1 | grep -iE "dav-|enable-simt|simt|\-x\b|language" | head -30 || true
+
+printf '\n===== [3/5] puresimt 编译 + 运行（两种方式 + 无 -vec 对照） =====\n'
 PS_DIR="examples/puresimt"
-mkdir -p "$OUT"
-echo "--- ccec 版本 ---"
-"$CCEC" --version 2>&1 | head -2 || true
-echo "--- 支持的 -x 与架构参数（--help 关键字）---"
-"$CCEC" --help 2>&1 | grep -iE "^\s+-x|dav-|enable-simt|simt" | head -25 || true
-for kind in dpp asc; do
-    if [ "$kind" = "dpp" ]; then
-        SRC="$PS_DIR/puresimt_probe.cce"
-        EXTRA="-x dpp   --cce-aicore-arch=dav-c310-vec --enable-simt -std=c++17"
-        OBJ="$OUT/puresimt_dpp"
-    else
-        SRC="$PS_DIR/puresimt_probe.asc"
-        EXTRA="-x asc --cce-aicore-arch=dav-c310-vec --enable-simt -std=c++17"
-        OBJ="$OUT/puresimt_asc"
-    fi
-    echo "===== [$kind] 编译：${CCEC} ${EXTRA} ${SRC} ====="
-    if "$CCEC" $EXTRA "$SRC" \
+compile_run() {  # compile_run <tag> <src> <extra_flags...>
+    local tag="$1" src="$2"; shift 2
+    local log="$OUT/puresimt_${tag}.log" bin="$OUT/puresimt_${tag}"
+    echo "===== [$tag] $CCEC $* $src ====="
+    if "$CCEC" "$@" "$src" \
         -I"${CANN_BASE}/include" \
         -L"${CANN_BASE}/lib64" \
         -lascendc_runtime -lascendcl -lruntime -lregister -lerror_manager \
         -lprofapi -lascendalog -lmmpa -lascend_dump -lc_sec -lstdc++ \
-        -o "$OBJ" >"$OUT/puresimt_${kind}.log" 2>&1; then
-        echo "[PASS] [$kind] 编译通过"
-        if [ "$DEVICE_HEALTHY" -eq 1 ] && "$OBJ" >"$OUT/puresimt_${kind}.run.log" 2>&1 \
-           && grep -Fq 'puresimt OK' "$OUT/puresimt_${kind}.run.log"; then
-            echo "[PASS] [$kind] 运行通过：$(grep puresimt "$OUT/puresimt_${kind}.run.log")"
-        else
-            echo "[FAIL] [$kind] 运行失败（看日志）"
-            tail -n 25 "$OUT/puresimt_${kind}.log" "$OUT/puresimt_${kind}.run.log" 2>/dev/null
-            FAIL=$((FAIL + 1))
+        -o "$bin" >"$log" 2>&1; then
+        echo "[PASS] [$tag] 编译通过"
+        if [ "$DEVICE_HEALTHY" -eq 1 ] && "$bin" >"$OUT/puresimt_${tag}.run.log" 2>&1 \
+           && grep -Fq 'puresimt OK' "$OUT/puresimt_${tag}.run.log"; then
+            echo "[PASS] [$tag] 运行通过：$(grep puresimt "$OUT/puresimt_${tag}.run.log")"
+            return 0
         fi
+        echo "[FAIL] [$tag] 运行失败（run log 首 25 行）"
+        head -n 25 "$OUT/puresimt_${tag}.run.log" 2>/dev/null
+        return 1
+    fi
+    echo "[FAIL] [$tag] 编译失败（log 首 18 行）"
+    head -n 18 "$log" 2>/dev/null
+    return 1
+}
+
+compile_run dpp examples/puresimt/puresimt_probe.cce \
+    -x dpp --cce-aicore-arch=dav-c310-vec --enable-simt -std=c++17
+compile_run asc examples/puresimt/puresimt_probe.asc \
+    -x asc --cce-aicore-arch=dav-c310-vec --enable-simt -std=c++17
+# dav-c310-vec 崩溃/失败时，用 dav-c310（无 -vec）做对照
+compile_run dpp_novec examples/puresimt/puresimt_probe.cce \
+    -x dpp --cce-aicore-arch=dav-c310 --enable-simt -std=c++17
+compile_run asc_novec examples/puresimt/puresimt_probe.asc \
+    -x asc --cce-aicore-arch=dav-c310 --enable-simt -std=c++17
+
+printf '\n===== [4/5] 汇总（puresimt 判定） =====\n'
+for tag in dpp asc dpp_novec asc_novec; do
+    if grep -Fq 'puresimt OK' "$OUT/puresimt_${tag}.run.log" 2>/dev/null; then
+        echo "[PURESIMT_PASS] $tag"
     else
-        echo "[FAIL] [$kind] 编译失败；puresimt_${kind}.log 首 15 行："
-        head -n 15 "$OUT/puresimt_${kind}.log" 2>/dev/null
-        echo "（崩溃栈末 5 行）"
-        tail -n 5 "$OUT/puresimt_${kind}.log" 2>/dev/null
-        FAIL=$((FAIL + 1))
-        # 若 ccec 对 dav-c310-vec 崩溃，尝试无 -vec 的 dav-c310 作对照
-        echo "--- [$kind] 对照：换 --cce-aicore-arch=dav-c310（无 -vec）再编一次 ---"
-        EXTRA2=$(echo "$EXTRA" | sed 's/-vec//')
-        if "$CCEC" $EXTRA2 "$SRC" \
-            -I"${CANN_BASE}/include" \
-            -L"${CANN_BASE}/lib64" \
-            -lascendc_runtime -lascendcl -lruntime -lregister -lerror_manager \
-            -lprofapi -lascendalog -lmmpa -lascend_dump -lc_sec -lstdc++ \
-            -o "$OUT/puresimt_${kind}_nodashvec" >"$OUT/puresimt_${kind}_nodashvec.log" 2>&1; then
-            echo "[PASS] [$kind] dav-c310 无 -vec 编译通过"
-            if [ "$DEVICE_HEALTHY" -eq 1 ] && "$OUT/puresimt_${kind}_nodashvec" >"$OUT/puresimt_${kind}_nodashvec.run.log" 2>&1 \
-               && grep -Fq 'puresimt OK' "$OUT/puresimt_${kind}_nodashvec.run.log"; then
-                echo "[PASS] [$kind] dav-c310 无 -vec 运行通过"
-            else
-                echo "[FAIL] [$kind] dav-c310 无 -vec 运行失败"; tail -n 15 "$OUT/puresimt_${kind}_nodashvec.run.log" 2>/dev/null
-            fi
-        else
-            echo "[FAIL] [$kind] dav-c310 无 -vec 也失败（首 15 行）"
-            head -n 15 "$OUT/puresimt_${kind}_nodashvec.log" 2>/dev/null
-        fi
+        [ -f "$OUT/puresimt_${tag}.log" ] || continue
+        echo "[PURESIMT_FAIL] $tag"
     fi
 done
-
-printf '\n===== [8/9] cublas 桥真机验证（matmul.cu） =====\n'
-CUB_SRC=examples/cublasMatmul/matmul.cu
-CUB_OBJ="$OUT/matmul.o"; CUB_BIN="$OUT/matmul"
-if "$CUCC_PATH/bin/cucc" -c "$CUB_SRC" -o "$CUB_OBJ" >"$OUT/matmul.compile.log" 2>&1; then
-    echo '[PASS] cublas matmul compile'
-    if "$CUCC_PATH/bin/cucc" "$CUB_OBJ" -o "$CUB_BIN" >"$OUT/matmul.link.log" 2>&1; then
-        echo '[PASS] cublas matmul link'
-        if [ "$DEVICE_HEALTHY" -eq 1 ] && "$CUB_BIN" >"$OUT/matmul.run.log" 2>&1 \
-           && grep -Fq 'cublas matmul OK' "$OUT/matmul.run.log"; then
-            echo '[PASS] cublas matmul OK（cublasSgemm → aclblasGemmEx 真机成立）'
-        else
-            echo '[FAIL] cublas matmul run'
-            tail -n 20 "$OUT/matmul.run.log" "$OUT/matmul.compile.log" "$OUT/matmul.link.log" 2>/dev/null
-            FAIL=$((FAIL + 1))
-        fi
-    else
-        echo '[FAIL] cublas matmul link'; tail -n 20 "$OUT/matmul.link.log"; FAIL=$((FAIL + 1))
-    fi
-else
-    echo '[FAIL] cublas matmul compile'; tail -n 20 "$OUT/matmul.compile.log"; FAIL=$((FAIL + 1))
-fi
-
-printf '\n===== [9/9] 汇总 =====\n'
-echo "FAIL=$FAIL DEVICE_HEALTHY=$DEVICE_HEALTHY TEST_BLOCKED_BY_DEVICE=$TEST_BLOCKED_BY_DEVICE"
+echo "DEVICE_HEALTHY=$DEVICE_HEALTHY TEST_BLOCKED_BY_DEVICE=$TEST_BLOCKED_BY_DEVICE"
 echo "完整日志：$OUT"
 if [ "$TEST_BLOCKED_BY_DEVICE" -eq 1 ]; then
     echo 'RESULT=TEST_BLOCKED_BY_DEVICE'
-elif [ "$FAIL" -eq 0 ]; then
-    echo 'B_REGRESSION_PASS SIMT_PRIMITIVES_PASS PURESIMT_PASS CUBLAS_MATMUL_PASS'
+elif grep -Fq 'puresimt OK' "$OUT/puresimt_dpp.run.log" "$OUT/puresimt_asc.run.log" "$OUT/puresimt_dpp_novec.run.log" "$OUT/puresimt_asc_novec.run.log" 2>/dev/null; then
+    echo 'PURESIMT_DIRECTION_PASS（至少一种方式编译+运行通过：导师方向成立）'
 else
-    echo 'B_REGRESSION_FAIL_OR_SIMT_FAIL_OR_PURESIMT_FAIL_OR_CUBLAS_FAIL（查看上方各 .log）'
+    echo 'PURESIMT_ALL_FAIL（9.2.0 ccec 不认可这些参数组合；需对照导师 8.5.0 环境）'
 fi
