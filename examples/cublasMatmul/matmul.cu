@@ -18,9 +18,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define M 4
-#define N 4
-#define K 4
+/* 尺寸选择：4×4×4 是昇腾 Cube GEMM 的临界小尺寸（上一轮真机 100000 参数非法，
+ * aclGetRecentErrMsg 返回 (null)——数值尺寸过小被拒的嫌疑最大），改用 16×16×16。 */
+#define M 16
+#define N 16
+#define K 16
 
 int main(void) {
     int devCount = 0;

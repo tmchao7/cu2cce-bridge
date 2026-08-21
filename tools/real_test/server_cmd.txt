@@ -149,11 +149,15 @@ echo "===== matmul.run.log 完整内容（如有；含 stderr 全部） ====="
         echo "(无 matmul.run.log —— [7/8] 尚未重跑)"
     fi
 
-printf '\n===== [7/9] puresimt 编译方式验证（导师方向） =====\n'
+printf '\n===== [7/9] puresimt 编译方式验证（导师方向，CANN 9.2.0） =====\n'
 CANN_BASE="/usr/local/Ascend/latest"
 CCEC="${CANN_BASE}/bin/ccec"
 PS_DIR="examples/puresimt"
 mkdir -p "$OUT"
+echo "--- ccec 版本 ---"
+"$CCEC" --version 2>&1 | head -2 || true
+echo "--- 支持的 -x 与架构参数（--help 关键字）---"
+"$CCEC" --help 2>&1 | grep -iE "^\s+-x|dav-|enable-simt|simt" | head -25 || true
 for kind in dpp asc; do
     if [ "$kind" = "dpp" ]; then
         SRC="$PS_DIR/puresimt_probe.cce"
@@ -181,9 +185,31 @@ for kind in dpp asc; do
             FAIL=$((FAIL + 1))
         fi
     else
-        echo "[FAIL] [$kind] 编译失败（末尾 25 行）"
-        tail -n 25 "$OUT/puresimt_${kind}.log" 2>/dev/null
+        echo "[FAIL] [$kind] 编译失败；puresimt_${kind}.log 首 15 行："
+        head -n 15 "$OUT/puresimt_${kind}.log" 2>/dev/null
+        echo "（崩溃栈末 5 行）"
+        tail -n 5 "$OUT/puresimt_${kind}.log" 2>/dev/null
         FAIL=$((FAIL + 1))
+        # 若 ccec 对 dav-c310-vec 崩溃，尝试无 -vec 的 dav-c310 作对照
+        echo "--- [$kind] 对照：换 --cce-aicore-arch=dav-c310（无 -vec）再编一次 ---"
+        EXTRA2=$(echo "$EXTRA" | sed 's/-vec//')
+        if "$CCEC" $EXTRA2 "$SRC" \
+            -I"${CANN_BASE}/include" \
+            -L"${CANN_BASE}/lib64" \
+            -lascendc_runtime -lascendcl -lruntime -lregister -lerror_manager \
+            -lprofapi -lascendalog -lmmpa -lascend_dump -lc_sec -lstdc++ \
+            -o "$OUT/puresimt_${kind}_nodashvec" >"$OUT/puresimt_${kind}_nodashvec.log" 2>&1; then
+            echo "[PASS] [$kind] dav-c310 无 -vec 编译通过"
+            if [ "$DEVICE_HEALTHY" -eq 1 ] && "$OUT/puresimt_${kind}_nodashvec" >"$OUT/puresimt_${kind}_nodashvec.run.log" 2>&1 \
+               && grep -Fq 'puresimt OK' "$OUT/puresimt_${kind}_nodashvec.run.log"; then
+                echo "[PASS] [$kind] dav-c310 无 -vec 运行通过"
+            else
+                echo "[FAIL] [$kind] dav-c310 无 -vec 运行失败"; tail -n 15 "$OUT/puresimt_${kind}_nodashvec.run.log" 2>/dev/null
+            fi
+        else
+            echo "[FAIL] [$kind] dav-c310 无 -vec 也失败（首 15 行）"
+            head -n 15 "$OUT/puresimt_${kind}_nodashvec.log" 2>/dev/null
+        fi
     fi
 done
 
