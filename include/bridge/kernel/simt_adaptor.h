@@ -38,7 +38,12 @@
 #define __threadfence_block() asc_threadfence_block()
 
 //==================== 共享内存 ====================//
-/* CUDA: __shared__ -> 昇腾 SIMT: __ubuf__（共享内存/Unified Buffer） */
+/* CUDA: __shared__ -> 昇腾 SIMT: __ubuf__（共享内存/Unified Buffer）
+ * ⚠️ 真机教训（2026-08-21 reduction，SIMT 原语验证）：ccec 的 __ubuf__ 只接受
+ *    指针形态，**非指针标量**（`__shared__ unsigned sc;`）编译报：
+ *    "non-pointer variable sc is not allowed to have any CCE memory attribute"
+ *    CUDA 兼容写法：用长度 1 的数组承载标量（`__shared__ unsigned tmp[1];` +
+ *    `tmp[0]`/`&tmp[0]`）。示例见 examples/simtPrimitives/reduction.cu。 */
 #define __shared__ __ubuf__
 
 //==================== 线程块/网格索引（同名内置，无需宏） ====================//

@@ -86,7 +86,7 @@
 | 3 | 成功码 | ACL_ERROR_NONE vs ACL_SUCCESS | ✅ 已确认用 **ACL_SUCCESS**（acl_error.md 明确，NONE 将废弃） | 真机 grep acl_base.h 复核 |
 | 4 | aclblas FP32 gemv/axpy/dot 等 | GemvEx 已确认存在；axpy/copy/dot/scal/swap/nrm2 待核 | ⚠️ GemvEx 已映射 Sgemv；其余仍占位 | 真机 grep acl_cblas.h |
 | 5 | pitch 对齐规则 | wcudaMallocPitch 简化（width 无对齐） | ⚠️ 待真机 | 真机测对齐 |
-| 6 | 原子操作地址空间 | asc_atomic_add 参数带 __ubuf__/__gm__，CUDA 指针能否隐式匹配 | ⚠️ 待真机 | 真机编译 SIMT kernel |
+| 6 | 原子操作地址空间 | asc_atomic_add 参数带 __ubuf__/__gm__，CUDA 指针能否隐式匹配 | ✅ **2026-08-21 真机关闭**（reduction.cu：__shared__+__syncthreads+atomicAdd 编译/链接/运行 PASS，`SIMT_PRIMITIVES_PASS`） | 教训：`__shared__` 非指针标量不被 ccec 接受（__ubuf__ 只收指针），计数器用长度 1 数组 |
 | 7 | aclrtRecordEvent stream 传 null | CUDA 默认 stream 语义 vs 昇腾 | ⚠️ 待真机 | 真机测 |
 
 ### 5.1 真机核实更新（2026-08-19，cann-9.2.0，bisheng 服务器实测）

@@ -71,7 +71,9 @@ aclError wcublasGetVersion(int *version);
 
 /* CUBLAS 的 Sgemm 形状：
  *   cublasSgemm(handle, transa, transb, m, n, k, &alpha, A, lda, B, ldb, &beta, C, ldc)
- * wrapper 内部转 aclblasGemmEx（补 dataType/transC/computeType/stream）。 */
+ * wrapper 内部转 aclblasGemmEx（补 dataType/transC/computeType/stream）。
+ * 注意：cublas 调用方传的是 cudaMalloc 出的 Device 指针，float * 可与 aclblasGemmEx
+ * 的 void\* 形参隐式转换；示例见 examples/cublasMatmul/matmul.cu。 */
 aclError wcublasSgemm(cublasHandle_t handle, aclTransType transa, aclTransType transb, int m, int n,
                       int k, const float *alpha, const float *A, int lda, const float *B, int ldb,
                       const float *beta, float *C, int ldc);
