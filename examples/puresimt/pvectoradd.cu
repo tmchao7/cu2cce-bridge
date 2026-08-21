@@ -73,8 +73,10 @@ int main(void) {
     cudaMemcpy(d_c, h_c, byteSize, cudaMemcpyHostToDevice);
 
     int blocks = (N + THREADS - 1) / THREADS;
-    cudaLaunchKernel((const void *)vectorAddKernel, dim3(blocks), dim3(THREADS),
-                     nullptr, 0, stream);
+    /* kernel 启动用编译器原生 <<<>>>（puresimt 下可用）；不走 cudaLaunchKernel：
+     * wcudaLaunchKernel 映射的 aclrtLaunchSIMTKernelWithArgsArray 需 device kernel
+     * func handle（aclrtBinaryGetFunction 获取），传裸 C 函数指针不会真正上核。 */
+    vectorAddKernel<<<blocks, THREADS, 0, stream>>>(d_c, d_a, d_b, N);
     cudaStreamSynchronize(stream);
     cudaMemcpy(h_c, d_c, byteSize, cudaMemcpyDeviceToHost);
 

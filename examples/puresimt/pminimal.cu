@@ -44,8 +44,7 @@ int main(void) {
     }
     cudaMemcpy(d, h, byteSize, cudaMemcpyHostToDevice);
 
-    cudaLaunchKernel((const void *)addOneKernel, dim3(1), dim3(THREADS),
-                     nullptr, 0, stream);
+    addOneKernel<<<1, THREADS, 0, stream>>>(d, N);
     cudaStreamSynchronize(stream);
     cudaMemcpy(h, d, byteSize, cudaMemcpyDeviceToHost);
 
