@@ -30,6 +30,14 @@ int main(void) {
         return 1;
     }
 
+    cudaStream_t stream = nullptr;
+    err = cudaStreamCreate(&stream);
+    if (err != cudaSuccess) {
+        printf("cudaStreamCreate failed: %d (%s)\n", (int)err,
+               cudaGetErrorString(err));
+        return 1;
+    }
+
     /* A = [[1,2,3,4],[5,6,7,8],...] KxK 满秩（每行 1..K 递增），
      * B = 单位阵；C = alpha*A*I + beta*C。
      * 选 alpha=1 beta=0 → C 应等于 A（无需转置）。 */
@@ -66,6 +74,13 @@ int main(void) {
         printf("cublasCreate failed: %d\n", (int)st);
         return 1;
     }
+    /* 显式设置 stream：昇腾 aclblas 计算接口要求非空 aclrtStream，
+     * 不能用 CUDA 的"nullptr 默认流"写法（wrapper 兜底也会自建，显式更稳）。 */
+    st = cublasSetStream(handle, stream);
+    if (st != CUBLAS_STATUS_SUCCESS) {
+        printf("cublasSetStream failed: %d\n", (int)st);
+        return 1;
+    }
 
     float alpha = 1.0f, beta = 0.0f;
     st = cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N,
@@ -75,7 +90,13 @@ int main(void) {
         return 1;
     }
 
-    /* gemm 是异步下发，等 stream 完成再拷回 */
+    /* gemm 是异步下发，等 stream + device 完成再拷回 */
+    err = cudaStreamSynchronize(stream);
+    if (err != cudaSuccess) {
+        printf("cudaStreamSynchronize failed: %d (%s)\n",
+               (int)err, cudaGetErrorString(err));
+        return 1;
+    }
     err = cudaDeviceSynchronize();
     if (err != cudaSuccess) {
         printf("cudaDeviceSynchronize failed: %d (%s)\n",
@@ -102,6 +123,7 @@ int main(void) {
     printf("cublas matmul OK (C = alpha*A*B + beta*C, %dx%dx%d)\n", M, N, K);
 
     cublasDestroy(handle);
+    cudaStreamDestroy(stream);
     cudaFree(dA);
     cudaFree(dB);
     cudaFree(dC);
