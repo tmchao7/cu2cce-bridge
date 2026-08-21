@@ -67,13 +67,22 @@ aclError wcublasGetVersion(int *version) {
     return ACL_SUCCESS;
 }
 
-/* 通用 GEMM 内部实现：s/d 共用，用 aclblasGemmEx */
+/* 通用 GEMM 内部实现：s/d 共用，用 aclblasGemmEx。
+ * ⚠️ 真机教训（2026-08-21 cublasMatmul）：原先直接传 handle->stream（默认
+ * nullptr），aclblasGemmEx 返回 ACL_ERROR_INVALID_PARAM（100000）——昇腾计算
+ * 接口要求非空 aclrtStream，必须先 aclrtCreateStream。 */
 static aclError gemm_impl(cublasHandle_t handle, aclTransType transa, aclTransType transb, int m,
                           int n, int k, const void *alpha, const void *A, int lda,
                           aclDataType dtA, const void *B, int ldb, aclDataType dtB,
                           const void *beta, void *C, int ldc, aclDataType dtC) {
     if (handle == nullptr) {
         return ACL_ERROR_INVALID_PARAM;
+    }
+    if (handle->stream == nullptr) {
+        aclError sret = aclrtCreateStream(&handle->stream);
+        if (sret != ACL_SUCCESS) {
+            return sret;
+        }
     }
     /* aclblasGemmEx 无 handle，直接传 stream（从 cu2cce handle 结构取）。
      * transC 昇腾仅支持 ACL_TRANS_N；computeType 用高精度。 */
