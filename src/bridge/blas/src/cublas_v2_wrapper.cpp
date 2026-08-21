@@ -98,11 +98,67 @@ static aclError gemm_impl(cublasHandle_t handle, aclTransType transa, aclTransTy
     return aclrtSynchronizeStream(handle->stream);
 }
 
+/* fp32 → half（IEEE 半精度，截断 10 位尾数）。昇腾 GemmEx 仅支持
+ * fp16×fp16×fp16 / fp16×fp16×float / int8 组合（真机 9.2.0 acl_cblas.h 确认，
+ * 无 fp32 aclblasSgemm）→ Sgemm 的 fp32 输入必须降级为 fp16 计算。
+ * ⚠️ 这是昇腾硬件限制（fp32→fp16 静默降精度）：值 >2048 或非整数会丢精度；
+ *    调用方若需精确 fp32 gemm 需自行评估。normal 数无损映射 1..2048 整数。 */
+static unsigned short cce_f32_to_f16(float x) {
+    unsigned int u;
+    u = *((unsigned int *)&x);
+    unsigned int sign = (u >> 16) & 0x8000u;
+    unsigned int exp = (u >> 23) & 0xffu;
+    unsigned int mant = u & 0x7fffffu;
+    if (exp == 0xffu) { /* Inf/NaN → 保持符号的 Inf */
+        return (unsigned short)(sign | 0x7c00u);
+    }
+    int e = (int)exp - 127 + 15;
+    if (e >= 31) { /* 溢出 → Inf */
+        return (unsigned short)(sign | 0x7c00u);
+    }
+    if (e <= 0) { /* 亚正常/近零 */
+        if (e < -10) return (unsigned short)sign;
+        mant |= 0x800000u;
+        unsigned int shift = (unsigned int)(14 - e);
+        unsigned int round = (mant >> (shift - 1)) & 1u;
+        unsigned int h = mant >> shift;
+        if (round) h++;
+        return (unsigned short)(sign | h);
+    }
+    unsigned int h = ((unsigned int)e << 10) | (mant >> 13);
+    return (unsigned short)(sign | h);
+}
+
 aclError wcublasSgemm(cublasHandle_t handle, aclTransType transa, aclTransType transb, int m, int n,
                       int k, const float *alpha, const float *A, int lda, const float *B, int ldb,
                       const float *beta, float *C, int ldc) {
-    return gemm_impl(handle, transa, transb, m, n, k, alpha, A, lda, ACL_FLOAT, B, ldb,
-                     ACL_FLOAT, beta, C, ldc, ACL_FLOAT);
+    if (handle == nullptr || alpha == nullptr || beta == nullptr || A == nullptr || B == nullptr ||
+        C == nullptr) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    if (handle->stream == nullptr) {
+        aclError sret = aclrtCreateStream(&handle->stream);
+        if (sret != ACL_SUCCESS) {
+            return sret;
+        }
+    }
+    size_t szA = (size_t)m * lda * sizeof(aclFloat16);
+    size_t szB = (size_t)k * ldb * sizeof(aclFloat16);
+    aclFloat16 *halfA = (aclFloat16 *)std::malloc(szA);
+    aclFloat16 *halfB = (aclFloat16 *)std::malloc(szB);
+    if (halfA == nullptr || halfB == nullptr) {
+        std::free(halfA);
+        std::free(halfB);
+        return ACL_ERROR_BAD_ALLOC;
+    }
+    for (int i = 0; i < m * lda; ++i) halfA[i] = cce_f32_to_f16(A[i]);
+    for (int i = 0; i < k * ldb; ++i) halfB[i] = cce_f32_to_f16(B[i]);
+    /* fp16×fp16×float 组合：A/B 降 half，C 保持 fp32（整数输入无损） */
+    aclError gret = gemm_impl(handle, transa, transb, m, n, k, alpha, halfA, lda, ACL_FLOAT16, halfB,
+                              ldb, ACL_FLOAT16, beta, C, ldc, ACL_FLOAT);
+    std::free(halfA);
+    std::free(halfB);
+    return gret;
 }
 
 aclError wcublasDgemm(cublasHandle_t handle, aclTransType transa, aclTransType transb, int m, int n,
