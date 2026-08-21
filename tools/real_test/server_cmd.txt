@@ -3,12 +3,17 @@
 # 分支：main（puresimt 正式开发线；新同构 B 主线已归档到 exp/new-homogeneous-v1）
 # 2026-08-21 导师方向：毕昇前端复用 CUDA，"除 <<<>>> 与新同构差异外 acl 接口一致"。
 # puresimt 成立（9.2.0：-x asc + --enable-simt + --cce-aicore-arch=dav-c310-vec，
-# 必须设置 ASCEND_HOME_PATH）。本轮回归四个 puresimt 样例：
+# 必须设置 ASCEND_HOME_PATH）。本轮回归六个 puresimt 样例：
 #   - puresimt_probe（count=8192，含 3D grid/block 索引）
 #   - pvectoradd（N=1024，对应旧 B 的 vectorAdd）
 #   - pminimal（N=256，对应旧 B 的 minimal / 107002 防复退）
 #   - preduction（N=1024，SIMT 原语真机验证：__shared__+__syncthreads+
 #     atomicAdd 块内 reduction；puresimt 首次非 elementwise 样例）
+#   - pmatmul（cublas 桥矩阵乘真机首验，方向 2；fp32 输入由 wcublasSgemm
+#     内部降级 fp16 计算、C 保持 fp32，A/B 整数 1..16 无损）
+# 注意：wcublasSgemm 的降精度实现在 libcce_bridge_runtime.so 内，若 pmatmul
+#     编译/链接报"签名不匹配"或运行异常，需先重编 bridge 库：
+#       bash tools/real_test/build_bridge.sh
 # 2026-08-21 方向 A（用户定稿）：host 全部走 bridge 宏/wrapper（cuda* →
 # wcuda* → aclrt*），include <cuda_runtime.h> 由 repo 的 include/ 接住（编译
 # -I<repo>/include 在前）；kernel 保持纯 CUDA 前端直通。首调用均为
@@ -98,7 +103,7 @@ for pair in \
     'pvectoradd.cu|vectorAdd puresimt OK (N=1024)|cu' \
     'pminimal.cu|minimal puresimt OK (N=256)|cu' \
     'preduction.cu|preduction puresimt OK (N=1024, sum=523776)|cu' \
-    'pmatmul.cu|pmatmul puresimt OK (C = A*B fp16xfp16->fp32, 16x16x16)|cu'; do
+    'pmatmul.cu|pmatmul puresimt OK (C = A*B, 16x16x16)|cu'; do
     src=${pair%%|*}; rest=${pair#*|}; key=${rest%%|*}; ext=${rest#*|}
     name=$(basename "$src" .$ext)
     bin="$OUT/${name}"
