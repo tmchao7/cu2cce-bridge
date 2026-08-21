@@ -3,10 +3,12 @@
 # 分支：main（puresimt 正式开发线；新同构 B 主线已归档到 exp/new-homogeneous-v1）
 # 2026-08-21 导师方向：毕昇前端复用 CUDA，"除 <<<>>> 与新同构差异外 acl 接口一致"。
 # puresimt 成立（9.2.0：-x asc + --enable-simt + --cce-aicore-arch=dav-c310-vec，
-# 必须设置 ASCEND_HOME_PATH）。本轮回归三个 puresimt 样例：
-#   - puresimt_probe（count=8192）
+# 必须设置 ASCEND_HOME_PATH）。本轮回归四个 puresimt 样例：
+#   - puresimt_probe（count=8192，含 3D grid/block 索引）
 #   - pvectoradd（N=1024，对应旧 B 的 vectorAdd）
 #   - pminimal（N=256，对应旧 B 的 minimal / 107002 防复退）
+#   - preduction（N=1024，SIMT 原语真机验证：__shared__+__syncthreads+
+#     atomicAdd 块内 reduction；puresimt 首次非 elementwise 样例）
 # 设备不健康时跳过运行；不使用顶层 exit。
 
 set +e
@@ -74,7 +76,8 @@ printf '\n===== [3/5] puresimt 编译 + 运行 =====\n'
 for pair in \
     'puresimt_probe.asc|puresimt OK (count=8192)|asc' \
     'pvectoradd.cu|vectorAdd puresimt OK (N=1024)|cu' \
-    'pminimal.cu|minimal puresimt OK (N=256)|cu'; do
+    'pminimal.cu|minimal puresimt OK (N=256)|cu' \
+    'preduction.cu|preduction puresimt OK (N=1024, sum=523776)|cu'; do
     src=${pair%%|*}; rest=${pair#*|}; key=${rest%%|*}; ext=${rest#*|}
     name=$(basename "$src" .$ext)
     bin="$OUT/${name}"
