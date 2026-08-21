@@ -60,15 +60,23 @@ else
     TEST_BLOCKED_BY_DEVICE=1; echo '[BLOCKED] TEST_BLOCKED_BY_DEVICE（跳过 puresimt 运行，仅编译判断）'
 fi
 
-printf '\n===== [2/5] ccec 版本与能力 =====\n'
+printf '\n===== [2/5] ccec 版本与 ASCEND_HOME_PATH =====\n'
 CANN_BASE="/usr/local/Ascend/latest"
 CCEC="${CANN_BASE}/bin/ccec"
+# 导师方向（2026-08-21）：--enable-simt 需要 ASCEND_HOME_PATH（--help：
+# "-cce-enable-puresimt ... will require ASCEND_HOME_PATH to be set"）。
+# 上一轮四种都因缺失而 LLVM fatal error；先设置它（缺失时 find 探测）。
+if [ -z "${ASCEND_HOME_PATH:-}" ] || [ ! -d "${ASCEND_HOME_PATH}" ]; then
+    for cand in /usr/local/Ascend/latest /usr/local/Ascend/ascend-toolkit/latest; do
+        if [ -d "$cand" ] && [ -e "$cand/bin/ccec" ]; then ASCEND_HOME_PATH="$cand"; break; fi
+    done
+fi
+export ASCEND_HOME_PATH="${ASCEND_HOME_PATH:-/usr/local/Ascend/latest}"
+echo "ASCEND_HOME_PATH=$ASCEND_HOME_PATH"
 echo "--- ccec --version ---"
 "$CCEC" --version 2>&1 | head -3 || true
-echo "--- 支持的 -x / 架构 / simt（--help 关键字）---"
-"$CCEC" --help 2>&1 | grep -iE "dav-|enable-simt|simt|\-x\b|language" | head -30 || true
 
-printf '\n===== [3/5] puresimt 编译 + 运行（两种方式 + 无 -vec 对照） =====\n'
+printf '\n===== [3/5] puresimt 编译 + 运行（仅 .asc + -x asc，导师推荐路径） =====\n'
 PS_DIR="examples/puresimt"
 compile_run() {  # compile_run <tag> <src> <extra_flags...>
     local tag="$1" src="$2"; shift 2
@@ -95,18 +103,15 @@ compile_run() {  # compile_run <tag> <src> <extra_flags...>
     return 1
 }
 
-compile_run dpp examples/puresimt/puresimt_probe.cce \
-    -x dpp --cce-aicore-arch=dav-c310-vec --enable-simt -std=c++17
+# 导师推荐：仅 .asc + -x asc（"--cce-aicore-arch=dav-c310-vec --enable-simt"）。
+# 若 dav-c310-vec 不行，用 dav-c310（无 -vec）作对照。
 compile_run asc examples/puresimt/puresimt_probe.asc \
     -x asc --cce-aicore-arch=dav-c310-vec --enable-simt -std=c++17
-# dav-c310-vec 崩溃/失败时，用 dav-c310（无 -vec）做对照
-compile_run dpp_novec examples/puresimt/puresimt_probe.cce \
-    -x dpp --cce-aicore-arch=dav-c310 --enable-simt -std=c++17
 compile_run asc_novec examples/puresimt/puresimt_probe.asc \
     -x asc --cce-aicore-arch=dav-c310 --enable-simt -std=c++17
 
 printf '\n===== [4/5] 汇总（puresimt 判定） =====\n'
-for tag in dpp asc dpp_novec asc_novec; do
+for tag in asc asc_novec; do
     if grep -Fq 'puresimt OK' "$OUT/puresimt_${tag}.run.log" 2>/dev/null; then
         echo "[PURESIMT_PASS] $tag"
     else
