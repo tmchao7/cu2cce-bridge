@@ -122,20 +122,26 @@ else
     echo '[FAIL] reduction compile'; tail -n 20 "$OUT/reduction.compile.log"; FAIL=$((FAIL + 1))
 fi
 
-printf '\n===== [6/8] 只读：真机 acl_cblas.h 签名核对（定位 100000） =====\n'
+printf '\n===== [6/8] 只读：真机 acl_cblas.h 签名/枚举值核对（定位 100000） =====\n'
 ACL_HDR="${ASCEND_INCLUDE:-/usr/local/Ascend/ascend-toolkit/latest/include}/acl/ops/acl_cblas.h"
 if [ -f "$ACL_HDR" ]; then
     echo "===== aclblasGemmEx 原型 ====="
     grep -n -A 30 "aclblasGemmEx" "$ACL_HDR" | head -40
-    echo "===== aclComputeType ====="
-    grep -n "aclComputeType\|ACL_COMPUTE_HIGH_PRECISION\|ACL_COMPUTE_LOW_PRECISION" "$ACL_HDR" | head
-    echo "===== ACL_FLOAT / aclDataType ====="
-    grep -n "ACL_FLOAT\b\|ACL_FLOAT16\|aclDataType" "$ACL_HDR" | head
-    echo "===== aclTransType ====="
-    grep -n "ACL_TRANS_N\b\|aclTransType" "$ACL_HDR" | head
+    echo "===== 枚举定义（含数值）====="
+    grep -n "typedef enum.*aclComputeType\|typedef enum.*aclTransType\|typedef enum.*aclDataType" "$ACL_HDR"
+    grep -n -A 3 "typedef enum.*aclComputeType" "$ACL_HDR" | head -6
+    grep -n -A 6 "typedef enum.*aclTransType" "$ACL_HDR" | head -8
+    echo "===== ACL_FLOAT 数值 ====="
+    grep -n "ACL_FLOAT\s*=\|ACL_FLOAT\b\|ACL_FLOAT16" "$ACL_HDR" | head
+    echo "===== lda/ldb/ldc 说明（GemmEx 注释 @param）====="
+    grep -n -B1 -A4 "lda \|ldb \|ldc " "$ACL_HDR" | head -30
 else
     echo "MISS: $ACL_HDR（改用 find 定位）"
     find /usr/local/Ascend -name "acl_cblas.h" 2>/dev/null | head -3
+fi
+echo "===== matmul.run.log 若存在则打印完整前 30 行 ====="
+if [ -f "$OUT/matmul.run.log" ]; then
+    head -n 30 "$OUT/matmul.run.log"
 fi
 
 printf '\n===== [7/8] cublas 桥真机验证（matmul.cu） =====\n'
