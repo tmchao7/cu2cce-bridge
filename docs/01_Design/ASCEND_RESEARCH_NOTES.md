@@ -409,6 +409,13 @@ __global__[aicore] void test_vector(__gm__ half* a, __gm__ half* b, __gm__ half*
 
 **动态 blockDim lowering（2026-08-20 真机定案）**：`blockDim` 在 `__simt_vf__` 计算体内可用，但在外层 `__global__[aicore]` wrapper 中用 `cce::dim3{blockDim.x, blockDim.y, blockDim.z}` 会稳定触发 Bisheng/ccec 前端 Segmentation fault + stack smashing；动态/静态 × 256/512 与 vectorAdd/minimal 对照已排除线程上限和计算体因素。可行方案是把 block 形状作为普通隐藏参数 `bx/by/bz` 从 host launch 传给 wrapper，再调用 `cce::async_invoke<VF>(cce::dim3{bx,by,bz}, ...)`。真机确认：同一 wrapper 的 256/512 两次启动和 `32×8×1` 形状均编译、链接、数值运行通过。另确认 CCE 外层 `<<<blocks, threads, stream>>>` 的 `threads` 只接受 unsigned 标量；2D/3D lowering 必须用 `x*y*z` 作为外层总线程数，同时隐藏传入 `x/y/z` 保留 VF 形状。正式自动转换分支 `619f9aa` 的 vectorAdd/minimal/dynamicBlockDim 与 1D/2D 探针完整回归 `FAIL=0`。
 
+**puresimt 模式（2026-08-21 导师方向，9.2.0 真机成立 ⭐⭐）**：导师明确"毕昇前端复用 CUDA 前端"，并指出：
+- `__global__` 与 CUDA 语义一致；`__aicore__` 等价于 `__device__`；
+- 除 `<<<>>>` 调用接口与新同构（`__simt_vf__`+`cce::async_invoke`）有差异外，其他 acl 接口一致；
+- 推荐编译方式：`.asc` + `-x asc` + `--enable-simt` + `--cce-aicore-arch=dav-c310-vec`（`dpp`/`.cce` 为备选，链接有坑）；
+- 必须先设置 `ASCEND_HOME_PATH`（缺失时 ccec 直接 `LLVM ERROR: can not find ASCEND_HOME_PATH` abort）。
+真机确认（9.2.0，cann-9.2.0，`examples/puresimt/puresimt_probe.asc`）：纯 CUDA `__global__ kernel`（`threadIdx/blockIdx/gridDim/blockDim` 线性索引 + `<<<grid, block, 255, stream>>>`）在 `-x asc --enable-simt --cce-aicore-arch=dav-c310-vec` 下编译、链接、运行全过（`puresimt OK (count=8192)`）；而 `dav-c310`（无 `-vec`）报 `does not support the given target feature`（`__cce_simt_get_TID_x` 等），即 **puresimt 必须 `dav-c310-vec`**。→ 结论：**新同构（B 主线）是已完成的"编译器不支持时的绕行"；puresimt 是导师校准后的正式方向**（纯 CUDA 零改写、不依赖 kernel_convert.py 文本转换）。
+
 **SIMT include 依赖（编译要点）**：simt_api 头依赖链很长（asc_simt.h → common_functions.h → device_types.h → utils/base/sys_macros.h → **impl/utils/sys_macros.h**，跨目录），单靠 `-I simt_api 父目录` 不够；且 **impl/ 不在 include/ 下**，实际位于 `cann-9.2.0/x86_64-linux/asc/impl/utils/`。env_probe 第 7 节已实现**缺头自动修复**：解析 `fatal error: 'xxx'` → ASCEND_HOME 下 find → 补 **能解析该相对 include 的根目录**（文件路径去掉 miss_hdr 相对路径，如补 `.../asc` 而非 `.../asc/impl/utils`）→ 重试（最多 3 轮）。真机确认：`ccec + dav-c310` 预处理得到 **`__NPU_ARCH__=3510`**，与 simt_api 门控 3510 匹配（→ dav-c310 与门控 3510 硬件对应关系确认）。
 
 **API 差异（真机头文件，修正此前基于公开版的判断）**

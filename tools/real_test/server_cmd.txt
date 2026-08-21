@@ -104,18 +104,44 @@ compile_run() {  # compile_run <tag> <src> <extra_flags...>
 }
 
 # 导师推荐：仅 .asc + -x asc（"--cce-aicore-arch=dav-c310-vec --enable-simt"）。
-# 若 dav-c310-vec 不行，用 dav-c310（无 -vec）作对照。
 compile_run asc examples/puresimt/puresimt_probe.asc \
     -x asc --cce-aicore-arch=dav-c310-vec --enable-simt -std=c++17
-compile_run asc_novec examples/puresimt/puresimt_probe.asc \
-    -x asc --cce-aicore-arch=dav-c310 --enable-simt -std=c++17
+# dav-c310-vec 已确认通过；再编译运行 puresimt 正式样例（vectorAdd + minimal）
+for pair in \
+    'pvectoradd|vectorAdd puresimt OK (N=1024)' \
+    'pminimal|minimal puresimt OK (N=256)'; do
+    name=${pair%%|*}; expected=${pair#*|}
+    src="examples/puresimt/${name}.cu"
+    bin="$OUT/${name}"
+    echo "===== [$name] $CCEC -x asc --cce-aicore-arch=dav-c310-vec --enable-simt $src ====="
+    if "$CCEC" -x asc --cce-aicore-arch=dav-c310-vec --enable-simt -std=c++17 "$src" \
+        -I"${CANN_BASE}/include" \
+        -L"${CANN_BASE}/lib64" \
+        -lascendc_runtime -lascendcl -lruntime -lregister -lerror_manager \
+        -lprofapi -lascendalog -lmmpa -lascend_dump -lc_sec -lstdc++ \
+        -o "$bin" >"$OUT/${name}.log" 2>&1; then
+        echo "[PASS] [$name] 编译通过"
+        if [ "$DEVICE_HEALTHY" -eq 1 ] && "$bin" >"$OUT/${name}.run.log" 2>&1 \
+           && grep -Fq "$expected" "$OUT/${name}.run.log"; then
+            echo "[PASS] [$name] 运行通过：$(grep -F "$expected" "$OUT/${name}.run.log")"
+        else
+            echo "[FAIL] [$name] 运行失败（run log 首 20 行）"
+            head -n 20 "$OUT/${name}.run.log" 2>/dev/null
+            tail -n 10 "$OUT/${name}.log" 2>/dev/null
+            FAIL=$((FAIL + 1))
+        fi
+    else
+        echo "[FAIL] [$name] 编译失败（log 首 18 行）"
+        head -n 18 "$OUT/${name}.log" 2>/dev/null
+        FAIL=$((FAIL + 1))
+    fi
+done
 
 printf '\n===== [4/5] 汇总（puresimt 判定） =====\n'
-for tag in asc asc_novec; do
-    if grep -Fq 'puresimt OK' "$OUT/puresimt_${tag}.run.log" 2>/dev/null; then
+for tag in asc pvectoradd pminimal; do
+    if grep -Fq 'OK' "$OUT/${tag}.run.log" 2>/dev/null; then
         echo "[PURESIMT_PASS] $tag"
     else
-        [ -f "$OUT/puresimt_${tag}.log" ] || continue
         echo "[PURESIMT_FAIL] $tag"
     fi
 done
