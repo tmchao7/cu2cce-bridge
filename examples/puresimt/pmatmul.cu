@@ -10,9 +10,9 @@
  * fp32 自动降级说明（昇腾硬件限制，wrapper 内部处理）：真机 9.2.0 acl_cblas.h
  * 确认无 fp32 aclblasSgemm，aclblasGemmEx 仅 fp16/int8 组合 → wcublasSgemm
  * 内部把 fp32 输入降为 half 计算、C 保持 fp32（fp16×fp16×float 组合）。本样例
- * A/B 是整数 1..16，half 无损，校验值与纯 fp32 一致。
+ * A/B 是整数 1..32，half 无损，校验值与纯 fp32 一致。
  *
- * 尺寸：16×16×16（昇腾 Cube GEMM 临界小尺寸）。
+ * 尺寸：32×32×32（用于排查 16 对齐/最小尺寸约束；本轮只改 shape）。
  * 已知差异（昇腾）：CUDA 分配默认清零昇腾不清 → gemm 前 cudaMemset 初始化 C；
  * aclblasGemmEx 异步 → wcublasSgemm 内部同步，调用方再双同步保险。
  *
@@ -31,9 +31,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define M 16
-#define N 16
-#define K 16
+#define M 32
+#define N 32
+#define K 32
 
 int main(void) {
     cudaStream_t stream = nullptr;
