@@ -162,40 +162,123 @@ aclError wcublasSgemm(cublasHandle_t handle, aclTransType transa, aclTransType t
                       int k, const float *alpha, const float *A, int lda, const float *B, int ldb,
                       const float *beta, float *C, int ldc) {
     if (handle == nullptr || alpha == nullptr || beta == nullptr || A == nullptr || B == nullptr ||
-        C == nullptr) {
+        C == nullptr || m <= 0 || n <= 0 || k <= 0) {
         return ACL_ERROR_INVALID_PARAM;
     }
+
+    /* cublas 的 A/B/C 都是 device pointer。不能像普通 host 数组一样直接读取 A[i]/B[i]：
+     * 上一轮的 100000 已经绕过了 GemmEx，但这里的 host 解包因此触发了 SIGSEGV。
+     * 这条路径先 D2H 读 fp32，再 host 转 fp16，再 H2D 写临时 fp16 device buffer，最后
+     * 用临时 device buffer 调 aclblasGemmEx；GemmEx 同步完成后才能释放临时 device buffer。 */
+    const bool a_is_n = (transa == ACL_TRANS_N);
+    const bool b_is_n = (transb == ACL_TRANS_N);
+    const int a_cols = a_is_n ? k : m;
+    const int b_cols = b_is_n ? n : k;
+    const int a_min_ld = a_is_n ? m : k;
+    const int b_min_ld = b_is_n ? k : n;
+    if (lda < a_min_ld || ldb < b_min_ld || ldc < m) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+
     if (handle->stream == nullptr) {
         aclError sret = aclrtCreateStream(&handle->stream);
         if (sret != ACL_SUCCESS) {
             return sret;
         }
     }
+
+    const size_t elemsA = (size_t)lda * (size_t)a_cols;
+    const size_t elemsB = (size_t)ldb * (size_t)b_cols;
+    const size_t bytesA = elemsA * sizeof(float);
+    const size_t bytesB = elemsB * sizeof(float);
+    const size_t halfBytesA = elemsA * sizeof(aclFloat16);
+    const size_t halfBytesB = elemsB * sizeof(aclFloat16);
     std::fprintf(stderr,
-                 "[cce_bridge][Sgemm] fp32->fp16 input fallback stream=%p "
-                 "shape=(m=%d,n=%d,k=%d) ld=(%d,%d,%d) alpha=%.9g beta=%.9g\n",
-                 (void *)handle->stream, m, n, k, lda, ldb, ldc, (double)*alpha, (double)*beta);
-    size_t szA = (size_t)m * lda * sizeof(aclFloat16);
-    size_t szB = (size_t)k * ldb * sizeof(aclFloat16);
-    aclFloat16 *halfA = (aclFloat16 *)std::malloc(szA);
-    aclFloat16 *halfB = (aclFloat16 *)std::malloc(szB);
-    if (halfA == nullptr || halfB == nullptr) {
-        std::free(halfA);
-        std::free(halfB);
+                 "[cce_bridge][Sgemm] fp32->fp16 device staging stream=%p "
+                 "shape=(m=%d,n=%d,k=%d) ld=(%d,%d,%d) storage=(A=%zu,B=%zu) "
+                 "alpha=%.9g beta=%.9g\n",
+                 (void *)handle->stream, m, n, k, lda, ldb, ldc, elemsA, elemsB, (double)*alpha,
+                 (double)*beta);
+
+    float *hostA = (float *)std::malloc(bytesA);
+    float *hostB = (float *)std::malloc(bytesB);
+    aclFloat16 *hostHalfA = (aclFloat16 *)std::malloc(halfBytesA);
+    aclFloat16 *hostHalfB = (aclFloat16 *)std::malloc(halfBytesB);
+    void *devHalfA = nullptr;
+    void *devHalfB = nullptr;
+    if (hostA == nullptr || hostB == nullptr || hostHalfA == nullptr || hostHalfB == nullptr) {
+        std::free(hostA);
+        std::free(hostB);
+        std::free(hostHalfA);
+        std::free(hostHalfB);
         return ACL_ERROR_BAD_ALLOC;
     }
-    for (int i = 0; i < m * lda; ++i) halfA[i] = cce_f32_to_f16(A[i]);
-    for (int i = 0; i < k * ldb; ++i) halfB[i] = cce_f32_to_f16(B[i]);
-    /* fp16×fp16×float 组合：A/B 降 half，C 保持 fp32（整数输入无损） */
+
+    aclError ret = aclrtMemcpy(hostA, bytesA, A, bytesA, ACL_MEMCPY_DEVICE_TO_HOST);
+    if (ret != ACL_SUCCESS) {
+        std::fprintf(stderr, "[cce_bridge][Sgemm] D2H A failed ret=%d recent=%s\n", (int)ret,
+                     aclGetRecentErrMsg() != nullptr ? aclGetRecentErrMsg() : "(null)");
+        goto cleanup_host;
+    }
+    ret = aclrtMemcpy(hostB, bytesB, B, bytesB, ACL_MEMCPY_DEVICE_TO_HOST);
+    if (ret != ACL_SUCCESS) {
+        std::fprintf(stderr, "[cce_bridge][Sgemm] D2H B failed ret=%d recent=%s\n", (int)ret,
+                     aclGetRecentErrMsg() != nullptr ? aclGetRecentErrMsg() : "(null)");
+        goto cleanup_host;
+    }
+    for (size_t i = 0; i < elemsA; ++i) hostHalfA[i] = cce_f32_to_f16(hostA[i]);
+    for (size_t i = 0; i < elemsB; ++i) hostHalfB[i] = cce_f32_to_f16(hostB[i]);
+
+    ret = aclrtMalloc(&devHalfA, halfBytesA, ACL_MEM_MALLOC_HUGE_FIRST);
+    if (ret != ACL_SUCCESS) {
+        std::fprintf(stderr, "[cce_bridge][Sgemm] aclrtMalloc A failed ret=%d recent=%s\n", (int)ret,
+                     aclGetRecentErrMsg() != nullptr ? aclGetRecentErrMsg() : "(null)");
+        goto cleanup_host;
+    }
+    ret = aclrtMalloc(&devHalfB, halfBytesB, ACL_MEM_MALLOC_HUGE_FIRST);
+    if (ret != ACL_SUCCESS) {
+        std::fprintf(stderr, "[cce_bridge][Sgemm] aclrtMalloc B failed ret=%d recent=%s\n", (int)ret,
+                     aclGetRecentErrMsg() != nullptr ? aclGetRecentErrMsg() : "(null)");
+        goto cleanup_device_a;
+    }
+    ret = aclrtMemcpy(devHalfA, halfBytesA, hostHalfA, halfBytesA, ACL_MEMCPY_HOST_TO_DEVICE);
+    if (ret != ACL_SUCCESS) {
+        std::fprintf(stderr, "[cce_bridge][Sgemm] H2D A failed ret=%d recent=%s\n", (int)ret,
+                     aclGetRecentErrMsg() != nullptr ? aclGetRecentErrMsg() : "(null)");
+        goto cleanup_device_b;
+    }
+    ret = aclrtMemcpy(devHalfB, halfBytesB, hostHalfB, halfBytesB, ACL_MEMCPY_HOST_TO_DEVICE);
+    if (ret != ACL_SUCCESS) {
+        std::fprintf(stderr, "[cce_bridge][Sgemm] H2D B failed ret=%d recent=%s\n", (int)ret,
+                     aclGetRecentErrMsg() != nullptr ? aclGetRecentErrMsg() : "(null)");
+        goto cleanup_device_b;
+    }
+
+    /* fp16×fp16×float 组合：A/B 为临时 device half，C 保持调用方的 device fp32。 */
     std::fprintf(stderr,
                  "[cce_bridge][Sgemm] converted dtype=(A=%d,B=%d,C=%d) "
-                 "half_bytes=(A=%zu,B=%zu)\n",
-                 (int)ACL_FLOAT16, (int)ACL_FLOAT16, (int)ACL_FLOAT, szA, szB);
-    aclError gret = gemm_impl(handle, transa, transb, m, n, k, alpha, halfA, lda, ACL_FLOAT16, halfB,
-                              ldb, ACL_FLOAT16, beta, C, ldc, ACL_FLOAT);
-    std::free(halfA);
-    std::free(halfB);
-    return gret;
+                 "device_half=(A=%p,B=%p) bytes=(A=%zu,B=%zu)\n",
+                 (int)ACL_FLOAT16, (int)ACL_FLOAT16, (int)ACL_FLOAT, devHalfA, devHalfB, halfBytesA,
+                 halfBytesB);
+    ret = gemm_impl(handle, transa, transb, m, n, k, alpha, devHalfA, lda, ACL_FLOAT16, devHalfB,
+                    ldb, ACL_FLOAT16, beta, C, ldc, ACL_FLOAT);
+
+cleanup_device_b:
+    if (devHalfB != nullptr) {
+        aclError free_ret = aclrtFree(devHalfB);
+        if (ret == ACL_SUCCESS && free_ret != ACL_SUCCESS) ret = free_ret;
+    }
+cleanup_device_a:
+    if (devHalfA != nullptr) {
+        aclError free_ret = aclrtFree(devHalfA);
+        if (ret == ACL_SUCCESS && free_ret != ACL_SUCCESS) ret = free_ret;
+    }
+cleanup_host:
+    std::free(hostA);
+    std::free(hostB);
+    std::free(hostHalfA);
+    std::free(hostHalfB);
+    return ret;
 }
 
 aclError wcublasDgemm(cublasHandle_t handle, aclTransType transa, aclTransType transb, int m, int n,
