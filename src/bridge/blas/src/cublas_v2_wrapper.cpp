@@ -85,9 +85,17 @@ static aclError gemm_impl(cublasHandle_t handle, aclTransType transa, aclTransTy
         }
     }
     /* aclblasGemmEx 无 handle，直接传 stream（从 cu2cce handle 结构取）。
-     * transC 昇腾仅支持 ACL_TRANS_N；computeType 用高精度。 */
-    return aclblasGemmEx(transa, transb, ACL_TRANS_N, m, n, k, alpha, A, lda, dtA, B, ldb, dtB,
-                         beta, C, ldc, dtC, ACL_COMPUTE_HIGH_PRECISION, handle->stream);
+     * transC 昇腾仅支持 ACL_TRANS_N；computeType 用高精度。
+     * ⚠️ 真机教训（2026-08-21 cublasMatmul）：aclblasGemmEx 是异步下发，
+     *    必须在返回前 aclrtSynchronizeStream 等 GEMM 完成，否则调用方读 C
+     *    会拿到未完成的结果/未触发真实错误（示例先 cudaMemcpy 读 C 才会看到
+     *    错误码）。 */
+    aclError gret = aclblasGemmEx(transa, transb, ACL_TRANS_N, m, n, k, alpha, A, lda, dtA, B, ldb,
+                                  dtB, beta, C, ldc, dtC, ACL_COMPUTE_HIGH_PRECISION, handle->stream);
+    if (gret != ACL_SUCCESS) {
+        return gret;
+    }
+    return aclrtSynchronizeStream(handle->stream);
 }
 
 aclError wcublasSgemm(cublasHandle_t handle, aclTransType transa, aclTransType transb, int m, int n,

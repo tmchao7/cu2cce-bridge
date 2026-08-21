@@ -90,7 +90,12 @@ int main(void) {
         return 1;
     }
 
-    /* gemm 是异步下发，等 stream + device 完成再拷回 */
+    /* gemm 是异步下发，必须先同步 ACK 流再拷回（昇腾 aclblasGemmEx 异步语义） */
+    aclError acl_sync = aclrtSynchronizeStream(stream);
+    if (acl_sync != ACL_SUCCESS) {
+        printf("aclrtSynchronizeStream failed: %d\n", (int)acl_sync);
+        return 1;
+    }
     err = cudaStreamSynchronize(stream);
     if (err != cudaSuccess) {
         printf("cudaStreamSynchronize failed: %d (%s)\n",
