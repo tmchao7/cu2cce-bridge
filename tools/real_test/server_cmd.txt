@@ -1,14 +1,106 @@
-# server_cmd.txt —— 当前无待执行操作
-#
-# 2026-08-20：feat/hidden-blockdim-lowering（619f9aa）已完成真机验证。
-# 结果：
-#   - vectorAdd OK (N=1024)
-#   - minimal OK (N=256)
-#   - dynamic blockdim OK (256,512,32x8x1)
-#   - hidden blockdim 1d OK (256,512)
-#   - hidden blockdim 2d OK (32x8x1)
-#   - 汇总 FAIL=0
-#
-# B 方案定案：host launch 隐藏传入 bx/by/bz，wrapper 使用
-# cce::dim3{bx,by,bz}；不要恢复 wrapper 读取 built-in blockDim 的写法。
-# 下一轮真机操作仍须覆盖本文件，保持服务器命令单一来源。
+# server_cmd.txt —— B 主线维护回归
+
+# 分支：main（B 方案正式路径，666d129 之后）
+# 2026-08-21：方案 C（exp/runtime-simt-launch）已结案为"不支持"并归档
+# （见 00_project_journey/C_PLAN_SUMMARY.md）。回归 B：验证三个正式样例仍
+# FAIL=0（vectorAdd / minimal / dynamicBlockDim），并保持 hidden blockDim
+# 方案不被后续改动破坏。
+# 本轮只读回归，不执行任何破坏性恢复；不使用顶层 exit（防 SSH 退出）。
+
+set +e
+set +u
+set -o pipefail
+ulimit -c 0 2>/dev/null || true
+
+cd /home/t50063365/workspace/repos/cu2cce-bridge
+git pull --ff-only origin main
+printf 'HEAD=' && git log -1 --oneline
+
+OUT="$PWD/build/real_test/b_maintenance"
+mkdir -p "$OUT"
+rm -f "$OUT"/*
+FAIL=0
+DEVICE_HEALTHY=0
+DEVICE_ACCESS_DENIED=0
+TEST_BLOCKED_BY_DEVICE=0
+
+printf '\n===== [1/5] Python 结构测试 =====\n'
+python3 -m unittest discover -s tests -p 'test_*.py' 2>&1 | tee "$OUT/python_tests.log"
+[ ${PIPESTATUS[0]} -eq 0 ] || FAIL=$((FAIL + 1))
+
+printf '\n===== [2/5] 环境探测与 bridge 安装 =====\n'
+bash tools/real_test/env_probe.sh >"$OUT/env_probe.log" 2>&1
+[ $? -eq 0 ] || { echo '[FAIL] env_probe'; FAIL=$((FAIL + 1)); }
+bash tools/real_test/build_bridge.sh >"$OUT/build_bridge.log" 2>&1
+[ $? -eq 0 ] || { echo '[FAIL] build_bridge'; FAIL=$((FAIL + 1)); }
+[ -f "$PWD/build/real_test/probe.env" ] && source "$PWD/build/real_test/probe.env" || FAIL=$((FAIL + 1))
+export CUCC_PATH="$PWD/build/real_test/install"
+export CUDA_PATH="$CUCC_PATH"
+export PATH="$CUCC_PATH/bin:$PATH"
+export LD_LIBRARY_PATH="$CUCC_PATH/lib:${ASCEND_LIB:-}:${LD_LIBRARY_PATH:-}"
+[ -n "${SIMT_API_INCLUDE:-}" ] && export CPLUS_INCLUDE_PATH="${SIMT_API_ROOT:-$(dirname "$SIMT_API_INCLUDE")}:$SIMT_API_INCLUDE:${CPLUS_INCLUDE_PATH:-}"
+
+printf '\n===== [3/5] 只读设备健康门禁 =====\n'
+for node in /dev/davinci0 /dev/davinci_manager /dev/hisi_hdc; do
+    if [ ! -e "$node" ] || ! test -r "$node" || ! test -w "$node"; then
+        echo "[BLOCKED] DEVICE_ACCESS_DENIED_OR_MISSING: $node"; DEVICE_ACCESS_DENIED=1
+    else
+        echo "[PASS] device access: $node"
+    fi
+done
+PROBE_DEVICE="$PWD/build/real_test/probe_device"
+if [ ! -x "$PROBE_DEVICE" ]; then
+    g++ tools/real_test/probe_device.cpp -o "$PROBE_DEVICE" \
+        -I "${ASCEND_INCLUDE:-${ASCEND_TOOLKIT_HOME:-}/include}" \
+        -L "${ASCEND_LIB:-${ASCEND_TOOLKIT_HOME:-}/lib64}" \
+        -Wl,-rpath,"${ASCEND_LIB:-${ASCEND_TOOLKIT_HOME:-}/lib64}" \
+        -lascendcl -lpthread -ldl >"$OUT/probe_device_compile.log" 2>&1
+fi
+DEVICE_PROBE_FAIL=0
+if [ -x "$PROBE_DEVICE" ]; then
+    for attempt in 1 2; do
+        "$PROBE_DEVICE" >"$OUT/probe_device_${attempt}.log" 2>&1
+        [ $? -eq 0 ] || DEVICE_PROBE_FAIL=1
+    done
+else
+    DEVICE_PROBE_FAIL=1
+fi
+if [ "$DEVICE_ACCESS_DENIED" -eq 0 ] && [ "$DEVICE_PROBE_FAIL" -eq 0 ]; then
+    DEVICE_HEALTHY=1; echo '[PASS] DEVICE_HEALTHY=1'
+else
+    TEST_BLOCKED_BY_DEVICE=1; echo '[BLOCKED] TEST_BLOCKED_BY_DEVICE'
+fi
+
+printf '\n===== [4/5] B 主线回归（3 个正式样例） =====\n'
+if [ "$DEVICE_HEALTHY" -ne 1 ]; then
+    echo 'B_REGRESSION_SKIPPED_DEVICE_UNHEALTHY'
+else
+    for pair in \
+        'examples/vectorAdd/vectorAdd.cu|vectorAdd OK (N=1024)' \
+        'examples/minimal/minimal.cu|minimal OK (N=256)' \
+        'examples/experimental/dynamicBlockDim/dynamic_blockdim.cu|dynamic blockdim OK (256,512,32x8x1)'; do
+        src=${pair%%|*}; expected=${pair#*|}; name=$(basename "$src" .cu)
+        obj="$OUT/${name}.o"; bin="$OUT/${name}"
+        if "$CUCC_PATH/bin/cucc" -c "$src" -o "$obj" >"$OUT/${name}.compile.log" 2>&1 \
+           && "$CUCC_PATH/bin/cucc" "$obj" -o "$bin" >"$OUT/${name}.link.log" 2>&1 \
+           && "$bin" >"$OUT/${name}.run.log" 2>&1 \
+           && grep -Fq "$expected" "$OUT/${name}.run.log"; then
+            echo "[PASS] B regression $name"
+        else
+            echo "[FAIL] B regression $name"
+            tail -n 15 "$OUT/${name}.compile.log" "$OUT/${name}.link.log" "$OUT/${name}.run.log" 2>/dev/null
+            FAIL=$((FAIL + 1))
+        fi
+    done
+fi
+
+printf '\n===== [5/5] 汇总 =====\n'
+echo "FAIL=$FAIL DEVICE_HEALTHY=$DEVICE_HEALTHY TEST_BLOCKED_BY_DEVICE=$TEST_BLOCKED_BY_DEVICE"
+echo "完整日志：$OUT"
+if [ "$TEST_BLOCKED_BY_DEVICE" -eq 1 ]; then
+    echo 'RESULT=TEST_BLOCKED_BY_DEVICE'
+elif [ "$FAIL" -eq 0 ]; then
+    echo 'B_REGRESSION_PASS'
+else
+    echo 'B_REGRESSION_FAIL（查看上方各 .log）'
+fi
