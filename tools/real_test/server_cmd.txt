@@ -133,16 +133,21 @@ if [ -f "$ACL_HDR" ]; then
     grep -n -A 6 "typedef enum.*aclTransType" "$ACL_HDR" | head -8
     echo "===== ACL_FLOAT 数值 ====="
     grep -n "ACL_FLOAT\s*=\|ACL_FLOAT\b\|ACL_FLOAT16" "$ACL_HDR" | head
+    echo "===== aclDataType 定义（可能在 acl_base.h 或 acl_cblas.h 顶部）====="
+    grep -rn "typedef enum.*aclDataType\|ACL_FLOAT[ ,)]\|ACL_FLOAT32" \
+        "${ASCEND_INCLUDE:-/usr/local/Ascend/ascend-toolkit/latest/include}" 2>/dev/null | head -12
     echo "===== lda/ldb/ldc 说明（GemmEx 注释 @param）====="
     grep -n -B1 -A4 "lda \|ldb \|ldc " "$ACL_HDR" | head -30
 else
     echo "MISS: $ACL_HDR（改用 find 定位）"
     find /usr/local/Ascend -name "acl_cblas.h" 2>/dev/null | head -3
 fi
-echo "===== matmul.run.log 若存在则打印完整前 30 行 ====="
-if [ -f "$OUT/matmul.run.log" ]; then
-    head -n 30 "$OUT/matmul.run.log"
-fi
+echo "===== matmul.run.log 完整内容（如有；含 stderr 全部） ====="
+    if [ -f "$OUT/matmul.run.log" ]; then
+        cat "$OUT/matmul.run.log"
+    else
+        echo "(无 matmul.run.log —— [7/8] 尚未重跑)"
+    fi
 
 printf '\n===== [7/8] cublas 桥真机验证（matmul.cu） =====\n'
 CUB_SRC=examples/cublasMatmul/matmul.cu
