@@ -86,7 +86,8 @@ int main(void) {
     st = cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N,
                      M, N, K, &alpha, dA, M, dB, K, &beta, dC, M);
     if (st != CUBLAS_STATUS_SUCCESS) {
-        printf("cublasSgemm failed: %d\n", (int)st);
+        printf("cublasSgemm failed: %d(%s)\n", (int)st,
+               aclGetRecentErrMsg() ? aclGetRecentErrMsg() : "no detail");
         return 1;
     }
 
