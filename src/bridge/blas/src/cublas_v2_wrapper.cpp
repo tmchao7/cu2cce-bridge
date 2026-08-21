@@ -19,6 +19,7 @@
 #include "cublas_v2_wrapper.h"
 
 #include <cstdlib>
+#include <cstdio>
 
 /* CUBLAS 的成功码与 ACL 相同（0）。handle 是 cu2cce 内部结构，存关联 stream。 */
 
@@ -70,20 +71,41 @@ aclError wcublasGetVersion(int *version) {
 /* 通用 GEMM 内部实现：s/d 共用，用 aclblasGemmEx。
  * ⚠️ 真机教训（2026-08-21 cublasMatmul）：原先直接传 handle->stream（默认
  * nullptr），aclblasGemmEx 返回 ACL_ERROR_INVALID_PARAM（100000）——昇腾计算
- * 接口要求非空 aclrtStream，必须先 aclrtCreateStream。 */
+ * 接口要求非空 aclrtStream，必须先 aclrtCreateStream。
+ *
+ * 诊断日志暂时保留在 wrapper 内：100000 可能来自 stream、shape/leading
+ * dimension、数据类型组合或 computeType，调用方只能看到 cublas 返回码，
+ * 因此必须在真正调用 aclblasGemmEx 的边界打印完整参数以及 ACL 最近错误。 */
 static aclError gemm_impl(cublasHandle_t handle, aclTransType transa, aclTransType transb, int m,
                           int n, int k, const void *alpha, const void *A, int lda,
                           aclDataType dtA, const void *B, int ldb, aclDataType dtB,
                           const void *beta, void *C, int ldc, aclDataType dtC) {
     if (handle == nullptr) {
+        std::fprintf(stderr,
+                     "[cce_bridge][gemm] invalid handle\n");
         return ACL_ERROR_INVALID_PARAM;
     }
-    if (handle->stream == nullptr) {
+
+    const bool stream_was_null = (handle->stream == nullptr);
+    std::fprintf(stderr,
+                 "[cce_bridge][gemm] enter handle=%p stream=%p stream_was_null=%d "
+                 "trans=(%d,%d,%d) shape=(m=%d,n=%d,k=%d) ld=(%d,%d,%d) "
+                 "dtype=(A=%d,B=%d,C=%d) compute=%d alpha=%p beta=%p A=%p B=%p C=%p\n",
+                 (void *)handle, (void *)handle->stream, stream_was_null ? 1 : 0,
+                 (int)transa, (int)transb, (int)ACL_TRANS_N, m, n, k, lda, ldb, ldc,
+                 (int)dtA, (int)dtB, (int)dtC, (int)ACL_COMPUTE_HIGH_PRECISION, alpha, beta, A, B,
+                 C);
+
+    if (stream_was_null) {
         aclError sret = aclrtCreateStream(&handle->stream);
+        std::fprintf(stderr, "[cce_bridge][gemm] aclrtCreateStream ret=%d stream=%p recent=%s\n",
+                     (int)sret, (void *)handle->stream,
+                     aclGetRecentErrMsg() != nullptr ? aclGetRecentErrMsg() : "(null)");
         if (sret != ACL_SUCCESS) {
             return sret;
         }
     }
+
     /* aclblasGemmEx 无 handle，直接传 stream（从 cu2cce handle 结构取）。
      * transC 昇腾仅支持 ACL_TRANS_N；computeType 用高精度。
      * ⚠️ 真机教训（2026-08-21 cublasMatmul）：aclblasGemmEx 是异步下发，
@@ -92,10 +114,17 @@ static aclError gemm_impl(cublasHandle_t handle, aclTransType transa, aclTransTy
      *    错误码）。 */
     aclError gret = aclblasGemmEx(transa, transb, ACL_TRANS_N, m, n, k, alpha, A, lda, dtA, B, ldb,
                                   dtB, beta, C, ldc, dtC, ACL_COMPUTE_HIGH_PRECISION, handle->stream);
+    std::fprintf(stderr, "[cce_bridge][gemm] aclblasGemmEx ret=%d stream=%p recent=%s\n",
+                 (int)gret, (void *)handle->stream,
+                 aclGetRecentErrMsg() != nullptr ? aclGetRecentErrMsg() : "(null)");
     if (gret != ACL_SUCCESS) {
         return gret;
     }
-    return aclrtSynchronizeStream(handle->stream);
+    aclError sync_ret = aclrtSynchronizeStream(handle->stream);
+    std::fprintf(stderr, "[cce_bridge][gemm] aclrtSynchronizeStream ret=%d recent=%s\n",
+                 (int)sync_ret,
+                 aclGetRecentErrMsg() != nullptr ? aclGetRecentErrMsg() : "(null)");
+    return sync_ret;
 }
 
 /* fp32 → half（IEEE 半精度，截断 10 位尾数）。昇腾 GemmEx 仅支持
@@ -142,6 +171,10 @@ aclError wcublasSgemm(cublasHandle_t handle, aclTransType transa, aclTransType t
             return sret;
         }
     }
+    std::fprintf(stderr,
+                 "[cce_bridge][Sgemm] fp32->fp16 input fallback stream=%p "
+                 "shape=(m=%d,n=%d,k=%d) ld=(%d,%d,%d) alpha=%.9g beta=%.9g\n",
+                 (void *)handle->stream, m, n, k, lda, ldb, ldc, (double)*alpha, (double)*beta);
     size_t szA = (size_t)m * lda * sizeof(aclFloat16);
     size_t szB = (size_t)k * ldb * sizeof(aclFloat16);
     aclFloat16 *halfA = (aclFloat16 *)std::malloc(szA);
@@ -154,6 +187,10 @@ aclError wcublasSgemm(cublasHandle_t handle, aclTransType transa, aclTransType t
     for (int i = 0; i < m * lda; ++i) halfA[i] = cce_f32_to_f16(A[i]);
     for (int i = 0; i < k * ldb; ++i) halfB[i] = cce_f32_to_f16(B[i]);
     /* fp16×fp16×float 组合：A/B 降 half，C 保持 fp32（整数输入无损） */
+    std::fprintf(stderr,
+                 "[cce_bridge][Sgemm] converted dtype=(A=%d,B=%d,C=%d) "
+                 "half_bytes=(A=%zu,B=%zu)\n",
+                 (int)ACL_FLOAT16, (int)ACL_FLOAT16, (int)ACL_FLOAT, szA, szB);
     aclError gret = gemm_impl(handle, transa, transb, m, n, k, alpha, halfA, lda, ACL_FLOAT16, halfB,
                               ldb, ACL_FLOAT16, beta, C, ldc, ACL_FLOAT);
     std::free(halfA);

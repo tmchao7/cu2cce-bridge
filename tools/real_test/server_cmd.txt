@@ -121,6 +121,11 @@ for pair in \
         else
             echo "[FAIL] [$name] 运行失败（run log 首 25 行）"
             head -n 25 "$OUT/${name}.run.log" 2>/dev/null
+            if [ "$name" = "pmatmul" ]; then
+                echo "----- [pmatmul] cublas bridge diagnostics -----"
+                grep -E '\[cce_bridge\]\[(Sgemm|gemm)\]' \
+                    "$OUT/${name}.run.log" 2>/dev/null
+            fi
             tail -n 10 "$OUT/${name}.log" 2>/dev/null
             FAIL=$((FAIL + 1))
         fi
