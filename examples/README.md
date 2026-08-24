@@ -13,3 +13,7 @@ validate the no-source-rewrite puresimt path:
 
 Experimental probes and hand-written bridge-specific copies are not part of the
 maintained examples set. Historical versions remain available in Git history.
+
+- `puresimt/warpShuffle_minimal.cu`
+- `puresimt/scan_minimal.cu`
+- `puresimt/transpose_minimal.cu`

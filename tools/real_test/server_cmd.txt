@@ -150,7 +150,10 @@ for pair in \
     'vectorAdd_minimal.cu|vectorAdd_minimal OK' \
     'matrixMul_minimal.cu|matrixMul_minimal OK' \
     'atomicAdd_minimal.cu|atomicAdd_minimal OK' \
-    'reduction_minimal.cu|reduction_minimal OK'; do
+    'reduction_minimal.cu|reduction_minimal OK' \
+    'warpShuffle_minimal.cu|warpShuffle_minimal OK' \
+    'scan_minimal.cu|scan_minimal OK' \
+    'transpose_minimal.cu|transpose_minimal OK'; do
     src=${pair%%|*}
     key=${pair#*|}
     name=$(basename "$src" .cu)
