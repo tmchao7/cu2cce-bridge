@@ -684,19 +684,42 @@ aclError wcudaMemcpyAsync(void *dst, const void *src, size_t count, aclrtMemcpyK
 
 aclError wcudaMemcpy2D(void *dst, size_t dpitch, const void *src, size_t spitch, size_t width,
                        size_t height, aclrtMemcpyKind kind) {
-    if (dst == nullptr || src == nullptr) {
+    if (dst == nullptr || src == nullptr || width == 0 || height == 0 || dpitch < width ||
+        spitch < width) {
         WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
     }
-    /* 昇腾 aclrtMemcpy2d 签名与 cudaMemcpy2D 完全一致（dst,dpitch,src,spitch,width,height,kind） */
-    WCUDA_RETURN(aclrtMemcpy2d(dst, dpitch, src, spitch, width, height, kind));
+    /* CANN documents aclrtMemcpy2d as a separate platform-dependent API and only
+     * guarantees H2D/D2H on supported products. Implement CUDA's synchronous 2D
+     * copy as row-wise aclrtMemcpy instead: this preserves CUDA pitch semantics
+     * and also works on Ascend products where aclrtMemcpy2d is unavailable or
+     * returns ACL_ERROR_API_NOT_SUPPORT. */
+    char *dstBytes = (char *)dst;
+    const char *srcBytes = (const char *)src;
+    for (size_t row = 0; row < height; ++row) {
+        aclError ret = aclrtMemcpy(dstBytes + row * dpitch, width, srcBytes + row * spitch, width, kind);
+        if (ret != ACL_SUCCESS) {
+            WCUDA_RETURN(ret);
+        }
+    }
+    WCUDA_RETURN(ACL_SUCCESS);
 }
 
 aclError wcudaMemcpy2DAsync(void *dst, size_t dpitch, const void *src, size_t spitch, size_t width,
                             size_t height, aclrtMemcpyKind kind, aclrtStream stream) {
-    if (dst == nullptr || src == nullptr || stream == nullptr) {
+    if (dst == nullptr || src == nullptr || stream == nullptr || width == 0 || height == 0 ||
+        dpitch < width || spitch < width) {
         WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
     }
-    WCUDA_RETURN(aclrtMemcpy2dAsync(dst, dpitch, src, spitch, width, height, kind, stream));
+    char *dstBytes = (char *)dst;
+    const char *srcBytes = (const char *)src;
+    for (size_t row = 0; row < height; ++row) {
+        aclError ret = aclrtMemcpyAsync(dstBytes + row * dpitch, width, srcBytes + row * spitch,
+                                        width, kind, stream);
+        if (ret != ACL_SUCCESS) {
+            WCUDA_RETURN(ret);
+        }
+    }
+    WCUDA_RETURN(ACL_SUCCESS);
 }
 
 aclError wcudaMemset(void *devPtr, int value, size_t count) {
