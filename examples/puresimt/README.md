@@ -50,5 +50,15 @@ The next operator-focused tests use the same minimal-source policy:
 - `index3D_minimal.cu` — 3D grid/block flattening.
 - `threadFence_minimal.cu` — global stores, `__threadfence`, and atomic publication flag.
 
-- `half_minimal.cu` — CUDA FP16/half2 aliases and conversion round-trip.
-- `bf16x2_minimal.cu` — CUDA BF16/BF16x2 aliases and conversion round-trip.
+- `half_minimal.cu` — CUDA FP16/half2 aliases and conversion round-trip, backed by CANN `simt_api/asc_fp16.h`.
+- `bf16x2_minimal.cu` — CUDA BF16/BF16x2 aliases and conversion round-trip, backed by CANN `simt_api/asc_bf16.h`.
+
+
+## Coverage model
+
+The suite is organized as a functional basis rather than a collection of repeated
+examples: scalar arithmetic/logic, comparisons and conversions; global/shared/dynamic
+memory; 1D/2D/3D indexing; barriers/fences; atomic families; warp collectives;
+reduction/scan; stream/event ordering; pitched copies; and FP16/BF16x2 conversions.
+The official NVIDIA vectorAdd/matrixMul sources provide the no-source-rewrite anchor,
+while minimal files isolate one CUDA semantic at a time.

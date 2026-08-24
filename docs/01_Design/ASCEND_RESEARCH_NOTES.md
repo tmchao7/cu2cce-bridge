@@ -1,6 +1,6 @@
 # Ascend / CANN 调研事实库（main / puresimt）
 
-更新时间：2026-08-24
+更新时间：2026-08-24（main puresimt 进度更新）
 
 本文只记录 main 当前采用的 puresimt 事实和仍保留的 experimental BLAS 事实。
 旧新同构 lowering 记录不再作为 main 设计依据；历史版本在 Git 历史与
@@ -79,7 +79,7 @@ cuda* → wcuda* → aclrt*
 
 唯一入口：`tools/real_test/server_cmd.txt`。
 
-当前 6 个样例均通过真机回归：
+当前主线已建立 21 个已验证样例，并将 half/BF16x2 类型测试纳入下一轮回归：
 
 ```text
 vectorAdd
@@ -96,7 +96,25 @@ reduction_minimal
 FAIL=0 DEVICE_HEALTHY=1 PURESIMT_REGRESSION_PASS
 ```
 
-## 6. Experimental BLAS
+## 6. Precision types
+
+CANN SIMT API 为 half/half2 与 bfloat16_t/bfloat16x2_t 提供独立头文件：
+
+```text
+simt_api/asc_fp16.h
+simt_api/asc_bf16.h
+```
+
+main 提供 CUDA-compatible headers：
+
+```text
+include/cuda_fp16.h
+include/cuda_bf16.h
+```
+
+真机回归用例 `half_minimal.cu` 与 `bf16x2_minimal.cu` 已验证转换 round-trip。
+
+## 7. Experimental BLAS
 
 `src/bridge/blas` 保留 cublas→aclblas 的独立实验能力，不作为 puresimt 验收条件。
 
@@ -108,7 +126,7 @@ FAIL=0 DEVICE_HEALTHY=1 PURESIMT_REGRESSION_PASS
 - `FP16 × FP16 → FP32` 在匹配模型后可执行；
 - 该能力仍不等同于完整 CUDA cuBLAS 兼容，后续单独维护。
 
-## 7. 构建与环境
+## 8. 构建与环境
 
 ```bash
 export ASCEND_HOME_PATH=/usr/local/Ascend/latest
@@ -118,7 +136,7 @@ export ASCEND_OPP_PATH=/usr/local/Ascend/cann-9.2.0/opp
 
 main 的 `cucc` 只做参数、头文件、SIMT API、库和架构注入，然后直接 exec ccec。
 
-## 8. 参考资料
+## 9. 参考资料
 
 - `docs/reference/asc-devkit-simt/`：Ascend SIMT API 头和官方形式参考；
 - NVIDIA CUDA Samples：`third_party/nvidia_cuda_samples/Common` helper headers；

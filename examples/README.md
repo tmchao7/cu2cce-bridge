@@ -1,38 +1,28 @@
 # Examples
 
-`examples/puresimt/` is the maintained example set for the `main` branch.
-It contains the original CUDA source files from NVIDIA CUDA Samples used to
-validate the no-source-rewrite puresimt path:
+`examples/puresimt/` is the maintained example set for the `main` branch. Every
+source file uses ordinary CUDA syntax; no file contains ACL calls, Ascend C syntax,
+`__simt_vf__`, `cce::async_invoke`, or hidden bridge parameters.
+
+## Official NVIDIA sources
 
 - `puresimt/vectorAdd/vectorAdd.cu`
 - `puresimt/matrixMul/matrixMul.cu`
-- `puresimt/vectorAdd_minimal.cu`
-- `puresimt/matrixMul_minimal.cu`
-- `puresimt/atomicAdd_minimal.cu`
-- `puresimt/reduction_minimal.cu`
 
-Experimental probes and hand-written bridge-specific copies are not part of the
-maintained examples set. Historical versions remain available in Git history.
+These files retain their upstream CUDA source and are the strongest no-source-rewrite
+compatibility evidence.
 
-- `puresimt/warpShuffle_minimal.cu`
-- `puresimt/scan_minimal.cu`
-- `puresimt/transpose_minimal.cu`
+## Minimal CUDA semantic/operator sources
 
-- `puresimt/vote_minimal.cu`
-- `puresimt/dot_minimal.cu`
-- `puresimt/stencil_minimal.cu`
+- Memory and launch: `vectorAdd_minimal.cu`, `matrixMul_minimal.cu`,
+  `pitchedMemcpy_minimal.cu`, `multiKernel_minimal.cu`, `event_minimal.cu`.
+- Arithmetic and types: `core_ops_minimal.cu`, `math_minimal.cu`, `half_minimal.cu`,
+  `bf16x2_minimal.cu`.
+- SIMT and synchronization: `warpShuffle_minimal.cu`, `vote_minimal.cu`,
+  `scan_minimal.cu`, `reduction_minimal.cu`, `dynamicShared_minimal.cu`,
+  `threadFence_minimal.cu`, `index3D_minimal.cu`.
+- Parallel operators: `atomicAdd_minimal.cu`, `atomicVariants_minimal.cu`,
+  `dot_minimal.cu`, `stencil_minimal.cu`, `transpose_minimal.cu`.
 
-- `puresimt/core_ops_minimal.cu`
-- `puresimt/math_minimal.cu`
-
-- `puresimt/event_minimal.cu`
-- `puresimt/pitchedMemcpy_minimal.cu`
-- `puresimt/multiKernel_minimal.cu`
-
-- `puresimt/atomicVariants_minimal.cu`
-- `puresimt/dynamicShared_minimal.cu`
-- `puresimt/index3D_minimal.cu`
-- `puresimt/threadFence_minimal.cu`
-
-- `puresimt/half_minimal.cu`
-- `puresimt/bf16x2_minimal.cu`
+The complete list and expected output strings are maintained in
+`tools/real_test/server_cmd.txt`, the only main-branch real-device regression entrypoint.

@@ -19,6 +19,17 @@ Ascend 950 的 AI Core 支持 SIMT。main 不再走 Python kernel 转换或新�
 main 不生成 `__simt_vf__`、`__global__[aicore]`、`cce::async_invoke` 包装源文件。
 `include/bridge/kernel/simt_adaptor.h` 只提供必要的 SIMT 原语别名。
 
+## 当前进度（2026-08-24）
+
+- main 已切换为 puresimt 直通：`cucc` 不再调用 Python kernel converter，不生成
+  legacy `.cce`/kernel wrapper；直通检查已在真机通过。
+- 已验证通过的主线基线为 21 个 CUDA/runtime/SIMT 用例，覆盖算术、逻辑、比较、
+  转换、shared/global memory、原子、归约、warp、scan、transpose、stencil、event、
+  pitched copy、multi-kernel pipeline、3D indexing、动态 shared memory 和 fence。
+- 额外的 FP16/half2 与 BF16/BF16x2 用例已加入当前回归，等待本轮真机结果确认。
+- 当前唯一验收标志仍是 `PURESIMT_REGRESSION_PASS`；BLAS bridge 保留为 experimental
+  secondary capability，不阻塞 puresimt。
+
 ## 真机回归
 
 唯一入口：
@@ -37,6 +48,7 @@ bash tools/real_test/server_cmd.txt
 - 最小 tiled matrix multiply
 - `atomicAdd`/`atomicMin`/`atomicMax`
 - shared-memory tree reduction + cross-block atomic add
+- FP16/half2 and BF16/BF16x2 conversion round-trips
 
 成功标志：
 
