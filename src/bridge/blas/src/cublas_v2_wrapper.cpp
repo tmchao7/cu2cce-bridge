@@ -87,9 +87,15 @@ static aclError gemm_impl(cublasHandle_t handle, aclTransType transa, aclTransTy
     }
 
     const bool stream_was_null = (handle->stream == nullptr);
+    /* aclblasGemmEx 的 lda/ldb/ldc 在当前 CANN 版本是保留参数，文档明确要求只能传 -1。
+     * CUDA 的 lda/ldb/ldc 仍由上层传入并用于 host staging；只在 ACL 调用边界转换。
+     * 之前把 CUDA 的 16/32 原样传给 ACL，正是目前最符合 100000 参数校验特征的根因。 */
+    const int acl_lda = -1;
+    const int acl_ldb = -1;
+    const int acl_ldc = -1;
     std::fprintf(stderr,
                  "[cce_bridge][gemm] enter handle=%p stream=%p stream_was_null=%d "
-                 "trans=(%d,%d,%d) shape=(m=%d,n=%d,k=%d) ld=(%d,%d,%d) "
+                 "trans=(%d,%d,%d) shape=(m=%d,n=%d,k=%d) cuda_ld=(%d,%d,%d) acl_ld=(-1,-1,-1) "
                  "dtype=(A=%d,B=%d,C=%d) compute=%d alpha=%p beta=%p A=%p B=%p C=%p\n",
                  (void *)handle, (void *)handle->stream, stream_was_null ? 1 : 0,
                  (int)transa, (int)transb, (int)ACL_TRANS_N, m, n, k, lda, ldb, ldc,
@@ -113,8 +119,9 @@ static aclError gemm_impl(cublasHandle_t handle, aclTransType transa, aclTransTy
      *    必须在返回前 aclrtSynchronizeStream 等 GEMM 完成，否则调用方读 C
      *    会拿到未完成的结果/未触发真实错误（示例先 cudaMemcpy 读 C 才会看到
      *    错误码）。 */
-    aclError gret = aclblasGemmEx(transa, transb, ACL_TRANS_N, m, n, k, alpha, A, lda, dtA, B, ldb,
-                                  dtB, beta, C, ldc, dtC, ACL_COMPUTE_LOW_PRECISION, handle->stream);
+    aclError gret = aclblasGemmEx(transa, transb, ACL_TRANS_N, m, n, k, alpha, A, acl_lda, dtA, B,
+                                  acl_ldb, dtB, beta, C, acl_ldc, dtC, ACL_COMPUTE_LOW_PRECISION,
+                                  handle->stream);
     std::fprintf(stderr, "[cce_bridge][gemm] aclblasGemmEx ret=%d stream=%p recent=%s\n",
                  (int)gret, (void *)handle->stream,
                  aclGetRecentErrMsg() != nullptr ? aclGetRecentErrMsg() : "(null)");

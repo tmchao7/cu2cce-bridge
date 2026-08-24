@@ -16,9 +16,10 @@
 #     同时给测试程序写入 repo/CANN rpath 并设置 LD_LIBRARY_PATH，避免运行时
 #     捡到其他目录中的旧 libcce_bridge_runtime.so。
 # 真机已确认 device staging、stream、device 指针和 dtype 均有效；16×16×16 与
-# 32×32×32 在 compute=ACL_COMPUTE_HIGH_PRECISION(0) 下都直接返回 100000，故已排除
-# shape/最小尺寸。按单变量顺序，本轮只把 GemmEx computeType 改为
-# ACL_COMPUTE_LOW_PRECISION(1)，shape=32 和 dtype=(fp16,fp16,float) 保持不变。
+# 32×32×32 在 compute=ACL_COMPUTE_HIGH_PRECISION(0) 下都直接返回 100000；改为
+# LOW_PRECISION(1) 仍返回 100000。查 CANN acl_cblas.h/API 约束发现：GemmEx
+# 的 lda/ldb/ldc 是保留参数，当前版本只能传 -1；本轮只在 ACL 调用边界将
+# CUDA 的 ld=(32,32,32) 转为 acl_ld=(-1,-1,-1)，其余 shape/dtype/compute 不变。
 # 2026-08-21 方向 A（用户定稿）：host 全部走 bridge 宏/wrapper（cuda* →
 # wcuda* → aclrt*），include <cuda_runtime.h> 由 repo 的 include/ 接住（编译
 # -I<repo>/include 在前）；kernel 保持纯 CUDA 前端直通。首调用均为
