@@ -194,6 +194,11 @@ DEVICE_HEALTHY=1
 PURESIMT_REGRESSION_PASS
 ```
 
+## Experimental BLAS branch
+
+CUDA cuBLAS to CANN ACL CBLAS development is maintained separately on
+`exp/cublas-aclblas`. See the [BLAS compatibility matrix](docs/03_Comparison/BLAS_COMPATIBILITY_MATRIX.md).
+
 ## 目录
 
 - `include/`：CUDA runtime、CUDA BLAS 兼容头、SIMT 原语别名和 shadow headers。

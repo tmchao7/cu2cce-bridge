@@ -1,25 +1,12 @@
-# server_cmd.txt —— main / puresimt 官方 CUDA Samples 回归
+# server_cmd.txt —— exp/cublas-aclblas experimental regression
 #
-# 维护分支：main；实时远端：gitcode（不要 push origin/GitHub）。
-# 目标：用原始 NVIDIA CUDA Samples 源文件验证 puresimt 的零改写链路。
+# This branch is separate from main/puresimt. It validates the host-side
+# CUDA cuBLAS -> CANN ACL CBLAS bridge; failures here do not change the main
+# puresimt acceptance result.
 #
-# 维护样例如下：
-#   - examples/puresimt/vectorAdd/vectorAdd.cu
-#   - examples/puresimt/matrixMul/matrixMul.cu
-#   - examples/puresimt/vectorAdd_minimal.cu
-#   - examples/puresimt/matrixMul_minimal.cu
-#   - examples/puresimt/atomicAdd_minimal.cu（参考 NVIDIA simpleAtomicIntrinsics）
-#   - examples/puresimt/reduction_minimal.cu（参考 NVIDIA reduction）
-#
-# 官方 .cu 文件保留 NVIDIA 原始源码；minimal 文件只使用最小 CUDA
-# runtime/stdio 依赖，用于把 bridge 问题与 NVIDIA helper 头依赖隔离。所有文件
-# 都不添加 p 前缀、不加入 ACL 调用、不写 Ascend C 语法。
-# Ascend C 语法。third_party/nvidia_cuda_samples/Common 只提供 NVIDIA 官方
-# helper 头，作为 include 路径注入。
-#
-# 真机复制执行：
+# Run on Ascend server:
 #   cd /home/t50063365/workspace/repos/cu2cce-bridge
-#   git pull --ff-only gitcode main
+#   git pull --ff-only gitcode exp/cublas-aclblas
 #   bash tools/real_test/server_cmd.txt
 
 set +e
@@ -28,17 +15,16 @@ set -o pipefail
 ulimit -c 0 2>/dev/null || true
 
 cd /home/t50063365/workspace/repos/cu2cce-bridge
-printf 'HEAD=' && git pull --ff-only gitcode main && git log -1 --oneline
+printf 'HEAD=' && git pull --ff-only gitcode exp/cublas-aclblas && git log -1 --oneline
 
-OUT="$PWD/build/real_test/puresimt"
+OUT="$PWD/build/real_test/blas"
 mkdir -p "$OUT"
 rm -f "$OUT"/*
 FAIL=0
 DEVICE_HEALTHY=0
 DEVICE_ACCESS_DENIED=0
-TEST_BLOCKED_BY_DEVICE=0
 
-printf '\n===== [1/4] 只读设备健康门禁 =====\n'
+printf '\n===== [1/5] device + CANN gate =====\n'
 for node in /dev/davinci0 /dev/davinci_manager /dev/hisi_hdc; do
     if [ ! -e "$node" ] || ! test -r "$node" || ! test -w "$node"; then
         echo "[BLOCKED] DEVICE_ACCESS_DENIED_OR_MISSING: $node"
@@ -49,181 +35,108 @@ for node in /dev/davinci0 /dev/davinci_manager /dev/hisi_hdc; do
 done
 
 CANN_BASE="/usr/local/Ascend/latest"
-if [ -f "$CANN_BASE/set_env.sh" ]; then
-    # shellcheck source=/dev/null
-    source "$CANN_BASE/set_env.sh"
-elif [ -f "$CANN_BASE/bin/setenv.bash" ]; then
-    # shellcheck source=/dev/null
-    source "$CANN_BASE/bin/setenv.bash"
-fi
+[ -f "$CANN_BASE/set_env.sh" ] && source "$CANN_BASE/set_env.sh"
 export ASCEND_HOME_PATH="${ASCEND_HOME_PATH:-$CANN_BASE}"
-export CANN_BASE
-
-PROBE_DEVICE="$PWD/build/real_test/probe_device"
-if [ ! -x "$PROBE_DEVICE" ]; then
-    g++ tools/real_test/probe_device.cpp -o "$PROBE_DEVICE" \
-        -I"$CANN_BASE/include" \
-        -L"$CANN_BASE/lib64" \
-        -Wl,-rpath,"$CANN_BASE/lib64" \
-        -lascendcl -lpthread -ldl >"$OUT/probe_device_compile.log" 2>&1
+export ASCEND_OPP_PATH="${ASCEND_OPP_PATH:-/usr/local/Ascend/cann-9.2.0/opp}"
+PROBE="$PWD/build/real_test/probe_device"
+if [ ! -x "$PROBE" ]; then
+    g++ tools/real_test/probe_device.cpp -o "$PROBE" \
+        -I"$CANN_BASE/include" -L"$CANN_BASE/lib64" \
+        -Wl,-rpath,"$CANN_BASE/lib64" -lascendcl -lpthread -ldl \
+        >"$OUT/probe_compile.log" 2>&1
 fi
-DEVICE_PROBE_FAIL=1
-if [ -x "$PROBE_DEVICE" ]; then
-    for attempt in 1 2; do
-        if "$PROBE_DEVICE" >"$OUT/probe_device_${attempt}.log" 2>&1; then
-            echo "[PASS] probe_device attempt=$attempt"
-            DEVICE_PROBE_FAIL=0
-            break
-        else
-            echo "[WARN] probe_device attempt=$attempt failed:"
-            cat "$OUT/probe_device_${attempt}.log" 2>/dev/null
-        fi
-    done
+if [ -x "$PROBE" ] && "$PROBE" >"$OUT/probe.log" 2>&1; then
+    echo '[PASS] device probe'
+    DEVICE_PROBE_FAIL=0
 else
-    echo '[BLOCKED] probe_device executable missing; compile log:'
-    cat "$OUT/probe_device_compile.log" 2>/dev/null
+    echo '[FAIL] device probe'
+    cat "$OUT/probe.log" 2>/dev/null
+    DEVICE_PROBE_FAIL=1
 fi
 if [ "$DEVICE_ACCESS_DENIED" -eq 0 ] && [ "$DEVICE_PROBE_FAIL" -eq 0 ]; then
     DEVICE_HEALTHY=1
     echo '[PASS] DEVICE_HEALTHY=1'
 else
-    TEST_BLOCKED_BY_DEVICE=1
-    echo "[BLOCKED] TEST_BLOCKED_BY_DEVICE（ACCESS_DENIED=$DEVICE_ACCESS_DENIED PROBE_FAIL=$DEVICE_PROBE_FAIL）"
+    echo '[BLOCKED] DEVICE_HEALTHY=0'
 fi
 
-printf '\n===== [2/4] CANN / bridge 环境 =====\n'
-echo "ASCEND_HOME_PATH=$ASCEND_HOME_PATH"
-echo "ASCEND_OPP_PATH=${ASCEND_OPP_PATH:-<unset>}"
-REPO_INC="$PWD/include"
-NVIDIA_COMMON="$PWD/third_party/nvidia_cuda_samples/Common"
-REPO_LIB="$PWD/build/real_test/install/lib"
-if [ ! -e "$REPO_LIB/libcce_bridge_runtime.so" ]; then
-    REPO_LIB="$PWD/build/core/lib"
-fi
-export LD_LIBRARY_PATH="$REPO_LIB:$CANN_BASE/lib64:${LD_LIBRARY_PATH:-}"
-echo "REPO_INC=$REPO_INC"
-echo "NVIDIA_COMMON=$NVIDIA_COMMON"
-echo "REPO_LIB=$REPO_LIB"
-if [ ! -d "$NVIDIA_COMMON" ]; then
-    echo '[FAIL] NVIDIA helper headers missing'
-    FAIL=$((FAIL + 1))
-fi
-
-printf '\n===== [2.5/4] bridge runtime 重编 =====\n'
+printf '\n===== [2/5] bridge runtime rebuild =====\n'
 if bash tools/real_test/build_bridge.sh; then
     echo '[PASS] bridge runtime rebuild'
 else
     echo '[FAIL] bridge runtime rebuild'
     FAIL=$((FAIL + 1))
 fi
-if [ -e "$PWD/build/real_test/install/lib/libcce_bridge_runtime.so" ]; then
-    REPO_LIB="$PWD/build/real_test/install/lib"
-fi
+
+REPO_INC="$PWD/include"
+REPO_LIB="$PWD/build/real_test/install/lib"
 export LD_LIBRARY_PATH="$REPO_LIB:$CANN_BASE/lib64:${LD_LIBRARY_PATH:-}"
 
-printf '\n===== [2.75/4] cucc puresimt 直通检查 =====\n'
-CUCC_BIN="$PWD/build/real_test/install/bin/cucc"
-CUCC_OBJ="$OUT/cucc_vectorAdd_minimal.o"
-CUCC_LOG="$OUT/cucc_direct.log"
-rm -f "$CUCC_OBJ" "$CUCC_LOG" "$OUT"/*.cce
-if [ -x "$CUCC_BIN" ] && CUCC_PATH="$PWD/build/real_test/install" CUDA_PATH="$PWD/build/real_test/install" \
-    WCUDA_DEBUG=1 "$CUCC_BIN" -c examples/puresimt/vectorAdd_minimal.cu -o "$CUCC_OBJ" >"$CUCC_LOG" 2>&1; then
-    if grep -Eiq 'kernel[_ -]?convert|__simt_vf__|async_invoke' "$CUCC_LOG" || find "$OUT" -maxdepth 1 -name '*.cce' -print -quit | grep -q .; then
-        echo '[FAIL] cucc 仍触发 legacy kernel lowering'
-        cat "$CUCC_LOG"
-        FAIL=$((FAIL + 1))
-    else
-        echo '[PASS] cucc 直接调用 ccec；未生成 legacy converter/.cce 中间文件'
-    fi
+printf '\n===== [3/5] official CANN GEMM model =====\n'
+SOC_NAME="$(grep -hF 'probe_device: soc name = ' "$OUT/probe.log" 2>/dev/null | sed 's/.*soc name = //' | head -1)"
+ATC="$CANN_BASE/bin/atc"
+MODEL_DIR="$OUT/gemm_models"
+MODEL_JSON="$OUT/gemm_fp16_fp32.json"
+mkdir -p "$MODEL_DIR"
+cat >"$MODEL_JSON" <<'JSON'
+[
+  {
+    "op": "GEMM",
+    "input_desc": [
+      {"format": "ND", "shape": [32, 32], "type": "float16"},
+      {"format": "ND", "shape": [32, 32], "type": "float16"},
+      {"format": "ND", "shape": [32, 32], "type": "float"},
+      {"format": "ND", "shape": [], "type": "float"},
+      {"format": "ND", "shape": [], "type": "float"}
+    ],
+    "output_desc": [{"format": "ND", "shape": [32, 32], "type": "float"}],
+    "attr": [
+      {"name": "transpose_a", "type": "bool", "value": false},
+      {"name": "transpose_b", "type": "bool", "value": false}
+    ]
+  }
+]
+JSON
+if [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$ATC" ] && [ -n "$SOC_NAME" ] && \
+   "$ATC" --singleop="$MODEL_JSON" --soc_version="$SOC_NAME" \
+       --output="$MODEL_DIR/gemm_fp16_fp32" >"$OUT/atc.log" 2>&1; then
+    echo "[PASS] ATC model generated for $SOC_NAME"
 else
-    echo '[FAIL] cucc puresimt direct compile'
-    cat "$CUCC_LOG" 2>/dev/null
+    echo '[FAIL] ATC model generation'
+    cat "$OUT/atc.log" 2>/dev/null
     FAIL=$((FAIL + 1))
 fi
 
-printf '\n===== [3/4] puresimt CUDA Samples + operator tests 编译 + 运行 =====\n'
+printf '\n===== [4/5] cublasSgemm -> aclblasGemmEx =====\n'
 CCEC="$CANN_BASE/bin/ccec"
-PS_FLAGS="-x asc --cce-aicore-arch=dav-c310-vec --enable-simt -std=c++17"
-for pair in \
-    'vectorAdd/vectorAdd.cu|Test PASSED' \
-    'matrixMul/matrixMul.cu|Result = PASS' \
-    'vectorAdd_minimal.cu|vectorAdd_minimal OK' \
-    'matrixMul_minimal.cu|matrixMul_minimal OK' \
-    'atomicAdd_minimal.cu|atomicAdd_minimal OK' \
-    'reduction_minimal.cu|reduction_minimal OK' \
-    'warpShuffle_minimal.cu|warpShuffle_minimal OK' \
-    'scan_minimal.cu|scan_minimal OK' \
-    'transpose_minimal.cu|transpose_minimal OK' \
-    'vote_minimal.cu|vote_minimal OK' \
-    'dot_minimal.cu|dot_minimal OK' \
-    'stencil_minimal.cu|stencil_minimal OK' \
-    'core_ops_minimal.cu|core_ops_minimal OK' \
-    'math_minimal.cu|math_minimal OK' \
-    'event_minimal.cu|event_minimal OK' \
-    'pitchedMemcpy_minimal.cu|pitchedMemcpy_minimal OK' \
-    'multiKernel_minimal.cu|multiKernel_minimal OK' \
-    'atomicVariants_minimal.cu|atomicVariants_minimal OK' \
-    'dynamicShared_minimal.cu|dynamicShared_minimal OK' \
-    'index3D_minimal.cu|index3D_minimal OK' \
-    'threadFence_minimal.cu|threadFence_minimal OK' \
-    'half_minimal.cu|half_minimal OK' \
-    'bf16x2_minimal.cu|bf16x2_minimal OK'; do
-    src=${pair%%|*}
-    key=${pair#*|}
-    name=$(basename "$src" .cu)
-    bin="$OUT/$name"
-    echo "===== [$name] $CCEC $PS_FLAGS examples/puresimt/$src ====="
-    EXTRA_FLAGS=()
-    INCLUDE_FLAGS=( -I"$REPO_INC" -I"$CANN_BASE/include" )
-    # NVIDIA vectorAdd relies on CUDA runtime's transitive fabs declaration;
-    # matrixMul includes the system C++ math header itself, so do not preinclude
-    # the shadow math header for that sample (it would conflict with glibc specs).
-    case "$name" in
-        vectorAdd)
-            EXTRA_FLAGS+=( -include "$REPO_INC/shadow/math.h" )
-            INCLUDE_FLAGS+=( -I"$NVIDIA_COMMON" )
-            ;;
-        matrixMul)
-            INCLUDE_FLAGS+=( -I"$NVIDIA_COMMON" )
-            ;;
-        math_minimal)
-            EXTRA_FLAGS+=( -include "$REPO_INC/shadow/math.h" )
-            ;;
-    esac
-    if "$CCEC" $PS_FLAGS "${EXTRA_FLAGS[@]}" "examples/puresimt/$src" \
-        "${INCLUDE_FLAGS[@]}" \
-        -L"$CANN_BASE/lib64" -L"$REPO_LIB" \
-        -Wl,-rpath,"$REPO_LIB" -Wl,-rpath,"$CANN_BASE/lib64" \
-        -lascendc_runtime -lascendcl -lruntime -lregister -lerror_manager \
-        -lprofapi -lascendalog -lmmpa -lascend_dump -lc_sec -lstdc++ \
-        -lcce_bridge_runtime -o "$bin" >"$OUT/${name}.log" 2>&1; then
-        ldd "$bin" >"$OUT/${name}.ldd.log" 2>&1 || true
-        if [ "$DEVICE_HEALTHY" -ne 1 ]; then
-            echo "[SKIP] [$name] 编译通过；设备门禁未通过，未执行二进制"
-        elif "$bin" >"$OUT/${name}.run.log" 2>&1 && grep -Fq "$key" "$OUT/${name}.run.log"; then
-            echo "[PASS] [$name] 运行通过：$(grep -F "$key" "$OUT/${name}.run.log" | tail -n 1)"
-        else
-            echo "[FAIL] [$name] 运行失败（run log 首 30 行）"
-            head -n 30 "$OUT/${name}.run.log" 2>/dev/null
-            echo "----- [$name] ldd（仅动态库依赖，不是运行错误） -----"
-            cat "$OUT/${name}.ldd.log" 2>/dev/null
-            tail -n 20 "$OUT/${name}.log" 2>/dev/null
-            FAIL=$((FAIL + 1))
-        fi
+BIN="$OUT/cublas_sgemm"
+if [ "$DEVICE_HEALTHY" -eq 1 ] && "$CCEC" -x asc -std=c++17 \
+    examples/blas/cublas_sgemm.cu \
+    -I"$REPO_INC" -I"$CANN_BASE/include" \
+    -L"$REPO_LIB" -L"$CANN_BASE/lib64" \
+    -Wl,-rpath,"$REPO_LIB" -Wl,-rpath,"$CANN_BASE/lib64" \
+    -lcce_bridge_runtime -lacl_cblas -lascendcl -lstdc++ -lpthread -lm \
+    -o "$BIN" >"$OUT/cublas_sgemm_compile.log" 2>&1; then
+    ldd "$BIN" >"$OUT/cublas_sgemm.ldd.log" 2>&1 || true
+    if CU2CCE_GEMM_MODEL_DIR="$MODEL_DIR" "$BIN" >"$OUT/cublas_sgemm.run.log" 2>&1 && \
+       grep -Fq 'cublas_sgemm_experimental OK' "$OUT/cublas_sgemm.run.log"; then
+        echo "[PASS] cublas_sgemm：$(grep -F 'cublas_sgemm_experimental OK' "$OUT/cublas_sgemm.run.log")"
     else
-        echo "[FAIL] [$name] 编译失败（log 首 30 行）"
-        head -n 30 "$OUT/${name}.log" 2>/dev/null
+        echo '[FAIL] cublas_sgemm runtime'
+        cat "$OUT/cublas_sgemm.run.log" 2>/dev/null
         FAIL=$((FAIL + 1))
     fi
-done
-
-printf '\n===== [4/4] 汇总 =====\n'
-echo "FAIL=$FAIL DEVICE_HEALTHY=$DEVICE_HEALTHY TEST_BLOCKED_BY_DEVICE=$TEST_BLOCKED_BY_DEVICE"
-echo "完整日志：$OUT"
-if [ "$TEST_BLOCKED_BY_DEVICE" -eq 1 ]; then
-    echo 'RESULT=TEST_BLOCKED_BY_DEVICE'
-elif [ "$FAIL" -eq 0 ]; then
-    echo 'PURESIMT_REGRESSION_PASS'
 else
-    echo 'PURESIMT_REGRESSION_FAIL（查看上方各 .log）'
+    echo '[SKIP/FAIL] cublas_sgemm compile（见日志）'
+    cat "$OUT/cublas_sgemm_compile.log" 2>/dev/null
+    FAIL=$((FAIL + 1))
+fi
+
+printf '\n===== [5/5] summary =====\n'
+echo "FAIL=$FAIL DEVICE_HEALTHY=$DEVICE_HEALTHY"
+echo "Logs: $OUT"
+if [ "$FAIL" -eq 0 ] && [ "$DEVICE_HEALTHY" -eq 1 ]; then
+    echo 'BLAS_EXPERIMENTAL_REGRESSION_PASS'
+else
+    echo 'BLAS_EXPERIMENTAL_REGRESSION_FAIL'
 fi
