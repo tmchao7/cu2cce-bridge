@@ -102,14 +102,29 @@ listp=("${newlistp[@]}")
 # *.o → 链接阶段
 xlang=""
 dotofilefound=0
+compile_only=0
+output_file=""
 skip_value=0
+expect_output=0
 for i in "${listp[@]}"; do
     if [ "$skip_value" -eq 1 ]; then
+        if [ "$expect_output" -eq 1 ]; then
+            output_file="$i"
+            expect_output=0
+        fi
         skip_value=0
         continue
     fi
     case "${i}" in
-        -o|-MF|-MT|-include)
+        -c)
+            compile_only=1
+            ;;
+        -o)
+            # The following token is the output path, not an input object.
+            skip_value=1
+            expect_output=1
+            ;;
+        -MF|-MT|-include)
             # The following token is an option value, not an input object.
             skip_value=1
             ;;
@@ -122,8 +137,21 @@ for i in "${listp[@]}"; do
     esac
 done
 
-# ---------------- 追加参数 ----------------
-params=("${listp[@]}")
+# Be forgiving for the common user command `cucc file.cu -o build/file.o`: an
+# object suffix clearly means compile-only even when the caller omitted -c.
+if [ "$compile_only" -eq 0 ] && [ "$dotofilefound" -eq 0 ] && [ "$xlang" = "cu" ] &&
+   [[ "$output_file" == *.o ]]; then
+    compile_only=1
+    params=("-c" "${listp[@]}")
+else
+    params=("${listp[@]}")
+fi
+
+# A source-only invocation without -c is a complete compile+link command.
+link_stage="$dotofilefound"
+if [ "$xlang" = "cu" ] && [ "$compile_only" -eq 0 ]; then
+    link_stage=1
+fi
 
 # puresimt 主线：.cu 直接交给 CANN ccec。
 # 不运行 Python kernel converter，不生成 __simt_vf__/__global__[aicore] 包装，
@@ -195,7 +223,7 @@ fi
 # 链接阶段：追加昇腾运行库（clang 风格 -L/-l；真机实测：
 # CCE 运行时 rt* 符号（rtKernelLaunch 等）在 ${CANN_BASE}/runtime/lib64 的 -lruntime，
 # 用户实测脚本 04_build_exec.sh 同款）
-if [[ ${dotofilefound} -eq 1 ]]; then
+if [[ ${link_stage} -eq 1 ]]; then
     params+=("-L" "${ASCEND_TOOLKIT_HOME}/lib64")
     params+=("-L" "${CANN_BASE}/runtime/lib64")
     params+=("-L" "${CANN_BASE}/lib64")
@@ -206,7 +234,7 @@ fi
 
 # 链接时注入 cu2cce 的 wcuda* wrapper 库（并写 rpath 指向它，
     # 运行时不需手工设 LD_LIBRARY_PATH）
-    if [[ ${dotofilefound} -eq 1 ]] && [ -n "${CUCC_PATH}" ]; then
+    if [[ ${link_stage} -eq 1 ]] && [ -n "${CUCC_PATH}" ]; then
         params+=("-L" "${CUCC_PATH}/lib")
         params+=("-Wl,-rpath,${CUCC_PATH}/lib")
         params+=("-lcce_bridge_runtime")
