@@ -18,8 +18,11 @@
 
 #include "cublas_v2_wrapper.h"
 
+#include <acl/acl.h>
+
 #include <cstdlib>
 #include <cstdio>
+#include <cstring>
 
 /* CUBLAS 的成功码与 ACL 相同（0）。handle 是 cu2cce 内部结构，存关联 stream。 */
 
@@ -76,6 +79,28 @@ aclError wcublasGetVersion(int *version) {
  * 诊断日志暂时保留在 wrapper 内：100000 可能来自 stream、shape/leading
  * dimension、数据类型组合或 computeType，调用方只能看到 cublas 返回码，
  * 因此必须在真正调用 aclblasGemmEx 的边界打印完整参数以及 ACL 最近错误。 */
+/* 官方 Ascend GEMM sample 在 aclblasGemmEx 前调用 aclopSetModelDir()，加载由 ATC
+ * 生成的单算子 GEMM .om。CANN 返回 100024 时不是参数错误，而是找不到匹配算子；
+ * 允许 real_test 通过环境变量注入模型目录，同时不让用户 CUDA 代码依赖 ACL。 */
+static aclError ensure_gemm_model_dir() {
+    const char *model_dir = std::getenv("CU2CCE_GEMM_MODEL_DIR");
+    if (model_dir == nullptr || model_dir[0] == '\0') {
+        return ACL_SUCCESS;
+    }
+    static char configured_dir[4096] = {0};
+    if (std::strncmp(configured_dir, model_dir, sizeof(configured_dir) - 1) == 0) {
+        return ACL_SUCCESS;
+    }
+    aclError ret = aclopSetModelDir(model_dir);
+    std::fprintf(stderr, "[cce_bridge][gemm] aclopSetModelDir dir=%s ret=%d recent=%s\n",
+                 model_dir, (int)ret, aclGetRecentErrMsg() != nullptr ? aclGetRecentErrMsg() : "(null)");
+    if (ret == ACL_SUCCESS) {
+        std::strncpy(configured_dir, model_dir, sizeof(configured_dir) - 1);
+        configured_dir[sizeof(configured_dir) - 1] = '\0';
+    }
+    return ret;
+}
+
 static aclError gemm_impl(cublasHandle_t handle, aclTransType transa, aclTransType transb, int m,
                           int n, int k, const void *alpha, const void *A, int lda,
                           aclDataType dtA, const void *B, int ldb, aclDataType dtB,
@@ -110,6 +135,11 @@ static aclError gemm_impl(cublasHandle_t handle, aclTransType transa, aclTransTy
         if (sret != ACL_SUCCESS) {
             return sret;
         }
+    }
+
+    aclError model_ret = ensure_gemm_model_dir();
+    if (model_ret != ACL_SUCCESS) {
+        return model_ret;
     }
 
     /* aclblasGemmEx 无 handle，直接传 stream（从 cu2cce handle 结构取）。

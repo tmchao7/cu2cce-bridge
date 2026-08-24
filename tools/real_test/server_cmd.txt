@@ -21,7 +21,8 @@
 # 返回码已前进为 100024=ACL_ERROR_OP_NOT_FOUND，证明参数层已经通过。当前问题转为
 # CANN 未找到匹配 GEMM 算子/模型。华为官方 GEMM 样例明确配置 ASCEND_OPP_PATH，
 # 旧样例还通过 aclopSetModelDir 加载 ATC 单算子模型；本轮先在父 shell source
-# /usr/local/Ascend/latest/set_env.sh 并核对 OPP，排除运行环境未配置。
+# /usr/local/Ascend/latest/set_env.sh 并准备 ATC GEMM 单算子模型；仅有 OPP
+# 仍不足以证明当前 SoC/数据类型组合存在可调用 GEMM 实现。
 # 2026-08-21 方向 A（用户定稿）：host 全部走 bridge 宏/wrapper（cuda* →
 # wcuda* → aclrt*），include <cuda_runtime.h> 由 repo 的 include/ 接住（编译
 # -I<repo>/include 在前）；kernel 保持纯 CUDA 前端直通。首调用均为
@@ -162,6 +163,54 @@ else
 fi
 export LD_LIBRARY_PATH="$REPO_LIB:$CANN_BASE/lib64:${LD_LIBRARY_PATH:-}"
 echo "RUNTIME LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+
+printf '\n===== [2.6/5] GEMM 单算子模型准备 =====\n'
+# 100024 已确认是 ACL_ERROR_OP_NOT_FOUND。华为官方 GEMM sample 在调用
+# aclblasGemmEx 前通过 ATC 生成 .om，并调用 aclopSetModelDir()；本轮用真机
+# probe 得到的 SoC 生成 fp16×fp16→fp32 GEMM 模型，wrapper 通过环境变量加载。
+GEMM_MODEL_DIR="$OUT/gemm_models"
+GEMM_JSON="$OUT/gemm_fp16_fp32.json"
+mkdir -p "$GEMM_MODEL_DIR"
+SOC_NAME="$(grep -hF 'probe_device: soc name = ' "$OUT"/probe_device_*.log 2>/dev/null | head -n 1 | sed 's/.*soc name = //')"
+ATC="${CANN_BASE}/bin/atc"
+if [ ! -x "$ATC" ]; then ATC="$(command -v atc 2>/dev/null || true)"; fi
+echo "SOC_NAME=${SOC_NAME:-<unknown>} ATC=${ATC:-<missing>}"
+cat >"$GEMM_JSON" <<'EOF'
+[
+  {
+    "op": "GEMM",
+    "input_desc": [
+      {"format": "ND", "shape": [32, 32], "type": "float16"},
+      {"format": "ND", "shape": [32, 32], "type": "float16"},
+      {"format": "ND", "shape": [32, 32], "type": "float"},
+      {"format": "ND", "shape": [], "type": "float"},
+      {"format": "ND", "shape": [], "type": "float"}
+    ],
+    "output_desc": [
+      {"format": "ND", "shape": [32, 32], "type": "float"}
+    ],
+    "attr": [
+      {"name": "transpose_a", "type": "bool", "value": false},
+      {"name": "transpose_b", "type": "bool", "value": false}
+    ]
+  }
+]
+EOF
+if [ -n "$ATC" ] && [ -n "$SOC_NAME" ]; then
+    rm -f "$GEMM_MODEL_DIR"/*.om
+    if "$ATC" --singleop="$GEMM_JSON" --soc_version="$SOC_NAME" \
+        --output="$GEMM_MODEL_DIR/gemm_fp16_fp32" >"$OUT/gemm_atc.log" 2>&1; then
+        echo '[PASS] GEMM ATC model generated'
+        ls -l "$GEMM_MODEL_DIR"
+        export CU2CCE_GEMM_MODEL_DIR="$GEMM_MODEL_DIR"
+        echo "CU2CCE_GEMM_MODEL_DIR=$CU2CCE_GEMM_MODEL_DIR"
+    else
+        echo '[WARN] GEMM ATC model generation failed; see gemm_atc.log'
+        head -n 40 "$OUT/gemm_atc.log" 2>/dev/null
+    fi
+else
+    echo '[WARN] skip ATC model generation: missing ATC or SoC name'
+fi
 
 PS_FLAGS="-x asc --cce-aicore-arch=dav-c310-vec --enable-simt -std=c++17"
 
