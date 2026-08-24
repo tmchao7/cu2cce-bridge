@@ -2,7 +2,10 @@
 #define __CUBLAS_V2_WRAPPER_H__
 
 /*
- * cublas_v2 兼容层（Phase A4 最小子集）。
+ * EXPERIMENTAL secondary capability: cublas_v2 → acl_cblas.
+ * It is independent from the main/puresimt kernel path.
+ *
+ * cublas_v2 兼容层（最小子集）。
  *
  * 仿照 cu-bridge 的 include/bridge/blas/cublas_v2_wrapper.h：
  *   宏把 cublas 符号映射到 cu2cce 的 wcublas* wrapper / aclblas 原生符号。
@@ -73,7 +76,7 @@ aclError wcublasGetVersion(int *version);
  *   cublasSgemm(handle, transa, transb, m, n, k, &alpha, A, lda, B, ldb, &beta, C, ldc)
  * wrapper 内部转 aclblasGemmEx（补 dataType/transC/computeType/stream）。
  * 注意：cublas 调用方传的是 cudaMalloc 出的 Device 指针，float * 可与 aclblasGemmEx
- * 的 void\* 形参隐式转换；示例见 examples/cublasMatmul/matmul.cu。
+ * 的 void\* 形参隐式转换；puresimt 主线不依赖此 experimental wrapper。
  * ⚠️ 昇腾计算接口要求非空 aclrtStream：wcublasSgemm 在 handle->stream 为空时，
  *    内部自动先 aclrtCreateStream 再调用 aclblasGemmEx（见 wrapper 实现 2026-08-21）。 */
 aclError wcublasSgemm(cublasHandle_t handle, aclTransType transa, aclTransType transb, int m, int n,

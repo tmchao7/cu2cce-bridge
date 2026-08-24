@@ -9,7 +9,7 @@
 ## 1. 项目一句话背景
 
 cu2cce-bridge：用户写**纯 CUDA** 代码（`.cu`），经 `bin/cucc`（驱动）→
-`tools/kernel_convert.py`（自动转昇腾 SIMT VF 模板）→ `ccec`（CANN 自带编译器，
+（历史实验曾使用 kernel lowering）→ `ccec`（CANN 自带编译器，
 `--cce-aicore-arch=dav-c310`）编译 → 链接 → 跑在昇腾 NPU（davinci0）上。
 host 侧 CUDA API 由 `src/bridge/runtime/src/cuda_runtime_wrapper.cpp` 的
 `wcuda*` 函数映射到 ACL（`aclrt*`）。宏表在
@@ -17,15 +17,15 @@ host 侧 CUDA API 由 `src/bridge/runtime/src/cuda_runtime_wrapper.cpp` 的
 
 ## 2. 现象（时间线）
 
-- **2026-08-19 已达成**：`bash tools/real_test/run_tests.sh all` **8/8 PASS**
+- **2026-08-19 已达成**：`bash tools/real_test/server_cmd.txt` **8/8 PASS**
   - `host_compile/link/run` PASS（host 冒烟：cudaGetDeviceCount/cudaSetDevice/
     cudaMalloc/cudaMemcpy/cudaMemset/cudaDeviceGetAttribute/cublasCreate 全部真机运行 OK）
   - `vectoradd_compile/link/run` PASS：**纯 CUDA vectorAdd 在 davinci0 上运行，
     输出 `vectorAdd OK (N=1024)` 数值校验通过**（kernel 零改写端到端成立）。
-- **问题**：`examples/minimal/minimal.cu`（同样纯 CUDA，但 host 侧**直接
+- **问题**：`examples/puresimt/vectorAdd_minimal.cu`（同样纯 CUDA，但 host 侧**直接
   cudaMalloc**，没有先调 cudaGetDeviceCount）手动编译运行：
   ```
-  cucc -c examples/minimal/minimal.cu -o /tmp/minimal.o
+  cucc -c examples/puresimt/vectorAdd_minimal.cu -o /tmp/minimal.o
   cucc /tmp/minimal.o -o /tmp/minimal
   /tmp/minimal
   → cudaMalloc failed: 107002
@@ -119,17 +119,16 @@ alloc policy、是否设置 device 属性），把 bridge_init 对齐它。
   - `wcudaMalloc` ≈ 492-507 行（`ACL_MEM_MALLOC_HUGE_FIRST`）
   - `wcudaGetDeviceCount` ≈ 66 行（aclrtGetDeviceCount）
 - `include/bridge/runtime/cuda_wrapper_internal.h`：BRIDGE_INIT 宏（call_once）
-- `tools/real_test/run_tests.sh`：真机测试脚本（49 行 LD_LIBRARY_PATH）
-- `examples/vectorAdd/vectorAdd.cu`：**能跑的**纯 CUDA 示例（首调用 GetDeviceCount）
-- `examples/minimal/minimal.cu`：**挂掉的**纯 CUDA 示例（首调用 cudaMalloc）
+- `tools/real_test/server_cmd.txt`：main 真机测试入口
+- `examples/puresimt/vectorAdd/vectorAdd.cu`：**能跑的**纯 CUDA 示例（首调用 GetDeviceCount）
+- `examples/puresimt/vectorAdd_minimal.cu`：**挂掉的**纯 CUDA 示例（首调用 cudaMalloc）
 
 ### 6.2 真机环境（已确认）
 - CANN 9.2.0（`/usr/local/Ascend/cann-9.2.0`；`/usr/local/Ascend/latest` 是软链）
 - driver 7.0.t9.0.B880；`/dev/davinci0` + `/dev/davinci_manager` 存在
 - 编译器：`/usr/local/Ascend/latest/bin/ccec`（clang 15.0.5），
   `--cce-aicore-arch=dav-c310`；bisheng 是另一套（不认识 dav-c310，勿用）
-- SIMT VF 模板（真机验证）：`__simt_vf__` 计算体 + `__global__[aicore]` 入口 +
-  `cce::async_invoke` 启动 + `__gm__` 指针；kernel 转换见 `tools/kernel_convert.py`
+- main 当前不使用 SIMT VF/text lowering；正式路径是 ccec 直接解析原始 CUDA SIMT。
 - 系统标准库头与 glibc 2.39 不兼容 → `include/shadow/` 遮蔽头方案（勿回退）
 
 ### 6.3 需要用户提供（下一 agent 的第一件事）
@@ -151,7 +150,7 @@ aclInit → 设备设置 → 内存分配 → kernel 启动的完整顺序），
 2. 若 5.2 解决：把"先 GetDeviceCount 再 SetDevice"固化进 bridge_init + 文档
 3. 若 5.3 解决：定稿 alloc policy 策略 + 文档
 4. 无论哪种解法，把根因与修复记回本文件（追加"结论"节），并跑一次
-   `bash tools/real_test/run_tests.sh all` 确认 8/8 仍通过
+   `bash tools/real_test/server_cmd.txt` 确认 8/8 仍通过
 
 ---
 
@@ -186,7 +185,7 @@ aclInit → 设备设置 → 内存分配 → kernel 启动的完整顺序），
 **验证**（真机 2026-08-19，ROUND17）：
 - `minimal` 手动跑输出 **`minimal OK (N=256)`**，且压印顺序变为
   `[bridge_init]` 全在前、`[wcuda]` 在后（修复前顺序颠倒）
-- `bash tools/real_test/run_tests.sh all` **8/8 PASS**（host 冒烟 + vectorAdd
+- `bash tools/real_test/server_cmd.txt` **8/8 PASS**（host 冒烟 + vectorAdd
   端到端，与修复前一致，无回归）
 - 顺带加固：`wcudaGetDeviceProperties`/`wcudaStreamQuery`/`wcudaEventQuery`
   三个同样「原生调用在 WCUDA_RETURN 之前」的入口也补了 `BRIDGE_INIT()`

@@ -6,9 +6,9 @@
 # 昇腾 bisheng（CANN 的 clang 系编译器）。核心职责：
 #   1. 解析/展开 nvcc 命令行（含 @file / --options-file、-D 宏、-Xcompiler）
 #   2. 识别编译单元（.cu / .cpp / .o）与阶段（compile / link）
-#   3. 注入 cu2cce-bridge 的 CUDA 兼容头 + SIMT 适配宏表
-#   4. 把 CUDA 特有参数翻译成 bisheng 参数（--offload-arch → --npu-arch=dav-c310 等）
-#   5. 调用 bisheng
+#   3. 注入 cu2cce-bridge 的 CUDA 兼容头 + SIMT 原语适配头
+#   4. 把 CUDA 特有参数翻译成 ccec 参数（架构/标准/链接库）
+#   5. 直接调用 ccec
 #
 # ⚠️ 本机（macOS）无 CANN/bisheng，脚本仅作框架，勿在本机执行。
 #    真机环境见 docs/01_Design/CUDA_TO_CCE_PORTING_PLAN.md §6。
@@ -19,13 +19,9 @@ set -u
 CUCC_PATH=${CUCC_PATH:-}
 ASCEND_TOOLKIT_HOME=${ASCEND_TOOLKIT_HOME:-/usr/local/Ascend/ascend-toolkit/latest}
 CANN_BASE=${CANN_BASE:-/usr/local/Ascend/latest}
-# 编译器选择（真机 9.2.0 实测，2026-08-19）：
-#   1. ccec（CANN 自带，/usr/local/Ascend/latest/bin/ccec）——架构参数 --cce-aicore-arch=dav-c310，
-#      导师指定的 dav-c310 只有 ccec 认识；用户实测脚本已用它编译+运行成功 → 优先
-#   2. bisheng（独立编译器）——架构参数 --npu-arch=dav-xxx（不认识 dav-c310）
+# main/puresimt 唯一编译器：CANN 自带 ccec。
+# 旧 bisheng fallback 与旧无-SIMT 路线不属于 main。
 CCEC_PATH=${CCEC_PATH:-}
-BISHENG_PATH=${BISHENG_PATH:-}
-CCE_ARCH_FLAG="--npu-arch"
 CC_CMD=""
 if [ -z "${CCEC_PATH}" ]; then
     for cand in \
@@ -37,22 +33,12 @@ if [ -z "${CCEC_PATH}" ]; then
 fi
 if [ -n "${CCEC_PATH}" ] && [ -x "${CCEC_PATH}" ]; then
     CC_CMD="${CCEC_PATH}"
-    CCE_ARCH_FLAG="--cce-aicore-arch"
 else
-    if [ -z "${BISHENG_PATH}" ]; then
-        for cand in \
-            "${ASCEND_TOOLKIT_HOME}/compiler/ccec_compiler/bin/bisheng" \
-            "${ASCEND_TOOLKIT_HOME}/compiler/bisheng/bin/bisheng" \
-            /usr/local/Ascend/cann-*/tools/bisheng_compiler/bin/bisheng; do
-            if [ -x "${cand}" ]; then BISHENG_PATH="${cand}"; break; fi
-        done
-        BISHENG_PATH=${BISHENG_PATH:-${ASCEND_TOOLKIT_HOME}/compiler/ccec_compiler/bin/bisheng}
-    fi
-    CC_CMD="${BISHENG_PATH}"
-    CCE_ARCH_FLAG="--npu-arch"
+    echo "cucc: main/puresimt requires CANN ccec; set CCEC_PATH or install /usr/local/Ascend/latest/bin/ccec" >&2
+    exit 1
 fi
-# 目标 NPU 架构（D0 已定：950 系列 = dav-c310；导师 2026-08-19 纠正，此前误记 dav-310）
-CUCC_NPU_ARCH=${CUCC_NPU_ARCH:-dav-c310}
+# 目标 NPU 架构：puresimt 真机基线必须使用 dav-c310-vec。
+CUCC_NPU_ARCH=${CUCC_NPU_ARCH:-dav-c310-vec}
 # 模拟的 CUDA 版本
 CUCC_CUDA_VERSION=${CUCC_CUDA_VERSION:-11060}
 # 调试开关
@@ -111,7 +97,7 @@ done
 listp=("${newlistp[@]}")
 
 # ---------------- 识别编译单元与阶段 ----------------
-# -x cu / .cu → device 侧（bisheng 直接编译）
+# -x cu / .cu → device 侧（ccec 直接编译）
 # -x cpp / .cpp/.c/.cc → host 侧
 # *.o → 链接阶段
 xlang=""
@@ -128,34 +114,10 @@ done
 # ---------------- 追加参数 ----------------
 params=("${listp[@]}")
 
-# kernel 自动转换：用户 .cu 保持纯 CUDA（零改写），编译前用 kernel_convert.py
-# 转为昇腾 SIMT VF 模板（对应 cu-bridge 的 ptx2cpp 职责，2026-08-19）
-if [[ "${xlang}" == "cu" ]]; then
-    KERNEL_CONVERT=""
-    if [ -n "${CUCC_PATH}" ] && [ -f "${CUCC_PATH}/tools/kernel_convert.py" ]; then
-        KERNEL_CONVERT="${CUCC_PATH}/tools/kernel_convert.py"
-    elif [ -f "$(dirname "$0")/../tools/kernel_convert.py" ]; then
-        KERNEL_CONVERT="$(cd "$(dirname "$0")/../tools" && pwd)/kernel_convert.py"
-    fi
-    if [ -n "${KERNEL_CONVERT}" ]; then
-        for idx in "${!params[@]}"; do
-            case "${params[$idx]}" in
-                *.cu)
-                    conv="$(mktemp /tmp/cu2cce_XXXXXX.cce)"
-                    if python3 "${KERNEL_CONVERT}" "${params[$idx]}" -o "${conv}" >/dev/null 2>&1; then
-                        debug_echo "kernel_convert: ${params[$idx]} -> ${conv}"
-                        params[$idx]="${conv}"
-                    else
-                        echo "cucc: kernel_convert failed for ${params[$idx]}" >&2
-                        rm -f "${conv}"
-                        exit 1
-                    fi
-                    break;;
-            esac
-        done
-    fi
-fi
-
+# puresimt 主线：.cu 直接交给 CANN ccec。
+# 不运行 Python kernel converter，不生成 __simt_vf__/__global__[aicore] 包装，
+# 不注入隐藏 block 参数；用户 CUDA 源文件保持原样，由 ccec --enable-simt
+# 直接解析 __global__/threadIdx/blockIdx/__shared__/<<<>>>。
 # 注入 cu2cce-bridge 的 CUDA 兼容头（shadow 遮蔽头最优先：用户代码
 # #include <stdio.h> 等命中 cu2cce 最小声明版，不碰 glibc——ccec+glibc 2.39
 # 系统头不兼容，真机实测；用户 CUDA 代码保持原样不动）
@@ -164,6 +126,11 @@ if [ -n "${CUCC_PATH}" ]; then
         params+=("-I" "${CUCC_PATH}/include/shadow")
     fi
     params+=("-I" "${CUCC_PATH}/include")
+    # Installed NVIDIA CUDA Samples helper headers are optional dependencies;
+    # include them when present without changing user source.
+    if [ -d "${CUCC_PATH}/third_party/nvidia_cuda_samples/Common" ]; then
+        params+=("-I" "${CUCC_PATH}/third_party/nvidia_cuda_samples/Common")
+    fi
 fi
 # 注入昇腾 ACL 头
 params+=("-I" "${ASCEND_TOOLKIT_HOME}/include")
@@ -202,10 +169,13 @@ params+=("-D" "__CU2CCE_NO_LIBC__")
 # 模拟 CUDA 版本
 params+=("-D" "CUDA_VERSION=${CUCC_CUDA_VERSION}")
 
-# NPU 架构（D0 已定：dav-c310；ccec 用 --cce-aicore-arch，bisheng 用 --npu-arch）
-params+=("${CCE_ARCH_FLAG}=${CUCC_NPU_ARCH}")
+# puresimt 架构（ccec 唯一主线）。
+params+=("--cce-aicore-arch=${CUCC_NPU_ARCH}")
+if [[ "${xlang}" == "cu" ]]; then
+    params+=("--enable-simt")
+fi
 
-# 设备侧代码标注（编译 .cu 时 bisheng 需要 -xcce 识别含设备代码的源）
+# 设备侧代码标注（ccec 用 -xcce 识别含设备代码的源）
 if [[ "${xlang}" == "cu" ]]; then
     params+=("-xcce")
 fi
@@ -236,10 +206,10 @@ fi
 
 debug_echo "final cmd: ${CC_CMD} ${params[*]}"
 
-# ---------------- 调用编译器（ccec 优先，bisheng 兜底） ----------------
-if [ ! -f "${CC_CMD}" ]; then
+# ---------------- 调用 ccec ----------------
+if [ ! -x "${CC_CMD}" ]; then
     echo "cucc: cannot find compiler at ${CC_CMD}" >&2
-    echo "      set CCEC_PATH（CANN 自带 ccec）或 BISHENG_PATH，或检查 /usr/local/Ascend/latest" >&2
+    echo "      set CCEC_PATH or check /usr/local/Ascend/latest/bin/ccec" >&2
     exit 1
 fi
 

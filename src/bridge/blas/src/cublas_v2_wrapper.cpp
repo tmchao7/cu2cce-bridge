@@ -1,5 +1,8 @@
 /*
- * wcublas* wrapper 实现（Phase A4 最小子集）。
+ * EXPERIMENTAL secondary capability: wcublas* → aclblas*.
+ * This library path is intentionally isolated from main/puresimt acceptance.
+ *
+ * wcublas* wrapper 实现（最小子集）。
  *
  * 仿照 cu-bridge 的 src/bridge/blas/src/cublas_v2_wrapper.cpp，目标从 mcblas 换成 aclblas。
  *

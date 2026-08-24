@@ -7,10 +7,10 @@
 #   2. 定位工具链：bisheng 编译器、ACL 头/库、acl_cblas、simt_api SIMT 头、npu-smi
 #   3. 只读核对 docs/03_Comparison/CURRENT_STATE.md 的"待真机确认项"
 #      （grep 头文件签名，不调用任何昇腾运行时 API）
-#   4. 核对目标架构 --npu-arch=dav-c310（内部 950 系列，导师 2026-08-19 提供）：
+#   4. 核对目标架构 --cce-aicore-arch=dav-c310-vec（950 系列 puresimt）：
 #      dump __NPU_ARCH__ 宏值、比对 simt_api 门控、最小 SIMT kernel 实测编译
 #      （产物写 /tmp，不触碰仓库构建目录）
-#   5. 结果写 OUT_DIR/probe.env（供 build_bridge.sh / run_tests.sh source）
+#   5. 结果写 OUT_DIR/probe.env（供 build_bridge.sh 与 server_cmd.txt 使用）
 #      + OUT_DIR/logs/probe.log（完整明细）
 #
 # 用法：
@@ -87,53 +87,9 @@ fi
 
 # ---------------- 2. 编译器 / 工具链 ----------------
 log "== 2. 编译器 / 工具链 =="
-BISHENG=""
-# 候选 1：常见路径（不同 CANN 版本布局不同；真机 9.2.0 实测在 cann-*/tools/bisheng_compiler）
-for cand in \
-    "$ATH/compiler/ccec_compiler/bin/bisheng" \
-    "$ATH/compiler/ccec_compiler/bin/ccec" \
-    "$ATH/compiler/bisheng/bin/bisheng" \
-    "$ATH/compiler/tikcpp/bin/bisheng" \
-    "$ASCEND_HOME"/cann-*/tools/bisheng_compiler/bin/bisheng \
-    /usr/local/Ascend/cann-*/tools/bisheng_compiler/bin/bisheng; do
-    if [ -x "$cand" ]; then BISHENG="$cand"; break; fi
-done
-# 候选 2：PATH 里的 bisheng
-if [ -z "$BISHENG" ] && command -v bisheng >/dev/null 2>&1; then
-    BISHENG="$(command -v bisheng)"
-fi
-# 候选 3：全盘搜索（ASCEND_HOME 下 maxdepth 8）
-if [ -z "$BISHENG" ]; then
-    log "  常规路径未命中，在 ${ASCEND_HOME:-/usr/local/Ascend} 下搜索 bisheng/ccec（maxdepth 8）..."
-    found="$(find "${ASCEND_HOME:-/usr/local/Ascend}" -maxdepth 8 -type f -name "bisheng" 2>/dev/null | head -5)"
-    for cand in $found; do
-        if [ -x "$cand" ]; then BISHENG="$cand"; break; fi
-    done
-fi
-if [ -n "$BISHENG" ]; then
-    ok "bisheng=$BISHENG"
-    # bisheng 内置架构线索：conf/lib 文本资源里的 dav-* 架构名（只读）
-    BISHENG_ROOT="$(dirname "$(dirname "$BISHENG")")"
-    log "  --- ${BISHENG_ROOT} 中的 dav-* 架构线索（conf/lib 文本文件） ---"
-    for dir in "$BISHENG_ROOT"/conf "$BISHENG_ROOT"/lib; do
-        [ -d "$dir" ] || continue
-        hits="$(grep -rhoE 'dav-[a-z0-9]+' "$dir" \
-                --include="*.h" --include="*.td" --include="*.def" --include="*.json" \
-                --include="*.txt" --include="*.cfg" 2>/dev/null | sort -u | head -15)"
-        if [ -n "$hits" ]; then
-            log "  $dir:"
-            echo "$hits" | tee -a "$PROBE_LOG"
-        fi
-    done
-else
-    miss "未找到 bisheng 编译器"
-    log "  请手动排查并把结果发回，例如："
-    log "    find /usr/local/Ascend -maxdepth 8 -type f \\( -name bisheng -o -name ccec \\) 2>/dev/null"
-    log "    ls \$ASCEND_TOOLKIT_HOME/compiler/ 2>/dev/null"
-    MISS=$((MISS+1))
-fi
+# main/puresimt 只检查 CANN 自带 ccec；旧 bisheng fallback 不属于 main。
 # ccec：CANN 自带编译器（用户实测脚本用 /usr/local/Ascend/latest/bin/ccec，
-# 架构参数 --cce-aicore-arch=dav-c310，与 bisheng 的 --npu-arch 体系不同）
+# 架构参数 --cce-aicore-arch=dav-c310-vec；main 不回退旧 bisheng 路线）
 CCEC_PATH=""
 for cand in "$CANN_BASE/bin/ccec" "$ATH/bin/ccec" "$ASCEND_HOME"/latest/bin/ccec \
             "$ASCEND_HOME"/cann-*/bin/ccec; do
@@ -375,161 +331,61 @@ else
     warn "跳过 SIMT 签名核对（未找到 simt_api 目录）"
 fi
 
-# ---------------- 7. 目标架构核对（dav-c310，内部 950 系列） ----------------
-log "== 7. 目标架构核对（dav-c310，内部 950 系列） =="
-CUCC_NPU_ARCH="${CUCC_NPU_ARCH:-dav-c310}"
+# ---------------- 7. puresimt 目标架构核对 ----------------
+log "== 7. puresimt 目标架构核对（ccec + dav-c310-vec） =="
+CUCC_NPU_ARCH="${CUCC_NPU_ARCH:-dav-c310-vec}"
+SIMT_ARCH="$CUCC_NPU_ARCH"
+case "$SIMT_ARCH" in
+    *-vec) ;;
+    *) SIMT_ARCH="${SIMT_ARCH}-vec" ;;
+esac
 NPU_ARCH_MACRO=""
 SIMT_GATE_ARCHS=""
 ARCH_COMPILE_OK="0"
 ARCH_FALLBACK=""
-COMPILER_KIND=""
+COMPILER_KIND="ccec"
 
 arch_tmp="$(mktemp -d)"
-printf '__NPU_ARCH__\n' > "$arch_tmp/macro_probe.cce"
-# 探测 kernel v4（最后一个实验，2026-08-19）——v3 已确认：
-#   ① blockIdx/blockDim 可用（asc_simt.h 提供）✅
-#   ② __global__[aicore] 限定符必须 ✅
-#   ③ [aicore] kernel 不是 simt_vf → asc_syncthreads 只能放 __simt_vf__ 函数 ❌
-# v4 验证 cu2cce kernel 转换模板：CUDA kernel 体 → __simt_vf__ 函数
-#   （warp 原语放这里）+ __global__[aicore] 包装 + cce::async_invoke 启动。
-#   同时确认 VF 内 blockIdx 是否可用（决定全局索引改写方式）。
-cat > "$arch_tmp/arch_probe.asc" <<'EOF'
-#include "simt_api/asc_simt.h"
+cat > "$arch_tmp/puresimt_probe.cu" <<'EOF'
+#include "cuda_runtime.h"
 
-__simt_vf__ [aicore] __attribute__((always_inline)) inline
-void arch_probe_vf(__gm__ float *in, __gm__ float *out, int n) {
+__global__ void puresimt_probe_kernel(int *out) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
-    if (i < n) {
-        out[i] = in[i];
+    if (i == 0) {
+        out[0] = i;
     }
-    asc_syncthreads();
-}
-
-__global__[aicore] void arch_probe_kernel(__gm__ float *in, __gm__ float *out, int n) {
-    cce::async_invoke<arch_probe_vf>(cce::dim3{256, 1, 1}, in, out, n);
+    __syncthreads();
 }
 EOF
 
-# 7.1 simt_api 头里 warp/atomic 的条件编译门控值
 if [ -n "$SIMT_API_INCLUDE" ]; then
     SIMT_GATE_ARCHS="$(grep -rhoE '__NPU_ARCH__ *== *[0-9]+' "$SIMT_API_INCLUDE" 2>/dev/null | grep -oE '[0-9]+' | sort -u | tr '\n' ' ')"
-    log "  simt_api 头中出现的 __NPU_ARCH__ 门控值：${SIMT_GATE_ARCHS:-（无）}"
-else
-    warn "无 simt_api 目录，跳过门控比对"
+    log "  simt_api 门控值：${SIMT_GATE_ARCHS:-（无）}"
 fi
 
-# 7.2 编译实测函数（含 include 自动修复：缺头时 ASCEND_HOME 下 find 并补 -I，最多 3 轮）
-# 用法：try_compile <名称> <编译器> <架构参数(含=)> <日志文件>；成功=0 失败=1
-try_compile() {
-    local name="$1" cc="$2" flag="$3" lg="$4"
-    local args=( -std=gnu++17 -xcce "${flag}" )
+if [ -n "$CCEC_PATH" ] && [ -x "$CCEC_PATH" ]; then
+    args=( -std=gnu++17 -xcce --enable-simt "--cce-aicore-arch=${SIMT_ARCH}"
+           -D__CU2CCE_NO_LIBC__ -D CUDA_VERSION=11060
+           -I "$ROOT/include/shadow" -I "$ROOT/include" -I "$ACL_INC_DIR" )
     if [ -n "$SIMT_API_INCLUDE" ]; then
-        # asc_simt.h 内部 include "simt_api/xxx.h"，必须加父目录；
-        # 深层依赖 impl/ 在 asc 根（真机实测 cann-*/x86_64-linux/asc/impl/）
         args+=( -I "$(dirname "$SIMT_API_INCLUDE")" -I "$SIMT_API_INCLUDE"
                 -I "$(dirname "$(dirname "$SIMT_API_INCLUDE")")" )
     fi
-    args+=( -c "$arch_tmp/arch_probe.asc" -o "$arch_tmp/arch_probe.o" )
-    rm -f "$arch_tmp/arch_probe.o"
-    local try=0 miss_hdr miss_file hdr_dir
-    while [ "$try" -lt 3 ]; do
-        if "$cc" "${args[@]}" >"$lg" 2>&1 && [ -f "$arch_tmp/arch_probe.o" ]; then
-            return 0
-        fi
-        miss_hdr="$(grep -oE "fatal error: '[^']+'" "$lg" | head -1 | sed "s/^fatal error: '//;s/'$//")"
-        [ -z "$miss_hdr" ] && return 1
-        miss_file="$(find "${ASCEND_HOME:-/usr/local/Ascend}" -maxdepth 12 -type f -path "*/${miss_hdr}" 2>/dev/null | head -1)"
-        if [ -z "$miss_file" ]; then
-            log "    （${name}：缺失头 ${miss_hdr} 在 ASCEND_HOME 下未找到，停止重试）"
-            return 1
-        fi
-        # 关键：补的是能解析 include 相对路径的根目录。
-        # 例：include "impl/utils/sys_macros.h"，文件在 .../asc/impl/utils/sys_macros.h
-        #     → 需要的 -I 是 .../asc（从文件路径去掉 miss_hdr 相对路径），
-        #       而不是 dirname（.../asc/impl/utils，那样永远解析不到）——真机实测教训
-        hdr_dir="${miss_file%/${miss_hdr}}"
-        [ -z "$hdr_dir" ] && hdr_dir="$(dirname "$miss_file")"
-        args+=( -I "$hdr_dir" )
-        try=$((try+1))
-        log "    （${name}：自动补 include：${hdr_dir}）"
-    done
-    return 1
-}
-
-# 门控比对（编译成功后才调用）
-check_gate() {
-    local macro="$1"
-    if echo "$macro" | grep -qE '^[0-9]+$' && [ -n "$SIMT_API_INCLUDE" ]; then
-        if echo " ${SIMT_GATE_ARCHS} " | grep -q " ${macro} "; then
-            ok "门控覆盖 ${macro}：warp/atomic 原语可用"
-        else
-            warn "门控不含 ${macro}！asc_shfl/asc_atomic_* 可能被条件编译裁掉"
-            WARN=$((WARN+1))
-        fi
-    fi
-}
-
-# 7.3 编译器 1：ccec（CANN 自带，--cce-aicore-arch=dav-c310，导师指定架构实测可用）
-if [ -n "$CCEC_PATH" ]; then
-    log "  --- ccec --version ---"
-    "$CCEC_PATH" --version 2>&1 | head -3 | tee -a "$PROBE_LOG"
-    log "  --- 编译器 1/2：ccec + --cce-aicore-arch=${CUCC_NPU_ARCH} ---"
-    if try_compile "ccec" "$CCEC_PATH" "--cce-aicore-arch=${CUCC_NPU_ARCH}" "$arch_tmp/ccec.log"; then
-        ok "✅ ccec：最小 SIMT VF kernel（__global__[aicore] + cce::async_invoke）编译通过（--cce-aicore-arch=${CUCC_NPU_ARCH}）"
-        COMPILER_KIND="ccec"
-        ARCH_FALLBACK="${CUCC_NPU_ARCH}"
+    args+=( -include "$ROOT/include/bridge/kernel/simt_adaptor.h"
+            -c "$arch_tmp/puresimt_probe.cu" -o "$arch_tmp/puresimt_probe.o" )
+    if "$CCEC_PATH" "${args[@]}" >"$arch_tmp/ccec.log" 2>&1; then
         ARCH_COMPILE_OK="1"
-        # 宏值：-dM -E 精确提取（ccec -E 会展开大段内置头，不能整段 grep；真机实测
-        # ccec+dav-c310 → __NPU_ARCH__=3510，与 simt_api 门控 3510 匹配）
-        NPU_ARCH_MACRO="$("$CCEC_PATH" -dM -E -xcce "--cce-aicore-arch=${CUCC_NPU_ARCH}" "$arch_tmp/macro_probe.cce" </dev/null 2>/dev/null | grep -oE '__NPU_ARCH__[[:space:]]+[0-9]+' | awk '{print $2}' | head -1)"
-        [ -z "$NPU_ARCH_MACRO" ] && NPU_ARCH_MACRO="$("$CCEC_PATH" -E -xcce "--cce-aicore-arch=${CUCC_NPU_ARCH}" "$arch_tmp/macro_probe.cce" 2>/dev/null | grep -oE '[0-9]+' | tail -1)"
-        [ -n "$NPU_ARCH_MACRO" ] && log "    __NPU_ARCH__=${NPU_ARCH_MACRO}"
-        check_gate "$NPU_ARCH_MACRO"
+        ARCH_FALLBACK="$SIMT_ARCH"
+        NPU_ARCH_MACRO="$($CCEC_PATH -dM -E -xcce "--cce-aicore-arch=${SIMT_ARCH}" \
+            "$arch_tmp/puresimt_probe.cu" 2>/dev/null | grep -oE '__NPU_ARCH__[[:space:]]+[0-9]+' | awk '{print $2}' | head -1)"
+        log "  ccec puresimt probe：PASS"
+        [ -n "$NPU_ARCH_MACRO" ] && log "  __NPU_ARCH__=${NPU_ARCH_MACRO}"
     else
-        warn "ccec + ${CUCC_NPU_ARCH} 编译失败，末 10 行错误如下："
-        tail -10 "$arch_tmp/ccec.log" | tee -a "$PROBE_LOG"
+        warn "ccec puresimt probe 失败："
+        tail -20 "$arch_tmp/ccec.log" | tee -a "$PROBE_LOG"
     fi
 else
-    warn "ccec 未找到（CANN 自带编译器，--cce-aicore-arch=dav-c310）"
-fi
-
-# 7.4 编译器 2：bisheng（独立编译器，--npu-arch 候选：lib 发现 + 门控值）——仅当 ccec 未通过
-if [ "$ARCH_COMPILE_OK" = "0" ] && [ -n "$BISHENG" ]; then
-    log "  --- bisheng --version ---"
-    "$BISHENG" --version 2>&1 | head -3 | tee -a "$PROBE_LOG"
-    log "  --- bisheng --help 中架构相关行 ---"
-    "$BISHENG" --help 2>&1 | grep -iE "npu-arch|cce-soc-version|offload-arch" | head -10 | tee -a "$PROBE_LOG"
-    BISHENG_ARCHS=""
-    if [ -n "${BISHENG_ROOT:-}" ]; then
-        BISHENG_ARCHS="$(grep -rhoE 'dav-[a-z0-9]+' "$BISHENG_ROOT"/lib \
-                --include="*.h" --include="*.td" --include="*.def" --include="*.json" \
-                --include="*.txt" --include="*.cfg" 2>/dev/null | sort -u | tr '\n' ' ')"
-        [ -n "$BISHENG_ARCHS" ] && log "  bisheng lib 中的真实架构：${BISHENG_ARCHS}"
-    fi
-    ARCH_CANDIDATES="${BISHENG_ARCHS}"
-    for g in ${SIMT_GATE_ARCHS}; do ARCH_CANDIDATES="${ARCH_CANDIDATES} dav-${g}"; done
-    log "  bisheng 候选架构顺序：${ARCH_CANDIDATES}"
-    for ARCH in ${ARCH_CANDIDATES}; do
-        log "  --- bisheng + --npu-arch=${ARCH} ---"
-        MACRO="$("$BISHENG" -dM -E -xcce --npu-arch="${ARCH}" "$arch_tmp/macro_probe.cce" </dev/null 2>/dev/null | grep -oE '__NPU_ARCH__[[:space:]]+[0-9]+' | awk '{print $2}' | head -1)"
-        [ -z "$MACRO" ] && MACRO="$("$BISHENG" -E -xcce --npu-arch="${ARCH}" "$arch_tmp/macro_probe.cce" 2>/dev/null | grep -oE '[0-9]+' | tail -1)"
-        [ -n "$MACRO" ] && log "    __NPU_ARCH__=${MACRO}"
-        if try_compile "bisheng/${ARCH}" "$BISHENG" "--npu-arch=${ARCH}" "$arch_tmp/bisheng_${ARCH#dav-}.log"; then
-            ok "✅ bisheng：最小 SIMT VF kernel（__global__[aicore] + cce::async_invoke）编译通过（--npu-arch=${ARCH}）"
-            COMPILER_KIND="bisheng"
-            ARCH_FALLBACK="$ARCH"
-            ARCH_COMPILE_OK="1"
-            NPU_ARCH_MACRO="$MACRO"
-            check_gate "$NPU_ARCH_MACRO"
-            break
-        else
-            warn "bisheng + ${ARCH} 编译失败，末 5 行错误如下："
-            tail -5 "$arch_tmp/bisheng_${ARCH#dav-}.log" | tee -a "$PROBE_LOG"
-        fi
-    done
-fi
-if [ "$ARCH_COMPILE_OK" = "0" ]; then
-    warn "ccec 与 bisheng 均未通过编译，需与导师确认 950 系列的编译命令"
+    warn "未找到 CANN ccec；main/puresimt 需要 ccec"
 fi
 rm -rf "$arch_tmp"
 
@@ -537,12 +393,11 @@ rm -rf "$arch_tmp"
 log ""
 log "== 8. 汇总 =="
 {
-    echo "# 由 env_probe.sh 生成（$(date '+%F %T')），供 build_bridge.sh / run_tests.sh source"
+    echo "# 由 env_probe.sh 生成（$(date '+%F %T')），供 build_bridge.sh / server_cmd.txt 使用"
     echo "ASCEND_HOME=\"$ASCEND_HOME\""
     echo "ASCEND_TOOLKIT_HOME=\"$ATH\""
     echo "ASCEND_INCLUDE=\"$ATH/include\""
     echo "ASCEND_LIB=\"$ATH/lib64\""
-    echo "BISHENG_PATH=\"$BISHENG\""
     echo "CCEC_PATH=\"$CCEC_PATH\""
     echo "CANN_BASE=\"$CANN_BASE\""
     echo "COMPILER_KIND=\"$COMPILER_KIND\""
@@ -554,12 +409,11 @@ log "== 8. 汇总 =="
     echo "DEVICE_QUERY=\"$DEVICE_QUERY\""
     echo "OUT_DIR=\"$OUT_DIR\""
     echo "CUCC_PATH=\"${CUCC_PATH:-$OUT_DIR/install}\""
-    echo "CUCC_NPU_ARCH=\"$CUCC_NPU_ARCH\""
+    echo "CUCC_NPU_ARCH=\"$SIMT_ARCH\""
     echo "NPU_ARCH_MACRO=\"$NPU_ARCH_MACRO\""
     echo "SIMT_GATE_ARCHS=\"$SIMT_GATE_ARCHS\""
     echo "ARCH_COMPILE_OK=\"$ARCH_COMPILE_OK\""
     echo "ARCH_FALLBACK=\"$ARCH_FALLBACK\""
-    echo "BISHENG_ARCHS=\"${BISHENG_ARCHS:-}\""
 } > "$PROBE_ENV"
 ok "probe.env 已写入：$PROBE_ENV"
 ok "probe.log 已写入：$PROBE_LOG"

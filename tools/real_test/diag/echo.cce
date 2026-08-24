@@ -1,0 +1,30 @@
+/** acl_minimal_echo.cce —— 用 minimal 的残留 /tmp/minimal.o 复现"wrapper
+ *  激活并先行分配"场景，找出早期 runtime 初始化问题。
+ *
+ *  背景（历史排障）：同段分配代码 base/runtime/wrapper/both 四组合全成功；
+ *  而 minimal 进程稳定 107002。差异仅剩 minimal 的 kernel 设备代码
+ *  该文件仅保留作历史 runtime 初始化探针。
+ *
+ *  本文件人工缩减 minimal，逐步复现：只调 cudaStreamCreate + cudaMalloc，
+ *  加 --keep 保留所有中间产物，把 cuda_runtime.h 找不着的路径耦合一并暴露。
+ *
+ *  真机 ccec 编译（绝对路径，任意目录可执行）：
+ *   ${XXX} 见 run_minimal_echo.sh
+ */
+#include <cuda_runtime.h>
+#include <stdio.h>
+
+int main(void) {
+    const int n = 256;
+    printf("echo: before cudaMalloc\n");
+    void *d = nullptr;
+    cudaError_t err = cudaMalloc(&d, (size_t)n * sizeof(float));
+    if (err != cudaSuccess) {
+        printf("echo: cudaMalloc failed: %d\n", (int)err);
+        return 1;
+    }
+    printf("echo: cudaMalloc OK ptr=%p\n", d);
+    cudaFree(d);
+    printf("echo done\n");
+    return 0;
+}

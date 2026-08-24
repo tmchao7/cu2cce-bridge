@@ -1,96 +1,29 @@
-# ============================================================
-# cu2cce-bridge 使用指南（复制粘贴版）
-# 真机验证主线：main / puresimt / 官方 NVIDIA CUDA Samples
-#   （cann-9.2.0 / dav-c310 / davinci0 / 纯 CUDA 零改写）
-# 服务器路径示例：/home/t50063365/workspace/repos/cu2cce-bridge
-# ============================================================
+# cu2cce-bridge main / puresimt 快速开始
 
-# ---------- 0. 服务器：拉取最新代码（服务器只拉不推） ----------
+# 真机（Ascend 950 + CANN 9.x）唯一回归入口
 cd /home/t50063365/workspace/repos/cu2cce-bridge
 git pull --ff-only gitcode main
-
-# ---------- 1. 一键全流程（探测 → 构建 → 测试） ----------
 bash tools/real_test/server_cmd.txt
 
-# ---------- 2. 分步执行 ----------
-# 2.1 环境探测（找 CANN/ccec/设备/API 签名，只读）
+# 分步构建 bridge（只在真机执行）
 bash tools/real_test/env_probe.sh
-
-# 2.2 构建桥接工具链（产出 build/real_test/install/，一次构建长期用）
 bash tools/real_test/build_bridge.sh
 
-# 2.3 跑验证（main / puresimt：官方 vectorAdd + matrixMul）
-bash tools/real_test/server_cmd.txt
-
-# ---------- 3. 编译你自己的 CUDA 程序 ----------
-# 设置环境（每次新终端先执行）
+# 使用 cucc 编译用户 CUDA（.cu 直接交给 ccec，不经过 Python converter）
 export CUCC_PATH=$PWD/build/real_test/install
 export CUDA_PATH=$CUCC_PATH
 export PATH=$CUCC_PATH/bin:$PATH
+cucc -c examples/puresimt/vectorAdd_minimal.cu -o /tmp/vectorAdd_minimal.o
+cucc /tmp/vectorAdd_minimal.o -o /tmp/vectorAdd_minimal
+/tmp/vectorAdd_minimal
 
-# 方式 A：两步法（推荐）
-cucc -c my_program.cu -o my_program.o
-cucc my_program.o -o my_program
+# 关键约束
+# - kernel 保持原始 CUDA 语法；不要写 ACL 或 Ascend C。
+# - ccec 参数必须包含 --enable-simt --cce-aicore-arch=dav-c310-vec。
+# - 只 push gitcode；真机命令统一放 tools/real_test/server_cmd.txt。
+# - 改 src/ 或 include/ 后必须在真机重跑 build_bridge.sh。
 
-# 方式 B：一步法
-cucc my_program.cu -o my_program
-
-# 运行（device 0；rpath 已内置，无需 LD_LIBRARY_PATH）
-./my_program
-
-# 注意：
-# - kernel 用纯 CUDA 写（__global__ + blockIdx/threadIdx），cucc 自动转换
-# - include <stdio.h>/<stdlib.h> 等照常写（shadow 遮蔽头处理）
-# - 目前转换器 v0 只支持简单 __global__ void k(...)（无模板/函数指针参数）
-# - 改了 src/ 或 bin/cucc 后需重新构建：bash tools/real_test/build_bridge.sh
-
-# 3.1 快速验证：minimal 示例（最小可跑，纯 CUDA 零改写）
-cd ~/workspace/repos/cu2cce-bridge
-git pull                                   # 拉到最新（含 rpath 逻辑）
-bash tools/real_test/build_bridge.sh       # 重新构建（install/bin/cucc 更新）
-
-export CUCC_PATH=$PWD/build/real_test/install
-export CUDA_PATH=$CUCC_PATH
-export PATH=$CUCC_PATH/bin:$PATH
-
-cucc -c examples/puresimt/vectorAdd/vectorAdd.cu -o /tmp/vectorAdd.o
-cucc /tmp/vectorAdd.o -o /tmp/vectorAdd
-/tmp/vectorAdd
-# 预期输出：Test PASSED
-
-# 官方矩阵乘样例
-cucc -c examples/puresimt/matrixMul/matrixMul.cu -o /tmp/matrixMul.o
-cucc /tmp/matrixMul.o -o /tmp/matrixMul
-/tmp/matrixMul
-# 预期输出：Result = PASS
-
-# ---------- 4. 本机（macOS）：开发与推送 ----------
-cd ~/repos/09_expLearn/cu2cce-bridge
-git pull                                  # 拉最新
-# ... 改代码（改完记得本地 mock 检查）...
-bash tests/mock_acl/syntax_check.sh       # 本机语法验证（3/3）
-git add -A && git commit -m "描述改动"
-git push origin main                      # 同时推 GitHub + GitCode
-
-# ---------- 5. 常见问题 ----------
-# 5.1 cucc 报 "cannot execute: required file not found"
-#     （CRLF 换行损坏，shebang 带 \r；run_tests 会自动修复，手动修如下）
-sed -i 's/\r$//' build/real_test/install/bin/cucc
-
-# 5.2 脚本被 Windows 传输转 CRLF（syntax error near ... $'do\r'）
-sed -i 's/\r$//' tools/real_test/*.sh bin/cucc
-
-# 5.3 改了 wrapper 源码（src/）后要重新构建
-bash tools/real_test/build_bridge.sh
-
-# 5.4 查看测试日志
-ls build/real_test/logs/
-cat build/real_test/logs/vectoradd_compile_cucc.log
-cat build/real_test/logs/vectoradd_run.log
-
-# 5.5 产物位置
-#   install/           桥接工具链（libcce_bridge_runtime.so + include + cucc）
-#   build/real_test/vectorAdd    NVIDIA vectorAdd 可执行文件
-#   build/real_test/matrixMul    NVIDIA matrixMul 可执行文件
-#   build/real_test/host_smoke   host 冒烟可执行文件
-#   /tmp/cu2cce_*.cce  kernel 转换中间文件（cucc 自动生成，用完即弃）
+# 本机只做静态检查（macOS 无 CANN）
+bash -n bin/cucc tools/real_test/server_cmd.txt tools/real_test/diag/*.sh
+git diff --check
+bash tests/mock_acl/syntax_check.sh

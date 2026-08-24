@@ -67,12 +67,8 @@ venv/
 
 
 # ============================================================
-# main 裁剪（2026-08-21，puresimt 主线）：新同构 B 实验产物归档到
-# exp/new-homogeneous-v1 分支，main 不再跟踪以下目录（物理保留本地）
+# 诊断探针运行时产物（源码保留在 tools/real_test/diag/；二进制不入库）
 # ============================================================
-tools/real_test/diag/
-
-# 诊断探针运行时产物（tools/real_test/diag/ 下临时编译的二进制/宿主）
 tools/real_test/diag/*.o
 tools/real_test/diag/compose_*
 tools/real_test/diag/acl_probe
@@ -81,7 +77,7 @@ tools/real_test/diag/echo
 tools/real_test/diag/trunc_raw
 tools/real_test/diag/minimal_echo
 
-# kernel_convert / cucc 的中间 .cce（真机正常路径只写 /tmp；仓库内兜底忽略）
+# puresimt 不生成中间 kernel converter 源文件；保留常见临时文件忽略。
 *.cce.tmp
 *_conv.cce
 

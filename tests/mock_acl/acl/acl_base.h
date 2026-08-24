@@ -6,6 +6,7 @@ typedef int aclError;
 typedef void *aclrtStream;
 typedef void *aclrtEvent;
 typedef void *aclrtContext;
+typedef uint16_t aclFloat16;
 #define ACL_ERROR_NONE 0
 #define ACL_SUCCESS 0
 #define ACL_ERROR_INVALID_PARAM 100000
