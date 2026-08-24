@@ -33,6 +33,8 @@ set +e
 set +u
 set -o pipefail
 ulimit -c 0 2>/dev/null || true
+# 诊断 bridge 内部 stream destroy；pmatmul 已确认崩溃发生在该调用入口之后。
+export WCUDA_DEBUG=1
 
 cd /home/t50063365/workspace/repos/cu2cce-bridge
 git pull --ff-only gitcode main

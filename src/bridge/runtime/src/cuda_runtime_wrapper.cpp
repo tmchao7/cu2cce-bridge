@@ -391,7 +391,19 @@ aclError wcudaStreamDestroy(aclrtStream stream) {
     if (stream == nullptr) {
         WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
     }
-    WCUDA_RETURN(aclrtDestroyStream(stream));
+    BRIDGE_INIT();
+    if (wcuda_dbg()) {
+        fprintf(stderr, "[wcuda][stream_destroy] before stream=%p\n", (void *)stream);
+    }
+    aclError ret = aclrtDestroyStream(stream);
+    if (wcuda_dbg()) {
+        fprintf(stderr, "[wcuda][stream_destroy] after ret=%d recent=%s\n", (int)ret,
+                aclGetRecentErrMsg() != nullptr ? aclGetRecentErrMsg() : "(null)");
+    }
+    if (ret != ACL_SUCCESS) {
+        g_last_error = ret;
+    }
+    return ret;
 }
 
 aclError wcudaStreamSynchronize(aclrtStream stream) {
