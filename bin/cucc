@@ -186,10 +186,10 @@ if [[ "${xlang}" == "cu" ]]; then
     params+=("--enable-simt")
 fi
 
-# ccec 的 puresimt 输入语言必须显式指定为 asc；不要使用旧 bisheng 的
-# -xcce 模式，否则 bisheng 会尝试寻找 NVIDIA CUDA/libdevice。
+# ccec 的 puresimt 输入语言必须在源文件之前指定为 asc；如果放在
+# .cu 输入之后，ccec/bisheng 会按文件扩展名进入 CUDA 模式并寻找 libdevice。
 if [[ "${xlang}" == "cu" ]]; then
-    params+=("-x" "asc")
+    params=("-x" "asc" "${params[@]}")
 fi
 
 # 链接阶段：追加昇腾运行库（clang 风格 -L/-l；真机实测：
