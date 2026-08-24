@@ -33,3 +33,6 @@ maintained examples set. Historical versions remain available in Git history.
 - `puresimt/dynamicShared_minimal.cu`
 - `puresimt/index3D_minimal.cu`
 - `puresimt/threadFence_minimal.cu`
+
+- `puresimt/half_minimal.cu`
+- `puresimt/bf16x2_minimal.cu`

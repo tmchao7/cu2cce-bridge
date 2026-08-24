@@ -49,3 +49,6 @@ The next operator-focused tests use the same minimal-source policy:
 - `dynamicShared_minimal.cu` — `extern __shared__` and dynamic launch shared bytes.
 - `index3D_minimal.cu` — 3D grid/block flattening.
 - `threadFence_minimal.cu` — global stores, `__threadfence`, and atomic publication flag.
+
+- `half_minimal.cu` — CUDA FP16/half2 aliases and conversion round-trip.
+- `bf16x2_minimal.cu` — CUDA BF16/BF16x2 aliases and conversion round-trip.

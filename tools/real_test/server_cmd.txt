@@ -165,7 +165,9 @@ for pair in \
     'atomicVariants_minimal.cu|atomicVariants_minimal OK' \
     'dynamicShared_minimal.cu|dynamicShared_minimal OK' \
     'index3D_minimal.cu|index3D_minimal OK' \
-    'threadFence_minimal.cu|threadFence_minimal OK'; do
+    'threadFence_minimal.cu|threadFence_minimal OK' \
+    'half_minimal.cu|half_minimal OK' \
+    'bf16x2_minimal.cu|bf16x2_minimal OK'; do
     src=${pair%%|*}
     key=${pair#*|}
     name=$(basename "$src" .cu)
