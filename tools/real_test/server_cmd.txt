@@ -57,19 +57,29 @@ if [ ! -x "$PROBE_DEVICE" ]; then
         -Wl,-rpath,"/usr/local/Ascend/ascend-toolkit/latest/lib64" \
         -lascendcl -lpthread -ldl >"$OUT/probe_device_compile.log" 2>&1
 fi
-DEVICE_PROBE_FAIL=0
+# 两次探测中任意一次成功即可放行。旧逻辑会因第一次瞬时失败而永久置 1，
+# 即使第二次成功也误判 DEVICE_HEALTHY=0。
+DEVICE_PROBE_FAIL=1
 if [ -x "$PROBE_DEVICE" ]; then
     for attempt in 1 2; do
-        "$PROBE_DEVICE" >"$OUT/probe_device_${attempt}.log" 2>&1
-        [ $? -eq 0 ] || DEVICE_PROBE_FAIL=1
+        if "$PROBE_DEVICE" >"$OUT/probe_device_${attempt}.log" 2>&1; then
+            echo "[PASS] probe_device attempt=$attempt"
+            DEVICE_PROBE_FAIL=0
+            break
+        else
+            echo "[WARN] probe_device attempt=$attempt failed:"
+            cat "$OUT/probe_device_${attempt}.log" 2>/dev/null
+        fi
     done
 else
-    DEVICE_PROBE_FAIL=1
+    echo '[BLOCKED] probe_device executable missing; compile log:'
+    cat "$OUT/probe_device_compile.log" 2>/dev/null
 fi
 if [ "$DEVICE_ACCESS_DENIED" -eq 0 ] && [ "$DEVICE_PROBE_FAIL" -eq 0 ]; then
     DEVICE_HEALTHY=1; echo '[PASS] DEVICE_HEALTHY=1'
 else
-    TEST_BLOCKED_BY_DEVICE=1; echo '[BLOCKED] TEST_BLOCKED_BY_DEVICE（跳过运行，仅编译判断）'
+    TEST_BLOCKED_BY_DEVICE=1
+    echo "[BLOCKED] TEST_BLOCKED_BY_DEVICE（ACCESS_DENIED=$DEVICE_ACCESS_DENIED PROBE_FAIL=$DEVICE_PROBE_FAIL；样例只编译、不运行）"
 fi
 
 printf '\n===== [2/5] 环境 =====\n'
@@ -146,8 +156,10 @@ for pair in \
         -lcce_bridge_runtime -lacl_cblas \
         -o "$bin" >"$OUT/${name}.log" 2>&1; then
         ldd "$bin" >"$OUT/${name}.ldd.log" 2>&1 || true
-        if [ "$DEVICE_HEALTHY" -eq 1 ] && "$bin" >"$OUT/${name}.run.log" 2>&1 \
-           && grep -Fq "$key" "$OUT/${name}.run.log"; then
+        if [ "$DEVICE_HEALTHY" -ne 1 ]; then
+            echo "[SKIP] [$name] 编译通过；设备门禁未通过，未执行二进制"
+        elif "$bin" >"$OUT/${name}.run.log" 2>&1 && \
+             grep -Fq "$key" "$OUT/${name}.run.log"; then
             echo "[PASS] [$name] 运行通过：$(grep -F "$key" "$OUT/${name}.run.log")"
         else
             echo "[FAIL] [$name] 运行失败（run log 首 25 行）"
