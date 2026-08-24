@@ -199,6 +199,8 @@ for pair in \
         else
             echo "[FAIL] [$name] 运行失败（run log 首 30 行）"
             head -n 30 "$OUT/${name}.run.log" 2>/dev/null
+            echo "----- [$name] ldd（仅动态库依赖，不是运行错误） -----"
+            cat "$OUT/${name}.ldd.log" 2>/dev/null
             tail -n 20 "$OUT/${name}.log" 2>/dev/null
             FAIL=$((FAIL + 1))
         fi
