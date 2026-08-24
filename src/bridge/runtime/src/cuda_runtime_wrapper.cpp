@@ -654,6 +654,19 @@ aclError wcudaMemcpy(void *dst, const void *src, size_t count, aclrtMemcpyKind k
     if (dst == nullptr || src == nullptr) {
         WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
     }
+    /* CUDA synchronous D2H copies order after preceding work in the default stream.
+     * NVIDIA's official vectorAdd sample intentionally uses a 2-argument launch and
+     * then cudaMemcpy without an explicit cudaStreamSynchronize. On Ascend, the CCE
+     * default-stream path can still have pending SIMT work when aclrtMemcpy is called;
+     * synchronize the device before a synchronous device-originating copy to preserve
+     * CUDA's blocking-copy contract. Explicit-stream samples already synchronized, so
+     * this is a no-op from a correctness perspective. */
+    if (kind == ACL_MEMCPY_DEVICE_TO_HOST || kind == ACL_MEMCPY_DEVICE_TO_DEVICE) {
+        aclError sync = aclrtSynchronizeDevice();
+        if (sync != ACL_SUCCESS) {
+            WCUDA_RETURN(sync);
+        }
+    }
     /* aclrtMemcpy 比 cudaMemcpy 多一个 destMax（目的内存最大长度），此处填 count。 */
     WCUDA_RETURN(aclrtMemcpy(dst, count, src, count, kind));
 }

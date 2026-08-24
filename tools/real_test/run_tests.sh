@@ -104,7 +104,13 @@ expect_output() {  # expect_output <名称> <日志文件> <关键字>
 NVIDIA_COMMON="$ROOT/third_party/nvidia_cuda_samples/Common"
 # 路径 1（默认）：走 bin/cucc 驱动，测的是驱动本身；官方 NVIDIA 样例
 # 的 helper 头只通过 include 路径注入，源文件本身不改。
-cucc_compile() { cucc -I "$NVIDIA_COMMON" -c "$1" -o "$2"; }
+cucc_compile() {
+    local extra=()
+    case "$(basename "$1")" in
+        vectorAdd.cu) extra+=( -include "$CUCC_PATH/include/shadow/math.h" ) ;;
+    esac
+    cucc "${extra[@]}" -I "$NVIDIA_COMMON" -c "$1" -o "$2"
+}
 cucc_link()    { cucc "$1" -o "$2"; }
 
 # 编译器选择：probe.env 的 COMPILER_KIND（ccec 优先）决定架构参数格式
@@ -128,6 +134,9 @@ direct_compile() {
         inc_args+=( -I "${SIMT_API_ROOT:-$(dirname "$SIMT_API_INCLUDE")}" -I "$SIMT_API_INCLUDE" \
                     -I "$(dirname "${SIMT_API_ROOT:-$(dirname "$SIMT_API_INCLUDE")}")" )
     fi
+    case "$(basename "$1")" in
+        vectorAdd.cu) inc_args+=( -include "$CUCC_PATH/include/shadow/math.h" ) ;;
+    esac
     inc_args+=( -D CUDA_VERSION=11060 -c "$1" -o "$2" )
     "${inc_args[@]}"
 }

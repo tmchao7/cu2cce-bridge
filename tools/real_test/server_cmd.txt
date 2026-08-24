@@ -126,7 +126,14 @@ for pair in \
     name=$(basename "$src" .cu)
     bin="$OUT/$name"
     echo "===== [$name] $CCEC $PS_FLAGS examples/puresimt/$src ====="
-    if "$CCEC" $PS_FLAGS "examples/puresimt/$src" \
+    EXTRA_FLAGS=()
+    # NVIDIA vectorAdd relies on CUDA runtime's transitive fabs declaration;
+    # matrixMul includes the system C++ math header itself, so do not preinclude
+    # the shadow math header for that sample (it would conflict with glibc specs).
+    case "$name" in
+        vectorAdd) EXTRA_FLAGS+=( -include "$REPO_INC/shadow/math.h" ) ;;
+    esac
+    if "$CCEC" $PS_FLAGS "${EXTRA_FLAGS[@]}" "examples/puresimt/$src" \
         -I"$REPO_INC" -I"$NVIDIA_COMMON" -I"$CANN_BASE/include" \
         -L"$CANN_BASE/lib64" -L"$REPO_LIB" \
         -Wl,-rpath,"$REPO_LIB" -Wl,-rpath,"$CANN_BASE/lib64" \
