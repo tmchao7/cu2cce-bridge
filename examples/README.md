@@ -21,3 +21,6 @@ maintained examples set. Historical versions remain available in Git history.
 - `puresimt/vote_minimal.cu`
 - `puresimt/dot_minimal.cu`
 - `puresimt/stencil_minimal.cu`
+
+- `puresimt/core_ops_minimal.cu`
+- `puresimt/math_minimal.cu`

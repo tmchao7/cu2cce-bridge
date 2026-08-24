@@ -50,6 +50,7 @@ float fabsf(float);
 float fmodf(float, float);
 float fminf(float, float);
 float fmaxf(float, float);
+float fmaf(float, float, float);
 
 #if defined(__cplusplus)
 }

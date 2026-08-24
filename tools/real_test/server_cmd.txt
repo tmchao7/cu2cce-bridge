@@ -156,7 +156,9 @@ for pair in \
     'transpose_minimal.cu|transpose_minimal OK' \
     'vote_minimal.cu|vote_minimal OK' \
     'dot_minimal.cu|dot_minimal OK' \
-    'stencil_minimal.cu|stencil_minimal OK'; do
+    'stencil_minimal.cu|stencil_minimal OK' \
+    'core_ops_minimal.cu|core_ops_minimal OK' \
+    'math_minimal.cu|math_minimal OK'; do
     src=${pair%%|*}
     key=${pair#*|}
     name=$(basename "$src" .cu)
@@ -174,6 +176,9 @@ for pair in \
             ;;
         matrixMul)
             INCLUDE_FLAGS+=( -I"$NVIDIA_COMMON" )
+            ;;
+        math_minimal)
+            EXTRA_FLAGS+=( -include "$REPO_INC/shadow/math.h" )
             ;;
     esac
     if "$CCEC" $PS_FLAGS "${EXTRA_FLAGS[@]}" "examples/puresimt/$src" \

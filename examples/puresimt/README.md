@@ -37,3 +37,6 @@ The next operator-focused tests use the same minimal-source policy:
 - `vote_minimal.cu` — `__all_sync`/`__any_sync`/`__ballot_sync`, based on NVIDIA `simpleVoteIntrinsics`.
 - `dot_minimal.cu` — shared-memory dot product and atomic accumulation.
 - `stencil_minimal.cu` — 1D shared-memory halo stencil.
+
+- `core_ops_minimal.cu` — arithmetic, bitwise logic, compare/select, conversion, and memory basis.
+- `math_minimal.cu` — FMA and elementary math functions.
