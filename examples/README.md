@@ -8,6 +8,8 @@ validate the no-source-rewrite puresimt path:
 - `puresimt/matrixMul/matrixMul.cu`
 - `puresimt/vectorAdd_minimal.cu`
 - `puresimt/matrixMul_minimal.cu`
+- `puresimt/atomicAdd_minimal.cu`
+- `puresimt/reduction_minimal.cu`
 
 Experimental probes and hand-written bridge-specific copies are not part of the
 maintained examples set. Historical versions remain available in Git history.

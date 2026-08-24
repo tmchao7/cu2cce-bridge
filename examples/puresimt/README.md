@@ -23,3 +23,9 @@ the same regression also includes two deliberately small self-contained files:
 - `matrixMul_minimal.cu`
 
 They still use ordinary CUDA syntax and are not rewritten for Ascend.
+
+
+The next operator-focused tests use the same minimal-source policy:
+
+- `atomicAdd_minimal.cu` — global-memory `atomicAdd`/`atomicMin`/`atomicMax`, based on the NVIDIA `simpleAtomicIntrinsics` pattern.
+- `reduction_minimal.cu` — shared-memory tree reduction plus cross-block `atomicAdd`, based on the NVIDIA `reduction` pattern.

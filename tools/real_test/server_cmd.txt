@@ -3,13 +3,15 @@
 # 维护分支：main；实时远端：gitcode（不要 push origin/GitHub）。
 # 目标：用原始 NVIDIA CUDA Samples 源文件验证 puresimt 的零改写链路。
 #
-# 维护样例只有两个：
+# 维护样例如下：
 #   - examples/puresimt/vectorAdd/vectorAdd.cu
 #   - examples/puresimt/matrixMul/matrixMul.cu
 #   - examples/puresimt/vectorAdd_minimal.cu
 #   - examples/puresimt/matrixMul_minimal.cu
+#   - examples/puresimt/atomicAdd_minimal.cu（参考 NVIDIA simpleAtomicIntrinsics）
+#   - examples/puresimt/reduction_minimal.cu（参考 NVIDIA reduction）
 #
-# 两个官方 .cu 文件保留 NVIDIA 原始源码；两个 minimal 文件只使用最小 CUDA
+# 官方 .cu 文件保留 NVIDIA 原始源码；minimal 文件只使用最小 CUDA
 # runtime/stdio 依赖，用于把 bridge 问题与 NVIDIA helper 头依赖隔离。所有文件
 # 都不添加 p 前缀、不加入 ACL 调用、不写 Ascend C 语法。
 # Ascend C 语法。third_party/nvidia_cuda_samples/Common 只提供 NVIDIA 官方
@@ -119,14 +121,16 @@ if [ -e "$PWD/build/real_test/install/lib/libcce_bridge_runtime.so" ]; then
 fi
 export LD_LIBRARY_PATH="$REPO_LIB:$CANN_BASE/lib64:${LD_LIBRARY_PATH:-}"
 
-printf '\n===== [3/4] puresimt 官方 CUDA Samples 编译 + 运行 =====\n'
+printf '\n===== [3/4] puresimt CUDA Samples + operator tests 编译 + 运行 =====\n'
 CCEC="$CANN_BASE/bin/ccec"
 PS_FLAGS="-x asc --cce-aicore-arch=dav-c310-vec --enable-simt -std=c++17"
 for pair in \
     'vectorAdd/vectorAdd.cu|Test PASSED' \
     'matrixMul/matrixMul.cu|Result = PASS' \
     'vectorAdd_minimal.cu|vectorAdd_minimal OK' \
-    'matrixMul_minimal.cu|matrixMul_minimal OK'; do
+    'matrixMul_minimal.cu|matrixMul_minimal OK' \
+    'atomicAdd_minimal.cu|atomicAdd_minimal OK' \
+    'reduction_minimal.cu|reduction_minimal OK'; do
     src=${pair%%|*}
     key=${pair#*|}
     name=$(basename "$src" .cu)
