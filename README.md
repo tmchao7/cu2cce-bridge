@@ -35,6 +35,131 @@ main 不生成 `__simt_vf__`、`__global__[aicore]`、`cce::async_invoke` 包装
 完整的 CUDA→Ascend puresimt 证据矩阵、23 个真机用例、API 状态和 BLAS 边界见：
 [PURESIMT_COMPATIBILITY_MATRIX.md](docs/03_Comparison/PURESIMT_COMPATIBILITY_MATRIX.md)。
 
+## Quickstart：运行你自己的 `.cu`
+
+下面示例假设你在 Ascend 真机上工作。建议把自己的工程放在仓库外，避免和
+`examples/puresimt/` 的回归样例混在一起，例如：
+
+```text
+/home/t50063365/workspace/repos/cu2cce-demo/
+├── vector_add.cu
+└── build/
+```
+
+### 1. 准备源码
+
+`vector_add.cu` 保持普通 CUDA 写法，不需要添加 ACL、Ascend C、`__simt_vf__`
+或 `cce::async_invoke`：
+
+```cpp
+#include <cuda_runtime.h>
+#include <stdio.h>
+
+#define N 1024
+
+__global__ void vectorAdd(const float *a, const float *b, float *c, int n) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < n) c[i] = a[i] + b[i];
+}
+
+int main(void) {
+    float hA[N], hB[N], hC[N];
+    for (int i = 0; i < N; ++i) {
+        hA[i] = (float)i;
+        hB[i] = 2.0f;
+    }
+
+    float *dA = nullptr, *dB = nullptr, *dC = nullptr;
+    cudaMalloc((void **)&dA, sizeof(hA));
+    cudaMalloc((void **)&dB, sizeof(hB));
+    cudaMalloc((void **)&dC, sizeof(hC));
+    cudaMemcpy(dA, hA, sizeof(hA), cudaMemcpyHostToDevice);
+    cudaMemcpy(dB, hB, sizeof(hB), cudaMemcpyHostToDevice);
+
+    vectorAdd<<<(N + 255) / 256, 256>>>(dA, dB, dC, N);
+    if (cudaGetLastError() != cudaSuccess) return 1;
+    if (cudaDeviceSynchronize() != cudaSuccess) return 1;
+    if (cudaMemcpy(hC, dC, sizeof(hC), cudaMemcpyDeviceToHost) != cudaSuccess) return 1;
+
+    for (int i = 0; i < N; ++i) {
+        if (hC[i] != (float)i + 2.0f) return 1;
+    }
+    printf("user vectorAdd OK (N=%d)\n", N);
+    cudaFree(dA); cudaFree(dB); cudaFree(dC);
+    cudaDeviceReset();
+    return 0;
+}
+```
+
+### 2. 拉取、准备 CANN 和构建 bridge
+
+```bash
+cd /home/t50063365/workspace/repos
+
+git clone git@gitcode.com:tmchao7/cu2cce-bridge.git
+cd cu2cce-bridge
+git checkout main
+
+export ASCEND_TOOLKIT_HOME=/usr/local/Ascend/ascend-toolkit/latest
+export ASCEND_HOME_PATH=/usr/local/Ascend/latest
+source /usr/local/Ascend/latest/set_env.sh
+export ASCEND_OPP_PATH=/usr/local/Ascend/cann-9.2.0/opp
+
+bash tools/real_test/env_probe.sh
+bash tools/real_test/build_bridge.sh
+```
+
+如果仓库已经存在，只需：
+
+```bash
+cd /home/t50063365/workspace/repos/cu2cce-bridge
+git pull --ff-only gitcode main
+source /usr/local/Ascend/latest/set_env.sh
+bash tools/real_test/build_bridge.sh
+```
+
+### 3. 用 `cucc` 编译和链接
+
+推荐使用两步法：
+
+```bash
+export CUCC_PATH=/home/t50063365/workspace/repos/cu2cce-bridge/build/real_test/install
+export CUDA_PATH=$CUCC_PATH
+export PATH=$CUCC_PATH/bin:$PATH
+
+mkdir -p /home/t50063365/workspace/repos/cu2cce-demo/build
+
+cucc -c /home/t50063365/workspace/repos/cu2cce-demo/vector_add.cu \
+    -o /home/t50063365/workspace/repos/cu2cce-demo/build/vector_add.o
+
+cucc /home/t50063365/workspace/repos/cu2cce-demo/build/vector_add.o \
+    -o /home/t50063365/workspace/repos/cu2cce-demo/build/vector_add
+```
+
+`cucc` 会自动注入 CUDA 兼容头、CANN SIMT 头、运行库和 rpath；`.cu` 会直接
+交给 ccec，不会生成 Python converter 或 Ascend kernel 包装源文件。
+
+### 4. 运行
+
+```bash
+/home/t50063365/workspace/repos/cu2cce-demo/build/vector_add
+```
+
+预期输出：
+
+```text
+user vectorAdd OK (N=1024)
+```
+
+### 5. 用户代码的边界
+
+- 可以继续使用 CUDA `.cu`、CUDA runtime API、CUDA kernel 语法和 `<<<>>>`。
+- 不要在用户源码中直接调用 `acl*`、书写 `__simt_vf__`、`__global__[aicore]`
+  或 `cce::async_invoke`。
+- 修改 bridge 的 `src/` 或 `include/` 后，需要重新执行 `build_bridge.sh`。
+- `tools/real_test/clean.sh` 只清理仓库的 `build/real_test`，不会删除仓库外的
+  `cu2cce-demo`。
+
 ## 真机回归
 
 唯一入口：

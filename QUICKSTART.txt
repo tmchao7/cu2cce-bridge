@@ -30,3 +30,21 @@ bash tests/mock_acl/syntax_check.sh
 
 # 清理真机所有回归/构建生成物（不删源码）
 bash tools/real_test/clean.sh          # 整个 build/real_test 清空后重建为空目录
+
+
+# ---------- 6. 用户 CUDA 演示工程 ----------
+# 推荐把用户工程放在仓库外，例如：
+# /home/t50063365/workspace/repos/cu2cce-demo/vector_add.cu
+# /home/t50063365/workspace/repos/cu2cce-demo/build/
+#
+# 环境和 bridge 已准备好后：
+export CUCC_PATH=/home/t50063365/workspace/repos/cu2cce-bridge/build/real_test/install
+export CUDA_PATH=$CUCC_PATH
+export PATH=$CUCC_PATH/bin:$PATH
+mkdir -p /home/t50063365/workspace/repos/cu2cce-demo/build
+cucc -c /home/t50063365/workspace/repos/cu2cce-demo/vector_add.cu \
+    -o /home/t50063365/workspace/repos/cu2cce-demo/build/vector_add.o
+cucc /home/t50063365/workspace/repos/cu2cce-demo/build/vector_add.o \
+    -o /home/t50063365/workspace/repos/cu2cce-demo/build/vector_add
+/home/t50063365/workspace/repos/cu2cce-demo/build/vector_add
+# 预期：user vectorAdd OK (N=1024)
