@@ -79,7 +79,7 @@ cuda* → wcuda* → aclrt*
 
 唯一入口：`tools/real_test/server_cmd.txt`。
 
-当前主线已建立 21 个已验证样例，并将 half/BF16x2 类型测试纳入下一轮回归：
+当前主线已建立 23 个已验证样例，包含 half/BF16x2 类型测试：
 
 ```text
 vectorAdd

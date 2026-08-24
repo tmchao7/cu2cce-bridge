@@ -23,10 +23,10 @@ main 不生成 `__simt_vf__`、`__global__[aicore]`、`cce::async_invoke` 包装
 
 - main 已切换为 puresimt 直通：`cucc` 不再调用 Python kernel converter，不生成
   legacy `.cce`/kernel wrapper；直通检查已在真机通过。
-- 已验证通过的主线基线为 21 个 CUDA/runtime/SIMT 用例，覆盖算术、逻辑、比较、
-  转换、shared/global memory、原子、归约、warp、scan、transpose、stencil、event、
-  pitched copy、multi-kernel pipeline、3D indexing、动态 shared memory 和 fence。
-- 额外的 FP16/half2 与 BF16/BF16x2 用例已加入当前回归，等待本轮真机结果确认。
+- 当前已验证通过 23 个 CUDA/runtime/SIMT 用例，覆盖算术、逻辑、比较、转换、
+  shared/global memory、原子、归约、warp、vote、scan、transpose、stencil、event、
+  pitched copy、multi-kernel pipeline、3D indexing、动态 shared memory、fence、
+  FP16/half2 与 BF16/BF16x2。
 - 当前唯一验收标志仍是 `PURESIMT_REGRESSION_PASS`；BLAS bridge 保留为 experimental
   secondary capability，不阻塞 puresimt。
 
