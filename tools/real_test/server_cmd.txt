@@ -245,9 +245,14 @@ for pair in \
             echo "[FAIL] [$name] 运行失败（run log 首 25 行）"
             head -n 25 "$OUT/${name}.run.log" 2>/dev/null
             if [ "$name" = "pmatmul" ]; then
+                echo "----- [pmatmul] lifecycle diagnostics -----"
+                grep -E 'pmatmul:|\[wcuda\]\[stream_destroy\]' \
+                    "$OUT/${name}.run.log" 2>/dev/null
                 echo "----- [pmatmul] cublas bridge diagnostics -----"
                 grep -E '\[cce_bridge\]\[(Sgemm|gemm)\]' \
                     "$OUT/${name}.run.log" 2>/dev/null
+                echo "----- [pmatmul] run log tail -----"
+                tail -n 40 "$OUT/${name}.run.log" 2>/dev/null
                 echo "----- [pmatmul] linked libraries -----"
                 grep -F 'libcce_bridge_runtime' "$OUT/${name}.ldd.log" 2>/dev/null
             fi

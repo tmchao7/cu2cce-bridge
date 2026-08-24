@@ -121,15 +121,20 @@ int main(void) {
     printf("pmatmul: before cublasDestroy\n");
     cublasDestroy(handle);
     printf("pmatmul: before cudaStreamDestroy\n");
-    cudaStreamDestroy(stream);
+    err = cudaStreamDestroy(stream);
+    printf("pmatmul: after cudaStreamDestroy status=%d\n", (int)err);
     printf("pmatmul: before cudaFree A\n");
-    cudaFree(dA);
+    err = cudaFree(dA);
+    printf("pmatmul: after cudaFree A status=%d\n", (int)err);
     printf("pmatmul: before cudaFree B\n");
-    cudaFree(dB);
+    err = cudaFree(dB);
+    printf("pmatmul: after cudaFree B status=%d\n", (int)err);
     printf("pmatmul: before cudaFree C\n");
-    cudaFree(dC);
+    err = cudaFree(dC);
+    printf("pmatmul: after cudaFree C status=%d\n", (int)err);
     printf("pmatmul: before cudaDeviceReset\n");
-    cudaDeviceReset();
+    err = cudaDeviceReset();
+    printf("pmatmul: after cudaDeviceReset status=%d\n", (int)err);
     printf("pmatmul: done\n");
     return 0;
 }
