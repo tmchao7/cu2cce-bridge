@@ -9,10 +9,10 @@ CUDA cublas API
   → CANN aclblas / libacl_cblas.so
 ```
 
-Run them only from the `exp/cublas-aclblas` branch with:
+Run them on `main` as an optional experimental capability:
 
 ```bash
-bash tools/real_test/server_cmd.txt
+CU2CCE_BLAS_TEST=1 bash tools/real_test/server_cmd.txt
 ```
 
 The current sample uses `cublasSgemm` with FP32 CUDA inputs. The wrapper stages

@@ -1,6 +1,6 @@
 # CUDA BLAS → CANN ACL CBLAS experimental matrix
 
-Branch: `exp/cublas-aclblas`
+Branch: `main`（experimental capability）
 Backend: CANN `acl/ops/acl_cblas.h` / `libacl_cblas.so`
 Main puresimt regression: independent
 
@@ -39,8 +39,8 @@ examples/blas/cublas_sgemm.cu
 
 ```bash
 cd /home/t50063365/workspace/repos/cu2cce-bridge
-git pull --ff-only gitcode exp/cublas-aclblas
-bash tools/real_test/server_cmd.txt
+git pull --ff-only gitcode main
+CU2CCE_BLAS_TEST=1 bash tools/real_test/server_cmd.txt
 ```
 
 Expected success marker:
