@@ -121,6 +121,26 @@ if [ -e "$PWD/build/real_test/install/lib/libcce_bridge_runtime.so" ]; then
 fi
 export LD_LIBRARY_PATH="$REPO_LIB:$CANN_BASE/lib64:${LD_LIBRARY_PATH:-}"
 
+printf '\n===== [2.75/4] cucc puresimt 直通检查 =====\n'
+CUCC_BIN="$PWD/build/real_test/install/bin/cucc"
+CUCC_OBJ="$OUT/cucc_vectorAdd_minimal.o"
+CUCC_LOG="$OUT/cucc_direct.log"
+rm -f "$CUCC_OBJ" "$CUCC_LOG" "$OUT"/*.cce
+if [ -x "$CUCC_BIN" ] && CUCC_PATH="$PWD/build/real_test/install" CUDA_PATH="$PWD/build/real_test/install" \
+    WCUDA_DEBUG=1 "$CUCC_BIN" -c examples/puresimt/vectorAdd_minimal.cu -o "$CUCC_OBJ" >"$CUCC_LOG" 2>&1; then
+    if grep -Eiq 'kernel[_ -]?convert|__simt_vf__|async_invoke' "$CUCC_LOG" || find "$OUT" -maxdepth 1 -name '*.cce' -print -quit | grep -q .; then
+        echo '[FAIL] cucc 仍触发 legacy kernel lowering'
+        cat "$CUCC_LOG"
+        FAIL=$((FAIL + 1))
+    else
+        echo '[PASS] cucc 直接调用 ccec；未生成 legacy converter/.cce 中间文件'
+    fi
+else
+    echo '[FAIL] cucc puresimt direct compile'
+    cat "$CUCC_LOG" 2>/dev/null
+    FAIL=$((FAIL + 1))
+fi
+
 printf '\n===== [3/4] puresimt CUDA Samples + operator tests 编译 + 运行 =====\n'
 CCEC="$CANN_BASE/bin/ccec"
 PS_FLAGS="-x asc --cce-aicore-arch=dav-c310-vec --enable-simt -std=c++17"
