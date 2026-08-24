@@ -28,3 +28,8 @@ maintained examples set. Historical versions remain available in Git history.
 - `puresimt/event_minimal.cu`
 - `puresimt/pitchedMemcpy_minimal.cu`
 - `puresimt/multiKernel_minimal.cu`
+
+- `puresimt/atomicVariants_minimal.cu`
+- `puresimt/dynamicShared_minimal.cu`
+- `puresimt/index3D_minimal.cu`
+- `puresimt/threadFence_minimal.cu`

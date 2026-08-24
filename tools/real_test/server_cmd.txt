@@ -161,7 +161,11 @@ for pair in \
     'math_minimal.cu|math_minimal OK' \
     'event_minimal.cu|event_minimal OK' \
     'pitchedMemcpy_minimal.cu|pitchedMemcpy_minimal OK' \
-    'multiKernel_minimal.cu|multiKernel_minimal OK'; do
+    'multiKernel_minimal.cu|multiKernel_minimal OK' \
+    'atomicVariants_minimal.cu|atomicVariants_minimal OK' \
+    'dynamicShared_minimal.cu|dynamicShared_minimal OK' \
+    'index3D_minimal.cu|index3D_minimal OK' \
+    'threadFence_minimal.cu|threadFence_minimal OK'; do
     src=${pair%%|*}
     key=${pair#*|}
     name=$(basename "$src" .cu)
