@@ -252,6 +252,8 @@ export PATH=$CUCC_PATH/bin:$PATH
 
 ### 推荐：两步编译/链接
 
+第一步使用 `-c` 只编译 CUDA 源码，生成 `.o` 目标文件；第二步才链接生成可执行文件。
+
 ```bash
 cd /home/t50063365/workspace/repos/cu2cce-demo
 cucc -c vector_add.cu -o build/vector_add.o
@@ -272,7 +274,19 @@ cucc vector_add.cu -o build/vector_add
 ./build/vector_add
 ```
 
-如果一步法在复杂工程中出现问题，使用两步法，以便分别查看编译和链接阶段。
+如果要生成目标文件而不是可执行文件，使用：
+
+```bash
+cucc -c vector_add.cu -o build/vector_add.o
+```
+
+cucc 也会根据 `.o` 输出后缀兼容识别下面的写法：
+
+```bash
+cucc vector_add.cu -o build/vector_add.o
+```
+
+但推荐显式使用 `-c`，以免把编译阶段和链接阶段混淆。
 
 ---
 
@@ -375,7 +389,8 @@ bash tests/mock_acl/syntax_check.sh
   → source CANN 环境
   → build_bridge.sh
   → 设置 CUCC_PATH / CUDA_PATH / PATH
-  → cucc -c xxx.cu -o xxx.o
-  → cucc xxx.o -o xxx
+  → cucc -c xxx.cu -o xxx.o   # 编译阶段
+  → cucc xxx.o -o xxx         # 链接阶段
+  → ./xxx                     # 运行最终可执行文件
   → ./xxx
 ```

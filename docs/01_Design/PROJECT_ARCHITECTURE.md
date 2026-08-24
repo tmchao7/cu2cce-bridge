@@ -156,12 +156,15 @@ include/bridge/blas/
 
 ### 4.1 用户调用
 
-用户可以直接执行：
+用户可以直接执行两步编译/链接：
 
 ```bash
-cucc -c demo/vector_add.cu -o demo/build/vector_add.o
-cucc demo/build/vector_add.o -o demo/build/vector_add
+cucc -c demo/vector_add.cu -o demo/build/vector_add.o  # 编译，不链接
+cucc demo/build/vector_add.o -o demo/build/vector_add    # 链接
+./demo/build/vector_add                                     # 运行
 ```
+
+其中 `.o` 是目标文件，最终可执行文件由第二条链接命令生成。
 
 ### 4.2 `cucc` 做什么
 

@@ -125,7 +125,8 @@ bash tools/real_test/build_bridge.sh
 
 ### 3. 用 `cucc` 编译和链接
 
-推荐使用两步法：
+推荐使用两步法。第一步使用 `-c` 只编译并生成 `.o` 目标文件，第二步才链接生成
+最终可执行文件：
 
 ```bash
 export CUCC_PATH=/home/t50063365/workspace/repos/cu2cce-bridge/build/real_test/install
@@ -141,7 +142,7 @@ cucc /home/t50063365/workspace/repos/cu2cce-demo/build/vector_add.o \
     -o /home/t50063365/workspace/repos/cu2cce-demo/build/vector_add
 ```
 
-`cucc` 会自动注入 CUDA 兼容头、CANN SIMT 头、运行库和 rpath；`.cu` 会直接
+也不要把 `.o` 目标文件当作最终程序运行。`cucc` 会自动注入 CUDA 兼容头、CANN SIMT 头、运行库和 rpath；`.cu` 会直接
 交给 ccec，不会生成 Python converter 或 Ascend kernel 包装源文件。
 
 ### 4. 运行
