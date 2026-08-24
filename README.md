@@ -207,6 +207,11 @@ PURESIMT_REGRESSION_PASS
 - `docs/01_Design/PROJECT_ARCHITECTURE.md`：项目原理与团队学习文档。
 - `docs/reference/asc-devkit-simt/`：Ascend SIMT API 参考资料。
 
+## 用户 Quickstart
+
+面向用户的 `.cu` 工程目录、CANN 环境、bridge 构建、`cucc` 编译、链接和运行示例见：
+[QUICKSTART.md](QUICKSTART.md)。
+
 ## 本地限制
 
 本机 macOS 没有 CANN/NPU，不能本地构建或运行 Ascend 产物。允许执行静态检查：
