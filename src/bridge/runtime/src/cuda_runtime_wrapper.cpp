@@ -389,9 +389,13 @@ aclError wcudaStreamCreateWithFlags(aclrtStream *pStream, unsigned int flags) {
 
 aclError wcudaStreamDestroy(aclrtStream stream) {
     if (stream == nullptr) {
-        WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
+        g_last_error = ACL_ERROR_INVALID_PARAM;
+        return ACL_ERROR_INVALID_PARAM;
     }
-    BRIDGE_INIT();
+    /* Destroy is deliberately not wrapped in BRIDGE_INIT/WCUDA_RETURN. The stream was
+     * created only after bridge_init, and re-entering the once-only ACL initializer here
+     * is unsafe after aclopSetModelDir + aclblasGemmEx. Official ACL samples destroy the
+     * already-synchronized stream directly with aclrtDestroyStream. */
     if (wcuda_dbg()) {
         fprintf(stderr, "[wcuda][stream_destroy] before stream=%p\n", (void *)stream);
     }
