@@ -125,6 +125,14 @@ static aclError gemm_impl(cublasHandle_t handle, aclTransType transa, aclTransTy
     std::fprintf(stderr, "[cce_bridge][gemm] aclblasGemmEx ret=%d stream=%p recent=%s\n",
                  (int)gret, (void *)handle->stream,
                  aclGetRecentErrMsg() != nullptr ? aclGetRecentErrMsg() : "(null)");
+    if ((int)gret == 100024) {
+        /* ACL_ERROR_OP_NOT_FOUND：参数校验已经通过，但运行时未找到匹配的 GEMM 算子/模型。
+         * 首查 ASCEND_OPP_PATH 与 CANN set_env.sh；若环境完整仍失败，则该 SoC/类型组合
+         * 没有预置实现，需要 aclopSetModelDir 加载 ATC 单算子模型或改走另一条 GEMM 实现。 */
+        std::fprintf(stderr,
+                     "[cce_bridge][gemm] 100024=ACL_ERROR_OP_NOT_FOUND; check ASCEND_OPP_PATH, "
+                     "CANN set_env.sh, and GEMM operator/model availability for this SoC\n");
+    }
     if (gret != ACL_SUCCESS) {
         return gret;
     }

@@ -17,10 +17,11 @@
 #     捡到其他目录中的旧 libcce_bridge_runtime.so。
 # 真机已确认 device staging、stream、device 指针和 dtype 均有效；16×16×16 与
 # 32×32×32 在 compute=ACL_COMPUTE_HIGH_PRECISION(0) 下都直接返回 100000；改为
-# LOW_PRECISION(1) 仍返回 100000；ld 改为官方要求的 -1 后仍失败。联网核对华为
-# 官方 GemmEx 样例发现 alpha/beta 必须先复制到 device，示例传 devAlpha/devBeta；
-# 当前 wrapper 却把 CUDA host 栈地址直接传给 ACL。本轮修复 scalar device staging，
-# 并恢复官方示例使用的 HIGH_PRECISION；dtype=(fp16,fp16,float)、shape=32 保持不变。
+# LOW_PRECISION(1) 与 ld=-1 仍返回 100000；修正 alpha/beta 为 device pointer 后，
+# 返回码已前进为 100024=ACL_ERROR_OP_NOT_FOUND，证明参数层已经通过。当前问题转为
+# CANN 未找到匹配 GEMM 算子/模型。华为官方 GEMM 样例明确配置 ASCEND_OPP_PATH，
+# 旧样例还通过 aclopSetModelDir 加载 ATC 单算子模型；本轮先在父 shell source
+# /usr/local/Ascend/latest/set_env.sh 并核对 OPP，排除运行环境未配置。
 # 2026-08-21 方向 A（用户定稿）：host 全部走 bridge 宏/wrapper（cuda* →
 # wcuda* → aclrt*），include <cuda_runtime.h> 由 repo 的 include/ 接住（编译
 # -I<repo>/include 在前）；kernel 保持纯 CUDA 前端直通。首调用均为
@@ -88,6 +89,19 @@ fi
 printf '\n===== [2/5] 环境 =====\n'
 CANN_BASE="/usr/local/Ascend/latest"
 CCEC="${CANN_BASE}/bin/ccec"
+# aclblasGemmEx 不是纯 runtime 调用：它需要 OPP/算子注册环境。build_bridge.sh 在
+# 子 shell 中 source 环境不会回传给本脚本，因此必须在运行测试的父 shell source。
+if [ -f "${CANN_BASE}/set_env.sh" ]; then
+    # shellcheck source=/dev/null
+    source "${CANN_BASE}/set_env.sh"
+    echo "[PASS] sourced ${CANN_BASE}/set_env.sh"
+elif [ -f "/usr/local/Ascend/ascend-toolkit/latest/bin/setenv.bash" ]; then
+    # shellcheck source=/dev/null
+    source "/usr/local/Ascend/ascend-toolkit/latest/bin/setenv.bash"
+    echo '[PASS] sourced ascend-toolkit/latest/bin/setenv.bash'
+else
+    echo '[WARN] CANN environment script not found'
+fi
 if [ -z "${ASCEND_HOME_PATH:-}" ] || [ ! -d "${ASCEND_HOME_PATH}" ]; then
     for cand in /usr/local/Ascend/latest /usr/local/Ascend/ascend-toolkit/latest; do
         if [ -d "$cand" ] && [ -e "$cand/bin/ccec" ]; then ASCEND_HOME_PATH="$cand"; break; fi
@@ -95,6 +109,14 @@ if [ -z "${ASCEND_HOME_PATH:-}" ] || [ ! -d "${ASCEND_HOME_PATH}" ]; then
 fi
 export ASCEND_HOME_PATH="${ASCEND_HOME_PATH:-/usr/local/Ascend/latest}"
 echo "ASCEND_HOME_PATH=$ASCEND_HOME_PATH"
+echo "ASCEND_OPP_PATH=${ASCEND_OPP_PATH:-<unset>}"
+if [ -n "${ASCEND_OPP_PATH:-}" ] && [ -d "$ASCEND_OPP_PATH" ]; then
+    echo '[PASS] ASCEND_OPP_PATH exists'
+    find "$ASCEND_OPP_PATH" -maxdepth 5 -type f \
+        \( -iname '*gemm*' -o -iname '*matmul*' \) 2>/dev/null | head -n 20
+else
+    echo '[WARN] ASCEND_OPP_PATH missing/unset: GemmEx may return ACL_ERROR_OP_NOT_FOUND(100024)'
+fi
 
 # 链接 bridge 运行库（host 侧 cuda* → wcuda* → aclrt* 的实现体）。
 # 真机路径科目2（2026-08-21：ld.lld undefined wcuda* 统一失败）：ccec 直编
