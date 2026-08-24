@@ -102,8 +102,19 @@ listp=("${newlistp[@]}")
 # *.o → 链接阶段
 xlang=""
 dotofilefound=0
+skip_value=0
 for i in "${listp[@]}"; do
+    if [ "$skip_value" -eq 1 ]; then
+        skip_value=0
+        continue
+    fi
     case "${i}" in
+        -o|-MF|-MT|-include)
+            # The following token is an option value, not an input object.
+            skip_value=1
+            ;;
+        -o*.o|-MF*.o|-MT*.o)
+            ;;
         *.cu)  xlang="cu";;
         *.cpp|*.cc|*.cxx) xlang="cpp";;
         *.c)   xlang="c";;
@@ -175,9 +186,10 @@ if [[ "${xlang}" == "cu" ]]; then
     params+=("--enable-simt")
 fi
 
-# 设备侧代码标注（ccec 用 -xcce 识别含设备代码的源）
+# ccec 的 puresimt 输入语言必须显式指定为 asc；不要使用旧 bisheng 的
+# -xcce 模式，否则 bisheng 会尝试寻找 NVIDIA CUDA/libdevice。
 if [[ "${xlang}" == "cu" ]]; then
-    params+=("-xcce")
+    params+=("-x" "asc")
 fi
 
 # 链接阶段：追加昇腾运行库（clang 风格 -L/-l；真机实测：
