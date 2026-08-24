@@ -30,10 +30,9 @@ main 不生成 `__simt_vf__`、`__global__[aicore]`、`cce::async_invoke` 包装
 - 当前唯一验收标志仍是 `PURESIMT_REGRESSION_PASS`；BLAS bridge 保留为 experimental
   secondary capability，不阻塞 puresimt。
 
-## 项目原理与学习文档
+## 项目原理与设计文档
 
-面向 mentor、队友和新开发者的完整原理、设计哲学、编译链、Runtime bridge、SIMT
-运行逻辑和维护方法见：
+完整的项目原理、设计哲学、编译链、Runtime bridge、SIMT 运行逻辑和维护方法见：
 [PROJECT_ARCHITECTURE.md](docs/01_Design/PROJECT_ARCHITECTURE.md)。
 
 ## 兼容性矩阵
@@ -204,7 +203,7 @@ PURESIMT_REGRESSION_PASS
 - `tools/real_test/server_cmd.txt`：唯一主线真机回归入口。
 - `tools/real_test/diag/`：非主线 ACL/runtime 排障工具。
 - `docs/README.md`：文档导航和阅读顺序。
-- `docs/01_Design/PROJECT_ARCHITECTURE.md`：项目原理与团队学习文档。
+- `docs/01_Design/PROJECT_ARCHITECTURE.md`：项目原理与设计文档。
 - `docs/reference/asc-devkit-simt/`：Ascend SIMT API 参考资料。
 
 ## 用户 Quickstart
@@ -212,9 +211,10 @@ PURESIMT_REGRESSION_PASS
 面向用户的 `.cu` 工程目录、CANN 环境、bridge 构建、`cucc` 编译、链接和运行示例见：
 [QUICKSTART.md](QUICKSTART.md)。
 
-## 本地限制
+## 构建要求
 
-本机 macOS 没有 CANN/NPU，不能本地构建或运行 Ascend 产物。允许执行静态检查：
+Ascend 目标程序需要在安装 CANN、ccec 和 Ascend 设备的 Linux 环境中构建与运行。
+源码修改后的静态检查可以使用：
 
 ```bash
 bash -n bin/cucc tools/real_test/server_cmd.txt tools/real_test/diag/*.sh

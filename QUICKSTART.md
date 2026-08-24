@@ -5,7 +5,6 @@
 > 当前正式路线是 `main / puresimt`：用户保留原始 CUDA `.cu`，由 CANN `ccec`
 > 直接解析 CUDA SIMT kernel，在昇腾 NPU 上运行。
 >
-> 本机 macOS 没有 CANN/NPU，不能执行下面的构建和运行命令。
 
 ## 你需要记住的三件事
 
@@ -358,27 +357,16 @@ bash tools/real_test/clean.sh
 
 ---
 
-## 10. 本机 macOS 开发限制
+## 10. 构建环境与静态检查
 
-macOS 本机没有 Ascend CANN 和 NPU，不能执行：
-
-```bash
-ccec
-cucc
-bash tools/real_test/build_bridge.sh
-bash tools/real_test/server_cmd.txt
-```
-
-本机只执行静态检查：
+Ascend 程序需要在安装 CANN、ccec 和 Ascend 设备的 Linux 环境中构建与运行。
+源码修改后可以执行以下静态检查：
 
 ```bash
-cd /Users/tmchao7/repos/09_expLearn/cu2cce-bridge
 bash -n bin/cucc tools/real_test/server_cmd.txt tools/real_test/env_probe.sh
 git diff --check
 bash tests/mock_acl/syntax_check.sh
 ```
-
----
 
 ## 11. 一句话流程
 

@@ -1,6 +1,5 @@
 # cu2cce-bridge 项目原理、设计哲学与运行逻辑
 
-> 面向 mentor、队员和新加入开发者的主学习文档。
 > 当前正式路线：`main / puresimt`。
 > 当前目标环境：Ascend 950 / CANN 9.2.0 / `ccec` / `dav-c310-vec`。
 
@@ -396,10 +395,10 @@ EXPERIMENTAL
 bash tools/real_test/server_cmd.txt
 ```
 
-## 10. 适合对 mentor/队友的项目表述
+## 10. 项目摘要
 
-> cu2cce-bridge 的 main 分支采用 puresimt 正式路线：不改写用户 CUDA 源码，不生成
-> Ascend kernel 包装代码，而是复用 CANN ccec 的 CUDA SIMT 前端；项目只在兼容头和
-> host runtime bridge 中封装 Ascend 差异。当前在 Ascend 950 / CANN 9.2.0 上，已用
-> 官方 NVIDIA CUDA Samples 和最小 CUDA 语义用例验证 23 个功能维度，唯一真机回归
-> 输出为 `PURESIMT_REGRESSION_PASS`。
+cu2cce-bridge 的 main 分支采用 puresimt 正式路线：不改写用户 CUDA 源码，不生成
+Ascend kernel 包装代码，而是复用 CANN ccec 的 CUDA SIMT 前端；项目只在兼容头和
+host runtime bridge 中封装 Ascend 差异。当前在 Ascend 950 / CANN 9.2.0 上，已用
+官方 NVIDIA CUDA Samples 和最小 CUDA 语义用例验证 23 个功能维度，唯一真机回归
+输出为 `PURESIMT_REGRESSION_PASS`。

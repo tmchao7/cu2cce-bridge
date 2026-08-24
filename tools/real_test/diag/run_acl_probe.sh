@@ -2,7 +2,7 @@
 # ============================================================
 # run_acl_probe.sh —— 107002 排查：裸 ACL 分配探针（历史 runtime context 排障）
 #
-# 本地（macOS）无法编译，本脚本在昇腾服务器上执行：
+# 本脚本需要在安装 CANN 的 Ascend Linux 环境中执行：
 #   1. 编译 acl_alloc_probe.cpp（g++ + -lascendcl，失败自动换 -lacl_rt）
 #   2. 运行 /tmp/acl_probe，逐项打印每步返回码
 #
