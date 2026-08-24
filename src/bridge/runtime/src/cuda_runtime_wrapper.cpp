@@ -180,14 +180,31 @@ aclError wcudaDeviceSynchronize(void) {
 
 aclError wcudaDeviceReset(void) {
     /* 释放当前 device 资源（对应 cudaDeviceReset）。
-     * 昇腾侧用 aclrtResetDevice(int32_t deviceId)（引用计数式，与 aclrtSetDevice 配对）。
-     * 需要先查当前 deviceId 再 reset。 */
+     * 昇腾官方 ACL GEMM sample 的进程收尾顺序是 aclrtResetDevice -> aclFinalize。
+     * pmatmul 已验证 reset 返回 0、main 打印 done 后仍 SIGSEGV，说明 ATC/GEMM
+     * runtime 的进程退出清理还未完成；对已调用 aclopSetModelDir 的进程，补上
+     * aclFinalize，避免 CANN 静态析构阶段再次清理同一 runtime 状态。 */
     int32_t dev = 0;
+    BRIDGE_INIT();
     aclError ret = aclrtGetDevice(&dev);
     if (ret != ACL_SUCCESS) {
-        WCUDA_RETURN(ret);
+        g_last_error = ret;
+        return ret;
     }
-    WCUDA_RETURN(aclrtResetDevice(dev));
+    ret = aclrtResetDevice(dev);
+    if (ret != ACL_SUCCESS) {
+        g_last_error = ret;
+        return ret;
+    }
+    aclError final_ret = aclFinalize();
+    if (wcuda_dbg()) {
+        fprintf(stderr, "[wcuda][device_reset] reset=0 finalize=%d recent=%s\n",
+                (int)final_ret, aclGetRecentErrMsg() != nullptr ? aclGetRecentErrMsg() : "(null)");
+    }
+    if (final_ret != ACL_SUCCESS) {
+        g_last_error = final_ret;
+    }
+    return final_ret;
 }
 
 aclError wcudaGetDeviceProperties(_cceDeviceProp_t *prop, int device) {
