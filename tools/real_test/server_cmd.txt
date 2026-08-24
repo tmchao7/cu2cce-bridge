@@ -6,8 +6,12 @@
 # 维护样例只有两个：
 #   - examples/puresimt/vectorAdd/vectorAdd.cu
 #   - examples/puresimt/matrixMul/matrixMul.cu
+#   - examples/puresimt/vectorAdd_minimal.cu
+#   - examples/puresimt/matrixMul_minimal.cu
 #
-# 两个 .cu 文件保留 NVIDIA 原始源码，不添加 p 前缀、不加入 ACL 调用、不写
+# 两个官方 .cu 文件保留 NVIDIA 原始源码；两个 minimal 文件只使用最小 CUDA
+# runtime/stdio 依赖，用于把 bridge 问题与 NVIDIA helper 头依赖隔离。所有文件
+# 都不添加 p 前缀、不加入 ACL 调用、不写 Ascend C 语法。
 # Ascend C 语法。third_party/nvidia_cuda_samples/Common 只提供 NVIDIA 官方
 # helper 头，作为 include 路径注入。
 #
@@ -120,21 +124,30 @@ CCEC="$CANN_BASE/bin/ccec"
 PS_FLAGS="-x asc --cce-aicore-arch=dav-c310-vec --enable-simt -std=c++17"
 for pair in \
     'vectorAdd/vectorAdd.cu|Test PASSED' \
-    'matrixMul/matrixMul.cu|Result = PASS'; do
+    'matrixMul/matrixMul.cu|Result = PASS' \
+    'vectorAdd_minimal.cu|vectorAdd_minimal OK' \
+    'matrixMul_minimal.cu|matrixMul_minimal OK'; do
     src=${pair%%|*}
     key=${pair#*|}
     name=$(basename "$src" .cu)
     bin="$OUT/$name"
     echo "===== [$name] $CCEC $PS_FLAGS examples/puresimt/$src ====="
     EXTRA_FLAGS=()
+    INCLUDE_FLAGS=( -I"$REPO_INC" -I"$CANN_BASE/include" )
     # NVIDIA vectorAdd relies on CUDA runtime's transitive fabs declaration;
     # matrixMul includes the system C++ math header itself, so do not preinclude
     # the shadow math header for that sample (it would conflict with glibc specs).
     case "$name" in
-        vectorAdd) EXTRA_FLAGS+=( -include "$REPO_INC/shadow/math.h" ) ;;
+        vectorAdd)
+            EXTRA_FLAGS+=( -include "$REPO_INC/shadow/math.h" )
+            INCLUDE_FLAGS+=( -I"$NVIDIA_COMMON" )
+            ;;
+        matrixMul)
+            INCLUDE_FLAGS+=( -I"$NVIDIA_COMMON" )
+            ;;
     esac
     if "$CCEC" $PS_FLAGS "${EXTRA_FLAGS[@]}" "examples/puresimt/$src" \
-        -I"$REPO_INC" -I"$NVIDIA_COMMON" -I"$CANN_BASE/include" \
+        "${INCLUDE_FLAGS[@]}" \
         -L"$CANN_BASE/lib64" -L"$REPO_LIB" \
         -Wl,-rpath,"$REPO_LIB" -Wl,-rpath,"$CANN_BASE/lib64" \
         -lascendc_runtime -lascendcl -lruntime -lregister -lerror_manager \

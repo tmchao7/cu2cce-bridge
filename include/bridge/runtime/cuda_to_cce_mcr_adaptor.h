@@ -130,6 +130,11 @@
 // Stream Management
 #define cudaStreamCreate wcudaStreamCreate
 #define cudaStreamCreateWithFlags wcudaStreamCreateWithFlags
+/* CUDA stream flags are accepted by the official NVIDIA samples. Ascend's
+ * wcudaStreamCreateWithFlags currently ignores the flag but preserves the
+ * source-level CUDA ABI. */
+#define cudaStreamDefault 0
+#define cudaStreamNonBlocking 1
 #define cudaStreamDestroy wcudaStreamDestroy
 #define cudaStreamSynchronize wcudaStreamSynchronize
 #define cudaStreamQuery wcudaStreamQuery

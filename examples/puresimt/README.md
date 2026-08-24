@@ -15,3 +15,11 @@ or regression command.
 The puresimt regression intentionally tests the original CUDA examples rather
 than hand-written puresimt-specific copies. The bridge/compiler is responsible
 for making the same source compile and run on Ascend.
+
+For isolating CUDA-header compatibility from NVIDIA helper-header compatibility,
+the same regression also includes two deliberately small self-contained files:
+
+- `vectorAdd_minimal.cu`
+- `matrixMul_minimal.cu`
+
+They still use ordinary CUDA syntax and are not rewritten for Ascend.
