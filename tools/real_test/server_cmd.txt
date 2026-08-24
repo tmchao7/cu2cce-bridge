@@ -15,9 +15,10 @@
 #     本脚本每轮回归都会先重编/安装 bridge，避免真机沿用旧 .so 看不到新日志；
 #     同时给测试程序写入 repo/CANN rpath 并设置 LD_LIBRARY_PATH，避免运行时
 #     捡到其他目录中的旧 libcce_bridge_runtime.so。
-# 本轮诊断已确认 device staging、stream、device 指针和 dtype 均有效；
-# 16×16×16 的 aclblasGemmEx 仍直接返回 100000。因此本轮只改 pmatmul
-# shape 为 32×32×32，computeType 和 dtype 保持不变，用于验证最小/对齐约束。
+# 真机已确认 device staging、stream、device 指针和 dtype 均有效；16×16×16 与
+# 32×32×32 在 compute=ACL_COMPUTE_HIGH_PRECISION(0) 下都直接返回 100000，故已排除
+# shape/最小尺寸。按单变量顺序，本轮只把 GemmEx computeType 改为
+# ACL_COMPUTE_LOW_PRECISION(1)，shape=32 和 dtype=(fp16,fp16,float) 保持不变。
 # 2026-08-21 方向 A（用户定稿）：host 全部走 bridge 宏/wrapper（cuda* →
 # wcuda* → aclrt*），include <cuda_runtime.h> 由 repo 的 include/ 接住（编译
 # -I<repo>/include 在前）；kernel 保持纯 CUDA 前端直通。首调用均为
@@ -108,6 +109,10 @@ if [ ! -e "$REPO_LIB/libcce_bridge_runtime.so" ]; then
     echo "[WARN] ${REPO_LIB}/libcce_bridge_runtime.so 缺失（host 侧 wcuda* 链接会失败）"
 fi
 echo "REPO_INC=$REPO_INC REPO_LIB=$REPO_LIB"
+
+printf '\n===== [2.4/5] 真机 aclComputeType 定义 =====\n'
+grep -RIn --include='*.h' 'ACL_COMPUTE_.*PRECISION' \
+    "${CANN_BASE}/include" 2>/dev/null | head -n 20 || true
 
 printf '\n===== [2.5/5] bridge runtime 重编 + 动态库路径 =====\n'
 # wrapper 的改动不会随 puresimt 源文件自动进入已安装 .so；每轮强制重编，

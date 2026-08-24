@@ -93,7 +93,7 @@ static aclError gemm_impl(cublasHandle_t handle, aclTransType transa, aclTransTy
                  "dtype=(A=%d,B=%d,C=%d) compute=%d alpha=%p beta=%p A=%p B=%p C=%p\n",
                  (void *)handle, (void *)handle->stream, stream_was_null ? 1 : 0,
                  (int)transa, (int)transb, (int)ACL_TRANS_N, m, n, k, lda, ldb, ldc,
-                 (int)dtA, (int)dtB, (int)dtC, (int)ACL_COMPUTE_HIGH_PRECISION, alpha, beta, A, B,
+                 (int)dtA, (int)dtB, (int)dtC, (int)ACL_COMPUTE_LOW_PRECISION, alpha, beta, A, B,
                  C);
 
     if (stream_was_null) {
@@ -107,13 +107,14 @@ static aclError gemm_impl(cublasHandle_t handle, aclTransType transa, aclTransTy
     }
 
     /* aclblasGemmEx 无 handle，直接传 stream（从 cu2cce handle 结构取）。
-     * transC 昇腾仅支持 ACL_TRANS_N；computeType 用高精度。
+     * transC 昇腾仅支持 ACL_TRANS_N。fp16 输入组合本轮使用 LOW_PRECISION；
+     * 真机已证实 HIGH_PRECISION(0) 在 16/32 两种 shape 下均于参数校验阶段返回 100000。
      * ⚠️ 真机教训（2026-08-21 cublasMatmul）：aclblasGemmEx 是异步下发，
      *    必须在返回前 aclrtSynchronizeStream 等 GEMM 完成，否则调用方读 C
      *    会拿到未完成的结果/未触发真实错误（示例先 cudaMemcpy 读 C 才会看到
      *    错误码）。 */
     aclError gret = aclblasGemmEx(transa, transb, ACL_TRANS_N, m, n, k, alpha, A, lda, dtA, B, ldb,
-                                  dtB, beta, C, ldc, dtC, ACL_COMPUTE_HIGH_PRECISION, handle->stream);
+                                  dtB, beta, C, ldc, dtC, ACL_COMPUTE_LOW_PRECISION, handle->stream);
     std::fprintf(stderr, "[cce_bridge][gemm] aclblasGemmEx ret=%d stream=%p recent=%s\n",
                  (int)gret, (void *)handle->stream,
                  aclGetRecentErrMsg() != nullptr ? aclGetRecentErrMsg() : "(null)");
