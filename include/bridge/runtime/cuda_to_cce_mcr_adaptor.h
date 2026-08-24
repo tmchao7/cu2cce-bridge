@@ -105,6 +105,14 @@
 #define cudaDevAttrMultiProcessorCount 16
 #define cudaDevAttrKernelExecTimeout 19
 #define cudaDevAttrIntegrated 20
+/* NVIDIA helper_cuda.h also queries these attributes during device selection.
+ * They are bridge-private compatibility IDs; wcudaDeviceGetAttribute handles
+ * them without claiming that Ascend has CUDA compute capability semantics. */
+#define cudaDevAttrComputeMode 21
+#define cudaDevAttrComputeCapabilityMajor 22
+#define cudaDevAttrComputeCapabilityMinor 23
+#define cudaComputeModeDefault 0
+#define cudaComputeModeProhibited 2
 
 // Peer Device Memory Access（昇腾有对应：aclrtDeviceCanAccessPeer 等）
 #define cudaDeviceCanAccessPeer wcudaDeviceCanAccessPeer

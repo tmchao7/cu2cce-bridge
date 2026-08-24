@@ -246,7 +246,10 @@ aclError wcudaGetDeviceProperties(_cceDeviceProp_t *prop, int device) {
     prop->sharedMemPerBlock = 256 * 1024; /* SIMT 下 UB 容量约 256KB */
     prop->multiProcessorCount = 20;       /* 保守值，真机按 aclrtGetDeviceInfo 校准 */
     prop->clockRate = 0;                  /* 昇腾无时钟频率语义，填 0 */
-    prop->major = 0;
+    /* CUDA Samples use these only to select/print a CUDA device. Ascend has no
+     * CUDA SM capability; expose a stable compatibility value so NVIDIA's
+     * helper_cuda.h can remain unmodified. */
+    prop->major = 9;
     prop->minor = 0;
 
     WCUDA_RETURN(ACL_SUCCESS);
@@ -379,6 +382,15 @@ aclError wcudaDeviceGetAttribute(int *value, int attr, int device) {
         break;
     case 20: /* Integrated */
         *value = 0; /* 昇腾为独立加速卡，非集成 GPU */
+        break;
+    case 21: /* ComputeMode */
+        *value = 0; /* CUDA compute mode default；Ascend 无 prohibited mode */
+        break;
+    case 22: /* ComputeCapabilityMajor */
+        *value = prop.major;
+        break;
+    case 23: /* ComputeCapabilityMinor */
+        *value = prop.minor;
         break;
     default:
         WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
