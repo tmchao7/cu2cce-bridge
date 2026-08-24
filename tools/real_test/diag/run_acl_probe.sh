@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================
-# run_acl_probe.sh —— 107002 排查：裸 ACL 分配探针（INVESTIGATION_107002.md §5.4）
+# run_acl_probe.sh —— 107002 排查：裸 ACL 分配探针（历史 runtime context 排障）
 #
 # 本地（macOS）无法编译，本脚本在昇腾服务器上执行：
 #   1. 编译 acl_alloc_probe.cpp（g++ + -lascendcl，失败自动换 -lacl_rt）

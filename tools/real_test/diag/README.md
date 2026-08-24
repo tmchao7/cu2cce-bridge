@@ -1,7 +1,7 @@
 # tools/real_test/diag —— 107002 排查留下的真机诊断工具
 
 > 2026-08-19 107002（cudaMalloc 首调失败）排查的 17 轮实验沉淀。
-> **结论已定案**（见 `docs/01_Design/INVESTIGATION_107002.md §8`：根因是
+> **结论已定案**（见 历史 runtime context 排障结论：根因是
 > `aclrtMalloc` 调用点在 `BRIDGE_INIT` 之前，修复为 wcudaMalloc 开头显式
 > `BRIDGE_INIT()`）。本目录工具保留为"可真机复用的排障资产"，不再属于
 > 常用回归流程；`server_cmd.txt`/`build_bridge.sh` 等常态脚本仍在

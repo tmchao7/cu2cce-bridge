@@ -1,6 +1,6 @@
 /**
  * acl_diff_probe —— 107002 排查（第 4 轮）：同一 libascendcl.so 内
- * 「探针全通过 vs minimal 稳定 107002」的差异定位（INVESTIGATION_107002.md §5.7）
+ * 「探针全通过 vs minimal 稳定 107002」的差异定位（历史 runtime context 排障）
  *
  * 目标：把 minimal 的调用序列与探针的调用序列逐步对齐，找出让 aclrtMalloc
  * 从「成功」翻转为「107002」的那一个差异。

@@ -1,5 +1,5 @@
 /**
- * acl_alloc_probe —— 107002 排查：裸 ACL 分配探针（INVESTIGATION_107002.md §5.4）
+ * acl_alloc_probe —— 107002 排查：裸 ACL 分配探针（历史 runtime context 排障）
  *
  * 不经过 cucc/wrapper，直接调 aclrt*：隔离"桥（bridge_init/wrapper）vs ACL 本身"。
  * minimal 挂点（WCUDA_DEBUG=1 实测）：aclInit / aclrtGetDeviceCount / aclrtSetDevice(0)

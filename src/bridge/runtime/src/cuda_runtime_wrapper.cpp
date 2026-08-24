@@ -33,7 +33,7 @@ static thread_local bool g_has_context_created = false;
 
 #define ACTIVE_CONTEXT() g_has_context_created = true;
 
-/* 107002 排查压印（INVESTIGATION_107002.md §5.6）：bridge_init 与 wcudaMalloc
+/* 107002 排查压印（历史 runtime context 排障）：bridge_init 与 wcudaMalloc
  * 逐行打时间戳，先定位"minimal 进程内 aclInit/SetDevice 全 OK 却紧跟 107002"
  * 的第三个动作在哪个进程空间发生。走 WCUDA_DEBUG（无 env 不输出）。 */
 static bool wcuda_dbg() {
@@ -51,7 +51,7 @@ static void wcuda_mark(const char *label, aclError e) {
 
 namespace cubridge::internal {
 
-/* 107002 排查（INVESTIGATION_107002.md §5.1）：初始化各步返回码全部打印，
+/* 107002 排查（历史 runtime context 排障）：初始化各步返回码全部打印，
  * 不再静默吞掉——minimal 路径首次 API 即 cudaMalloc，上游是 aclInit、
  * aclrtGetDeviceCount 还是 aclrtSetDevice 失败，从输出一眼看出。 */
 static bool bridge_debug_enabled() {
@@ -73,7 +73,7 @@ void bridge_init() {
     int32_t ret = aclInit(nullptr);
     bridge_log("aclInit", ret);
 
-    /* 对齐 vectorAdd 的调用顺序（INVESTIGATION_107002.md §5.2 候选根因 1）：
+    /* 对齐 vectorAdd 的调用顺序（历史 runtime context 排障）：
      * 先 aclrtGetDeviceCount 完成设备枚举，再 aclrtSetDevice(0)。vectorAdd
      * 能跑正是因为 main 第一个 API 是 cudaGetDeviceCount（先枚举后设设备）。 */
     uint32_t devCnt = 0;
@@ -94,7 +94,7 @@ void bridge_init() {
         usleep(100 * 1000);  /* 100ms */
     }
 
-    /* 107002 根因修复（INVESTIGATION_107002.md 结论节，2026-08-19 定案）：
+    /* 107002 根因修复（历史 runtime context 排障结论，2026-08-19 定案）：
      * 仅 SetDevice(0) 还不足以让后续 aclrtMalloc 成功——需显式创建 context
      * 并设为当前 context。
      * 证据（ROUND13）：同一台机、同一 wrapper：
