@@ -1,5 +1,5 @@
 /* 纯 host 侧 API 桥冒烟测试（本机 mock 可验证，不含 kernel 语法）。
- * 真机/含 kernel 的完整链路见 examples/vectorAdd/vectorAdd.cu（需 bisheng）。 */
+ * 真机/含 kernel 的完整链路见 examples/puresimt/vectorAdd/vectorAdd.cu（需 bisheng）。 */
 #include <cuda_runtime.h>
 #include <cublas_v2.h>
 #include <stdio.h>

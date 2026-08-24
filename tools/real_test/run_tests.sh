@@ -4,8 +4,9 @@
 #
 # 用法：
 #   tools/real_test/run_tests.sh host          # 纯 host API 冒烟（cudaMalloc/Memcpy/Memset/cublasCreate）
-#   tools/real_test/run_tests.sh vectoradd     # 端到端 vectorAdd（kernel 直通 + 数值校验）
-#   tools/real_test/run_tests.sh all           # 全部（默认）
+#   tools/real_test/run_tests.sh vectoradd     # NVIDIA vectorAdd（puresimt）
+#   tools/real_test/run_tests.sh matrixmul     # NVIDIA matrixMul（puresimt）
+#   tools/real_test/run_tests.sh all           # host + vectorAdd + matrixMul
 #   tools/real_test/run_tests.sh all --direct  # 绕过 cucc 直接调 bisheng（排查驱动问题的对照路径）
 #
 # 前置：env_probe.sh + build_bridge.sh
@@ -34,7 +35,7 @@ source "$PROBE_ENV"
 MODE="all"; DIRECT=0
 for a in "$@"; do
     case "$a" in
-        host|vectoradd|all) MODE="$a";;
+        host|vectoradd|matrixmul|all) MODE="$a";;
         --direct) DIRECT=1;;
         *) echo "未知参数：$a"; exit 2;;
     esac
@@ -100,8 +101,10 @@ expect_output() {  # expect_output <名称> <日志文件> <关键字>
 }
 
 # ---------------- 编译/链接两条路径 ----------------
-# 路径 1（默认）：走 bin/cucc 驱动，测的是驱动本身
-cucc_compile() { cucc -c "$1" -o "$2"; }
+NVIDIA_COMMON="$ROOT/third_party/nvidia_cuda_samples/Common"
+# 路径 1（默认）：走 bin/cucc 驱动，测的是驱动本身；官方 NVIDIA 样例
+# 的 helper 头只通过 include 路径注入，源文件本身不改。
+cucc_compile() { cucc -I "$NVIDIA_COMMON" -c "$1" -o "$2"; }
 cucc_link()    { cucc "$1" -o "$2"; }
 
 # 编译器选择：probe.env 的 COMPILER_KIND（ccec 优先）决定架构参数格式
@@ -118,7 +121,7 @@ fi
 direct_compile() {
     local inc_args=( "$DIRECT_CC" -std=gnu++17 -xcce "${DIRECT_ARCH_FLAG}=${CUCC_NPU_ARCH:-dav-c310}" \
         -include "$CUCC_PATH/include/bridge/kernel/simt_adaptor.h" \
-        -I "$CUCC_PATH/include/shadow" -I "$CUCC_PATH/include" -I "$ASCEND_INCLUDE" \
+        -I "$CUCC_PATH/include/shadow" -I "$CUCC_PATH/include" -I "$NVIDIA_COMMON" -I "$ASCEND_INCLUDE" \
         -D__CU2CCE_NO_LIBC__ )
     # simt_api 头非自包含：加父目录 + 自身 + asc 根（impl/ 依赖，真机实测）
     if [ -n "${SIMT_API_INCLUDE:-}" ]; then
@@ -154,19 +157,38 @@ test_host() {
     echo "✅ host API 冒烟通过"
 }
 
-# ---------------- 测试 2：vectorAdd 端到端（kernel 直通） ----------------
+# ---------------- 测试 2：NVIDIA vectorAdd 端到端 ----------------
 test_vectoradd() {
     local obj="$OUT_DIR/vectorAdd.o" bin="$OUT_DIR/vectorAdd"
     if [ "$DIRECT" = "1" ]; then
-        run_step "vectoradd_compile_direct" direct_compile "$ROOT/examples/vectorAdd/vectorAdd.cu" "$obj" || return 1
-        run_step "vectoradd_link_direct"    direct_link    "$obj" "$bin" || return 1
+        run_step "vectoradd_compile_direct" direct_compile \
+            "$ROOT/examples/puresimt/vectorAdd/vectorAdd.cu" "$obj" || return 1
+        run_step "vectoradd_link_direct" direct_link "$obj" "$bin" || return 1
     else
-        run_step "vectoradd_compile_cucc" cucc_compile "$ROOT/examples/vectorAdd/vectorAdd.cu" "$obj" || return 1
-        run_step "vectoradd_link_cucc"    cucc_link    "$obj" "$bin" || return 1
+        run_step "vectoradd_compile_cucc" cucc_compile \
+            "$ROOT/examples/puresimt/vectorAdd/vectorAdd.cu" "$obj" || return 1
+        run_step "vectoradd_link_cucc" cucc_link "$obj" "$bin" || return 1
     fi
     run_step "vectoradd_run" "$bin" || return 1
-    expect_output "vectoradd_check_out" "$OUT_DIR/logs/vectoradd_run.log" "vectorAdd OK" || return 1
-    echo "✅ vectorAdd 端到端通过（kernel 直通 + 数值校验）"
+    expect_output "vectoradd_check_out" "$OUT_DIR/logs/vectoradd_run.log" "Test PASSED" || return 1
+    echo "✅ NVIDIA vectorAdd 端到端通过（puresimt + 零源码改写）"
+}
+
+# ---------------- 测试 3：NVIDIA matrixMul 端到端 ----------------
+test_matrixmul() {
+    local obj="$OUT_DIR/matrixMul.o" bin="$OUT_DIR/matrixMul"
+    if [ "$DIRECT" = "1" ]; then
+        run_step "matrixmul_compile_direct" direct_compile \
+            "$ROOT/examples/puresimt/matrixMul/matrixMul.cu" "$obj" || return 1
+        run_step "matrixmul_link_direct" direct_link "$obj" "$bin" || return 1
+    else
+        run_step "matrixmul_compile_cucc" cucc_compile \
+            "$ROOT/examples/puresimt/matrixMul/matrixMul.cu" "$obj" || return 1
+        run_step "matrixmul_link_cucc" cucc_link "$obj" "$bin" || return 1
+    fi
+    run_step "matrixmul_run" "$bin" || return 1
+    expect_output "matrixmul_check_out" "$OUT_DIR/logs/matrixmul_run.log" "Result = PASS" || return 1
+    echo "✅ NVIDIA matrixMul 端到端通过（puresimt + 零源码改写）"
 }
 
 # ---------------- 主流程 ----------------
@@ -174,7 +196,8 @@ echo "== run_tests：CUCC_PATH=$CUCC_PATH 模式=$([ "$DIRECT" = "1" ] && echo d
 case "$MODE" in
     host)      test_host;;
     vectoradd) test_vectoradd;;
-    all)       test_host; test_vectoradd;;
+    matrixmul) test_matrixmul;;
+    all)       test_host; test_vectoradd; test_matrixmul;;
 esac
 
 echo "== 汇总：PASS=$PASS FAIL=${FAIL}（日志目录 $OUT_DIR/logs/） =="

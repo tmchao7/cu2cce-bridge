@@ -1,16 +1,16 @@
 # ============================================================
 # cu2cce-bridge 使用指南（复制粘贴版）
-# 真机验证：2026-08-19 vectorAdd 8/8 PASS
+# 真机验证主线：main / puresimt / 官方 NVIDIA CUDA Samples
 #   （cann-9.2.0 / dav-c310 / davinci0 / 纯 CUDA 零改写）
 # 服务器路径示例：/home/t50063365/workspace/repos/cu2cce-bridge
 # ============================================================
 
 # ---------- 0. 服务器：拉取最新代码（服务器只拉不推） ----------
 cd /home/t50063365/workspace/repos/cu2cce-bridge
-git pull
+git pull --ff-only gitcode main
 
 # ---------- 1. 一键全流程（探测 → 构建 → 测试） ----------
-bash tools/real_test/run_all.sh
+bash tools/real_test/server_cmd.txt
 
 # ---------- 2. 分步执行 ----------
 # 2.1 环境探测（找 CANN/ccec/设备/API 签名，只读）
@@ -19,8 +19,8 @@ bash tools/real_test/env_probe.sh
 # 2.2 构建桥接工具链（产出 build/real_test/install/，一次构建长期用）
 bash tools/real_test/build_bridge.sh
 
-# 2.3 跑验证（host 冒烟 + vectorAdd 端到端）
-bash tools/real_test/run_tests.sh all
+# 2.3 跑验证（main / puresimt：官方 vectorAdd + matrixMul）
+bash tools/real_test/server_cmd.txt
 
 # ---------- 3. 编译你自己的 CUDA 程序 ----------
 # 设置环境（每次新终端先执行）
@@ -53,10 +53,16 @@ export CUCC_PATH=$PWD/build/real_test/install
 export CUDA_PATH=$CUCC_PATH
 export PATH=$CUCC_PATH/bin:$PATH
 
-cucc -c examples/minimal/minimal.cu -o /tmp/minimal.o
-cucc /tmp/minimal.o -o /tmp/minimal
-/tmp/minimal
-# 预期输出：minimal OK (N=256)
+cucc -c examples/puresimt/vectorAdd/vectorAdd.cu -o /tmp/vectorAdd.o
+cucc /tmp/vectorAdd.o -o /tmp/vectorAdd
+/tmp/vectorAdd
+# 预期输出：Test PASSED
+
+# 官方矩阵乘样例
+cucc -c examples/puresimt/matrixMul/matrixMul.cu -o /tmp/matrixMul.o
+cucc /tmp/matrixMul.o -o /tmp/matrixMul
+/tmp/matrixMul
+# 预期输出：Result = PASS
 
 # ---------- 4. 本机（macOS）：开发与推送 ----------
 cd ~/repos/09_expLearn/cu2cce-bridge
@@ -84,6 +90,7 @@ cat build/real_test/logs/vectoradd_run.log
 
 # 5.5 产物位置
 #   install/           桥接工具链（libcce_bridge_runtime.so + include + cucc）
-#   build/real_test/vectorAdd    vectorAdd 可执行文件
+#   build/real_test/vectorAdd    NVIDIA vectorAdd 可执行文件
+#   build/real_test/matrixMul    NVIDIA matrixMul 可执行文件
 #   build/real_test/host_smoke   host 冒烟可执行文件
 #   /tmp/cu2cce_*.cce  kernel 转换中间文件（cucc 自动生成，用完即弃）

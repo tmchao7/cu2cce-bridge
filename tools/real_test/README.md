@@ -9,14 +9,15 @@
 |---|---|---|
 | `env_probe.sh` | **只找包的位置**：定位 CANN/bisheng/ACL 头库/simt_api/npu-smi；grep 头文件只读核对 `docs/03_Comparison/CURRENT_STATE.md` 里的待真机确认项；**核对目标架构 `--npu-arch=dav-c310`**（内部 950 系列：dump `__NPU_ARCH__` 宏、比对 simt_api 门控、最小 SIMT kernel 实测编译） | 仅只读查询 + 最小文件实测编译（产物在 /tmp，不触碰仓库构建） |
 | `build_bridge.sh` | **真实构建**：cmake 配置 → 编译 → 安装 wrapper 库到 CUCC_PATH | 执行 cmake/make/install |
-| `run_tests.sh` | **真实运行启动命令**：用 cucc 编译测试程序并在 NPU 上运行（host 冒烟 + vectorAdd 端到端） | 执行 cucc/bisheng 编译、链接、运行二进制 |
-| `run_all.sh` | 一键串联 1→2→3 | 以上全部 |
+| `server_cmd.txt` | **main / puresimt 唯一回归入口**：原始 NVIDIA `vectorAdd` + `matrixMul` | 执行 ccec 编译、链接、运行二进制 |
+| `run_tests.sh` | 兼容性分步测试：host 冒烟 + NVIDIA vectorAdd/matrixMul，可选 cucc/direct | 执行 cucc/bisheng 编译、链接、运行二进制 |
+| `run_all.sh` | 旧的探测 → 构建 → `run_tests.sh` 串联入口 | 以上全部 |
 
 ## 用法
 
 ```bash
-# 推荐：一键（探测 → 构建 → 测试）
-tools/real_test/run_all.sh
+# 推荐：main / puresimt 官方 NVIDIA 样例回归
+tools/real_test/server_cmd.txt
 
 # 或分步（排障时）
 tools/real_test/env_probe.sh        # 先看环境缺什么
@@ -38,8 +39,10 @@ tools/real_test/run_tests.sh all --direct
 
 - `env_probe.sh`：退出码 0（硬缺失=0；签名未命中只 WARN，需人工比对 CURRENT_STATE.md 修正代码）。**第 7 节架构核对**：`--npu-arch=dav-c310` 通过最小 SIMT kernel（asc_shfl+asc_syncthreads）编译、且 `__NPU_ARCH__` 宏在 simt_api 门控内 —— 这两条是路线 A 成立的前提，若 WARN 需把 probe.log 第 7 节输出反馈给开发侧
 - `build_bridge.sh`：`libcce_bridge_runtime.so`、`include/cuda_runtime.h`、`bin/cucc` 等 6 项产物齐备
+- `server_cmd.txt`：输出 `PURESIMT_REGRESSION_PASS`，且官方 vectorAdd 含 `Test PASSED`、matrixMul 含 `Result = PASS`
 - `run_tests.sh host`：输出含 `host bridge smoke OK`
-- `run_tests.sh vectoradd`：输出含 `vectorAdd OK`（kernel 直通编译 + 1024 个元素全部 1+2=3 数值校验）
+- `run_tests.sh vectoradd`：输出含 `Test PASSED`
+- `run_tests.sh matrixmul`：输出含 `Result = PASS`
 
 ## 已知限制（脚本按仓库当前状态适配）
 

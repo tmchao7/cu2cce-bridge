@@ -72,3 +72,7 @@ install(DIRECTORY tools/mock DESTINATION ${CMAKE_INSTALL_PREFIX}/tools)
 
 # 安装示例（真机验证资产）
 install(DIRECTORY examples/ DESTINATION ${CMAKE_INSTALL_PREFIX}/examples)
+# NVIDIA CUDA Samples helper headers are dependencies of the unmodified puresimt
+# example sources; install them alongside the examples without changing those sources.
+install(DIRECTORY third_party/nvidia_cuda_samples/
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/third_party/nvidia_cuda_samples)

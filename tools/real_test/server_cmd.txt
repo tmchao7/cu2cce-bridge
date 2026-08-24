@@ -1,44 +1,28 @@
-# server_cmd.txt —— puresimt 主线回归（main 分支）
+# server_cmd.txt —— main / puresimt 官方 CUDA Samples 回归
 #
-# 分支：main（puresimt 正式开发线；新同构 B 主线已归档到 exp/new-homogeneous-v1）
-# 2026-08-21 导师方向：毕昇前端复用 CUDA，"除 <<<>>> 与新同构差异外 acl 接口一致"。
-# puresimt 成立（9.2.0：-x asc + --enable-simt + --cce-aicore-arch=dav-c310-vec，
-# 必须设置 ASCEND_HOME_PATH）。本轮回归六个 puresimt 样例：
-#   - puresimt_probe（count=8192，含 3D grid/block 索引）
-#   - pvectoradd（N=1024，对应旧 B 的 vectorAdd）
-#   - pminimal（N=256，对应旧 B 的 minimal / 107002 防复退）
-#   - preduction（N=1024，SIMT 原语真机验证：__shared__+__syncthreads+
-#     atomicAdd 块内 reduction；puresimt 首次非 elementwise 样例）
-#   - pmatmul（cublas 桥矩阵乘真机首验，方向 2；fp32 输入由 wcublasSgemm
-#     内部降级 fp16 计算、C 保持 fp32，A/B 整数 1..16 无损）
-# 注意：wcublasSgemm 的降精度实现和诊断日志都在 libcce_bridge_runtime.so 内。
-#     本脚本每轮回归都会先重编/安装 bridge，避免真机沿用旧 .so 看不到新日志；
-#     同时给测试程序写入 repo/CANN rpath 并设置 LD_LIBRARY_PATH，避免运行时
-#     捡到其他目录中的旧 libcce_bridge_runtime.so。
-# 真机已确认 device staging、stream、device 指针和 dtype 均有效；16×16×16 与
-# 32×32×32 在 compute=ACL_COMPUTE_HIGH_PRECISION(0) 下都直接返回 100000；改为
-# LOW_PRECISION(1) 与 ld=-1 仍返回 100000；修正 alpha/beta 为 device pointer 后，
-# 返回码已前进为 100024=ACL_ERROR_OP_NOT_FOUND，证明参数层已经通过。当前问题转为
-# CANN 未找到匹配 GEMM 算子/模型。华为官方 GEMM 样例明确配置 ASCEND_OPP_PATH，
-# 旧样例还通过 aclopSetModelDir 加载 ATC 单算子模型；本轮先在父 shell source
-# /usr/local/Ascend/latest/set_env.sh 并准备 ATC GEMM 单算子模型；仅有 OPP
-# 仍不足以证明当前 SoC/数据类型组合存在可调用 GEMM 实现。
-# 2026-08-21 方向 A（用户定稿）：host 全部走 bridge 宏/wrapper（cuda* →
-# wcuda* → aclrt*），include <cuda_runtime.h> 由 repo 的 include/ 接住（编译
-# -I<repo>/include 在前）；kernel 保持纯 CUDA 前端直通。首调用均为
-# cudaStreamCreate（验证 bridge_init 初始化链）。
-# 设备不健康时跳过运行；不使用顶层 exit。
+# 维护分支：main；实时远端：gitcode（不要 push origin/GitHub）。
+# 目标：用原始 NVIDIA CUDA Samples 源文件验证 puresimt 的零改写链路。
+#
+# 维护样例只有两个：
+#   - examples/puresimt/vectorAdd/vectorAdd.cu
+#   - examples/puresimt/matrixMul/matrixMul.cu
+#
+# 两个 .cu 文件保留 NVIDIA 原始源码，不添加 p 前缀、不加入 ACL 调用、不写
+# Ascend C 语法。third_party/nvidia_cuda_samples/Common 只提供 NVIDIA 官方
+# helper 头，作为 include 路径注入。
+#
+# 真机复制执行：
+#   cd /home/t50063365/workspace/repos/cu2cce-bridge
+#   git pull --ff-only gitcode main
+#   bash tools/real_test/server_cmd.txt
 
 set +e
 set +u
 set -o pipefail
 ulimit -c 0 2>/dev/null || true
-# 诊断 bridge 内部 stream destroy；pmatmul 已确认崩溃发生在该调用入口之后。
-export WCUDA_DEBUG=1
 
 cd /home/t50063365/workspace/repos/cu2cce-bridge
-git pull --ff-only gitcode main
-printf 'HEAD=' && git log -1 --oneline
+printf 'HEAD=' && git pull --ff-only gitcode main && git log -1 --oneline
 
 OUT="$PWD/build/real_test/puresimt"
 mkdir -p "$OUT"
@@ -48,24 +32,35 @@ DEVICE_HEALTHY=0
 DEVICE_ACCESS_DENIED=0
 TEST_BLOCKED_BY_DEVICE=0
 
-printf '\n===== [1/5] 只读设备健康门禁 =====\n'
+printf '\n===== [1/4] 只读设备健康门禁 =====\n'
 for node in /dev/davinci0 /dev/davinci_manager /dev/hisi_hdc; do
     if [ ! -e "$node" ] || ! test -r "$node" || ! test -w "$node"; then
-        echo "[BLOCKED] DEVICE_ACCESS_DENIED_OR_MISSING: $node"; DEVICE_ACCESS_DENIED=1
+        echo "[BLOCKED] DEVICE_ACCESS_DENIED_OR_MISSING: $node"
+        DEVICE_ACCESS_DENIED=1
     else
         echo "[PASS] device access: $node"
     fi
 done
+
+CANN_BASE="/usr/local/Ascend/latest"
+if [ -f "$CANN_BASE/set_env.sh" ]; then
+    # shellcheck source=/dev/null
+    source "$CANN_BASE/set_env.sh"
+elif [ -f "$CANN_BASE/bin/setenv.bash" ]; then
+    # shellcheck source=/dev/null
+    source "$CANN_BASE/bin/setenv.bash"
+fi
+export ASCEND_HOME_PATH="${ASCEND_HOME_PATH:-$CANN_BASE}"
+export CANN_BASE
+
 PROBE_DEVICE="$PWD/build/real_test/probe_device"
 if [ ! -x "$PROBE_DEVICE" ]; then
     g++ tools/real_test/probe_device.cpp -o "$PROBE_DEVICE" \
-        -I "/usr/local/Ascend/ascend-toolkit/latest/include" \
-        -L "/usr/local/Ascend/ascend-toolkit/latest/lib64" \
-        -Wl,-rpath,"/usr/local/Ascend/ascend-toolkit/latest/lib64" \
+        -I"$CANN_BASE/include" \
+        -L"$CANN_BASE/lib64" \
+        -Wl,-rpath,"$CANN_BASE/lib64" \
         -lascendcl -lpthread -ldl >"$OUT/probe_device_compile.log" 2>&1
 fi
-# 两次探测中任意一次成功即可放行。旧逻辑会因第一次瞬时失败而永久置 1，
-# 即使第二次成功也误判 DEVICE_HEALTHY=0。
 DEVICE_PROBE_FAIL=1
 if [ -x "$PROBE_DEVICE" ]; then
     for attempt in 1 2; do
@@ -83,190 +78,80 @@ else
     cat "$OUT/probe_device_compile.log" 2>/dev/null
 fi
 if [ "$DEVICE_ACCESS_DENIED" -eq 0 ] && [ "$DEVICE_PROBE_FAIL" -eq 0 ]; then
-    DEVICE_HEALTHY=1; echo '[PASS] DEVICE_HEALTHY=1'
+    DEVICE_HEALTHY=1
+    echo '[PASS] DEVICE_HEALTHY=1'
 else
     TEST_BLOCKED_BY_DEVICE=1
-    echo "[BLOCKED] TEST_BLOCKED_BY_DEVICE（ACCESS_DENIED=$DEVICE_ACCESS_DENIED PROBE_FAIL=$DEVICE_PROBE_FAIL；样例只编译、不运行）"
+    echo "[BLOCKED] TEST_BLOCKED_BY_DEVICE（ACCESS_DENIED=$DEVICE_ACCESS_DENIED PROBE_FAIL=$DEVICE_PROBE_FAIL）"
 fi
 
-printf '\n===== [2/5] 环境 =====\n'
-CANN_BASE="/usr/local/Ascend/latest"
-CCEC="${CANN_BASE}/bin/ccec"
-# aclblasGemmEx 不是纯 runtime 调用：它需要 OPP/算子注册环境。build_bridge.sh 在
-# 子 shell 中 source 环境不会回传给本脚本，因此必须在运行测试的父 shell source。
-if [ -f "${CANN_BASE}/set_env.sh" ]; then
-    # shellcheck source=/dev/null
-    source "${CANN_BASE}/set_env.sh"
-    echo "[PASS] sourced ${CANN_BASE}/set_env.sh"
-elif [ -f "/usr/local/Ascend/ascend-toolkit/latest/bin/setenv.bash" ]; then
-    # shellcheck source=/dev/null
-    source "/usr/local/Ascend/ascend-toolkit/latest/bin/setenv.bash"
-    echo '[PASS] sourced ascend-toolkit/latest/bin/setenv.bash'
-else
-    echo '[WARN] CANN environment script not found'
-fi
-if [ -z "${ASCEND_HOME_PATH:-}" ] || [ ! -d "${ASCEND_HOME_PATH}" ]; then
-    for cand in /usr/local/Ascend/latest /usr/local/Ascend/ascend-toolkit/latest; do
-        if [ -d "$cand" ] && [ -e "$cand/bin/ccec" ]; then ASCEND_HOME_PATH="$cand"; break; fi
-    done
-fi
-export ASCEND_HOME_PATH="${ASCEND_HOME_PATH:-/usr/local/Ascend/latest}"
+printf '\n===== [2/4] CANN / bridge 环境 =====\n'
 echo "ASCEND_HOME_PATH=$ASCEND_HOME_PATH"
 echo "ASCEND_OPP_PATH=${ASCEND_OPP_PATH:-<unset>}"
-if [ -n "${ASCEND_OPP_PATH:-}" ] && [ -d "$ASCEND_OPP_PATH" ]; then
-    echo '[PASS] ASCEND_OPP_PATH exists'
-    find "$ASCEND_OPP_PATH" -maxdepth 5 -type f \
-        \( -iname '*gemm*' -o -iname '*matmul*' \) 2>/dev/null | head -n 20
-else
-    echo '[WARN] ASCEND_OPP_PATH missing/unset: GemmEx may return ACL_ERROR_OP_NOT_FOUND(100024)'
-fi
-
-# 链接 bridge 运行库（host 侧 cuda* → wcuda* → aclrt* 的实现体）。
-# 真机路径科目2（2026-08-21：ld.lld undefined wcuda* 统一失败）：ccec 直编
-# 需显式 -L/-l libcce_bridge_runtime.so；BP 若未构建，先
-#   bash tools/real_test/build_bridge.sh
-# REPO_LIB 兼容两种布局：build/real_test/install/lib 或 build/core/lib。
-# repo 的 bridge 头（include/cuda_runtime.h、include/bridge/runtime/*）优先于 CANN 头
 REPO_INC="$PWD/include"
+NVIDIA_COMMON="$PWD/third_party/nvidia_cuda_samples/Common"
 REPO_LIB="$PWD/build/real_test/install/lib"
 if [ ! -e "$REPO_LIB/libcce_bridge_runtime.so" ]; then
     REPO_LIB="$PWD/build/core/lib"
 fi
-if [ ! -e "$REPO_LIB/libcce_bridge_runtime.so" ]; then
-    echo "[WARN] ${REPO_LIB}/libcce_bridge_runtime.so 缺失（host 侧 wcuda* 链接会失败）"
+export LD_LIBRARY_PATH="$REPO_LIB:$CANN_BASE/lib64:${LD_LIBRARY_PATH:-}"
+echo "REPO_INC=$REPO_INC"
+echo "NVIDIA_COMMON=$NVIDIA_COMMON"
+echo "REPO_LIB=$REPO_LIB"
+if [ ! -d "$NVIDIA_COMMON" ]; then
+    echo '[FAIL] NVIDIA helper headers missing'
+    FAIL=$((FAIL + 1))
 fi
-echo "REPO_INC=$REPO_INC REPO_LIB=$REPO_LIB"
 
-printf '\n===== [2.4/5] 真机 aclComputeType 定义 =====\n'
-grep -RIn --include='*.h' 'ACL_COMPUTE_.*PRECISION' \
-    "${CANN_BASE}/include" 2>/dev/null | head -n 20 || true
-
-printf '\n===== [2.5/5] bridge runtime 重编 + 动态库路径 =====\n'
-# wrapper 的改动不会随 puresimt 源文件自动进入已安装 .so；每轮强制重编，
-# 这是 pmatmul 诊断日志可靠出现的必要条件。build_bridge 会复用/生成 probe.env。
+printf '\n===== [2.5/4] bridge runtime 重编 =====\n'
 if bash tools/real_test/build_bridge.sh; then
     echo '[PASS] bridge runtime rebuild'
 else
-    echo '[FAIL] bridge runtime rebuild（后续样例可能因旧库/缺库失败）'
+    echo '[FAIL] bridge runtime rebuild'
     FAIL=$((FAIL + 1))
 fi
-# build_bridge 默认安装到 build/real_test/install/lib；兼容其余历史布局。
 if [ -e "$PWD/build/real_test/install/lib/libcce_bridge_runtime.so" ]; then
     REPO_LIB="$PWD/build/real_test/install/lib"
-elif [ -e "$PWD/build/core/lib/libcce_bridge_runtime.so" ]; then
-    REPO_LIB="$PWD/build/core/lib"
-fi
-BRIDGE_SO="$REPO_LIB/libcce_bridge_runtime.so"
-if [ -e "$BRIDGE_SO" ] && strings "$BRIDGE_SO" | grep -Fq '[cce_bridge][gemm]'; then
-    echo "[PASS] diagnostic wrapper present: $BRIDGE_SO"
-else
-    echo "[FAIL] diagnostic wrapper missing from $BRIDGE_SO"
-    FAIL=$((FAIL + 1))
 fi
 export LD_LIBRARY_PATH="$REPO_LIB:$CANN_BASE/lib64:${LD_LIBRARY_PATH:-}"
-echo "RUNTIME LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
 
-printf '\n===== [2.6/5] GEMM 单算子模型准备 =====\n'
-# 100024 已确认是 ACL_ERROR_OP_NOT_FOUND。华为官方 GEMM sample 在调用
-# aclblasGemmEx 前通过 ATC 生成 .om，并调用 aclopSetModelDir()；本轮用真机
-# probe 得到的 SoC 生成 fp16×fp16→fp32 GEMM 模型，wrapper 通过环境变量加载。
-GEMM_MODEL_DIR="$OUT/gemm_models"
-GEMM_JSON="$OUT/gemm_fp16_fp32.json"
-mkdir -p "$GEMM_MODEL_DIR"
-SOC_NAME="$(grep -hF 'probe_device: soc name = ' "$OUT"/probe_device_*.log 2>/dev/null | head -n 1 | sed 's/.*soc name = //')"
-ATC="${CANN_BASE}/bin/atc"
-if [ ! -x "$ATC" ]; then ATC="$(command -v atc 2>/dev/null || true)"; fi
-echo "SOC_NAME=${SOC_NAME:-<unknown>} ATC=${ATC:-<missing>}"
-cat >"$GEMM_JSON" <<'EOF'
-[
-  {
-    "op": "GEMM",
-    "input_desc": [
-      {"format": "ND", "shape": [32, 32], "type": "float16"},
-      {"format": "ND", "shape": [32, 32], "type": "float16"},
-      {"format": "ND", "shape": [32, 32], "type": "float"},
-      {"format": "ND", "shape": [], "type": "float"},
-      {"format": "ND", "shape": [], "type": "float"}
-    ],
-    "output_desc": [
-      {"format": "ND", "shape": [32, 32], "type": "float"}
-    ],
-    "attr": [
-      {"name": "transpose_a", "type": "bool", "value": false},
-      {"name": "transpose_b", "type": "bool", "value": false}
-    ]
-  }
-]
-EOF
-if [ -n "$ATC" ] && [ -n "$SOC_NAME" ]; then
-    rm -f "$GEMM_MODEL_DIR"/*.om
-    if "$ATC" --singleop="$GEMM_JSON" --soc_version="$SOC_NAME" \
-        --output="$GEMM_MODEL_DIR/gemm_fp16_fp32" >"$OUT/gemm_atc.log" 2>&1; then
-        echo '[PASS] GEMM ATC model generated'
-        ls -l "$GEMM_MODEL_DIR"
-        export CU2CCE_GEMM_MODEL_DIR="$GEMM_MODEL_DIR"
-        echo "CU2CCE_GEMM_MODEL_DIR=$CU2CCE_GEMM_MODEL_DIR"
-    else
-        echo '[WARN] GEMM ATC model generation failed; see gemm_atc.log'
-        head -n 40 "$OUT/gemm_atc.log" 2>/dev/null
-    fi
-else
-    echo '[WARN] skip ATC model generation: missing ATC or SoC name'
-fi
-
+printf '\n===== [3/4] puresimt 官方 CUDA Samples 编译 + 运行 =====\n'
+CCEC="$CANN_BASE/bin/ccec"
 PS_FLAGS="-x asc --cce-aicore-arch=dav-c310-vec --enable-simt -std=c++17"
-
-printf '\n===== [3/5] puresimt 编译 + 运行 =====\n'
 for pair in \
-    'puresimt_probe.asc|puresimt OK (count=8192)|asc' \
-    'pvectoradd.cu|vectorAdd puresimt OK (N=1024)|cu' \
-    'pminimal.cu|minimal puresimt OK (N=256)|cu' \
-    'preduction.cu|preduction puresimt OK (N=1024, sum=523776)|cu' \
-    'pmatmul.cu|pmatmul puresimt OK (C = A*B, 32x32x32)|cu'; do
-    src=${pair%%|*}; rest=${pair#*|}; key=${rest%%|*}; ext=${rest#*|}
-    name=$(basename "$src" .$ext)
-    bin="$OUT/${name}"
+    'vectorAdd/vectorAdd.cu|Test PASSED' \
+    'matrixMul/matrixMul.cu|Result = PASS'; do
+    src=${pair%%|*}
+    key=${pair#*|}
+    name=$(basename "$src" .cu)
+    bin="$OUT/$name"
     echo "===== [$name] $CCEC $PS_FLAGS examples/puresimt/$src ====="
     if "$CCEC" $PS_FLAGS "examples/puresimt/$src" \
-        -I"${REPO_INC}" -I"${CANN_BASE}/include" \
-        -L"${CANN_BASE}/lib64" -L"${REPO_LIB}" \
-        -Wl,-rpath,"${REPO_LIB}" -Wl,-rpath,"${CANN_BASE}/lib64" \
+        -I"$REPO_INC" -I"$NVIDIA_COMMON" -I"$CANN_BASE/include" \
+        -L"$CANN_BASE/lib64" -L"$REPO_LIB" \
+        -Wl,-rpath,"$REPO_LIB" -Wl,-rpath,"$CANN_BASE/lib64" \
         -lascendc_runtime -lascendcl -lruntime -lregister -lerror_manager \
         -lprofapi -lascendalog -lmmpa -lascend_dump -lc_sec -lstdc++ \
-        -lcce_bridge_runtime -lacl_cblas \
-        -o "$bin" >"$OUT/${name}.log" 2>&1; then
+        -lcce_bridge_runtime -o "$bin" >"$OUT/${name}.log" 2>&1; then
         ldd "$bin" >"$OUT/${name}.ldd.log" 2>&1 || true
         if [ "$DEVICE_HEALTHY" -ne 1 ]; then
             echo "[SKIP] [$name] 编译通过；设备门禁未通过，未执行二进制"
-        elif "$bin" >"$OUT/${name}.run.log" 2>&1 && \
-             grep -Fq "$key" "$OUT/${name}.run.log"; then
-            echo "[PASS] [$name] 运行通过：$(grep -F "$key" "$OUT/${name}.run.log")"
+        elif "$bin" >"$OUT/${name}.run.log" 2>&1 && grep -Fq "$key" "$OUT/${name}.run.log"; then
+            echo "[PASS] [$name] 运行通过：$(grep -F "$key" "$OUT/${name}.run.log" | tail -n 1)"
         else
-            echo "[FAIL] [$name] 运行失败（run log 首 25 行）"
-            head -n 25 "$OUT/${name}.run.log" 2>/dev/null
-            if [ "$name" = "pmatmul" ]; then
-                echo "----- [pmatmul] lifecycle diagnostics -----"
-                grep -E 'pmatmul:|\[wcuda\]\[stream_destroy\]' \
-                    "$OUT/${name}.run.log" 2>/dev/null
-                echo "----- [pmatmul] cublas bridge diagnostics -----"
-                grep -E '\[cce_bridge\]\[(Sgemm|gemm)\]' \
-                    "$OUT/${name}.run.log" 2>/dev/null
-                echo "----- [pmatmul] run log tail -----"
-                tail -n 40 "$OUT/${name}.run.log" 2>/dev/null
-                echo "----- [pmatmul] linked libraries -----"
-                grep -F 'libcce_bridge_runtime' "$OUT/${name}.ldd.log" 2>/dev/null
-            fi
-            tail -n 10 "$OUT/${name}.log" 2>/dev/null
+            echo "[FAIL] [$name] 运行失败（run log 首 30 行）"
+            head -n 30 "$OUT/${name}.run.log" 2>/dev/null
+            tail -n 20 "$OUT/${name}.log" 2>/dev/null
             FAIL=$((FAIL + 1))
         fi
     else
-        echo "[FAIL] [$name] 编译失败（log 首 18 行）"
-        head -n 18 "$OUT/${name}.log" 2>/dev/null
+        echo "[FAIL] [$name] 编译失败（log 首 30 行）"
+        head -n 30 "$OUT/${name}.log" 2>/dev/null
         FAIL=$((FAIL + 1))
     fi
 done
 
-printf '\n===== [4/5] 汇总 =====\n'
+printf '\n===== [4/4] 汇总 =====\n'
 echo "FAIL=$FAIL DEVICE_HEALTHY=$DEVICE_HEALTHY TEST_BLOCKED_BY_DEVICE=$TEST_BLOCKED_BY_DEVICE"
 echo "完整日志：$OUT"
 if [ "$TEST_BLOCKED_BY_DEVICE" -eq 1 ]; then

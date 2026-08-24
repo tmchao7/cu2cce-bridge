@@ -1,6 +1,6 @@
 #!/bin/bash
 # syntax_check.sh —— 本机（macOS）可运行的语法验证（mock ACL + clang）
-# 注意：examples/vectorAdd/vectorAdd.cu 含 kernel（<<<>>>/__global__），需 bisheng 编译，
+# 注意：examples/puresimt/vectorAdd/vectorAdd.cu 含 kernel（<<<>>>/__global__），需 bisheng 编译，
 #       本脚本只验证纯 host 链路（tests/host_bridge_smoke.cu）。
 set -u
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"

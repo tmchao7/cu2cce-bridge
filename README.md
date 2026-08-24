@@ -8,37 +8,40 @@
 
 ## 状态
 
-🚧 **开发中 —— Phase A1-A4 骨架完成 + vectorAdd 端到端真机跑通（2026-08-19）**：
+🚧 **开发中 —— main 分支优先推进 puresimt；官方 NVIDIA CUDA Samples 零源码改写回归（2026-08-24）**：
 
 | Phase | 内容 | 状态 |
 |---|---|---|
 | A1 | host Runtime API 桥（宏表 + wcuda*→aclrt*，126 个错误码 + 40+ 函数） | ✅ 骨架 + **真机运行通过**（host_bridge_smoke） |
 | A2 | cucc 驱动 + make_cce/cmake_cce/mock 工程胶水 | ✅ 骨架完成，cucc 真机可用（**ccec 主线**，`--cce-aicore-arch=dav-c310`） |
-| A3 | SIMT 适配 + **kernel 零改写转换**（kernel_convert.py） | ✅ **vectorAdd 端到端真机跑通**（编译+链接+davinci0 运行+数值校验） |
-| A4 | cublas→aclblas 最小子集（Sgemm/GemmEx） | ✅ 骨架完成（真机编译通过；Sgemm 运行验证待补） |
+| A3 | SIMT 适配 + **kernel 零改写转换**（kernel_convert.py） | ✅ puresimt 官方 `vectorAdd` / `matrixMul` 回归线 |
+| A4 | cublas→aclblas 最小子集（Sgemm/GemmEx） | 🔧 bridge 已实现；作为独立能力继续演进，不阻塞 puresimt 官方样例线 |
 
 **真机端到端（2026-08-19，cann-9.2.0 / dav-c310 / davinci0）**：
-`examples/vectorAdd/vectorAdd.cu`（**纯 CUDA，零改写**）经 `cucc` → `tools/kernel_convert.py`
+`examples/puresimt/vectorAdd/vectorAdd.cu`（**NVIDIA 官方纯 CUDA，零改写**）经 `cucc` → `tools/kernel_convert.py`
 （自动转昇腾 SIMT VF：`__simt_vf__` 计算体 + `__global__[aicore]` 入口 +
 `cce::async_invoke` 启动 + `__gm__` 指针 + `<<<>>>` 4参→3参）→ `ccec` 编译 →
-链接 → davinci0 运行，输出 `vectorAdd OK (N=1024)`（数值校验通过）。
-`bash tools/real_test/run_tests.sh all`：**8/8 PASS**。
+链接 → davinci0 运行，输出 NVIDIA 原始样例的 `Test PASSED`（数值校验通过）。
+同一回归线还包含 `examples/puresimt/matrixMul/matrixMul.cu`，使用 NVIDIA 官方 shared-memory kernel。
+真机唯一回归入口：`tools/real_test/server_cmd.txt`。
 
 - `include/`：CUDA 兼容头链（`cuda_runtime.h → __cuda_runtime.h → 宏表 → wcuda* 声明`）+ `cublas_v2.h` + **shadow 遮蔽头**（`include/shadow/`：stdio/stdlib/string/math 最小声明版，绕开 ccec+glibc 2.39 不兼容）
 - `src/bridge/`：wcuda*→aclrt* 实现 + wcublas*→aclblas 实现
 - `bin/cucc` + `tools/`：nvcc 兼容驱动（ccec 优先）+ kernel_convert + make_cce/cmake_cce/mock
 - `tests/mock_acl/`：mock ACL 头 + 本机语法验证脚本（`bash tests/mock_acl/syntax_check.sh`，3/3 通过）
-- `tools/real_test/`：真机验证脚本（env_probe / build_bridge / run_tests / run_all）
+- `examples/puresimt/`：维护中的官方 NVIDIA CUDA Samples（`vectorAdd`、`matrixMul`），源文件不加 p 前缀、不写 ACL、不改 CUDA 代码
+- `third_party/nvidia_cuda_samples/Common/`：官方样例 helper 头，作为 include 依赖注入
+- `tools/real_test/`：真机验证脚本（env_probe / build_bridge / run_tests / run_all / server_cmd）
 
 ⚠️ 本机（macOS）无昇腾硬件/无 CANN，**代码仅供阅读与移植参考，不可本地构建**。需在装有 CANN 的昇腾真机上编译（见 `docs/01_Design/CUDA_TO_CCE_PORTING_PLAN.md`）。真机验证清单见 `docs/03_Comparison/mapping.md`。
 
 ## 快速开始（真机，复制粘贴版见 QUICKSTART.txt）
 
 ```bash
-# 服务器（昇腾 + CANN 9.2.0）：一键 探测 → 构建 → 测试
+# 服务器（昇腾 + CANN 9.2.0）：main / puresimt 官方样例回归
 cd <cu2cce-bridge 仓库>
-git pull
-bash tools/real_test/run_all.sh
+git pull --ff-only gitcode main
+bash tools/real_test/server_cmd.txt
 
 # 编译你自己的 CUDA 程序（kernel 用纯 CUDA 写，cucc 自动转换）
 export CUCC_PATH=$PWD/build/real_test/install
