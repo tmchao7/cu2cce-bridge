@@ -22,3 +22,8 @@ bash tools/real_test/server_cmd.txt
 - `diag/`：107002、ACL 分配和 runtime 组合排障资产，不属于默认回归。
 
 main 只维护 `server_cmd.txt` 主线入口；converter-only 测试已经删除。
+
+
+用例的完整分类和 `SUPPORTED/EXPERIMENTAL/UNSUPPORTED` 状态见
+`docs/03_Comparison/PURESIMT_COMPATIBILITY_MATRIX.md`。矩阵是手工维护的评审文档，
+`server_cmd.txt` 是执行事实来源。

@@ -79,15 +79,20 @@ cuda* → wcuda* → aclrt*
 
 唯一入口：`tools/real_test/server_cmd.txt`。
 
+完整逐用例、API、数据类型、内存模型和状态矩阵见：
+`docs/03_Comparison/PURESIMT_COMPATIBILITY_MATRIX.md`。
+
 当前主线已建立 23 个已验证样例，包含 half/BF16x2 类型测试：
 
 ```text
-vectorAdd
-matrixMul
-vectorAdd_minimal
-matrixMul_minimal
-atomicAdd_minimal
-reduction_minimal
+vectorAdd / matrixMul（官方 NVIDIA 源码）
+vectorAdd_minimal / matrixMul_minimal
+atomicAdd_minimal / reduction_minimal
+warpShuffle / vote / scan / transpose
+dot / stencil / core_ops / math
+event / pitchedMemcpy / multiKernel
+atomicVariants / dynamicShared / index3D / threadFence
+half / bf16x2
 ```
 
 验收标志：

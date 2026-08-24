@@ -11,16 +11,15 @@ main 已锁定 puresimt：用户写原始 CUDA `.cu`，ccec 通过
 
 ## 真机基线
 
-`tools/real_test/server_cmd.txt` 已完成 6/6：
+`tools/real_test/server_cmd.txt` 是唯一验收入口，当前包含 23 个真机用例和 cucc
+直通检查。验收标志：
 
-- NVIDIA 官方 vectorAdd：`Test PASSED`
-- NVIDIA 官方 matrixMul：`Result = PASS`
-- minimal vectorAdd
-- minimal matrixMul
-- atomicAdd/min/max
-- shared-memory reduction + atomicAdd
+```text
+FAIL=0 DEVICE_HEALTHY=1 PURESIMT_REGRESSION_PASS
+```
 
-结果：`FAIL=0 DEVICE_HEALTHY=1 PURESIMT_REGRESSION_PASS`。
+完整逐用例和 API 状态见：
+[PURESIMT_COMPATIBILITY_MATRIX.md](PURESIMT_COMPATIBILITY_MATRIX.md)。
 
 ## 代码边界
 

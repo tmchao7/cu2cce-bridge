@@ -26,3 +26,7 @@ compatibility evidence.
 
 The complete list and expected output strings are maintained in
 `tools/real_test/server_cmd.txt`, the only main-branch real-device regression entrypoint.
+
+
+完整测试分类、API、数据类型、内存模型和支持状态见
+`docs/03_Comparison/PURESIMT_COMPATIBILITY_MATRIX.md`。

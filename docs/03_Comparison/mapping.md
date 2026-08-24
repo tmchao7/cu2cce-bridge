@@ -1,5 +1,7 @@
 # cu-bridge 对照与 main 当前映射
 
+完整证据矩阵：[`PURESIMT_COMPATIBILITY_MATRIX.md`](PURESIMT_COMPATIBILITY_MATRIX.md)。
+
 ## 正式路线：puresimt
 
 | 用户 CUDA | cu2cce-bridge main | 说明 |
