@@ -19,3 +19,7 @@ The current sample uses `cublasSgemm` with FP32 CUDA inputs. The wrapper stages
 A/B as FP16 and calls CANN `aclblasGemmEx` with FP32 C, so this is an experimental
 compatibility path with possible FP32→FP16 precision loss. It also requires an
 ATC GEMM model and `aclopSetModelDir` through `CU2CCE_GEMM_MODEL_DIR`.
+
+
+Latest verified baseline: CANN 9.2.0 / Ascend950DT_9582 / 32x32x32
+`cublasSgemm` identity-B test passed with `BLAS_EXPERIMENTAL_REGRESSION_PASS`.
