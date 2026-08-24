@@ -32,6 +32,10 @@
 #include "bridge/runtime/cuda_to_cce_mcr_adaptor.h"
 #include "bridge/runtime/cuda_wrapper_internal.h"
 #include "bridge/runtime/cuda_wrapper_types.h"
+/* CUDA runtime headers expose the C math declarations used by NVIDIA samples
+ * (for example vectorAdd's fabs verification). Keep the sample source untouched
+ * and provide the declarations through the bridge's shadow header. */
+#include "shadow/math.h"
 /* puresimt kernel 原语（__shared__/__syncthreads/atomicAdd）在 -x asc 直通下
  * 由本适配头映射到昇腾 SIMT（__ubuf__/asc_syncthreads/asc_atomic_add） */
 #include "bridge/kernel/simt_adaptor.h"

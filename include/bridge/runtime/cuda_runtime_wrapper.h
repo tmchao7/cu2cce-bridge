@@ -270,6 +270,19 @@ aclError CUBRIDGE_API wcudaDriverGetVersion(int *driverVersion);
 
 #ifdef __cplusplus
 } /* extern "C" */
+
+/* CUDA Runtime provides typed C++ overloads for allocation APIs. NVIDIA's
+ * official matrixMul sample uses cudaMallocHost(&float_ptr, size) without a
+ * cast; keep that source unchanged while forwarding to the C ABI wrapper. */
+template <typename T>
+inline aclError wcudaMallocHost(T **ptr, size_t size) {
+    return wcudaMallocHost(reinterpret_cast<void **>(ptr), size);
+}
+
+template <typename T>
+inline aclError wcudaMallocHostWithFlags(T **ptr, size_t size, unsigned int flags) {
+    return wcudaMallocHostWithFlags(reinterpret_cast<void **>(ptr), size, flags);
+}
 #endif
 
 #endif //__CUDA_RUNTIME_WRAPPER_H__
