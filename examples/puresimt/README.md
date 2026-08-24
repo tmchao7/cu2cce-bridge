@@ -40,3 +40,7 @@ The next operator-focused tests use the same minimal-source policy:
 
 - `core_ops_minimal.cu` — arithmetic, bitwise logic, compare/select, conversion, and memory basis.
 - `math_minimal.cu` — FMA and elementary math functions.
+
+- `event_minimal.cu` — event record/query/synchronize/elapsed-time semantics.
+- `pitchedMemcpy_minimal.cu` — `cudaMallocPitch` and `cudaMemcpy2D` with 2D indexing.
+- `multiKernel_minimal.cu` — ordered async copies and two kernels in one stream.

@@ -24,3 +24,7 @@ maintained examples set. Historical versions remain available in Git history.
 
 - `puresimt/core_ops_minimal.cu`
 - `puresimt/math_minimal.cu`
+
+- `puresimt/event_minimal.cu`
+- `puresimt/pitchedMemcpy_minimal.cu`
+- `puresimt/multiKernel_minimal.cu`

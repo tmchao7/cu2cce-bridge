@@ -158,7 +158,10 @@ for pair in \
     'dot_minimal.cu|dot_minimal OK' \
     'stencil_minimal.cu|stencil_minimal OK' \
     'core_ops_minimal.cu|core_ops_minimal OK' \
-    'math_minimal.cu|math_minimal OK'; do
+    'math_minimal.cu|math_minimal OK' \
+    'event_minimal.cu|event_minimal OK' \
+    'pitchedMemcpy_minimal.cu|pitchedMemcpy_minimal OK' \
+    'multiKernel_minimal.cu|multiKernel_minimal OK'; do
     src=${pair%%|*}
     key=${pair#*|}
     name=$(basename "$src" .cu)
