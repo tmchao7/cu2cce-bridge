@@ -7,10 +7,15 @@
 __global__ void voteKernel(const int *input, int *allOut, int *anyOut, int *ballotOut) {
     int tid = threadIdx.x;
     int predicate = input[tid] != 0;
+    /* CUDA vote intrinsics are warp collectives: every lane covered by the
+     * mask must execute them. Only the stores are lane-0 work. */
+    int all = __all_sync(0xffffffffu, predicate);
+    int any = __any_sync(0xffffffffu, predicate);
+    int ballot = (int)__ballot_sync(0xffffffffu, predicate);
     if (tid == 0) {
-        allOut[0] = __all_sync(0xffffffffu, predicate);
-        anyOut[0] = __any_sync(0xffffffffu, predicate);
-        ballotOut[0] = (int)__ballot_sync(0xffffffffu, predicate);
+        allOut[0] = all;
+        anyOut[0] = any;
+        ballotOut[0] = ballot;
     }
 }
 
