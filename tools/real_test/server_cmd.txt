@@ -110,14 +110,36 @@ fi
 printf '\n===== [4/5] cublasSgemm -> aclblasGemmEx =====\n'
 CCEC="$CANN_BASE/bin/ccec"
 BIN="$OUT/cublas_sgemm"
-if [ "$DEVICE_HEALTHY" -eq 1 ] && "$CCEC" -x asc -std=c++17 \
+COMPILE_LOG="$OUT/cublas_sgemm_compile.log"
+COMPILE_CMD=("$CCEC" -x asc --enable-simt --cce-aicore-arch=dav-c310-vec -std=c++17 \
     examples/blas/cublas_sgemm.cu \
     -I"$REPO_INC" -I"$CANN_BASE/include" \
     -L"$REPO_LIB" -L"$CANN_BASE/lib64" \
     -Wl,-rpath,"$REPO_LIB" -Wl,-rpath,"$CANN_BASE/lib64" \
     -lcce_bridge_runtime -lacl_cblas -lascendcl -lstdc++ -lpthread -lm \
-    -o "$BIN" >"$OUT/cublas_sgemm_compile.log" 2>&1; then
+    -o "$BIN")
+echo "[INFO] ASCEND_HOME_PATH=$ASCEND_HOME_PATH"
+echo "[INFO] CANN_BASE=$CANN_BASE"
+echo "[INFO] CCEC=$CCEC"
+echo "[INFO] CCEC_VERSION:"
+"$CCEC" --version 2>&1 | head -n 3
+echo "[INFO] COMPILE_CMD:"
+printf '  %q ' "${COMPILE_CMD[@]}"
+printf '\n'
+if [ "$DEVICE_HEALTHY" -eq 1 ]; then
+    "${COMPILE_CMD[@]}" >"$COMPILE_LOG" 2>&1
+    COMPILE_RC=$?
+else
+    COMPILE_RC=125
+    echo '[SKIP] device gate failed; compile not attempted' >"$COMPILE_LOG"
+fi
+if [ "$COMPILE_RC" -eq 0 ]; then
+    echo '[PASS] cublas_sgemm compile/link'
     ldd "$BIN" >"$OUT/cublas_sgemm.ldd.log" 2>&1 || true
+    echo '[INFO] linked libraries:'
+    grep -E 'cce_bridge|acl_cblas|ascendcl|runtime' "$OUT/cublas_sgemm.ldd.log" 2>/dev/null || cat "$OUT/cublas_sgemm.ldd.log"
+    echo '[INFO] compile log:'
+    cat "$COMPILE_LOG" 2>/dev/null
     if CU2CCE_GEMM_MODEL_DIR="$MODEL_DIR" "$BIN" >"$OUT/cublas_sgemm.run.log" 2>&1 && \
        grep -Fq 'cublas_sgemm_experimental OK' "$OUT/cublas_sgemm.run.log"; then
         echo "[PASS] cublas_sgemm：$(grep -F 'cublas_sgemm_experimental OK' "$OUT/cublas_sgemm.run.log")"
@@ -127,8 +149,11 @@ if [ "$DEVICE_HEALTHY" -eq 1 ] && "$CCEC" -x asc -std=c++17 \
         FAIL=$((FAIL + 1))
     fi
 else
-    echo '[SKIP/FAIL] cublas_sgemm compile（见日志）'
-    cat "$OUT/cublas_sgemm_compile.log" 2>/dev/null
+    echo "[FAIL] cublas_sgemm compile/link rc=$COMPILE_RC"
+    echo "[INFO] failed compile command:"
+    printf '  %q ' "${COMPILE_CMD[@]}"
+    printf '\n[INFO] compiler output ($COMPILE_LOG):\n'
+    cat "$COMPILE_LOG" 2>/dev/null
     FAIL=$((FAIL + 1))
 fi
 
