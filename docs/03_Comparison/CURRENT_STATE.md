@@ -4,6 +4,8 @@
 
 ## 结论
 
+详细学习文档：[`PROJECT_ARCHITECTURE.md`](../01_Design/PROJECT_ARCHITECTURE.md)。
+
 main 已锁定 puresimt：用户写原始 CUDA `.cu`，ccec 通过
 `--enable-simt --cce-aicore-arch=dav-c310-vec` 直接编译，host API 通过
 `cuda* → wcuda* → aclrt*` bridge 运行。main 不使用 Python kernel converter，不生成

@@ -30,3 +30,7 @@ The complete list and expected output strings are maintained in
 
 完整测试分类、API、数据类型、内存模型和支持状态见
 `docs/03_Comparison/PURESIMT_COMPATIBILITY_MATRIX.md`。
+
+
+项目整体原理和测试设计哲学见
+`docs/01_Design/PROJECT_ARCHITECTURE.md`。

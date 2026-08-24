@@ -30,6 +30,12 @@ main 不生成 `__simt_vf__`、`__global__[aicore]`、`cce::async_invoke` 包装
 - 当前唯一验收标志仍是 `PURESIMT_REGRESSION_PASS`；BLAS bridge 保留为 experimental
   secondary capability，不阻塞 puresimt。
 
+## 项目原理与学习文档
+
+面向 mentor、队友和新开发者的完整原理、设计哲学、编译链、Runtime bridge、SIMT
+运行逻辑和维护方法见：
+[PROJECT_ARCHITECTURE.md](docs/01_Design/PROJECT_ARCHITECTURE.md)。
+
 ## 兼容性矩阵
 
 完整的 CUDA→Ascend puresimt 证据矩阵、23 个真机用例、API 状态和 BLAS 边界见：
@@ -197,6 +203,8 @@ PURESIMT_REGRESSION_PASS
 - `examples/puresimt/`：维护中的 CUDA examples。
 - `tools/real_test/server_cmd.txt`：唯一主线真机回归入口。
 - `tools/real_test/diag/`：非主线 ACL/runtime 排障工具。
+- `docs/README.md`：文档导航和阅读顺序。
+- `docs/01_Design/PROJECT_ARCHITECTURE.md`：项目原理与团队学习文档。
 - `docs/reference/asc-devkit-simt/`：Ascend SIMT API 参考资料。
 
 ## 本地限制

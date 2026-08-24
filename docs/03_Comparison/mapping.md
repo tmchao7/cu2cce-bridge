@@ -1,6 +1,7 @@
 # cu-bridge 对照与 main 当前映射
 
 完整证据矩阵：[`PURESIMT_COMPATIBILITY_MATRIX.md`](PURESIMT_COMPATIBILITY_MATRIX.md)。
+项目原理与设计哲学：[`PROJECT_ARCHITECTURE.md`](../01_Design/PROJECT_ARCHITECTURE.md)。
 
 ## 正式路线：puresimt
 
