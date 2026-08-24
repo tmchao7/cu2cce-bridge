@@ -36,6 +36,10 @@
 #define K 32
 
 int main(void) {
+    /* 真机回归通过文件重定向 stdout；无缓冲便于区分 GemmEx 成功后 cleanup
+     * 崩溃，还是结果校验/后续 CUDA bridge 崩溃。 */
+    setbuf(stdout, nullptr);
+    printf("pmatmul: start\n");
     cudaStream_t stream = nullptr;
     cudaError_t err = cudaStreamCreate(&stream);
     if (err != cudaSuccess) {
@@ -82,15 +86,21 @@ int main(void) {
     }
 
     float alpha = 1.0f, beta = 0.0f;
+    printf("pmatmul: before cublasSgemm\n");
     st = cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N,
                      M, N, K, &alpha, dA, M, dB, K, &beta, dC, M);
+    printf("pmatmul: after cublasSgemm status=%d\n", (int)st);
     if (st != CUBLAS_STATUS_SUCCESS) {
         printf("cublasSgemm failed: %d\n", (int)st);
         return 1;
     }
-    cudaStreamSynchronize(stream);
-    cudaDeviceSynchronize();
+    printf("pmatmul: before cudaStreamSynchronize\n");
+    err = cudaStreamSynchronize(stream);
+    printf("pmatmul: after cudaStreamSynchronize status=%d\n", (int)err);
+    err = cudaDeviceSynchronize();
+    printf("pmatmul: after cudaDeviceSynchronize status=%d\n", (int)err);
 
+    printf("pmatmul: before cudaMemcpy C\n");
     err = cudaMemcpy(hC, dC, M * N * sizeof(float), cudaMemcpyDeviceToHost);
     if (err != cudaSuccess) { printf("cudaMemcpy C failed: %d\n", (int)err); return 1; }
 
@@ -108,11 +118,18 @@ int main(void) {
     }
     printf("pmatmul puresimt OK (C = A*B, %dx%dx%d)\n", M, N, K);
 
+    printf("pmatmul: before cublasDestroy\n");
     cublasDestroy(handle);
+    printf("pmatmul: before cudaStreamDestroy\n");
     cudaStreamDestroy(stream);
+    printf("pmatmul: before cudaFree A\n");
     cudaFree(dA);
+    printf("pmatmul: before cudaFree B\n");
     cudaFree(dB);
+    printf("pmatmul: before cudaFree C\n");
     cudaFree(dC);
+    printf("pmatmul: before cudaDeviceReset\n");
     cudaDeviceReset();
+    printf("pmatmul: done\n");
     return 0;
 }

@@ -340,22 +340,34 @@ aclError wcublasSgemm(cublasHandle_t handle, aclTransType transa, aclTransType t
 
 cleanup_device_beta:
     if (devBeta != nullptr) {
+        std::fprintf(stderr, "[cce_bridge][Sgemm] free beta begin ptr=%p ret=%d\n", devBeta, (int)ret);
         aclError free_ret = aclrtFree(devBeta);
+        std::fprintf(stderr, "[cce_bridge][Sgemm] free beta done ret=%d recent=%s\n", (int)free_ret,
+                     aclGetRecentErrMsg() != nullptr ? aclGetRecentErrMsg() : "(null)");
         if (ret == ACL_SUCCESS && free_ret != ACL_SUCCESS) ret = free_ret;
     }
 cleanup_device_alpha:
     if (devAlpha != nullptr) {
+        std::fprintf(stderr, "[cce_bridge][Sgemm] free alpha begin ptr=%p ret=%d\n", devAlpha, (int)ret);
         aclError free_ret = aclrtFree(devAlpha);
+        std::fprintf(stderr, "[cce_bridge][Sgemm] free alpha done ret=%d recent=%s\n", (int)free_ret,
+                     aclGetRecentErrMsg() != nullptr ? aclGetRecentErrMsg() : "(null)");
         if (ret == ACL_SUCCESS && free_ret != ACL_SUCCESS) ret = free_ret;
     }
 cleanup_device_b:
     if (devHalfB != nullptr) {
+        std::fprintf(stderr, "[cce_bridge][Sgemm] free B begin ptr=%p ret=%d\n", devHalfB, (int)ret);
         aclError free_ret = aclrtFree(devHalfB);
+        std::fprintf(stderr, "[cce_bridge][Sgemm] free B done ret=%d recent=%s\n", (int)free_ret,
+                     aclGetRecentErrMsg() != nullptr ? aclGetRecentErrMsg() : "(null)");
         if (ret == ACL_SUCCESS && free_ret != ACL_SUCCESS) ret = free_ret;
     }
 cleanup_device_a:
     if (devHalfA != nullptr) {
+        std::fprintf(stderr, "[cce_bridge][Sgemm] free A begin ptr=%p ret=%d\n", devHalfA, (int)ret);
         aclError free_ret = aclrtFree(devHalfA);
+        std::fprintf(stderr, "[cce_bridge][Sgemm] free A done ret=%d recent=%s\n", (int)free_ret,
+                     aclGetRecentErrMsg() != nullptr ? aclGetRecentErrMsg() : "(null)");
         if (ret == ACL_SUCCESS && free_ret != ACL_SUCCESS) ret = free_ret;
     }
 cleanup_host:
@@ -363,6 +375,7 @@ cleanup_host:
     std::free(hostB);
     std::free(hostHalfA);
     std::free(hostHalfB);
+    std::fprintf(stderr, "[cce_bridge][Sgemm] return ret=%d\n", (int)ret);
     return ret;
 }
 
