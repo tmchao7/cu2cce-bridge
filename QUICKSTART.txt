@@ -28,6 +28,5 @@ bash -n bin/cucc tools/real_test/server_cmd.txt tools/real_test/diag/*.sh
 git diff --check
 bash tests/mock_acl/syntax_check.sh
 
-# 清理真机回归生成物（不删源码）
-bash tools/real_test/clean.sh          # 样例二进制、日志、probe
-bash tools/real_test/clean.sh --all    # 另删 install/cmake-build/probe.env，下一轮会重建
+# 清理真机所有回归/构建生成物（不删源码）
+bash tools/real_test/clean.sh          # 整个 build/real_test 清空后重建为空目录

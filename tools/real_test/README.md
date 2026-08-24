@@ -18,7 +18,7 @@ bash tools/real_test/server_cmd.txt
 - `env_probe.sh`：探测 CANN/ccec/设备/头库，生成真机环境信息。
 - `build_bridge.sh`：构建并安装 `libcce_bridge_runtime.so`。
 - `server_cmd.txt`：正式验收入口。
-- `clean.sh`：清理真机生成的 sample 二进制和日志；`--all` 额外清理 bridge 安装/构建产物。
+- `clean.sh`：清空并重建整个 `build/real_test`，包括旧实验残留、install、cmake-build、日志和 probe。
 - `diag/`：107002、ACL 分配和 runtime 组合排障资产，不属于默认回归。
 
 main 只维护 `server_cmd.txt` 主线入口；converter-only 测试已经删除。
