@@ -764,6 +764,10 @@ aclError wcudaMemset2DAsync(void *devPtr, size_t pitch, int value, size_t width,
 }
 
 aclError wcudaMallocPitch(void **devPtr, size_t *pitch, size_t width, size_t height) {
+    /* cudaMallocPitch can be the first CUDA API in a process. The underlying
+     * aclrtMalloc requires a bound ACL context, so initialize before calling it
+     * rather than relying on WCUDA_RETURN after the allocation attempt. */
+    BRIDGE_INIT();
     if (devPtr == nullptr || pitch == nullptr || width == 0 || height == 0) {
         WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
     }
