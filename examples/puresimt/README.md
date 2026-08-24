@@ -33,3 +33,7 @@ The next operator-focused tests use the same minimal-source policy:
 - `warpShuffle_minimal.cu` — warp shuffle reduction, based on NVIDIA `shfl_scan`.
 - `scan_minimal.cu` — inclusive block scan, based on NVIDIA `scan`.
 - `transpose_minimal.cu` — shared-memory tiled transpose, based on NVIDIA `transpose`.
+
+- `vote_minimal.cu` — `__all_sync`/`__any_sync`/`__ballot_sync`, based on NVIDIA `simpleVoteIntrinsics`.
+- `dot_minimal.cu` — shared-memory dot product and atomic accumulation.
+- `stencil_minimal.cu` — 1D shared-memory halo stencil.

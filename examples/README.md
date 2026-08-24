@@ -17,3 +17,7 @@ maintained examples set. Historical versions remain available in Git history.
 - `puresimt/warpShuffle_minimal.cu`
 - `puresimt/scan_minimal.cu`
 - `puresimt/transpose_minimal.cu`
+
+- `puresimt/vote_minimal.cu`
+- `puresimt/dot_minimal.cu`
+- `puresimt/stencil_minimal.cu`
