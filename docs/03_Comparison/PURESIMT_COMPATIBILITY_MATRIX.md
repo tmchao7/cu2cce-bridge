@@ -214,7 +214,21 @@ CMake → cmake_cce → CUDA shim → nvcc_entry → mock_nvcc → cucc → ccec
 `CUDA::cudart` 和 legacy `FindCUDA` 的状态必须在 Ascend 真机通过对应工程后再考虑
 升级。CMake 配置成功或头文件存在不等于 CUDA API 已经 `SUPPORTED`。
 
-## 8. 维护规则
+## 8. cucc Driver Policy
+
+| Capability | Status | Evidence / boundary |
+|---|---|---|
+| Rule-driven CUDA argument processing | `EXPERIMENTAL` | `config/cu2cce_rules.json` + shared `tools/cu2cce_driver.py` |
+| Shared policy for normal cucc and CMake nvcc shim | `EXPERIMENTAL` | `bin/cucc` and `tools/mock/mock_nvcc.py` use the same driver |
+| NVIDIA architecture flag handling | `EXPERIMENTAL` | `-gencode`/`-arch=sm_*` are diagnosed and not mapped to fake Ascend architectures |
+| PTX/CUBIN/FATBIN/device-link rejection | `UNSUPPORTED` | explicitly rejected by the puresimt driver |
+| Automatic unvalidated CUDA library replacement | `UNSUPPORTED` | no blanket `-lcublas`/`-lcufft`/`-lcusparse` mapping |
+
+`CU2CCE_DEBUG=1` prints rule decisions. `CU2CCE_TRACE_FILE` writes a parameter-only JSON
+trace. `CU2CCE_STRICT_FLAGS=1` turns unvalidated CUDA library use and unknown long CUDA
+options into errors.
+
+## 9. 维护规则
 
 每次新增测试必须同步：
 

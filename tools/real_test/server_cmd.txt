@@ -1,6 +1,6 @@
 # server_cmd.txt —— main / puresimt 官方 CUDA Samples 回归
 #
-# 维护分支：main；实时远端：gitcode（不要 push origin/GitHub）。
+# 维护分支：由当前 git 分支决定；实时远端：gitcode（不要 push origin/GitHub）。
 # 目标：用原始 NVIDIA CUDA Samples 源文件验证 puresimt 的零改写链路。
 #
 # 维护样例如下：
@@ -19,7 +19,7 @@
 #
 # 真机复制执行：
 #   cd /home/t50063365/workspace/repos/cu2cce-bridge
-#   git pull --ff-only gitcode main
+#   git pull --ff-only gitcode "$REGRESSION_BRANCH"
 #   bash tools/real_test/server_cmd.txt
 
 set +e
@@ -28,7 +28,10 @@ set -o pipefail
 ulimit -c 0 2>/dev/null || true
 
 cd /home/t50063365/workspace/repos/cu2cce-bridge
-printf 'HEAD=' && git pull --ff-only gitcode main && git log -1 --oneline
+REGRESSION_BRANCH="${CU2CCE_REGRESSION_BRANCH:-$(git branch --show-current)}"
+if [ -z "$REGRESSION_BRANCH" ]; then REGRESSION_BRANCH=main; fi
+printf 'BRANCH=%s HEAD=' "$REGRESSION_BRANCH"
+git pull --ff-only gitcode "$REGRESSION_BRANCH" && git log -1 --oneline
 
 OUT="$PWD/build/real_test/puresimt"
 mkdir -p "$OUT"
@@ -125,20 +128,38 @@ printf '\n===== [2.75/4] cucc puresimt 直通检查 =====\n'
 CUCC_BIN="$PWD/build/real_test/install/bin/cucc"
 CUCC_OBJ="$OUT/cucc_vectorAdd_minimal.o"
 CUCC_LOG="$OUT/cucc_direct.log"
-rm -f "$CUCC_OBJ" "$CUCC_LOG" "$OUT"/*.cce
+CUCC_TRACE="$OUT/cucc_direct.trace.json"
+rm -f "$CUCC_OBJ" "$CUCC_LOG" "$CUCC_TRACE" "$OUT"/*.cce
 if [ -x "$CUCC_BIN" ] && CUCC_PATH="$PWD/build/real_test/install" CUDA_PATH="$PWD/build/real_test/install" \
-    WCUDA_DEBUG=1 "$CUCC_BIN" -c examples/puresimt/vectorAdd_minimal.cu -o "$CUCC_OBJ" >"$CUCC_LOG" 2>&1; then
-    if grep -Eiq 'kernel[_ -]?convert|__simt_vf__|async_invoke' "$CUCC_LOG" || find "$OUT" "$OUT/cmake-build" -name '*.cce' -print -quit | grep -q .; then
+    CU2CCE_DEBUG=1 CU2CCE_TRACE_FILE="$CUCC_TRACE" "$CUCC_BIN" -c examples/puresimt/vectorAdd_minimal.cu -o "$CUCC_OBJ" >"$CUCC_LOG" 2>&1; then
+    if grep -Eiq 'kernel[_ -]?convert|__simt_vf__|async_invoke' "$CUCC_LOG" || \
+       find "$OUT" "$OUT/cmake-build" -name '*.cce' -print -quit | grep -q .; then
         echo '[FAIL] cucc 仍触发 legacy kernel lowering'
         cat "$CUCC_LOG"
         FAIL=$((FAIL + 1))
+    elif [ ! -s "$CUCC_TRACE" ] || ! grep -Fq '"phase": "compile"' "$CUCC_TRACE" || \
+         ! grep -Fq -- '--enable-simt' "$CUCC_TRACE"; then
+        echo '[FAIL] cucc rule policy trace missing compile/SIMT decisions'
+        cat "$CUCC_LOG"
+        cat "$CUCC_TRACE" 2>/dev/null
+        FAIL=$((FAIL + 1))
     else
-        echo '[PASS] cucc 直接调用 ccec；未生成 legacy converter/.cce 中间文件'
+        echo '[PASS] cucc 直接调用 ccec；规则驱动 trace 与 SIMT 注入通过；未生成 legacy converter/.cce 中间文件'
     fi
 else
     echo '[FAIL] cucc puresimt direct compile'
     cat "$CUCC_LOG" 2>/dev/null
     FAIL=$((FAIL + 1))
+fi
+
+CUCC_REJECT_LOG="$OUT/cucc_reject.log"
+if CUCC_PATH="$PWD/build/real_test/install" CUDA_PATH="$PWD/build/real_test/install" \
+    "$CUCC_BIN" --ptx examples/puresimt/vectorAdd_minimal.cu >"$CUCC_REJECT_LOG" 2>&1; then
+    echo '[FAIL] cucc accepted unsupported PTX generation'
+    cat "$CUCC_REJECT_LOG"
+    FAIL=$((FAIL + 1))
+else
+    echo '[PASS] cucc rejects unsupported PTX/device artifact policy'
 fi
 
 printf '\n===== [3/4] puresimt CUDA Samples + operator tests 编译 + 运行 =====\n'

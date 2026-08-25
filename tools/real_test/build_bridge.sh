@@ -83,6 +83,7 @@ fail=0
 for f in lib/libcce_bridge_runtime.so \
          include/cuda_runtime.h include/bridge/kernel/simt_adaptor.h \
          bin/cucc bin/cmake_cce bin/make_cce tools/nvcc_entry.sh \
+         tools/cu2cce_driver.py config/cu2cce_rules.json \
          cmake_modules/FindCUDA.cmake cmake_modules/FindCUDAToolkit.cmake \
          lib/cmake/cu2cce-bridge/cu2cce-bridgeConfig.cmake; do
     if [ -e "$CUCC_PATH/$f" ]; then

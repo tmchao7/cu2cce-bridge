@@ -168,6 +168,11 @@ cucc demo/build/vector_add.o -o demo/build/vector_add    # 链接
 
 ### 4.2 `cucc` 做什么
 
+`bin/cucc` 由 `tools/cu2cce_driver.py` 实现规则驱动的参数适配。规则文件位于
+`config/cu2cce_rules.json`，按 `all`、`compile`、`link`、`compile_and_link` 分阶段
+处理 `forward`、`drop`、`replace`、`inject` 和 `reject`。普通 `cucc` 与 CMake 的
+`mock_nvcc.py` 共享这套规则，不复制 MACA 的具体映射。
+
 `bin/cucc` 负责：
 
 1. 识别 `.cu` 编译单元或 `.o` 链接阶段；

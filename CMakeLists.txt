@@ -70,7 +70,7 @@ install(PROGRAMS bin/cucc DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
 # 安装用户可直接调用的构建入口到 bin；nvcc_entry/mock 是内部 shim。
 install(PROGRAMS tools/make_cce tools/cmake_cce
         DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
-install(PROGRAMS tools/nvcc_entry.sh
+install(PROGRAMS tools/nvcc_entry.sh tools/cu2cce_driver.py
         DESTINATION ${CMAKE_INSTALL_PREFIX}/tools)
 install(DIRECTORY tools/mock DESTINATION ${CMAKE_INSTALL_PREFIX}/tools)
 
@@ -78,6 +78,8 @@ install(DIRECTORY tools/mock DESTINATION ${CMAKE_INSTALL_PREFIX}/tools)
 # expose validated bridge-backed targets and legacy build macros; they do not
 # perform CUDA kernel conversion.
 install(DIRECTORY cmake_modules/ DESTINATION ${CMAKE_INSTALL_PREFIX}/cmake_modules)
+install(FILES config/cu2cce_rules.json
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/config)
 
 # Native cu2cce package. This is intentionally separate from CUDA::cudart:
 # it identifies the bridge itself and does not claim complete CUDA library

@@ -280,6 +280,24 @@ cucc vector_add.cu -o build/vector_add
 cucc -c vector_add.cu -o build/vector_add.o
 ```
 
+cucc 的参数适配由安装目录中的 `config/cu2cce_rules.json` 驱动。需要查看每个参数
+被保留、丢弃或注入的原因时，可以使用：
+
+```bash
+CU2CCE_DEBUG=1 cucc -c vector_add.cu -o build/vector_add.o
+```
+
+需要保存机器可读的决策记录时：
+
+```bash
+CU2CCE_TRACE_FILE=build/cu2cce_trace.json \
+cucc -c vector_add.cu -o build/vector_add.o
+```
+
+`-gencode`、`-arch=sm_*` 等 NVIDIA GPU 架构参数不会被伪造成 Ascend 架构；Ascend
+架构通过 `CU2CCE_NPU_ARCH` 设置。`--ptx`、`--cubin`、`--fatbin` 和 device-link
+等无法保持 puresimt 语义的功能会明确失败。
+
 cucc 也会根据 `.o` 输出后缀兼容识别下面的写法：
 
 ```bash

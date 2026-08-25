@@ -61,3 +61,18 @@ multi-CUDA/static/shared, `CUDA::cudart`, legacy `FindCUDA`, and Ninja projects 
 2026-08-25. Advanced CUDA device-link, PTX/CUBIN/FATBIN, and unvalidated CUDA library
 packages remain experimental or unsupported. Set
 `CU2CCE_CMAKE_SHIM_DIR` to keep the compiler shim in a persistent directory.
+
+## cucc rule diagnostics
+
+The compiler driver is rule-driven. The installed policy is
+`config/cu2cce_rules.json`, shared by normal `cucc` and the CMake nvcc shim.
+For diagnostics:
+
+```bash
+CU2CCE_DEBUG=1 cucc -c examples/puresimt/vectorAdd_minimal.cu -o /tmp/vector.o
+CU2CCE_TRACE_FILE=/tmp/cu2cce_trace.json \
+cucc -c examples/puresimt/vectorAdd_minimal.cu -o /tmp/vector.o
+```
+
+The default policy warns and drops NVIDIA-only flags, preserves ordinary compiler
+flags, and rejects PTX/CUBIN/FATBIN/device-link features.
