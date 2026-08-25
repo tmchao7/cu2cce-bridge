@@ -7,8 +7,8 @@
 |---|---|---|---|
 | modern CMake CUDA project | `SUPPORTED` for validated core | `examples/cmake_demo` 真机通过 | 大型项目高级 CUDA property 仍需扩展 |
 | multiple `.cu` CMake target | `SUPPORTED` for validated core | `examples/cmake_compat` | 复杂 device symbol resolution 未覆盖 |
-| static/shared CUDA library | `EXPERIMENTAL` | `examples/cmake_compat` | 依赖 ccec/CANN 链接语义 |
-| object/interface library | `EXPERIMENTAL` | build compatibility suite | 需要更多真机组合 |
+| static/shared CUDA library | `EXPERIMENTAL` | `examples/cmake_compat`, `examples/build_compat` | 每个 linked library 当前限制为一个 `.cu` translation unit |
+| object/interface library | `EXPERIMENTAL` | build compatibility suite | 多 `.cu` 静态归档会触发 ccec registration symbol 冲突 |
 | host C++ + CUDA | `SUPPORTED` for validated core | `examples/cmake_compat` | 其他 host toolchain 未覆盖 |
 | `find_package(CUDAToolkit)` | `EXPERIMENTAL` | minimal module | 不是完整 NVIDIA Toolkit discovery |
 | `CUDA::cudart` | `EXPERIMENTAL` | bridge-backed runtime target | 不代表完整 CUDA Runtime 等价 |
@@ -34,3 +34,13 @@
 2. `tools/real_test/server_cmd.txt`；
 3. 本矩阵；
 4. `README.md`/`QUICKSTART.md` 中的使用边界。
+
+## 当前已知后端限制
+
+在 Ascend ccec puresimt 输出中，每个 `.cu` translation unit 会生成相同名称的
+运行时注册辅助符号，例如 `BishengLaunchKernelWithHostArgs` 和
+`__cce_rtLinkedDevBinaryAscPureSimtEagerRegister`。因此，将多个 `.cu` 对象直接放入
+同一个静态 archive 后再由 host C++ 链接，可能出现 duplicate symbol；这不是普通
+CMake 参数过滤问题，也不能用 `--allow-multiple-definition` 伪装修复。当前测试将每个
+linked static/shared library 限制为一个 `.cu`，并把该场景标记为未完成的 backend
+translation-unit aggregation 能力。

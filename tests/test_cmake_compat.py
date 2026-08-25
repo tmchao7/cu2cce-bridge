@@ -22,6 +22,7 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
     def test_examples_cover_build_systems(self) -> None:
         self.assertTrue((ROOT / "examples/build_compat/cmake/CMakeLists.txt").is_file())
         self.assertTrue((ROOT / "examples/build_compat/make/Makefile").is_file())
+        self.assertIn("nvcc", (ROOT / "examples/build_compat/make/Makefile").read_text(encoding="utf-8"))
         self.assertTrue((ROOT / "examples/cmake_compat/CMakeLists.txt").is_file())
         self.assertTrue((ROOT / "examples/cmake_compat_legacy/CMakeLists.txt").is_file())
 

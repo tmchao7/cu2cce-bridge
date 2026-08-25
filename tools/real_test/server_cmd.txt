@@ -335,14 +335,18 @@ if [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$CMAKE_CCE" ]; then
         "$OUT/cmake-build-compat-build" \
         "$OUT/cmake-build-compat-build/build_compat_app" \
         'make_cce build_compat OK'
-    rm -rf "$OUT/cmake-build-compat-install"
-    if cmake --install "$OUT/cmake-build-compat-build" --prefix "$OUT/cmake-build-compat-install" >"$OUT/cmake-install.log" 2>&1 && \
-       [ -f "$OUT/cmake-build-compat-install/lib/cmake/build_compat/buildCompatTargets.cmake" ]; then
-        echo '[PASS] CMake install/export smoke'
+    if [ "$CMAKE_PASS" -eq 1 ]; then
+        rm -rf "$OUT/cmake-build-compat-install"
+        if cmake --install "$OUT/cmake-build-compat-build" --prefix "$OUT/cmake-build-compat-install" >"$OUT/cmake-install.log" 2>&1 && \
+           [ -f "$OUT/cmake-build-compat-install/lib/cmake/build_compat/buildCompatTargets.cmake" ]; then
+            echo '[PASS] CMake install/export smoke'
+        else
+            echo '[FAIL] CMake install/export smoke'
+            cat "$OUT/cmake-install.log" 2>/dev/null
+            CMAKE_PASS=0
+        fi
     else
-        echo '[FAIL] CMake install/export smoke'
-        cat "$OUT/cmake-install.log" 2>/dev/null
-        CMAKE_PASS=0
+        echo '[SKIP] CMake install/export smoke: configure/build prerequisite failed'
     fi
 
     if command -v ninja >/dev/null 2>&1; then
@@ -387,7 +391,7 @@ if [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$MAKE_CCE" ]; then
             BUILD_COMPAT_PASS=0
         fi
     else
-        echo '[FAIL] make_cce build (log: $MAKE_COMPAT_LOG)'
+        echo "[FAIL] make_cce build (log: $MAKE_COMPAT_LOG)"
         tail -n 100 "$MAKE_COMPAT_LOG" 2>/dev/null
         BUILD_COMPAT_PASS=0
     fi
