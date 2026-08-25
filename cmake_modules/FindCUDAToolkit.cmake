@@ -13,12 +13,26 @@ set(_CU2CCE_CANN_BASE "$ENV{CANN_BASE}")
 if(NOT _CU2CCE_CANN_BASE)
   set(_CU2CCE_CANN_BASE "/usr/local/Ascend/latest")
 endif()
+set(_CU2CCE_TOOLKIT "$ENV{ASCEND_TOOLKIT_HOME}")
+if(NOT _CU2CCE_TOOLKIT)
+  set(_CU2CCE_TOOLKIT "/usr/local/Ascend/ascend-toolkit/latest")
+endif()
+
+set(_CU2CCE_CANN_INCLUDE_DIRS "${_CU2CCE_PREFIX}/include")
+foreach(_include_dir
+    "${_CU2CCE_CANN_BASE}/include"
+    "${_CU2CCE_TOOLKIT}/include")
+  if(EXISTS "${_include_dir}")
+    list(APPEND _CU2CCE_CANN_INCLUDE_DIRS "${_include_dir}")
+  endif()
+endforeach()
+list(REMOVE_DUPLICATES _CU2CCE_CANN_INCLUDE_DIRS)
 
 set(CUDAToolkit_FOUND TRUE)
 set(CUDA_FOUND TRUE)
 set(CUDAToolkit_VERSION "11.6")
 set(CUDA_VERSION "11.6")
-set(CUDAToolkit_INCLUDE_DIRS "${_CU2CCE_PREFIX}/include")
+set(CUDAToolkit_INCLUDE_DIRS "${_CU2CCE_CANN_INCLUDE_DIRS}")
 set(CUDA_INCLUDE_DIRS "${CUDAToolkit_INCLUDE_DIRS}")
 set(CUDAToolkit_LIBRARY_ROOT "${_CU2CCE_PREFIX}")
 set(CUDAToolkit_LIBRARY_DIR "${_CU2CCE_PREFIX}/lib")
@@ -44,7 +58,7 @@ if(NOT TARGET CUDA::cudart)
   add_library(CUDA::cudart UNKNOWN IMPORTED)
   set_target_properties(CUDA::cudart PROPERTIES
     IMPORTED_LOCATION "${_CU2CCE_RUNTIME}"
-    INTERFACE_INCLUDE_DIRECTORIES "${_CU2CCE_PREFIX}/include"
+    INTERFACE_INCLUDE_DIRECTORIES "${CUDAToolkit_INCLUDE_DIRS}"
   )
 
   # A C++ host target that links CUDA::cudart does not pass through cucc's

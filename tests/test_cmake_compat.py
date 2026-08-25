@@ -34,6 +34,12 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         for feature in ("--device-link", "--ptx", "--cubin", "--fatbin"):
             self.assertIn(feature, rules)
 
+    def test_cudatoolkit_module_propagates_cann_include_dirs(self) -> None:
+        module = (ROOT / "cmake_modules/FindCUDAToolkit.cmake").read_text(encoding="utf-8")
+        self.assertIn("CANN_BASE}/include", module)
+        self.assertIn("ASCEND_TOOLKIT_HOME", module)
+        self.assertIn("INTERFACE_INCLUDE_DIRECTORIES", module)
+
     def test_external_cuda_samples_profile_is_pinned(self) -> None:
         profile = (ROOT / "examples/external/cuda_samples_project/profile_core.json").read_text(encoding="utf-8")
         fetch = (ROOT / "tools/real_test/fetch_external_cuda_samples.sh").read_text(encoding="utf-8")
