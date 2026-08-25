@@ -222,6 +222,7 @@ CUDA cuBLAS to CANN ACL CBLAS development is maintained separately on
 - `src/bridge/runtime/`：`cuda* → wcuda* → aclrt*`。
 - `src/bridge/blas/`：experimental cublas→aclblas，独立于 puresimt 验收。
 - `bin/cucc`：nvcc 兼容驱动；`.cu` 直接传给 ccec，不做 Python lowering。
+- `bin/cmake_cce`：CMake CUDA 工程入口；配置时使用 `cmake_cce -S . -B build`。
 - `examples/puresimt/`：维护中的 CUDA examples。
 - `tools/real_test/server_cmd.txt`：唯一主线真机回归入口。
 - `tools/real_test/diag/`：非主线 ACL/runtime 排障工具。

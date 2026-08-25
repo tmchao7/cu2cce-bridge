@@ -67,8 +67,10 @@ install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
 # 安装 cucc 驱动（CUCC_PATH/bin）
 install(PROGRAMS bin/cucc DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
 
-# 安装 tools/ 工程胶水（make_cce / cmake_cce / nvcc_entry / mock）
-install(PROGRAMS tools/make_cce tools/cmake_cce tools/nvcc_entry.sh
+# 安装用户可直接调用的构建入口到 bin；nvcc_entry/mock 是内部 shim。
+install(PROGRAMS tools/make_cce tools/cmake_cce
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+install(PROGRAMS tools/nvcc_entry.sh
         DESTINATION ${CMAKE_INSTALL_PREFIX}/tools)
 install(DIRECTORY tools/mock DESTINATION ${CMAKE_INSTALL_PREFIX}/tools)
 

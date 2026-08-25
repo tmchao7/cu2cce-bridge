@@ -389,7 +389,7 @@ add_executable(app main.cu)
 export CU2CCE_BRIDGE=/home/t50063365/workspace/repos/cu2cce-bridge
 export CUCC_PATH=$CU2CCE_BRIDGE/build/real_test/install
 export CUDA_PATH=$CUCC_PATH
-export PATH=$CUCC_PATH/bin:$PATH
+export PATH=$CUCC_PATH/bin:$CUCC_PATH/tools:$PATH
 
 cmake_cce -S /home/t50063365/workspace/repos/cu2cce-bridge/examples/cmake_demo \
     -B /tmp/cu2cce-cmake-build

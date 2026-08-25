@@ -82,7 +82,7 @@ echo "== 产物校验（${CUCC_PATH}） =="
 fail=0
 for f in lib/libcce_bridge_runtime.so \
          include/cuda_runtime.h include/bridge/kernel/simt_adaptor.h \
-         bin/cucc tools/make_cce tools/cmake_cce; do
+         bin/cucc bin/cmake_cce bin/make_cce tools/nvcc_entry.sh; do
     if [ -e "$CUCC_PATH/$f" ]; then
         echo "  [OK]   $f"
     else
