@@ -44,6 +44,7 @@ def is_value_option(arg: str) -> bool:
 def filter_args(args):
     out = []
     skip = False
+    cuda_path = os.environ.get("CUDA_PATH", "")
     for arg in args:
         if skip:
             skip = False
@@ -52,6 +53,14 @@ def filter_args(args):
             skip = True
             continue
         if arg.startswith(("-ccbin=", "--compiler-bindir=", "--cuda-path=")):
+            continue
+        # CMake appends NVIDIA-only runtime libraries during its CUDA compiler
+        # ABI probe. cucc adds the CANN/bridge libraries itself.
+        if arg in {"-lcudadevrt", "-lcudart_static", "-lcudart", "-lcuda"}:
+            continue
+        if arg.startswith("-L") and cuda_path and arg[2:].strip('\"') == cuda_path + "/lib64":
+            continue
+        if arg.startswith("-L") and "cu2cce-cmake-shim-" in arg and arg.endswith("/cuda/lib64"):
             continue
         if arg in {
             "-forward-unknown-to-host-compiler", "--forward-unknown-to-host-compiler",

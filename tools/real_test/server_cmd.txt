@@ -259,11 +259,23 @@ if [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$CMAKE_CCE" ]; then
                 FAIL=$((FAIL + 1))
             fi
         else
-            echo '[FAIL] CMake build'; tail -n 40 "$CMAKE_BUILD_LOG"
+            echo "[FAIL] CMake build (log: $CMAKE_BUILD_LOG)"
+            if [ -f "$CMAKE_BUILD_LOG" ]; then
+                tail -n 100 "$CMAKE_BUILD_LOG"
+            else
+                echo '[WARN] build log was not created'
+            fi
             FAIL=$((FAIL + 1))
         fi
     else
-        echo '[FAIL] CMake configure'; tail -n 60 "$CMAKE_LOG"
+        echo "[FAIL] CMake configure (log: $CMAKE_LOG)"
+        if [ -f "$CMAKE_LOG" ]; then
+            echo '----- configure log tail -----'
+            tail -n 100 "$CMAKE_LOG"
+        else
+            echo '[WARN] configure log was not created'
+        fi
+        echo "[INFO] CMake build directory: $CMAKE_BUILD"
         FAIL=$((FAIL + 1))
     fi
 else
