@@ -437,56 +437,85 @@ EXTERNAL_SOURCE="$OUT/external/nvidia_cuda_samples"
 EXTERNAL_BUILD="$OUT/cuda-samples-build"
 EXTERNAL_LOG="$OUT/cuda_samples.log"
 EXTERNAL_BUILD_LOG="$OUT/cuda_samples_build.log"
+EXTERNAL_FETCH_TIMEOUT="${CU2CCE_EXTERNAL_FETCH_TIMEOUT:-300}"
+EXTERNAL_BUILD_TIMEOUT="${CU2CCE_EXTERNAL_BUILD_TIMEOUT:-1200}"
+EXTERNAL_RUN_TIMEOUT="${CU2CCE_EXTERNAL_RUN_TIMEOUT:-180}"
+
+run_with_timeout() {
+    local seconds="$1"
+    shift
+    if command -v timeout >/dev/null 2>&1; then
+        timeout --foreground "$seconds" "$@"
+    else
+        echo "[WARN] timeout command unavailable; running without time limit: $*" >&2
+        "$@"
+    fi
+}
+
 rm -rf "$EXTERNAL_BUILD"
 if [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$EXTERNAL_FETCH" ] && [ -x "$CMAKE_CCE" ]; then
-    if OUT_DIR="$OUT" CUDA_SAMPLES_SOURCE_DIR="$EXTERNAL_SOURCE" \
-        "$EXTERNAL_FETCH" >"$EXTERNAL_LOG" 2>&1 && \
-       CUCC_PATH="$PWD/build/real_test/install" CUDA_PATH="$CUCC_PATH" PATH="$CUCC_PATH/bin:$PATH" \
-       CU2CCE_LIBC_MODE=system \
-       "$CMAKE_CCE" -S examples/external/cuda_samples_project -B "$EXTERNAL_BUILD" \
-         -DCUDA_SAMPLES_SOURCE_DIR="$EXTERNAL_SOURCE" \
-         -DCMAKE_CUDA_ARCHITECTURES=OFF -DCMAKE_BUILD_TYPE=Release \
-         >"$OUT/cuda_samples_configure.log" 2>&1; then
-        echo '[PASS] external CUDA Samples configure'
-        if CU2CCE_LIBC_MODE=system CUCC_PATH="$PWD/build/real_test/install" CUDA_PATH="$CUCC_PATH" \
-           PATH="$CUCC_PATH/bin:$PATH" \
-           cmake --build "$EXTERNAL_BUILD" --target vectorAdd matrixMul reduction simpleStreams simpleMultiCopy \
-            >"$EXTERNAL_BUILD_LOG" 2>&1; then
-            echo '[PASS] external CUDA Samples build'
-            for sample in vectorAdd matrixMul reduction; do
-                binary="$EXTERNAL_BUILD/$sample/$sample"
-                run_log="$OUT/cuda_samples_${sample}.run.log"
-                if [ "$sample" = vectorAdd ]; then expect='Test PASSED'; fi
-                if [ "$sample" = matrixMul ]; then expect='Result = PASS'; fi
-                if [ "$sample" = reduction ]; then expect='Test passed'; fi
-                if [ -x "$binary" ] && "$binary" >"$run_log" 2>&1 && grep -Fq "$expect" "$run_log"; then
-                    echo "[PASS] external [$sample]: $(grep -F "$expect" "$run_log" | tail -n 1)"
-                else
-                    echo "[FAIL] external [$sample] run (log: $run_log)"
-                    cat "$run_log" 2>/dev/null
+    echo "[INFO] external CUDA Samples fetch (timeout=${EXTERNAL_FETCH_TIMEOUT}s)"
+    if run_with_timeout "$EXTERNAL_FETCH_TIMEOUT" env \
+       OUT_DIR="$OUT" CUDA_SAMPLES_SOURCE_DIR="$EXTERNAL_SOURCE" \
+       "$EXTERNAL_FETCH" >"$EXTERNAL_LOG" 2>&1; then
+        echo '[PASS] external CUDA Samples fetch'
+    else
+        echo '[FAIL] external CUDA Samples fetch (log: '$EXTERNAL_LOG')'
+        tail -n 120 "$EXTERNAL_LOG" 2>/dev/null
+        CUDA_SAMPLES_PASS=0
+    fi
+
+    if [ "$CUDA_SAMPLES_PASS" -eq 1 ]; then
+        echo "[INFO] external CUDA Samples configure/build (build timeout=${EXTERNAL_BUILD_TIMEOUT}s)"
+        if env CUCC_PATH="$PWD/build/real_test/install" CUDA_PATH="$CUCC_PATH" \
+           PATH="$CUCC_PATH/bin:$PATH" CU2CCE_LIBC_MODE=system \
+           "$CMAKE_CCE" -S examples/external/cuda_samples_project -B "$EXTERNAL_BUILD" \
+             -DCUDA_SAMPLES_SOURCE_DIR="$EXTERNAL_SOURCE" \
+             -DCMAKE_CUDA_ARCHITECTURES=OFF -DCMAKE_BUILD_TYPE=Release \
+             >"$OUT/cuda_samples_configure.log" 2>&1; then
+            echo '[PASS] external CUDA Samples configure'
+            if run_with_timeout "$EXTERNAL_BUILD_TIMEOUT" env \
+               CU2CCE_LIBC_MODE=system CUCC_PATH="$PWD/build/real_test/install" CUDA_PATH="$CUCC_PATH" \
+               PATH="$CUCC_PATH/bin:$PATH" \
+               cmake --build "$EXTERNAL_BUILD" --target vectorAdd matrixMul reduction simpleStreams simpleMultiCopy \
+                >"$EXTERNAL_BUILD_LOG" 2>&1; then
+                echo '[PASS] external CUDA Samples build'
+                for sample in vectorAdd matrixMul reduction; do
+                    binary="$EXTERNAL_BUILD/$sample/$sample"
+                    run_log="$OUT/cuda_samples_${sample}.run.log"
+                    if [ "$sample" = vectorAdd ]; then expect='Test PASSED'; fi
+                    if [ "$sample" = matrixMul ]; then expect='Result = PASS'; fi
+                    if [ "$sample" = reduction ]; then expect='Test passed'; fi
+                    echo "[INFO] external [$sample] run (timeout=${EXTERNAL_RUN_TIMEOUT}s)"
+                    if [ -x "$binary" ] && run_with_timeout "$EXTERNAL_RUN_TIMEOUT" "$binary" >"$run_log" 2>&1 && grep -Fq "$expect" "$run_log"; then
+                        echo "[PASS] external [$sample]: $(grep -F "$expect" "$run_log" | tail -n 1)"
+                    else
+                        echo "[FAIL] external [$sample] run (log: $run_log)"
+                        cat "$run_log" 2>/dev/null
+                        CUDA_SAMPLES_PASS=0
+                    fi
+                done
+                if grep -Eiq 'kernel[_ -]?convert|__simt_vf__|async_invoke|\.cce' \
+                    "$OUT/cuda_samples_configure.log" "$EXTERNAL_BUILD_LOG"; then
+                    echo '[FAIL] external CUDA Samples emitted legacy lowering markers'
                     CUDA_SAMPLES_PASS=0
                 fi
-            done
-            if grep -Eiq 'kernel[_ -]?convert|__simt_vf__|async_invoke|\.cce' \
-                "$OUT/cuda_samples_configure.log" "$EXTERNAL_BUILD_LOG"; then
-                echo '[FAIL] external CUDA Samples emitted legacy lowering markers'
+            else
+                echo "[FAIL] external CUDA Samples build (log: $EXTERNAL_BUILD_LOG)"
+                tail -n 160 "$EXTERNAL_BUILD_LOG" 2>/dev/null
                 CUDA_SAMPLES_PASS=0
             fi
         else
-            echo '[FAIL] external CUDA Samples build'
-            tail -n 120 "$EXTERNAL_BUILD_LOG" 2>/dev/null
+            echo '[FAIL] external CUDA Samples configure'
+            tail -n 160 "$OUT/cuda_samples_configure.log" 2>/dev/null
             CUDA_SAMPLES_PASS=0
         fi
-    else
-        echo '[FAIL] external CUDA Samples fetch/configure'
-        cat "$EXTERNAL_LOG" 2>/dev/null
-        tail -n 120 "$OUT/cuda_samples_configure.log" 2>/dev/null
-        CUDA_SAMPLES_PASS=0
     fi
 else
     echo '[FAIL] external CUDA Samples smoke unavailable'
     CUDA_SAMPLES_PASS=0
 fi
+
 if [ "$CUDA_SAMPLES_PASS" -eq 1 ]; then
     echo 'CUDA_SAMPLES_CMAKE_REGRESSION_PASS'
 else
