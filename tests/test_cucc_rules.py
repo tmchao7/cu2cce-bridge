@@ -82,6 +82,13 @@ class CuccRuleDriverTest(unittest.TestCase):
         self.assertNotIn(str(self.cucc / "include/shadow"), prepared.args)
         self.assertEqual(self.driver(CU2CCE_LIBC_MODE="system").libc_mode, "system")
 
+    def test_bridge_include_paths_precede_user_cann_paths(self) -> None:
+        prepared = self.driver().prepare(["-c", "main.cu", "-I", "/usr/local/Ascend/latest/include", "-o", "main.o"])
+        bridge_index = prepared.args.index("-I")
+        self.assertEqual(prepared.args[bridge_index + 1], str(self.cucc / "include/shadow"))
+        cann_index = prepared.args.index("/usr/local/Ascend/latest/include")
+        self.assertLess(bridge_index, cann_index)
+
     def test_shared_cuda_link_injects_pic(self) -> None:
         prepared = self.driver().prepare(["-shared", "main.cu", "-o", "libmain.so"])
         self.assertEqual(prepared.phase, "compile_and_link")

@@ -497,8 +497,22 @@ class RuleDriver:
             if language_index >= 0:
                 injections = injections[:language_index] + injections[language_index + 2:]
             prefix = ["-x", "asc"]
-        result = [*prefix, *result]
-        result.extend(injections)
+
+        # Bridge compatibility headers must precede user/CANN include paths.
+        # Otherwise an installed CANN cooperative_groups.h or CUDA header can
+        # win before cu2cce's compatibility facade is considered. Keep all
+        # injected -I/-include pairs in a deterministic front section.
+        include_prefix: List[str] = []
+        remaining_injections: List[str] = []
+        i = 0
+        while i < len(injections):
+            if injections[i] in ("-I", "-include") and i + 1 < len(injections):
+                include_prefix.extend(injections[i:i + 2])
+                i += 2
+                continue
+            remaining_injections.append(injections[i])
+            i += 1
+        result = [*prefix, *include_prefix, *result, *remaining_injections]
         if output and output.endswith(".o") and "-c" not in result:
             result.insert(0, "-c")
 
