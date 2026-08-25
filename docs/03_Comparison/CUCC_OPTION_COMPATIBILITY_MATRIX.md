@@ -49,3 +49,9 @@ headers whose exception specifications conflict with the minimal shadow declarat
 shadow mode includes the bridge math declarations, while system mode includes the real
 system `<math.h>`. This keeps upstream samples that call `fabs` without a separate math
 include source-compatible.
+
+
+For host-only `.cpp` translation units that include `cuda_runtime.h`, the header selects
+system `<math.h>` because no device-compilation marker is present. ccec CUDA translation
+units receive `__CU2CCE_DEVICE_COMPILATION__` and keep the shadow math declarations in the
+default shadow mode.

@@ -417,6 +417,14 @@
       {
         "tokens": [
           "-D",
+          "__CU2CCE_DEVICE_COMPILATION__"
+        ],
+        "when": "source_is_cuda",
+        "reason": "mark ccec CUDA translation units for compatibility headers"
+      },
+      {
+        "tokens": [
+          "-D",
           "CUDA_VERSION=${CUCC_CUDA_VERSION}"
         ]
       },

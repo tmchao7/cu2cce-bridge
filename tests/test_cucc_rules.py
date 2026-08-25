@@ -62,6 +62,7 @@ class CuccRuleDriverTest(unittest.TestCase):
         self.assertNotIn("-gencode", prepared.args)
         self.assertIn("-c", prepared.args)
         self.assertIn("--cce-aicore-arch=dav-c310-vec", prepared.args)
+        self.assertIn("__CU2CCE_DEVICE_COMPILATION__", prepared.args)
 
     def test_object_link_drops_cudart_but_does_not_map_cublas(self) -> None:
         prepared = self.driver().prepare([
@@ -77,6 +78,7 @@ class CuccRuleDriverTest(unittest.TestCase):
         prepared = self.driver(CU2CCE_LIBC_MODE="system").prepare(["-c", "main.cu", "-o", "main.o"])
         self.assertNotIn("__CU2CCE_NO_LIBC__", prepared.args)
         self.assertIn("__CU2CCE_SYSTEM_LIBC__", prepared.args)
+        self.assertIn("__CU2CCE_DEVICE_COMPILATION__", prepared.args)
         self.assertNotIn(str(self.cucc / "include/shadow"), prepared.args)
         self.assertEqual(self.driver(CU2CCE_LIBC_MODE="system").libc_mode, "system")
 
