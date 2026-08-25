@@ -130,6 +130,16 @@ device_link
 
 ## 6. 大型工程排障
 
+C/C++ header mode：
+
+```bash
+# 默认：shadow minimal libc headers，用于已验证的最小 puresimt 样例
+CU2CCE_LIBC_MODE=shadow cucc -c kernel.cu -o kernel.o
+
+# 外部大型 C++/CUDA 工程：使用系统 C/C++ headers
+CU2CCE_LIBC_MODE=system cucc -c kernel.cu -o kernel.o
+```
+
 调试：
 
 ```bash

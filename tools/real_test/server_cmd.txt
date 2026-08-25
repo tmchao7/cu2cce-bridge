@@ -438,12 +438,15 @@ if [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$EXTERNAL_FETCH" ] && [ -x "$CMAKE_CCE" 
     if OUT_DIR="$OUT" CUDA_SAMPLES_SOURCE_DIR="$EXTERNAL_SOURCE" \
         "$EXTERNAL_FETCH" >"$EXTERNAL_LOG" 2>&1 && \
        CUCC_PATH="$PWD/build/real_test/install" CUDA_PATH="$CUCC_PATH" PATH="$CUCC_PATH/bin:$PATH" \
+       CU2CCE_LIBC_MODE=system \
        "$CMAKE_CCE" -S examples/external/cuda_samples_project -B "$EXTERNAL_BUILD" \
          -DCUDA_SAMPLES_SOURCE_DIR="$EXTERNAL_SOURCE" \
          -DCMAKE_CUDA_ARCHITECTURES=OFF -DCMAKE_BUILD_TYPE=Release \
          >"$OUT/cuda_samples_configure.log" 2>&1; then
         echo '[PASS] external CUDA Samples configure'
-        if cmake --build "$EXTERNAL_BUILD" --target vectorAdd matrixMul reduction simpleStreams simpleMultiCopy \
+        if CU2CCE_LIBC_MODE=system CUCC_PATH="$PWD/build/real_test/install" CUDA_PATH="$CUCC_PATH" \
+           PATH="$CUCC_PATH/bin:$PATH" \
+           cmake --build "$EXTERNAL_BUILD" --target vectorAdd matrixMul reduction simpleStreams simpleMultiCopy \
             >"$EXTERNAL_BUILD_LOG" 2>&1; then
             echo '[PASS] external CUDA Samples build'
             for sample in vectorAdd matrixMul reduction; do

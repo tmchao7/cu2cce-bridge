@@ -32,3 +32,13 @@ Rules are implemented by `config/cu2cce_rules.json` and shared by `cucc` and the
 
 A status applies only to the tested form and backend. It is not a promise of complete NVIDIA
 CUDA compiler or library equivalence.
+
+## Header mode
+
+| Mode | Behavior | Status |
+|---|---|---|
+| `CU2CCE_LIBC_MODE=shadow` | injects minimal shadow libc headers and `__CU2CCE_NO_LIBC__` | `SUPPORTED` for existing puresimt regression |
+| `CU2CCE_LIBC_MODE=system` | keeps system C/C++ headers and omits shadow libc injection | `EXPERIMENTAL` for external C++/CUDA projects |
+
+The external CUDA Samples profile uses `system` mode because libstdc++ includes glibc
+headers whose exception specifications conflict with the minimal shadow declarations.

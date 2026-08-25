@@ -73,6 +73,12 @@ class CuccRuleDriverTest(unittest.TestCase):
         self.assertIn("-lcce_bridge_runtime", prepared.args)
         self.assertNotIn("--enable-simt", prepared.args)
 
+    def test_system_libc_mode_avoids_shadow_headers(self) -> None:
+        prepared = self.driver(CU2CCE_LIBC_MODE="system").prepare(["-c", "main.cu", "-o", "main.o"])
+        self.assertNotIn("__CU2CCE_NO_LIBC__", prepared.args)
+        self.assertNotIn(str(self.cucc / "include/shadow"), prepared.args)
+        self.assertEqual(self.driver(CU2CCE_LIBC_MODE="system").libc_mode, "system")
+
     def test_shared_cuda_link_injects_pic(self) -> None:
         prepared = self.driver().prepare(["-shared", "main.cu", "-o", "libmain.so"])
         self.assertEqual(prepared.phase, "compile_and_link")

@@ -96,3 +96,10 @@ The build compatibility branch fetches a pinned upstream sample tree into
 selected sample CMake projects through `cmake_cce`. The pinned profile is
 `v12.8` revision `db3eea23946bca2e90a75eca2b5b3e07158a9e11`; it is an experimental
 build-graph test, not a full CUDA 12.8 compatibility claim.
+
+
+## libc header modes
+
+The ordinary puresimt regression keeps the default `CU2CCE_LIBC_MODE=shadow` mode.
+External C++/CUDA projects that include libstdc++ headers should use
+`CU2CCE_LIBC_MODE=system`; the external CUDA Samples profile sets this automatically.

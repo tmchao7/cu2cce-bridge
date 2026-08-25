@@ -60,6 +60,9 @@ class RuleDriver:
         self.debug_enabled = self.env.get("CU2CCE_DEBUG", "0") == "1" or \
             self.env.get("WCUDA_DEBUG", "0") == "1"
         self.strict = self.env.get("CU2CCE_STRICT_FLAGS", "0") == "1"
+        self.libc_mode = self.env.get("CU2CCE_LIBC_MODE", "shadow").lower()
+        if self.libc_mode not in {"shadow", "system"}:
+            raise DriverError("CU2CCE_LIBC_MODE must be shadow or system")
         self.cmake_identity = cmake_identity
         self.rules_path = self._select_rules_file(rules_file)
         try:
@@ -293,6 +296,9 @@ class RuleDriver:
         shared_link = any(arg == "-shared" or arg.startswith("-shared=") for arg in args)
         return {
             "shared_link_without_pic": shared_link and not has_pic,
+            "system_libc": self.libc_mode == "system",
+            "not_system_libc": self.libc_mode != "system",
+            "has_shadow_compat": has_simt and self.libc_mode != "system" and bool(self.cucc_path and (self.cucc_path / "include/shadow").is_dir()),
             "has_cucc": bool(self.cucc_path and self.cucc_path.is_dir()),
             "has_shadow": (self.cucc_path / "include/shadow").is_dir() if self.cucc_path else False,
             "has_samples_common": (self.cucc_path / "third_party/nvidia_cuda_samples/Common").is_dir() if self.cucc_path else False,
@@ -539,6 +545,7 @@ class RuleDriver:
             "mode": prepared.mode,
             "inputs": prepared.inputs,
             "source_is_cuda": prepared.source_is_cuda,
+            "libc_mode": self.libc_mode,
             "rules_file": prepared.rules_file,
             "actions": [
                 {

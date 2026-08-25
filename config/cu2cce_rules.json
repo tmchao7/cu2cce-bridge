@@ -335,7 +335,7 @@
           "-I",
           "${CUCC_PATH}/include/shadow"
         ],
-        "when": "has_shadow"
+        "when": "has_shadow_compat"
       },
       {
         "tokens": [
@@ -394,7 +394,8 @@
         "tokens": [
           "-D",
           "__CU2CCE_NO_LIBC__"
-        ]
+        ],
+        "when": "not_system_libc"
       },
       {
         "tokens": [
