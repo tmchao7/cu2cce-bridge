@@ -43,6 +43,8 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         self.assertIn("INTERFACE_INCLUDE_DIRECTORIES", module)
         harness = (ROOT / "examples/external/cuda_samples_project/CMakeLists.txt").read_text(encoding="utf-8")
         self.assertIn("__CU2CCE_SYSTEM_LIBC__", harness)
+        self.assertIn("cooperative_groups.h", harness)
+        self.assertIn("target_compile_options(reduction", harness)
 
     def test_external_cuda_samples_profile_is_pinned(self) -> None:
         profile = (ROOT / "examples/external/cuda_samples_project/profile_core.json").read_text(encoding="utf-8")
