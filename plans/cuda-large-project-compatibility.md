@@ -1,0 +1,57 @@
+# CUDA Large Project Compatibility Plan
+
+## Baseline
+
+Branch: `exp/build-compat`.
+
+Current real-device baseline:
+
+```text
+PURESIMT_REGRESSION_PASS
+CMAKE_CCE_REGRESSION_PASS
+BUILD_COMPATIBILITY_REGRESSION_PASS
+```
+
+## Goals
+
+- Validate an unmodified upstream CUDA CMake project.
+- Make CMake, Make/Ninja, and cucc parameter policy share one backend driver.
+- Keep CUDA libraries and device-link/RDC as separately declared capabilities.
+- Preserve the puresimt direct path and never generate legacy `.cce` or wrapper source.
+
+## Work order
+
+1. Maintain the compatibility matrices and option policy.
+2. Extend cucc query/preprocess/dependency tests and rule validation.
+3. Extend CMake target graph, package, install/export, and unsupported-target diagnostics.
+4. Add a pinned NVIDIA CUDA Samples CMake harness.
+5. Fetch the upstream source into `build/real_test/external/` without modifying it.
+6. Run the curated upstream samples on Ascend; promote only evidence-backed states.
+
+## External project pin
+
+`NVIDIA/cuda-samples` tag `v12.8` is the first selected historical tag with the modern
+CMake sample structure. It is closer to the CANN CUDA 11.6 compatibility surface than the
+current v13.x tree, but remains an `EXPERIMENTAL` build-graph test rather than a claim of
+full CUDA 12.8 semantic support. GPU architecture lists, separable compilation, and
+unsupported library samples are disabled or diagnosed by the harness.
+
+Resolved revision:
+
+```text
+db3eea23946bca2e90a75eca2b5b3e07158a9e11
+```
+
+## Acceptance
+
+```text
+PURESIMT_REGRESSION_PASS
+CMAKE_CCE_REGRESSION_PASS
+BUILD_COMPATIBILITY_REGRESSION_PASS
+CUDA_SAMPLES_CMAKE_REGRESSION_PASS
+CUCC_RULES_REGRESSION_PASS
+```
+
+The upstream sample source tree remains outside version control under
+`build/real_test/external/nvidia_cuda_samples/`; only the harness, profile, fetch script,
+and revision are committed.

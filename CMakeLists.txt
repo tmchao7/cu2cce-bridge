@@ -83,6 +83,8 @@ install(PROGRAMS tools/make_cce tools/cmake_cce tools/ninja_cce
 install(PROGRAMS tools/nvcc_entry.sh tools/cu2cce_driver.py tools/validate_cucc_rules.py
         DESTINATION ${CMAKE_INSTALL_PREFIX}/tools)
 install(DIRECTORY tools/mock DESTINATION ${CMAKE_INSTALL_PREFIX}/tools)
+install(PROGRAMS tools/real_test/fetch_external_cuda_samples.sh
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/tools/real_test)
 
 # Optional CMake compatibility modules used by cmake_cce. These modules only
 # expose validated bridge-backed targets and legacy build macros; they do not

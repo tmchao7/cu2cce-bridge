@@ -37,6 +37,7 @@ OUT="$PWD/build/real_test/puresimt"
 mkdir -p "$OUT"
 rm -f "$OUT"/*
 FAIL=0
+CUCC_RULES_PASS=1
 DEVICE_HEALTHY=0
 DEVICE_ACCESS_DENIED=0
 TEST_BLOCKED_BY_DEVICE=0
@@ -124,7 +125,7 @@ if [ -e "$PWD/build/real_test/install/lib/libcce_bridge_runtime.so" ]; then
 fi
 export LD_LIBRARY_PATH="$REPO_LIB:$CANN_BASE/lib64:${LD_LIBRARY_PATH:-}"
 
-printf '\n===== [2.75/4] cucc puresimt 直通检查 =====\n'
+printf '\n===== [2.75/7] cucc puresimt 直通检查 =====\n'
 CUCC_BIN="$PWD/build/real_test/install/bin/cucc"
 CUCC_OBJ="$OUT/cucc_vectorAdd_minimal.o"
 CUCC_LOG="$OUT/cucc_direct.log"
@@ -137,12 +138,14 @@ if [ -x "$CUCC_BIN" ] && CUCC_PATH="$PWD/build/real_test/install" CUDA_PATH="$PW
         echo '[FAIL] cucc 仍触发 legacy kernel lowering'
         cat "$CUCC_LOG"
         FAIL=$((FAIL + 1))
+        CUCC_RULES_PASS=0
     elif [ ! -s "$CUCC_TRACE" ] || ! grep -Fq '"phase": "compile"' "$CUCC_TRACE" || \
          ! grep -Fq -- '--enable-simt' "$CUCC_TRACE"; then
         echo '[FAIL] cucc rule policy trace missing compile/SIMT decisions'
         cat "$CUCC_LOG"
         cat "$CUCC_TRACE" 2>/dev/null
         FAIL=$((FAIL + 1))
+        CUCC_RULES_PASS=0
     else
         echo '[PASS] cucc 直接调用 ccec；规则驱动 trace 与 SIMT 注入通过；未生成 legacy converter/.cce 中间文件'
     fi
@@ -150,6 +153,7 @@ else
     echo '[FAIL] cucc puresimt direct compile'
     cat "$CUCC_LOG" 2>/dev/null
     FAIL=$((FAIL + 1))
+    CUCC_RULES_PASS=0
 fi
 
 CUCC_REJECT_LOG="$OUT/cucc_reject.log"
@@ -158,11 +162,18 @@ if CUCC_PATH="$PWD/build/real_test/install" CUDA_PATH="$PWD/build/real_test/inst
     echo '[FAIL] cucc accepted unsupported PTX generation'
     cat "$CUCC_REJECT_LOG"
     FAIL=$((FAIL + 1))
+    CUCC_RULES_PASS=0
 else
     echo '[PASS] cucc rejects unsupported PTX/device artifact policy'
 fi
 
-printf '\n===== [3/4] puresimt CUDA Samples + operator tests 编译 + 运行 =====\n'
+if [ "$CUCC_RULES_PASS" -eq 1 ]; then
+    echo 'CUCC_RULES_REGRESSION_PASS'
+else
+    echo 'CUCC_RULES_REGRESSION_FAIL'
+fi
+
+printf '\n===== [3/7] puresimt CUDA Samples + operator tests 编译 + 运行 =====\n'
 CCEC="$CANN_BASE/bin/ccec"
 PS_FLAGS="-x asc --cce-aicore-arch=dav-c310-vec --enable-simt -std=c++17"
 for pair in \
@@ -238,7 +249,7 @@ for pair in \
     fi
 done
 
-printf '\n===== [4/6] puresimt 汇总 =====\n'
+printf '\n===== [4/7] puresimt 汇总 =====\n'
 echo "FAIL=$FAIL DEVICE_HEALTHY=$DEVICE_HEALTHY TEST_BLOCKED_BY_DEVICE=$TEST_BLOCKED_BY_DEVICE"
 echo "完整日志：$OUT"
 if [ "$TEST_BLOCKED_BY_DEVICE" -eq 1 ]; then
@@ -249,7 +260,7 @@ else
     echo 'PURESIMT_REGRESSION_FAIL（查看上方各 .log）'
 fi
 
-printf '\n===== [5/6] CMake CUDA integration smoke =====\n'
+printf '\n===== [5/7] CMake CUDA integration smoke =====\n'
 CMAKE_CCE="$REPO_LIB/../bin/cmake_cce"
 CMAKE_PASS=1
 
@@ -372,7 +383,7 @@ else
     echo 'CMAKE_CCE_REGRESSION_FAIL（查看上方各 CMake 日志）'
 fi
 
-printf '\n===== [6/6] Make/Ninja build compatibility smoke =====\n'
+printf '\n===== [6/7] Make/Ninja build compatibility smoke =====\n'
 BUILD_COMPAT_PASS=1
 MAKE_CCE="$REPO_LIB/../bin/make_cce"
 NINJA_CCE="$REPO_LIB/../bin/ninja_cce"
@@ -415,6 +426,67 @@ else
     echo 'BUILD_COMPATIBILITY_REGRESSION_FAIL（查看 Make/Ninja 日志）'
 fi
 
+printf '\n===== [7/7] External NVIDIA CUDA Samples CMake smoke =====\n'
+CUDA_SAMPLES_PASS=1
+EXTERNAL_FETCH="$PWD/tools/real_test/fetch_external_cuda_samples.sh"
+EXTERNAL_SOURCE="$OUT/external/nvidia_cuda_samples"
+EXTERNAL_BUILD="$OUT/cuda-samples-build"
+EXTERNAL_LOG="$OUT/cuda_samples.log"
+EXTERNAL_BUILD_LOG="$OUT/cuda_samples_build.log"
+rm -rf "$EXTERNAL_BUILD"
+if [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$EXTERNAL_FETCH" ] && [ -x "$CMAKE_CCE" ]; then
+    if OUT_DIR="$OUT" CUDA_SAMPLES_SOURCE_DIR="$EXTERNAL_SOURCE" \
+        "$EXTERNAL_FETCH" >"$EXTERNAL_LOG" 2>&1 && \
+       CUCC_PATH="$PWD/build/real_test/install" CUDA_PATH="$CUCC_PATH" PATH="$CUCC_PATH/bin:$PATH" \
+       "$CMAKE_CCE" -S examples/external/cuda_samples_project -B "$EXTERNAL_BUILD" \
+         -DCUDA_SAMPLES_SOURCE_DIR="$EXTERNAL_SOURCE" \
+         -DCMAKE_CUDA_ARCHITECTURES=OFF -DCMAKE_BUILD_TYPE=Release \
+         >"$OUT/cuda_samples_configure.log" 2>&1; then
+        echo '[PASS] external CUDA Samples configure'
+        if cmake --build "$EXTERNAL_BUILD" --target vectorAdd matrixMul reduction simpleStreams simpleMultiCopy \
+            >"$EXTERNAL_BUILD_LOG" 2>&1; then
+            echo '[PASS] external CUDA Samples build'
+            for sample in vectorAdd matrixMul reduction; do
+                binary="$EXTERNAL_BUILD/$sample/$sample"
+                run_log="$OUT/cuda_samples_${sample}.run.log"
+                if [ "$sample" = vectorAdd ]; then expect='Test PASSED'; fi
+                if [ "$sample" = matrixMul ]; then expect='Result = PASS'; fi
+                if [ "$sample" = reduction ]; then expect='Test PASSED'; fi
+                if [ -x "$binary" ] && "$binary" >"$run_log" 2>&1 && grep -Fq "$expect" "$run_log"; then
+                    echo "[PASS] external [$sample]: $(grep -F "$expect" "$run_log" | tail -n 1)"
+                else
+                    echo "[FAIL] external [$sample] run (log: $run_log)"
+                    cat "$run_log" 2>/dev/null
+                    CUDA_SAMPLES_PASS=0
+                fi
+            done
+            if grep -Eiq 'kernel[_ -]?convert|__simt_vf__|async_invoke|\.cce' \
+                "$OUT/cuda_samples_configure.log" "$EXTERNAL_BUILD_LOG"; then
+                echo '[FAIL] external CUDA Samples emitted legacy lowering markers'
+                CUDA_SAMPLES_PASS=0
+            fi
+        else
+            echo '[FAIL] external CUDA Samples build'
+            tail -n 120 "$EXTERNAL_BUILD_LOG" 2>/dev/null
+            CUDA_SAMPLES_PASS=0
+        fi
+    else
+        echo '[FAIL] external CUDA Samples fetch/configure'
+        cat "$EXTERNAL_LOG" 2>/dev/null
+        tail -n 120 "$OUT/cuda_samples_configure.log" 2>/dev/null
+        CUDA_SAMPLES_PASS=0
+    fi
+else
+    echo '[FAIL] external CUDA Samples smoke unavailable'
+    CUDA_SAMPLES_PASS=0
+fi
+if [ "$CUDA_SAMPLES_PASS" -eq 1 ]; then
+    echo 'CUDA_SAMPLES_CMAKE_REGRESSION_PASS'
+else
+    FAIL=$((FAIL + 1))
+    echo 'CUDA_SAMPLES_CMAKE_REGRESSION_FAIL（查看 external CUDA Samples 日志）'
+fi
+
 printf '\n===== FINAL SUMMARY =====\n'
 echo "FAIL=$FAIL DEVICE_HEALTHY=$DEVICE_HEALTHY TEST_BLOCKED_BY_DEVICE=$TEST_BLOCKED_BY_DEVICE"
 echo "完整日志：$OUT"
@@ -427,6 +499,12 @@ elif [ "$FAIL" -eq 0 ]; then
     fi
     if [ "${BUILD_COMPAT_PASS:-0}" -eq 1 ]; then
         echo 'BUILD_COMPATIBILITY_REGRESSION_PASS'
+    fi
+    if [ "${CUDA_SAMPLES_PASS:-0}" -eq 1 ]; then
+        echo 'CUDA_SAMPLES_CMAKE_REGRESSION_PASS'
+    fi
+    if [ "${CUCC_RULES_PASS:-0}" -eq 1 ]; then
+        echo 'CUCC_RULES_REGRESSION_PASS'
     fi
 else
     echo 'REGRESSION_FAIL（查看上方各 .log）'

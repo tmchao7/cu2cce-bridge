@@ -87,3 +87,12 @@ The current compatibility branch also exercises:
 
 The final server summary reports `BUILD_COMPATIBILITY_REGRESSION_PASS` only when the
 required Make/Ninja checks pass in addition to puresimt and CMake checks.
+
+
+## External NVIDIA CUDA Samples
+
+The build compatibility branch fetches a pinned upstream sample tree into
+`build/real_test/external/nvidia_cuda_samples/` and configures the unmodified
+selected sample CMake projects through `cmake_cce`. The pinned profile is
+`v12.8` revision `db3eea23946bca2e90a75eca2b5b3e07158a9e11`; it is an experimental
+build-graph test, not a full CUDA 12.8 compatibility claim.

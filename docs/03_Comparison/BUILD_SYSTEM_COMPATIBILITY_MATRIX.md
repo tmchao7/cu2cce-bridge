@@ -44,3 +44,12 @@
 CMake 参数过滤问题，也不能用 `--allow-multiple-definition` 伪装修复。当前测试将每个
 linked static/shared library 限制为一个 `.cu`，并把该场景标记为未完成的 backend
 translation-unit aggregation 能力。
+
+## External upstream project
+
+The curated external profile is pinned to NVIDIA/cuda-samples `v12.8` revision
+`db3eea23946bca2e90a75eca2b5b3e07158a9e11`. The source is fetched into
+`build/real_test/external/` and remains unmodified. Because this revision uses
+CUDA-era CMake features newer than the CANN compatibility version, its status is
+`EXPERIMENTAL`; the profile validates the build graph and selected core samples,
+not complete CUDA 12.8 API compatibility.

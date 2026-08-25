@@ -1,0 +1,13 @@
+{
+  "project": "NVIDIA/cuda-samples",
+  "ref": "db3eea23946bca2e90a75eca2b5b3e07158a9e11",
+  "tag": "v12.8",
+  "samples": [
+    {"name": "vectorAdd", "path": "Samples/0_Introduction/vectorAdd", "run": "vectorAdd", "expect": "Test PASSED"},
+    {"name": "matrixMul", "path": "Samples/0_Introduction/matrixMul", "run": "matrixMul", "expect": "Result = PASS"},
+    {"name": "reduction", "path": "Samples/2_Concepts_and_Techniques/reduction", "run": "reduction", "expect": "Test PASSED"},
+    {"name": "simpleStreams", "path": "Samples/0_Introduction/simpleStreams", "build_only": true},
+    {"name": "simpleMultiCopy", "path": "Samples/0_Introduction/simpleMultiCopy", "build_only": true}
+  ],
+  "disabled_features": ["CUDA_ARCHITECTURES", "CUDA_SEPARABLE_COMPILATION", "PTX", "FATBIN", "CUDA libraries"]
+}

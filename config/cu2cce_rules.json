@@ -239,6 +239,22 @@
       {
         "pattern": "--cuda-path=*",
         "reason": "CUDA toolchain path is selected by cu2cce/CANN"
+      },
+      {
+        "pattern": "--extended-lambda",
+        "reason": "nvcc extended-lambda spelling is not needed by ccec"
+      },
+      {
+        "pattern": "-lineinfo",
+        "reason": "CUDA lineinfo option is not part of the current ccec policy"
+      },
+      {
+        "pattern": "--lineinfo",
+        "reason": "CUDA lineinfo option is not part of the current ccec policy"
+      },
+      {
+        "pattern": "-Wno-deprecated-gpu-targets",
+        "reason": "NVIDIA GPU warning control is not applicable to ccec"
       }
     ],
     "replace": [
