@@ -18,6 +18,7 @@ Rules are implemented by `config/cu2cce_rules.json` and shared by `cucc` and the
 | `--ptxas-options/-Xptxas` | separate/equal | compile | DROP | `DIAGNOSTIC_ONLY` | ptxas is not used |
 | `--extended-lambda` | exact | compile | DROP | `DIAGNOSTIC_ONLY` | ccec does not need nvcc spelling |
 | `--lineinfo`/`-lineinfo` | exact | compile | DROP | `DIAGNOSTIC_ONLY` | not part of the current ccec policy |
+| `--cuda-gpu-arch=sm_*` | equal | compile | DROP | `DIAGNOSTIC_ONLY` | Clang/CMake GPU architecture spelling is not used by ccec |
 | `-M/-MM` | exact | dependency | FORWARD | `EXPERIMENTAL` | real ccec dependency output pending |
 | `-MD/-MF/-MT` | exact/separate | compile/dependency | FORWARD | `EXPERIMENTAL` | dedicated Makefile smoke |
 | `-E` | exact | preprocess | FORWARD | `EXPERIMENTAL` | phase is not linked |
@@ -42,3 +43,9 @@ CUDA compiler or library equivalence.
 
 The external CUDA Samples profile uses `system` mode because libstdc++ includes glibc
 headers whose exception specifications conflict with the minimal shadow declarations.
+
+
+`cuda_runtime.h` also provides the common CUDA-transitive math declaration behavior:
+shadow mode includes the bridge math declarations, while system mode includes the real
+system `<math.h>`. This keeps upstream samples that call `fabs` without a separate math
+include source-compatible.

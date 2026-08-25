@@ -32,6 +32,16 @@
 #include "bridge/runtime/cuda_to_cce_mcr_adaptor.h"
 #include "bridge/runtime/cuda_wrapper_internal.h"
 #include "bridge/runtime/cuda_wrapper_types.h"
+
+/* CUDA runtime headers normally make common device/host math declarations
+ * available transitively. Keep that source-level behavior without forcing the
+ * minimal shadow libc declarations onto libstdc++ projects. */
+#if defined(__CU2CCE_SYSTEM_LIBC__)
+#include <math.h>
+#else
+#include "shadow/math.h"
+#endif
+
 /* puresimt kernel 原语（__shared__/__syncthreads/atomicAdd）在 -x asc 直通下
  * 由本适配头映射到昇腾 SIMT（__ubuf__/asc_syncthreads/asc_atomic_add） */
 #include "bridge/kernel/simt_adaptor.h"

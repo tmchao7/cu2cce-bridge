@@ -76,6 +76,7 @@ class CuccRuleDriverTest(unittest.TestCase):
     def test_system_libc_mode_avoids_shadow_headers(self) -> None:
         prepared = self.driver(CU2CCE_LIBC_MODE="system").prepare(["-c", "main.cu", "-o", "main.o"])
         self.assertNotIn("__CU2CCE_NO_LIBC__", prepared.args)
+        self.assertIn("__CU2CCE_SYSTEM_LIBC__", prepared.args)
         self.assertNotIn(str(self.cucc / "include/shadow"), prepared.args)
         self.assertEqual(self.driver(CU2CCE_LIBC_MODE="system").libc_mode, "system")
 

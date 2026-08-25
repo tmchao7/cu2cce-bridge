@@ -255,6 +255,15 @@
       {
         "pattern": "-Wno-deprecated-gpu-targets",
         "reason": "NVIDIA GPU warning control is not applicable to ccec"
+      },
+      {
+        "pattern": "--cuda-gpu-arch=*",
+        "reason": "Clang CUDA GPU architecture is not used by Ascend ccec"
+      },
+      {
+        "pattern": "--cuda-gpu-arch",
+        "takes_value": true,
+        "reason": "Clang CUDA GPU architecture is not used by Ascend ccec"
       }
     ],
     "replace": [
@@ -396,6 +405,14 @@
           "__CU2CCE_NO_LIBC__"
         ],
         "when": "not_system_libc"
+      },
+      {
+        "tokens": [
+          "-D",
+          "__CU2CCE_SYSTEM_LIBC__"
+        ],
+        "when": "system_libc",
+        "reason": "use system C/C++ headers for large host projects"
       },
       {
         "tokens": [
