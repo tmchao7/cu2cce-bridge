@@ -170,11 +170,22 @@ def filter_args(args: List[str]) -> List[str]:
 
         if arg in NVIDIA_VALUE_OPTIONS:
             if i + 1 < len(args):
-                warn(f"ignored NVIDIA-specific option {arg} {args[i + 1]}")
+                value = args[i + 1]
+                if arg in {"--cuda-path", "-x"}:
+                    # These are CMake protocol details, not user CUDA
+                    # semantics. cucc determines the real language/path.
+                    debug(f"filtered CMake protocol option {arg} {value}")
+                else:
+                    warn(f"ignored NVIDIA-specific option {arg} {value}")
                 i += 2
             else:
                 warn(f"ignored NVIDIA-specific option {arg} without a value")
                 i += 1
+            continue
+
+        if arg.startswith("--cuda-path="):
+            debug(f"filtered CMake protocol option {arg}")
+            i += 1
             continue
 
         if arg.startswith((

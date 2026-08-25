@@ -97,10 +97,13 @@ export LD_LIBRARY_PATH="$CUCC_PATH/lib:$CANN_BASE/lib64:$CANN_BASE/runtime/lib64
 args=("$@")
 have_arch=0
 have_module_path=0
+have_runtime=0
 for index in "${!args[@]}"; do
     arg="${args[$index]}"
     case "$arg" in
         -DCMAKE_CUDA_ARCHITECTURES=*|-DCMAKE_CUDA_ARCHITECTURES) have_arch=1;;
+        -DCMAKE_CUDA_RUNTIME_LIBRARY=*) have_runtime=1;;
+        -DCMAKE_CUDA_RUNTIME_LIBRARY) have_runtime=1;;
         -DCMAKE_MODULE_PATH=*)
             have_module_path=1
             user_module_path="${arg#-DCMAKE_MODULE_PATH=}"
@@ -117,6 +120,12 @@ if [ "$have_arch" -eq 0 ]; then
     # CMake's generated -gencode flags describe NVIDIA GPUs. ccec selects the
     # Ascend target through CU2CCE_NPU_ARCH instead.
     args+=("-DCMAKE_CUDA_ARCHITECTURES=OFF")
+fi
+if [ "$have_runtime" -eq 0 ]; then
+    # CMake otherwise injects -lcudadevrt/-lcudart_static into host targets
+    # that link a CUDA library. Those NVIDIA runtime libraries do not exist on
+    # Ascend; CUDA::cudart is provided explicitly by FindCUDAToolkit.cmake.
+    args+=("-DCMAKE_CUDA_RUNTIME_LIBRARY=None")
 fi
 if [ "$have_module_path" -eq 0 ]; then
     args+=("-DCMAKE_MODULE_PATH=$CUCC_PATH/cmake_modules")
