@@ -33,16 +33,13 @@
 #include "bridge/runtime/cuda_wrapper_internal.h"
 #include "bridge/runtime/cuda_wrapper_types.h"
 
-/* CUDA runtime headers normally make common device/host math declarations
- * available transitively. Keep that source-level behavior without forcing the
- * minimal shadow libc declarations onto libstdc++ projects. */
+/* Large C++/CUDA projects can opt into the real system math declarations.
+ * The default runtime header does not include shadow/math.h transitively: a
+ * CUDA sample may include libstdc++'s <math.h> later, and predeclaring the
+ * shadow functions would conflict with glibc exception specifications. Minimal
+ * tests that need math declarations explicitly preinclude shadow/math.h. */
 #if defined(__CU2CCE_SYSTEM_LIBC__)
-/* Large C++/CUDA projects can opt into the real system math declarations. */
 #include <math.h>
-#else
-/* The default puresimt path, including direct ccec invocations, uses the
- * declaration-only header to avoid the known glibc/ccec device conflict. */
-#include "shadow/math.h"
 #endif
 
 /* puresimt kernel 原语（__shared__/__syncthreads/atomicAdd）在 -x asc 直通下

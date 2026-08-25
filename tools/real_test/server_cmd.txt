@@ -212,7 +212,6 @@ for pair in \
     # the shadow math header for that sample (it would conflict with glibc specs).
     case "$name" in
         vectorAdd)
-            EXTRA_FLAGS+=( -include "$REPO_INC/shadow/math.h" )
             INCLUDE_FLAGS+=( -I"$NVIDIA_COMMON" )
             ;;
         matrixMul)

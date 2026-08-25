@@ -11,6 +11,16 @@
 
 #include <cuda_runtime.h>
 
+/* ccec's CUDA SIMT frontend accepts __global__ and CUDA launch syntax, but the
+ * CUDA spelling __device__ is not always predefined in -x asc mode. Map the
+ * small cooperative-groups facade to the real SIMT callee qualifier. */
+#ifndef __device__
+#define __device__ __simt_callee__
+#endif
+#ifndef __forceinline__
+#define __forceinline__ inline
+#endif
+
 namespace cooperative_groups {
 
 template <unsigned int BlockSize>

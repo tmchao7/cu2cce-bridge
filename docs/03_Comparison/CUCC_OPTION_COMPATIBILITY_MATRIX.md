@@ -60,3 +60,8 @@ default shadow mode.
 `cooperative_groups.h` and `cooperative_groups/reduce.h` currently provide a minimal
 source-level facade for the selected external reduction sample. This is not a claim of
 complete CUDA Cooperative Groups API compatibility.
+
+
+The runtime header intentionally does not preinclude `shadow/math.h`. Existing minimal math
+regressions explicitly request it, while upstream C++/CUDA projects use system math in
+`CU2CCE_LIBC_MODE=system`; this prevents shadow/system exception-specification conflicts.
