@@ -1,3 +1,4 @@
 #!/bin/bash
-# mock nvcc 入口：把 nvcc 调用转给 mock_nvcc.py（回答 CMake 探测，其余透传 cucc）
-exec python3 "$CUCC_PATH/tools/mock/mock_nvcc.py" "$@"
+# CMake's nvcc entrypoint. All behavior belongs to mock_nvcc.py.
+set -euo pipefail
+exec python3 "${CUCC_PATH:?CUCC_PATH is not set}/tools/mock/mock_nvcc.py" "$@"

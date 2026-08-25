@@ -398,6 +398,21 @@ EXPERIMENTAL
 bash tools/real_test/server_cmd.txt
 ```
 
+## CMake 集成（experimental）
+
+标准 CUDA CMake 工程通常由 CMake 调用 nvcc。cu2cce-bridge 提供 `cmake_cce`，
+在不修改用户 `CMakeLists.txt`/`.cu` 的前提下建立临时 CUDA toolkit shim：
+
+```text
+CMake → shim/bin/nvcc → nvcc_entry → mock_nvcc → cucc → ccec
+```
+
+`cmake_cce` 只负责配置阶段和 CMake compiler detection；`cucc` 仍是实际参数、
+头文件、库和 ccec 的驱动。临时 shim 保留到构建目录后续 `cmake --build` 使用。
+首版目标是核心 CUDA CMake 工程，不承诺完整 CUDA package discovery、device-link
+或 `CUDA::cudart/CUDA::cublas` target。示例位于 `examples/cmake_demo/`，真机入口
+会输出 `CMAKE_CCE_REGRESSION_PASS`。
+
 ## 10. 项目摘要
 
 cu2cce-bridge 的 main 分支采用 puresimt 正式路线：不改写用户 CUDA 源码，不生成

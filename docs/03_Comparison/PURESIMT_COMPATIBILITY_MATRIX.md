@@ -172,7 +172,16 @@ cublas/aclblas 与 puresimt kernel 路线独立：
 - fp32 输入的 `cublasSgemm` fallback 会产生 fp16 输入精度损失；
 - 不把当前 BLAS wrapper 描述为完整 CUDA cuBLAS 兼容。
 
-## 7. 维护规则
+## 7. CMake Integration
+
+| Capability | Status | Evidence / boundary |
+|---|---|---|
+| `cmake_cce` + `project(... LANGUAGES CUDA)` core smoke | `EXPERIMENTAL` | `examples/cmake_demo`; configure/build/run must pass on Ascend |
+| CMake CUDA compiler detection shim | `EXPERIMENTAL` | `cmake_cce → nvcc_entry → mock_nvcc → cucc → ccec` |
+| `find_package(CUDAToolkit)` / `CUDA::cudart` | `UNSUPPORTED` for initial scope | not implemented as a compatibility promise |
+| CUDA device-link/separable compilation | `UNSUPPORTED` for initial scope | not covered by initial smoke |
+
+## 8. 维护规则
 
 每次新增测试必须同步：
 

@@ -128,7 +128,7 @@ CUCC_LOG="$OUT/cucc_direct.log"
 rm -f "$CUCC_OBJ" "$CUCC_LOG" "$OUT"/*.cce
 if [ -x "$CUCC_BIN" ] && CUCC_PATH="$PWD/build/real_test/install" CUDA_PATH="$PWD/build/real_test/install" \
     WCUDA_DEBUG=1 "$CUCC_BIN" -c examples/puresimt/vectorAdd_minimal.cu -o "$CUCC_OBJ" >"$CUCC_LOG" 2>&1; then
-    if grep -Eiq 'kernel[_ -]?convert|__simt_vf__|async_invoke' "$CUCC_LOG" || find "$OUT" -maxdepth 1 -name '*.cce' -print -quit | grep -q .; then
+    if grep -Eiq 'kernel[_ -]?convert|__simt_vf__|async_invoke' "$CUCC_LOG" || find "$OUT" "$OUT/cmake-build" -name '*.cce' -print -quit | grep -q .; then
         echo '[FAIL] cucc 仍触发 legacy kernel lowering'
         cat "$CUCC_LOG"
         FAIL=$((FAIL + 1))
@@ -217,7 +217,7 @@ for pair in \
     fi
 done
 
-printf '\n===== [4/4] 汇总 =====\n'
+printf '\n===== [4/5] puresimt 汇总 =====\n'
 echo "FAIL=$FAIL DEVICE_HEALTHY=$DEVICE_HEALTHY TEST_BLOCKED_BY_DEVICE=$TEST_BLOCKED_BY_DEVICE"
 echo "完整日志：$OUT"
 if [ "$TEST_BLOCKED_BY_DEVICE" -eq 1 ]; then
@@ -226,6 +226,61 @@ elif [ "$FAIL" -eq 0 ]; then
     echo 'PURESIMT_REGRESSION_PASS'
 else
     echo 'PURESIMT_REGRESSION_FAIL（查看上方各 .log）'
+fi
+
+printf '\n===== [5/5] CMake CUDA integration smoke =====\n'
+CMAKE_CCE="$REPO_LIB/../tools/cmake_cce"
+CMAKE_BUILD="$OUT/cmake-build"
+CMAKE_LOG="$OUT/cmake_configure.log"
+CMAKE_BUILD_LOG="$OUT/cmake_build.log"
+CMAKE_RUN_LOG="$OUT/cmake_run.log"
+rm -rf "$CMAKE_BUILD"
+if [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$CMAKE_CCE" ]; then
+    export CUCC_PATH="$PWD/build/real_test/install"
+    export CUDA_PATH="$CUCC_PATH"
+    export PATH="$CUCC_PATH/bin:$PATH"
+    if "$CMAKE_CCE" -S examples/cmake_demo -B "$CMAKE_BUILD" \
+        -DCMAKE_CUDA_ARCHITECTURES=OFF >"$CMAKE_LOG" 2>&1; then
+        echo '[PASS] CMake configure'
+        if cmake --build "$CMAKE_BUILD" >"$CMAKE_BUILD_LOG" 2>&1; then
+            echo '[PASS] CMake build'
+            if "$CMAKE_BUILD/cmake_vector_add" >"$CMAKE_RUN_LOG" 2>&1 && \
+               grep -Fq 'cmake vectorAdd OK' "$CMAKE_RUN_LOG"; then
+                echo "[PASS] CMake run: $(grep -F 'cmake vectorAdd OK' "$CMAKE_RUN_LOG")"
+                if grep -Eiq 'kernel[_ -]?convert|__simt_vf__|async_invoke' "$CMAKE_LOG" "$CMAKE_BUILD_LOG"; then
+                    echo '[FAIL] CMake path emitted legacy lowering markers'
+                    FAIL=$((FAIL + 1))
+                else
+                    echo '[PASS] CMake path has no legacy lowering markers'
+                fi
+                echo 'CMAKE_CCE_REGRESSION_PASS'
+            else
+                echo '[FAIL] CMake run'; cat "$CMAKE_RUN_LOG"
+                FAIL=$((FAIL + 1))
+            fi
+        else
+            echo '[FAIL] CMake build'; tail -n 40 "$CMAKE_BUILD_LOG"
+            FAIL=$((FAIL + 1))
+        fi
+    else
+        echo '[FAIL] CMake configure'; tail -n 60 "$CMAKE_LOG"
+        FAIL=$((FAIL + 1))
+    fi
+else
+    echo '[FAIL] CMake smoke unavailable: missing device or installed cmake_cce'
+    FAIL=$((FAIL + 1))
+fi
+
+printf '\n===== FINAL SUMMARY =====\n'
+echo "FAIL=$FAIL DEVICE_HEALTHY=$DEVICE_HEALTHY TEST_BLOCKED_BY_DEVICE=$TEST_BLOCKED_BY_DEVICE"
+echo "完整日志：$OUT"
+if [ "$TEST_BLOCKED_BY_DEVICE" -eq 1 ]; then
+    echo 'RESULT=TEST_BLOCKED_BY_DEVICE'
+elif [ "$FAIL" -eq 0 ]; then
+    echo 'PURESIMT_REGRESSION_PASS'
+    echo 'CMAKE_CCE_REGRESSION_PASS'
+else
+    echo 'REGRESSION_FAIL（查看上方各 .log）'
 fi
 
 

@@ -371,6 +371,42 @@ bash tools/real_test/clean.sh
 
 ---
 
+
+---
+
+## CMake CUDA 工程（实验性）
+
+如果已有标准 CUDA CMake 工程：
+
+```cmake
+project(cuda_demo LANGUAGES CXX CUDA)
+add_executable(app main.cu)
+```
+
+可尝试只替换配置入口，不修改 `CMakeLists.txt`：
+
+```bash
+export CU2CCE_BRIDGE=/home/t50063365/workspace/repos/cu2cce-bridge
+export CUCC_PATH=$CU2CCE_BRIDGE/build/real_test/install
+export CUDA_PATH=$CUCC_PATH
+export PATH=$CUCC_PATH/bin:$PATH
+
+cmake_cce -S /home/t50063365/workspace/repos/cu2cce-bridge/examples/cmake_demo \
+    -B /tmp/cu2cce-cmake-build
+cmake --build /tmp/cu2cce-cmake-build
+/tmp/cu2cce-cmake-build/cmake_vector_add
+```
+
+CMake 的 CUDA compiler detection 会经过：
+
+```text
+cmake_cce → CMake CUDA shim → nvcc_entry → mock_nvcc → cucc → ccec
+```
+
+当前属于实验性能力，首版重点覆盖 `project(... LANGUAGES CUDA)`、`.cu` target、
+普通编译/链接、Unix Makefiles 和 Ninja；不承诺完整 `find_package(CUDAToolkit)`、
+CUDA device-link 或 `CUDA::cudart/CUDA::cublas` package target。
+
 ## 10. 构建环境与静态检查
 
 Ascend 程序需要在安装 CANN、ccec 和 Ascend 设备的 Linux 环境中构建与运行。

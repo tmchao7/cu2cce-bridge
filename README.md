@@ -194,6 +194,23 @@ DEVICE_HEALTHY=1
 PURESIMT_REGRESSION_PASS
 ```
 
+## CMake integration (experimental)
+
+核心 CUDA CMake 工程可通过 `cmake_cce` 使用 cucc/ccec，目标是不修改用户
+`CMakeLists.txt` 和 `.cu` 源码：
+
+```bash
+export CUCC_PATH=/path/to/cu2cce-bridge/build/real_test/install
+export CUDA_PATH=$CUCC_PATH
+export PATH=$CUCC_PATH/bin:$PATH
+cmake_cce -S examples/cmake_demo -B /tmp/cu2cce-cmake-build
+cmake --build /tmp/cu2cce-cmake-build
+/tmp/cu2cce-cmake-build/cmake_vector_add
+```
+
+当前状态：`EXPERIMENTAL`。完整 CUDA package discovery、CUDA device-link 和
+`CUDA::cudart` 等高级 CMake 能力尚未承诺。
+
 ## Experimental BLAS branch
 
 CUDA cuBLAS to CANN ACL CBLAS development is maintained separately on

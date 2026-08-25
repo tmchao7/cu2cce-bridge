@@ -1,75 +1,67 @@
 #!/bin/bash
-# ============================================================
-# cmake_cce —— 包 cmake，无 CUDA Toolkit 时用 mock 骗过 CMake 的 CUDA 探测
+# cmake_cce —— configure a CUDA CMake project through cucc/ccec.
 #
-# 仿照 cu-bridge 的 tools/cmake_maca + tools/cmake_mock（Apache-2.0）：
-#   - 建立临时"伪 CUDA 目录"（bin/nvcc → mock_nvcc.py）
-#   - 设 CUDA_PATH / PATH，让 CMake 探测到的 nvcc 是 mock（能应答探测）
-#   - 真实 .cu 编译由 mock 透传给 cucc → bisheng
+# Usage:
+#   export CUCC_PATH=/path/to/cu2cce-bridge/install
+#   cmake_cce -S . -B build
+#   cmake --build build
 #
-# 用法：cmake_cce <cmake args...>   （等价 cmake，但 CUDA 探测被 mock）
-#
-# ⚠️ 需要在安装 CANN 的 Linux/Ascend 环境中执行。真机环境变量见方案文档 §6。
-# ============================================================
-set -u
+# The wrapper creates a per-invocation CUDA-toolkit shim for CMake's compiler
+# detection. The shim is intentionally left on disk because CMake uses the
+# configured compiler again during a later `cmake --build` invocation.
 
-setup_debug_propagation() {
-    [[ $- == *x* ]] && export BASH_XTRACE=1
-    [[ $- == *v* ]] && export BASH_VERBOSE=1
-    [[ $- == *e* ]] && export BASH_ERREXIT=1
-}
-setup_debug_propagation
+set -euo pipefail
 
-# ---------------- 环境 ----------------
-ASCEND_TOOLKIT_HOME=${ASCEND_TOOLKIT_HOME:-/usr/local/Ascend/ascend-toolkit/latest}
-CUCC_PATH=${CUCC_PATH:-}
-CUBRIDGE_HOME=${CUBRIDGE_HOME:-$HOME}
-
-if [ -z "${CUCC_PATH}" ]; then
-    echo "cmake_cce: CUCC_PATH not set (point to cu2cce-bridge install dir)" >&2
+CUCC_PATH="${CUCC_PATH:-}"
+CANN_BASE="${CANN_BASE:-/usr/local/Ascend/latest}"
+ASCEND_TOOLKIT_HOME="${ASCEND_TOOLKIT_HOME:-/usr/local/Ascend/ascend-toolkit/latest}"
+if [ -z "$CUCC_PATH" ] || [ ! -x "$CUCC_PATH/bin/cucc" ]; then
+    echo "cmake_cce: CUCC_PATH must point to an installed cu2cce-bridge directory" >&2
+    echo "cmake_cce: expected $CUCC_PATH/bin/cucc" >&2
+    exit 1
+fi
+if [ ! -x "$CANN_BASE/bin/ccec" ]; then
+    echo "cmake_cce: ccec not found at $CANN_BASE/bin/ccec" >&2
     exit 1
 fi
 
-# cmake 查询模式（--version / -E / --help）直接透传真实 cmake
 for arg in "$@"; do
     case "$arg" in
-        --version|-version|/V|-E|--help*)
-            exec cmake "$@"
-            ;;
+        --version|-version|/V|-E|--help*) exec cmake "$@";;
     esac
 done
 
-TEMP_DIR_NAME="cu2cce-bridge"
-DST_WCUDA="$CUBRIDGE_HOME/${TEMP_DIR_NAME}"
-rm -rf "$DST_WCUDA"
-mkdir -p "$DST_WCUDA"
+SHIM_ROOT="${TMPDIR:-/tmp}/cu2cce-cmake-shim-$$"
+CUDA_DIR="$SHIM_ROOT/cuda"
+mkdir -p "$CUDA_DIR/bin" "$CUDA_DIR/include" "$CUDA_DIR/lib64" "$CUDA_DIR/nvvm/libdevice"
+ln -sf "$CUCC_PATH/tools/nvcc_entry.sh" "$CUDA_DIR/bin/nvcc"
+ln -sfn "$CUCC_PATH/include" "$CUDA_DIR/include/bridge"
+ln -sfn "$CUCC_PATH/include/cuda_runtime.h" "$CUDA_DIR/include/cuda_runtime.h"
+ln -sfn "$CUCC_PATH/include/cuda_runtime_api.h" "$CUDA_DIR/include/cuda_runtime_api.h"
+printf 'CUDA Version 11.6.0\n' > "$CUDA_DIR/version.txt"
+printf 'cmake_cce: CUDA shim: %s\n' "$CUDA_DIR" >&2
 
-# ---------------- 建伪 CUDA 目录 ----------------
-CUDA_DIR="$DST_WCUDA/CUDA_DIR"
-mkdir -p "$CUDA_DIR/bin"
-mkdir -p "$CUDA_DIR/include"
-
-# bin/nvcc → mock_nvcc（应答 CMake 探测；真实编译透传 cucc）
-ln -sf "${CUCC_PATH}/tools/nvcc_entry.sh" "$CUDA_DIR/bin/nvcc"
-ln -sf "${CUCC_PATH}/bin/cucc" "$CUDA_DIR/bin/cucc"
-
-# include：软链 cu2cce 的 CUDA 兼容头
-ln -sfn "${CUCC_PATH}/include" "$CUDA_DIR/include" 2>/dev/null || true
-if [ ! -e "$CUDA_DIR/include/cuda_runtime.h" ]; then
-    for f in "${CUCC_PATH}/include"/*; do
-        ln -sfn "$f" "$CUDA_DIR/include/$(basename "$f")"
-    done
-fi
-mkdir -p "$CUDA_DIR/lib64"
-
-# ---------------- 设环境并调 cmake ----------------
+export CUCC_PATH
 export CUDA_PATH="$CUDA_DIR"
-export PATH="$CUDA_DIR/bin:$PATH"
+export CUDA_HOME="$CUDA_DIR"
 export ASCEND_TOOLKIT_HOME
+export CANN_BASE
+export PATH="$CUCC_PATH/bin:$CUDA_DIR/bin:$PATH"
+export LD_LIBRARY_PATH="$CUCC_PATH/lib:$CANN_BASE/lib64:${LD_LIBRARY_PATH:-}"
 
-# 让 mock_nvcc.py 能找到（nvcc_entry.sh 用 $CUCC_PATH）
-if [ "${WCUDA_DEBUG:-0}" == "1" ]; then
-    echo "/* cmake_cce: CUDA_PATH=$CUDA_PATH */"
+# CMake's CUDA architecture probing is NVIDIA-specific. cucc/ccec selects the
+# Ascend target itself, so disable CMake's generated -gencode flags unless the
+# caller explicitly supplied a CMAKE_CUDA_ARCHITECTURES definition.
+args=("$@")
+have_arch=0
+for arg in "${args[@]}"; do
+    case "$arg" in
+        -DCMAKE_CUDA_ARCHITECTURES=*|-DCMAKE_CUDA_ARCHITECTURES) have_arch=1;;
+    esac
+done
+if [ "$have_arch" -eq 0 ]; then
+    args+=("-DCMAKE_CUDA_ARCHITECTURES=OFF")
 fi
+args+=("-DCMAKE_CUDA_COMPILER=$CUDA_DIR/bin/nvcc")
 
-exec cmake "$@"
+exec cmake "${args[@]}"

@@ -40,3 +40,18 @@ CU2CCE_BLAS_TEST=1 bash tools/real_test/server_cmd.txt
 
 BLAS 日志位于 `build/real_test/blas/`，成功标志为
 `BLAS_EXPERIMENTAL_REGRESSION_PASS`。
+
+
+## CMake integration (experimental)
+
+The CMake path is tested on `exp/cmake-cce` with the standard CUDA project in
+`examples/cmake_demo/`:
+
+```bash
+cmake_cce -S examples/cmake_demo -B /tmp/cu2cce-cmake-build
+cmake --build /tmp/cu2cce-cmake-build
+/tmp/cu2cce-cmake-build/cmake_vector_add
+```
+
+The integration is currently experimental until the Ascend real-device smoke
+test reports `CMAKE_CCE_REGRESSION_PASS`.
