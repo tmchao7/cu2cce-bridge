@@ -73,6 +73,11 @@ class CuccRuleDriverTest(unittest.TestCase):
         self.assertIn("-lcce_bridge_runtime", prepared.args)
         self.assertNotIn("--enable-simt", prepared.args)
 
+    def test_shared_cuda_link_injects_pic(self) -> None:
+        prepared = self.driver().prepare(["-shared", "main.cu", "-o", "libmain.so"])
+        self.assertEqual(prepared.phase, "compile_and_link")
+        self.assertIn("-fPIC", prepared.args)
+
     def test_source_without_c_is_compile_and_link(self) -> None:
         prepared = self.driver().prepare(["main.cu", "-o", "app"])
         self.assertEqual(prepared.phase, "compile_and_link")

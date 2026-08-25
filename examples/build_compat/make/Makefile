@@ -18,7 +18,7 @@ $(BUILD)/kernel_a.o: kernel_a.cu | $(BUILD)
 	$(CUCC) -c $< -o $@ -std=c++17 -O2 -MD -MF $(@:.o=.d)
 
 $(SHARED_LIB): kernel_b.cu | $(BUILD)
-	$(CUCC) -shared $< -o $@ -std=c++17 -O2
+	$(CUCC) -shared $< -o $@ -std=c++17 -O2 -fPIC
 
 $(STATIC_LIB): $(STATIC_OBJECTS)
 	ar rcs $@ $^

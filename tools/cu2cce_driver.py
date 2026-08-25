@@ -267,7 +267,7 @@ class RuleDriver:
             phase = "link" if has_object else "compile"
         return phase, phase, inputs, output, source_is_cuda
 
-    def _context(self, phase: str, source_is_cuda: bool) -> Dict[str, bool]:
+    def _context(self, phase: str, source_is_cuda: bool, args: Sequence[str]) -> Dict[str, bool]:
         simt_root = self.env.get("SIMT_API_ROOT", "")
         has_simt = bool(simt_root and (Path(simt_root) / "simt_api").is_dir())
         if not has_simt:
@@ -284,7 +284,15 @@ class RuleDriver:
                     break
         self.simt_root = simt_root
         self.simt_parent = str(Path(simt_root).parent) if simt_root else ""
+        has_pic = any(arg in ("-fPIC", "-fpic") for arg in args)
+        if not has_pic:
+            for index, arg in enumerate(args[:-1]):
+                if arg in ("-Xcompiler", "--compiler-options") and "fPIC" in args[index + 1]:
+                    has_pic = True
+                    break
+        shared_link = any(arg == "-shared" or arg.startswith("-shared=") for arg in args)
         return {
+            "shared_link_without_pic": shared_link and not has_pic,
             "has_cucc": bool(self.cucc_path and self.cucc_path.is_dir()),
             "has_shadow": (self.cucc_path / "include/shadow").is_dir() if self.cucc_path else False,
             "has_samples_common": (self.cucc_path / "third_party/nvidia_cuda_samples/Common").is_dir() if self.cucc_path else False,
@@ -395,7 +403,7 @@ class RuleDriver:
         if mode == "unsupported":
             raise DriverError("CUDA assembly output (-S) is not supported by the ccec puresimt driver")
         self._resolve_simt_root()
-        context = self._context(phase, source_is_cuda)
+        context = self._context(phase, source_is_cuda, expanded)
         result: List[str] = []
         i = 0
         while i < len(expanded):

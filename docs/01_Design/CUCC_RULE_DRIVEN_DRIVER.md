@@ -152,6 +152,12 @@ ptxas
 fatbinary
 ```
 
+### Shared library / PIC
+
+当命令包含 `-shared` 且用户没有提供 `-fPIC` 或 `-Xcompiler -fPIC` 时，驱动会自动
+注入 `-fPIC`。ccec puresimt 的 kernel launch TLS 状态和 host registration helper
+不能以 non-PIC relocation 生成共享对象；这属于构建参数修复，不是 kernel 源码转换。
+
 ### 未验证 CUDA 库
 
 以下库不自动映射到 CANN：

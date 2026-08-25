@@ -2,7 +2,7 @@
 
 This project intentionally uses a conventional Makefile with `nvcc`, multiple
 CUDA translation units, dependency files, a host C++ object, a static archive,
-and a shared CUDA library. Each linked library contains one `.cu` translation
+and a shared CUDA library with position-independent code. Each linked library contains one `.cu` translation
 unit because the current ccec puresimt backend emits one eager registration
 helper per CUDA translation unit; a single static archive containing multiple
 `.cu` files is currently diagnosed as an unsupported backend shape.

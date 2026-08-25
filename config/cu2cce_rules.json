@@ -323,6 +323,13 @@
       },
       {
         "tokens": [
+          "-fPIC"
+        ],
+        "when": "shared_link_without_pic",
+        "reason": "shared CUDA objects require position-independent code"
+      },
+      {
+        "tokens": [
           "-I",
           "${CUCC_PATH}/include"
         ],
