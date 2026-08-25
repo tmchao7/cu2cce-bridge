@@ -398,7 +398,7 @@ EXPERIMENTAL
 bash tools/real_test/server_cmd.txt
 ```
 
-## CMake 集成（experimental）
+## CMake 集成（核心路径已验证，扩展能力仍 experimental）
 
 标准 CUDA CMake 工程通常由 CMake 调用 nvcc。cu2cce-bridge 提供 `cmake_cce`，
 在不修改用户 `CMakeLists.txt`/`.cu` 的前提下建立临时 CUDA toolkit shim：

@@ -210,13 +210,14 @@ cmake --build /tmp/cu2cce-cmake-build
 /tmp/cu2cce-cmake-build/cmake_vector_add
 ```
 
-当前状态：`EXPERIMENTAL`。当前已增加：
+当前状态：核心 CMake 路径已在 Ascend 真机验证通过，扩展 CUDA 工具链能力仍为
+`EXPERIMENTAL`。2026-08-25 的 `tools/real_test/server_cmd.txt` 已通过：
 
 - 标准 CUDA CMake 工程（`project(... LANGUAGES CUDA)`）；
 - 多 `.cu`、静态/动态 CUDA library 和 host+CUDA 混合工程 smoke；
 - `find_package(CUDAToolkit)` 的 bridge-backed `CUDA::cudart`；
 - 常见 legacy `find_package(CUDA)`、`cuda_add_executable` 和 `cuda_add_library`；
-- Unix Makefiles 和可用时的 Ninja smoke。
+- Unix Makefiles 和 Ninja。
 
 仍不承诺 CUDA device-link/separable compilation、PTX/CUBIN/FATBIN、
 `CUDA::cublas` 等未完成或未真机验证的能力。

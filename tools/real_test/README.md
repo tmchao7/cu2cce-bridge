@@ -42,7 +42,7 @@ BLAS 日志位于 `build/real_test/blas/`，成功标志为
 `BLAS_EXPERIMENTAL_REGRESSION_PASS`。
 
 
-## CMake integration (experimental)
+## CMake integration (core scope validated; advanced features experimental)
 
 The CMake path is tested on the CMake compatibility branch with these projects:
 
@@ -56,6 +56,8 @@ cmake --build /tmp/cu2cce-cmake-build
 /tmp/cu2cce-cmake-build/cmake_vector_add
 ```
 
-The integration is currently experimental. The Ascend real-device smoke test reports
-`CMAKE_CCE_REGRESSION_PASS` only when all mandatory CMake projects pass. Set
+The core integration is validated on Ascend. The smoke test passed the standard,
+multi-CUDA/static/shared, `CUDA::cudart`, legacy `FindCUDA`, and Ninja projects on
+2026-08-25. Advanced CUDA device-link, PTX/CUBIN/FATBIN, and unvalidated CUDA library
+packages remain experimental or unsupported. Set
 `CU2CCE_CMAKE_SHIM_DIR` to keep the compiler shim in a persistent directory.

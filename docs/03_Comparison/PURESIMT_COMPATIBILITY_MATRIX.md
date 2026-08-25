@@ -1,6 +1,6 @@
 # CUDA → Ascend puresimt Compatibility Matrix
 
-更新时间：2026-08-24
+更新时间：2026-08-25
 分支：`main`
 目标设备：Ascend 950 / CANN 9.2.0 / `Ascend950DT_9582`
 唯一真机入口：`tools/real_test/server_cmd.txt`
@@ -175,7 +175,18 @@ cublas/aclblas 与 puresimt kernel 路线独立：
 ## 7. CMake Integration
 
 CMake 集成属于独立的 secondary compatibility capability，不改变 puresimt kernel
-直通主线。当前调用链为：
+直通主线。当前核心范围已经完成 Ascend 真机验证，扩展 CUDA 工具链能力仍保持边界。
+
+最新 CMake 真机证据：
+
+```text
+日期：2026-08-25
+commit：6fdb330
+入口：tools/real_test/server_cmd.txt
+结果：CMAKE_CCE_REGRESSION_PASS
+```
+
+当前调用链为：
 
 ```text
 CMake → cmake_cce → CUDA shim → nvcc_entry → mock_nvcc → cucc → ccec
@@ -183,18 +194,18 @@ CMake → cmake_cce → CUDA shim → nvcc_entry → mock_nvcc → cucc → ccec
 
 | Capability | Status | Evidence / boundary |
 |---|---|---|
-| `cmake_cce` + `project(... LANGUAGES CUDA)` core smoke | `EXPERIMENTAL` | `examples/cmake_demo`; Ascend configure/build/run smoke |
-| Multiple `.cu` translation units | `EXPERIMENTAL` | `examples/cmake_compat` |
-| CUDA static/shared library targets | `EXPERIMENTAL` | `examples/cmake_compat`; requires real-device regression |
-| Host C++ + CUDA library mixed target | `EXPERIMENTAL` | `examples/cmake_compat` |
-| Unix Makefiles | `EXPERIMENTAL` | exercised by default CMake smoke |
-| Ninja generator | `EXPERIMENTAL` | exercised when `ninja` exists on the test server |
-| CUDA Toolkit relative shim layout | `EXPERIMENTAL` | `targets/<arch>-<os>/{include,lib}`, `lib64/stubs`; no fake unsupported libraries |
-| `find_package(CUDAToolkit)` | `EXPERIMENTAL` | installed `cmake_modules/FindCUDAToolkit.cmake` |
-| `CUDA::cudart` | `EXPERIMENTAL` | maps to `libcce_bridge_runtime.so`; must not be read as full NVIDIA cudart equivalence |
+| `cmake_cce` + `project(... LANGUAGES CUDA)` core smoke | `SUPPORTED` | `examples/cmake_demo`; Ascend configure/build/run passed on 2026-08-25 |
+| Multiple `.cu` translation units | `SUPPORTED` | `examples/cmake_compat`; Ascend real-device build/run passed |
+| CUDA static/shared library targets | `SUPPORTED` | `examples/cmake_compat`; both targets built and ran on Ascend |
+| Host C++ + CUDA library mixed target | `SUPPORTED` | `examples/cmake_compat`; host link resolved Ascend runtime and ran |
+| Unix Makefiles | `SUPPORTED` | exercised by default CMake smoke |
+| Ninja generator | `SUPPORTED` | `cmake_ninja` configure/build/run passed on the test server |
+| CUDA Toolkit relative shim layout | `SUPPORTED` for tested Linux layout | `targets/<arch>-<os>/{include,lib}`, `lib64/stubs`; no fake unsupported libraries |
+| `find_package(CUDAToolkit)` | `SUPPORTED` for bridge-backed scope | installed `cmake_modules/FindCUDAToolkit.cmake`; covered by `cmake_compat` |
+| `CUDA::cudart` | `SUPPORTED` for bridge-backed scope | maps to `libcce_bridge_runtime.so`; not full NVIDIA cudart equivalence |
 | `cu2cce::runtime` native CMake target | `EXPERIMENTAL` | installed bridge-owned package target; does not claim CUDA API coverage |
-| legacy `find_package(CUDA)` | `EXPERIMENTAL` | installed minimal `FindCUDA.cmake` |
-| `cuda_add_executable` / `cuda_add_library` | `EXPERIMENTAL` | `examples/cmake_compat_legacy` |
+| legacy `find_package(CUDA)` | `SUPPORTED` for basic macro scope | installed minimal `FindCUDA.cmake`; covered by `cmake_compat_legacy` |
+| `cuda_add_executable` / `cuda_add_library` | `SUPPORTED` for basic macro scope | `cuda_add_executable` real-device smoke passed; PTX helpers remain unsupported |
 | `CUDA::cublas` | `EXPERIMENTAL` | only through the separate BLAS/aclblas capability; not part of puresimt CMake smoke |
 | CUDA device-link/separable compilation | `UNSUPPORTED` for current scope | no semantic lowering; `mock_nvcc` diagnoses/rejects strict mode |
 | PTX/CUBIN/FATBIN generation | `UNSUPPORTED` | Ascend puresimt consumes CUDA source through ccec, not NVIDIA binary artifacts |
