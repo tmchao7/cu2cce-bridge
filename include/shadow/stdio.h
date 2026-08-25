@@ -57,6 +57,10 @@ size_t fwrite(const void *, size_t, size_t, FILE *);
 int fscanf(FILE *, const char *, ...);
 int scanf(const char *, ...);
 int sscanf(const char *, const char *, ...);
+int vfscanf(FILE *, const char *, __builtin_va_list);
+int vscanf(const char *, __builtin_va_list);
+int vsscanf(const char *, const char *, __builtin_va_list);
+char *fgets(char *, int, FILE *);
 void perror(const char *);
 int remove(const char *);
 int rename(const char *, const char *);
@@ -70,6 +74,14 @@ extern FILE *stdout;
 extern FILE *stderr;
 
 #if defined(__cplusplus)
+}
+
+// libstdc++ exposes these scanf variants through its internal namespace in
+// <cstdio>. The declarations still use libc's C linkage.
+namespace __gnu_cxx {
+using ::vfscanf;
+using ::vscanf;
+using ::vsscanf;
 }
 #endif
 #endif /* __CU2CCE_SHADOW_STDIO_H__ */

@@ -53,6 +53,7 @@ if(NOT TARGET CUDA::cudart)
   set(_CU2CCE_EXTRA_LIBS)
   foreach(_lib
       "${_CU2CCE_CANN_BASE}/lib64/libascendcl.so"
+      "${_CU2CCE_CANN_BASE}/lib64/libruntime.so"
       "${_CU2CCE_CANN_BASE}/runtime/lib64/libruntime.so"
       "${_CU2CCE_CANN_BASE}/lib64/libstdc++.so"
       "${_CU2CCE_CANN_BASE}/lib64/libpthread.so")
