@@ -55,3 +55,8 @@ For host-only `.cpp` translation units that include `cuda_runtime.h`, the header
 system `<math.h>` because no device-compilation marker is present. ccec CUDA translation
 units receive `__CU2CCE_DEVICE_COMPILATION__` and keep the shadow math declarations in the
 default shadow mode.
+
+
+`cooperative_groups.h` and `cooperative_groups/reduce.h` currently provide a minimal
+source-level facade for the selected external reduction sample. This is not a claim of
+complete CUDA Cooperative Groups API compatibility.

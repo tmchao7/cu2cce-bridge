@@ -1,0 +1,6 @@
+#ifndef __CU2CCE_COOPERATIVE_GROUPS_REDUCE_H__
+#define __CU2CCE_COOPERATIVE_GROUPS_REDUCE_H__
+
+#include <cooperative_groups.h>
+
+#endif // __CU2CCE_COOPERATIVE_GROUPS_REDUCE_H__

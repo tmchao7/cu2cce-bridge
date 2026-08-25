@@ -454,7 +454,7 @@ if [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$EXTERNAL_FETCH" ] && [ -x "$CMAKE_CCE" 
                 run_log="$OUT/cuda_samples_${sample}.run.log"
                 if [ "$sample" = vectorAdd ]; then expect='Test PASSED'; fi
                 if [ "$sample" = matrixMul ]; then expect='Result = PASS'; fi
-                if [ "$sample" = reduction ]; then expect='Test PASSED'; fi
+                if [ "$sample" = reduction ]; then expect='Test passed'; fi
                 if [ -x "$binary" ] && "$binary" >"$run_log" 2>&1 && grep -Fq "$expect" "$run_log"; then
                     echo "[PASS] external [$sample]: $(grep -F "$expect" "$run_log" | tail -n 1)"
                 else
