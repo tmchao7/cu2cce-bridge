@@ -27,6 +27,10 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         self.assertTrue((ROOT / "examples/cmake_compat_legacy/CMakeLists.txt").is_file())
         self.assertTrue((ROOT / "include/cooperative_groups.h").is_file())
         self.assertTrue((ROOT / "include/cooperative_groups/reduce.h").is_file())
+        coop = (ROOT / "include/cooperative_groups.h").read_text(encoding="utf-8")
+        self.assertIn("simt_api/cooperative_groups.h", coop)
+        self.assertIn("struct plus", coop)
+        self.assertIn("T reduce", coop)
 
     def test_unsupported_build_features_are_explicit(self) -> None:
         find_cuda = (ROOT / "cmake_modules/FindCUDA.cmake").read_text(encoding="utf-8")
