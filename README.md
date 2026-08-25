@@ -246,6 +246,8 @@ CUDA cuBLAS to CANN ACL CBLAS development is maintained separately on
 - `tools/cu2cce_driver.py`：cucc 与 CMake mock 共用的参数规则驱动。
 - `config/cu2cce_rules.json`：CUDA 参数 filter/replacer/inject/reject 规则。
 - `bin/cmake_cce`：CMake CUDA 工程入口；配置时使用 `cmake_cce -S . -B build`。
+- `bin/make_cce` / `bin/ninja_cce`：Makefile/Ninja 构建入口。
+- `docs/03_Comparison/BUILD_SYSTEM_COMPATIBILITY_MATRIX.md`：大型项目构建兼容矩阵。
 - `examples/puresimt/`：维护中的 CUDA examples。
 - `tools/real_test/server_cmd.txt`：唯一主线真机回归入口。
 - `tools/real_test/diag/`：非主线 ACL/runtime 排障工具。

@@ -32,6 +32,7 @@ class Action:
 @dataclass
 class PreparedCommand:
     phase: str
+    mode: str
     args: List[str]
     compiler: str
     inputs: List[str]
@@ -151,7 +152,7 @@ class RuleDriver:
 
     def _rules_for(self, action_name: str, phase: str) -> Iterable[Dict[str, Any]]:
         sections = [self.rules.get("all", {})]
-        if phase == "compile":
+        if phase in ("compile", "preprocess", "dependency"):
             sections.append(self.rules.get("compile", {}))
         elif phase == "link":
             sections.append(self.rules.get("link", {}))
@@ -243,9 +244,17 @@ class RuleDriver:
         return inputs, output, compile_only, has_object, explicit_language
 
     @staticmethod
-    def _phase(args: Sequence[str]) -> Tuple[str, List[str], Optional[str], bool]:
+    def _phase(args: Sequence[str]) -> Tuple[str, str, List[str], Optional[str], bool]:
         inputs, output, compile_only, has_object, explicit_language = RuleDriver._scan_inputs(args)
         source_is_cuda = RuleDriver._has_cuda_source(args) or explicit_language in ("cuda", "cu", "c++-cuda")
+        if "--device-link" in args or "-dlink" in args:
+            return "device_link", "unsupported", inputs, output, source_is_cuda
+        if "-E" in args:
+            return "preprocess", "preprocess", inputs, output, source_is_cuda
+        if "-M" in args or "-MM" in args:
+            return "dependency", "dependency", inputs, output, source_is_cuda
+        if "-S" in args:
+            return "compile", "unsupported", inputs, output, source_is_cuda
         if compile_only:
             phase = "compile"
         elif has_object:
@@ -256,7 +265,7 @@ class RuleDriver:
             phase = "compile_and_link"
         else:
             phase = "link" if has_object else "compile"
-        return phase, inputs, output, source_is_cuda
+        return phase, phase, inputs, output, source_is_cuda
 
     def _context(self, phase: str, source_is_cuda: bool) -> Dict[str, bool]:
         simt_root = self.env.get("SIMT_API_ROOT", "")
@@ -382,7 +391,9 @@ class RuleDriver:
                 "-D__CUDACC_VER__=110600",
                 *expanded,
             ]
-        phase, inputs, output, source_is_cuda = self._phase(expanded)
+        phase, mode, inputs, output, source_is_cuda = self._phase(expanded)
+        if mode == "unsupported":
+            raise DriverError("CUDA assembly output (-S) is not supported by the ccec puresimt driver")
         self._resolve_simt_root()
         context = self._context(phase, source_is_cuda)
         result: List[str] = []
@@ -475,6 +486,7 @@ class RuleDriver:
         compiler = self._compiler_path()
         prepared = PreparedCommand(
             phase=phase,
+            mode=mode,
             args=result,
             compiler=compiler,
             inputs=inputs,
@@ -511,6 +523,7 @@ class RuleDriver:
             return
         payload = {
             "phase": prepared.phase,
+            "mode": prepared.mode,
             "inputs": prepared.inputs,
             "source_is_cuda": prepared.source_is_cuda,
             "rules_file": prepared.rules_file,
@@ -531,8 +544,7 @@ class RuleDriver:
         trace_path.parent.mkdir(parents=True, exist_ok=True)
         trace_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
-    def run(self, argv: Sequence[str]) -> int:
-        prepared = self.prepare(argv)
+    def run_prepared(self, prepared: PreparedCommand) -> int:
         if not Path(prepared.compiler).is_file():
             print(
                 f"cucc: ccec not found at {prepared.compiler}; set CCEC_PATH or install CANN",
@@ -540,6 +552,9 @@ class RuleDriver:
             )
             return 1
         return subprocess.call([prepared.compiler, *prepared.args], env=self.env)
+
+    def run(self, argv: Sequence[str]) -> int:
+        return self.run_prepared(self.prepare(argv))
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
@@ -549,7 +564,23 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         cmake_identity = True
         args = args[1:]
     try:
-        return RuleDriver(cmake_identity=cmake_identity).run(args)
+        if "--version" in args or "-V" in args:
+            print("cucc: cu2cce-bridge rule-driven CUDA driver")
+            print("CUDA compatibility version 11.6; backend ccec/puresimt")
+            return 0
+        if "--help" in args or "-help" in args:
+            print("usage: cucc [nvcc-compatible options] input.cu [-o output]")
+            print("environment: CU2CCE_NPU_ARCH, CU2CCE_RULES_FILE, CU2CCE_DEBUG, CU2CCE_TRACE_FILE")
+            return 0
+        dryrun = "--dryrun" in args or "-dryrun" in args
+        if dryrun:
+            args = [arg for arg in args if arg not in {"--dryrun", "-dryrun"}]
+        driver = RuleDriver(cmake_identity=cmake_identity)
+        prepared = driver.prepare(args)
+        if dryrun:
+            print(" ".join([prepared.compiler, *prepared.args]))
+            return 0
+        return driver.run_prepared(prepared)
     except DriverError as exc:
         print(f"cu2cce: error: {exc}", file=sys.stderr)
         return 2

@@ -500,5 +500,15 @@
       "status": "unsupported",
       "action": "warn_no_automatic_replacement"
     }
+  },
+  "diagnostics": {
+    "default_unknown": "warn_forward",
+    "strict_env": "CU2CCE_STRICT_FLAGS",
+    "debug_env": "CU2CCE_DEBUG",
+    "trace_env": "CU2CCE_TRACE_FILE",
+    "unsupported_modes": {
+      "-S": "CUDA assembly output is unsupported by ccec puresimt",
+      "--device-link": "CUDA device-link/separable compilation is unsupported by current scope"
+    }
   }
 }

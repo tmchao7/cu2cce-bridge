@@ -145,6 +145,27 @@ class CuccRuleDriverTest(unittest.TestCase):
         self.assertIn("--enable-simt", args)
         self.assertNotIn("-gencode", args)
 
+    def test_preprocess_and_dependency_phases_are_distinct(self) -> None:
+        preprocess = self.driver().prepare(["-E", "main.cu", "-o", "main.i"])
+        dependency = self.driver().prepare(["-M", "main.cu", "-MF", "main.d"])
+        self.assertEqual(preprocess.phase, "preprocess")
+        self.assertEqual(preprocess.mode, "preprocess")
+        self.assertEqual(dependency.phase, "dependency")
+        self.assertEqual(dependency.mode, "dependency")
+        self.assertNotIn("-lcce_bridge_runtime", preprocess.args)
+        self.assertNotIn("-lcce_bridge_runtime", dependency.args)
+
+    def test_assembly_mode_is_rejected(self) -> None:
+        with self.assertRaises(DriverError):
+            self.driver().prepare(["-S", "main.cu", "-o", "main.s"])
+
+    def test_dryrun_and_query_entrypoints(self) -> None:
+        driver = Path(__file__).resolve().parents[1] / "bin/cucc"
+        version = subprocess.run([str(driver), "--version"], capture_output=True, text=True)
+        help_result = subprocess.run([str(driver), "--help"], capture_output=True, text=True)
+        self.assertEqual(version.returncode, 0)
+        self.assertEqual(help_result.returncode, 0)
+
     def test_cmake_identity_macros_are_added_by_shared_driver(self) -> None:
         prepared = RuleDriver(env=self.env, cmake_identity=True).prepare(["-c", "main.cu", "-o", "main.o"])
         self.assertIn("-D__CUDACC__", prepared.args)

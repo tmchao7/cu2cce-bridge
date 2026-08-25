@@ -243,7 +243,15 @@ WCUDA_DEBUG=1
 
 会等价开启 `CU2CCE_DEBUG=1`。
 
-## 7. 设计边界
+## 7. 大型项目构建入口
+
+- `cmake_cce`：配置现代或 legacy CUDA CMake 工程；
+- `make_cce`：为使用 `nvcc` 的 Makefile 建立临时 Toolkit shim；
+- `ninja_cce`：执行已经由 `cmake_cce -G Ninja` 配置的 Ninja 构建目录。
+
+这些入口共享 `cu2cce_driver.py` 的参数政策。
+
+## 8. 设计边界
 
 本机制复制的是 cu-bridge 的：
 

@@ -37,10 +37,12 @@ file(GLOB BRIDGE_BLAS_SRC
 )
 
 add_library(cce_bridge_runtime SHARED ${BRIDGE_RUNTIME_SRC} ${BRIDGE_BLAS_SRC})
+set_target_properties(cce_bridge_runtime PROPERTIES EXPORT_NAME runtime)
 
 target_include_directories(cce_bridge_runtime
     PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
     PRIVATE
         ${ASCEND_INCLUDE}
         # wrapper 源文件 #include "cuda_runtime_wrapper.h" / "cublas_v2_wrapper.h"
@@ -59,7 +61,15 @@ target_link_libraries(cce_bridge_runtime
 
 target_compile_definitions(cce_bridge_runtime PRIVATE CUBRIDGE_EXPORT_SYMBOL)
 
-install(TARGETS cce_bridge_runtime LIBRARY DESTINATION ${LIB_DEST_DIR})
+install(TARGETS cce_bridge_runtime
+        EXPORT cu2cceTargets
+        LIBRARY DESTINATION ${LIB_DEST_DIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+        RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+install(EXPORT cu2cceTargets
+        NAMESPACE cu2cce::
+        FILE cu2cceTargets.cmake
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake/cu2cce-bridge)
 
 # 安装 include 兼容头（含 bridge/kernel/simt_adaptor.h，供用户编译时 -I$CUDA_PATH/include 使用）
 install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
@@ -68,9 +78,9 @@ install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
 install(PROGRAMS bin/cucc DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
 
 # 安装用户可直接调用的构建入口到 bin；nvcc_entry/mock 是内部 shim。
-install(PROGRAMS tools/make_cce tools/cmake_cce
+install(PROGRAMS tools/make_cce tools/cmake_cce tools/ninja_cce
         DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
-install(PROGRAMS tools/nvcc_entry.sh tools/cu2cce_driver.py
+install(PROGRAMS tools/nvcc_entry.sh tools/cu2cce_driver.py tools/validate_cucc_rules.py
         DESTINATION ${CMAKE_INSTALL_PREFIX}/tools)
 install(DIRECTORY tools/mock DESTINATION ${CMAKE_INSTALL_PREFIX}/tools)
 

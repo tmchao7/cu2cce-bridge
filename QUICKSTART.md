@@ -437,6 +437,33 @@ target_link_libraries(app PRIVATE cu2cce::runtime)
 
 这个 target 是 cu2cce-bridge 原生 CMake package，不等价于完整的 CUDA Toolkit。
 
+### Makefile 项目
+
+已有 Makefile 项目如果使用 `nvcc`，可以先尝试：
+
+```bash
+export CUCC_PATH=/path/to/cu2cce-bridge/build/real_test/install
+export CUDA_PATH=$CUCC_PATH
+export PATH=$CUCC_PATH/bin:$PATH
+
+make_cce -C . -j2
+```
+
+`make_cce` 会建立临时 CUDA Toolkit 目录，让 Makefile 中的 `nvcc` 进入同一套
+`cucc → cu2cce_driver → ccec` 规则。
+
+### Ninja 项目
+
+对于通过 `cmake_cce -G Ninja` 生成的构建目录，可以使用标准命令：
+
+```bash
+cmake_cce -G Ninja -S . -B build
+ninja_cce -C build
+```
+
+高级 CUDA device-link/RDC、PTX/CUBIN/FATBIN 和未验证的 CUDA libraries 会被明确
+诊断或拒绝，不会生成伪造的 GPU 后端产物。
+
 ## 10. 构建环境与静态检查
 
 Ascend 程序需要在安装 CANN、ccec 和 Ascend 设备的 Linux 环境中构建与运行。

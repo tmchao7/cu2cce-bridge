@@ -45,6 +45,8 @@ mkdir -p "$DST_WCUDA"
 CUDA_DIR="$DST_WCUDA/CUDA_DIR"
 mkdir -p "$CUDA_DIR/bin"
 mkdir -p "$CUDA_DIR/include"
+mkdir -p "$CUDA_DIR/lib64/stubs"
+mkdir -p "$CUDA_DIR/targets/x86_64-linux"
 
 # bin/nvcc → cucc
 ln -sf "${CUCC_PATH}/bin/cucc" "$CUDA_DIR/bin/nvcc"
@@ -53,6 +55,8 @@ ln -sf "${CUCC_PATH}/bin/cucc" "$CUDA_DIR/bin/cucc"
 # include：软链 cu2cce 的整个 include（含 cuda_runtime.h 等 + bridge/）
 ln -sfn "${CUCC_PATH}/include" "$CUDA_DIR/include" 2>/dev/null || true
 # 若上面整目录软链不生效（如跨文件系统），退化为逐项软链
+ln -sfn "$CUDA_DIR/include" "$CUDA_DIR/targets/x86_64-linux/include"
+ln -sfn "$CUDA_DIR/lib64" "$CUDA_DIR/targets/x86_64-linux/lib"
 if [ ! -e "$CUDA_DIR/include/cuda_runtime.h" ]; then
     for f in "${CUCC_PATH}/include"/*; do
         ln -sfn "$f" "$CUDA_DIR/include/$(basename "$f")"
@@ -67,6 +71,8 @@ export CUDA_PATH="$CUDA_DIR"
 export PATH="$CUDA_DIR/bin:$PATH"
 # 让 bisheng 能找到 ACL 头/库
 export ASCEND_TOOLKIT_HOME
+export CANN_BASE="${CANN_BASE:-/usr/local/Ascend/latest}"
+export CU2CCE_NPU_ARCH="${CU2CCE_NPU_ARCH:-${CUCC_NPU_ARCH:-dav-c310-vec}}"
 
 # -x cce 由 cucc 识别（cucc 已内置）
 # debug_echo

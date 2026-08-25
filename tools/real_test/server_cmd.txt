@@ -133,7 +133,7 @@ rm -f "$CUCC_OBJ" "$CUCC_LOG" "$CUCC_TRACE" "$OUT"/*.cce
 if [ -x "$CUCC_BIN" ] && CUCC_PATH="$PWD/build/real_test/install" CUDA_PATH="$PWD/build/real_test/install" \
     CU2CCE_DEBUG=1 CU2CCE_TRACE_FILE="$CUCC_TRACE" "$CUCC_BIN" -c examples/puresimt/vectorAdd_minimal.cu -o "$CUCC_OBJ" >"$CUCC_LOG" 2>&1; then
     if grep -Eiq 'kernel[_ -]?convert|__simt_vf__|async_invoke' "$CUCC_LOG" || \
-       find "$OUT" "$OUT/cmake-build" -name '*.cce' -print -quit | grep -q .; then
+       find "$OUT" -type f -name '*.cce' -print -quit 2>/dev/null | grep -q .; then
         echo '[FAIL] cucc 仍触发 legacy kernel lowering'
         cat "$CUCC_LOG"
         FAIL=$((FAIL + 1))
@@ -329,6 +329,22 @@ if [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$CMAKE_CCE" ]; then
         "$OUT/cmake-compat-legacy-build/legacy_vector_add" \
         'legacy CUDA OK'
 
+    run_cmake_case \
+        cmake_build_compat \
+        examples/build_compat/cmake \
+        "$OUT/cmake-build-compat-build" \
+        "$OUT/cmake-build-compat-build/build_compat_app" \
+        'make_cce build_compat OK'
+    rm -rf "$OUT/cmake-build-compat-install"
+    if cmake --install "$OUT/cmake-build-compat-build" --prefix "$OUT/cmake-build-compat-install" >"$OUT/cmake-install.log" 2>&1 && \
+       [ -f "$OUT/cmake-build-compat-install/lib/cmake/build_compat/buildCompatTargets.cmake" ]; then
+        echo '[PASS] CMake install/export smoke'
+    else
+        echo '[FAIL] CMake install/export smoke'
+        cat "$OUT/cmake-install.log" 2>/dev/null
+        CMAKE_PASS=0
+    fi
+
     if command -v ninja >/dev/null 2>&1; then
         run_cmake_case \
             cmake_ninja \
@@ -352,6 +368,49 @@ else
     echo 'CMAKE_CCE_REGRESSION_FAIL（查看上方各 CMake 日志）'
 fi
 
+printf '\n===== [6/6] Make/Ninja build compatibility smoke =====\n'
+BUILD_COMPAT_PASS=1
+MAKE_CCE="$REPO_LIB/../bin/make_cce"
+NINJA_CCE="$REPO_LIB/../bin/ninja_cce"
+MAKE_COMPAT_LOG="$OUT/make_compat.log"
+MAKE_COMPAT_RUN_LOG="$OUT/make_compat.run.log"
+if [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$MAKE_CCE" ]; then
+    rm -rf "$OUT/make-home" examples/build_compat/make/build
+    if CUCC_PATH="$PWD/build/real_test/install" CUBRIDGE_HOME="$OUT/make-home" \
+        "$MAKE_CCE" -C examples/build_compat/make -j2 >"$MAKE_COMPAT_LOG" 2>&1; then
+        if examples/build_compat/make/build/build_compat_app >"$MAKE_COMPAT_RUN_LOG" 2>&1 && \
+           grep -Fq 'make_cce build_compat OK' "$MAKE_COMPAT_RUN_LOG"; then
+            echo "[PASS] make_cce build: $(grep -F 'make_cce build_compat OK' "$MAKE_COMPAT_RUN_LOG")"
+        else
+            echo '[FAIL] make_cce build run'
+            cat "$MAKE_COMPAT_RUN_LOG" 2>/dev/null
+            BUILD_COMPAT_PASS=0
+        fi
+    else
+        echo '[FAIL] make_cce build (log: $MAKE_COMPAT_LOG)'
+        tail -n 100 "$MAKE_COMPAT_LOG" 2>/dev/null
+        BUILD_COMPAT_PASS=0
+    fi
+else
+    echo '[FAIL] make_cce smoke unavailable'
+    BUILD_COMPAT_PASS=0
+fi
+if [ "$BUILD_COMPAT_PASS" -eq 1 ] && [ "$CMAKE_PASS" -eq 1 ] && command -v ninja >/dev/null 2>&1 && [ -x "$NINJA_CCE" ]; then
+    if CUCC_PATH="$PWD/build/real_test/install" "$NINJA_CCE" -C "$OUT/cmake-ninja-build" >"$OUT/ninja_cce.log" 2>&1; then
+        echo '[PASS] ninja_cce wrapper'
+    else
+        echo '[FAIL] ninja_cce wrapper'
+        tail -n 100 "$OUT/ninja_cce.log" 2>/dev/null
+        BUILD_COMPAT_PASS=0
+    fi
+fi
+if [ "$BUILD_COMPAT_PASS" -eq 1 ]; then
+    echo 'BUILD_COMPATIBILITY_REGRESSION_PASS'
+else
+    FAIL=$((FAIL + 1))
+    echo 'BUILD_COMPATIBILITY_REGRESSION_FAIL（查看 Make/Ninja 日志）'
+fi
+
 printf '\n===== FINAL SUMMARY =====\n'
 echo "FAIL=$FAIL DEVICE_HEALTHY=$DEVICE_HEALTHY TEST_BLOCKED_BY_DEVICE=$TEST_BLOCKED_BY_DEVICE"
 echo "完整日志：$OUT"
@@ -361,6 +420,9 @@ elif [ "$FAIL" -eq 0 ]; then
     echo 'PURESIMT_REGRESSION_PASS'
     if [ "$CMAKE_PASS" -eq 1 ]; then
         echo 'CMAKE_CCE_REGRESSION_PASS'
+    fi
+    if [ "${BUILD_COMPAT_PASS:-0}" -eq 1 ]; then
+        echo 'BUILD_COMPATIBILITY_REGRESSION_PASS'
     fi
 else
     echo 'REGRESSION_FAIL（查看上方各 .log）'
