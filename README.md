@@ -203,13 +203,33 @@ PURESIMT_REGRESSION_PASS
 export CUCC_PATH=/path/to/cu2cce-bridge/build/real_test/install
 export CUDA_PATH=$CUCC_PATH
 export PATH=$CUCC_PATH/bin:$PATH
+# 可选：将 CMake shim 保存在持久目录，避免 /tmp 清理影响后续 cmake --build。
+export CU2CCE_CMAKE_SHIM_DIR=/tmp/cu2cce-cmake-shim
 cmake_cce -S examples/cmake_demo -B /tmp/cu2cce-cmake-build
 cmake --build /tmp/cu2cce-cmake-build
 /tmp/cu2cce-cmake-build/cmake_vector_add
 ```
 
-当前状态：`EXPERIMENTAL`。完整 CUDA package discovery、CUDA device-link 和
-`CUDA::cudart` 等高级 CMake 能力尚未承诺。
+当前状态：`EXPERIMENTAL`。当前已增加：
+
+- 标准 CUDA CMake 工程（`project(... LANGUAGES CUDA)`）；
+- 多 `.cu`、静态/动态 CUDA library 和 host+CUDA 混合工程 smoke；
+- `find_package(CUDAToolkit)` 的 bridge-backed `CUDA::cudart`；
+- 常见 legacy `find_package(CUDA)`、`cuda_add_executable` 和 `cuda_add_library`；
+- Unix Makefiles 和可用时的 Ninja smoke。
+
+仍不承诺 CUDA device-link/separable compilation、PTX/CUBIN/FATBIN、
+`CUDA::cublas` 等未完成或未真机验证的能力。
+
+如果工程希望显式链接 cu2cce 自身的运行库，而不是使用 CUDA 兼容名称，
+可以使用安装后提供的原生 CMake package：
+
+```cmake
+find_package(cu2cce-bridge CONFIG REQUIRED)
+target_link_libraries(app PRIVATE cu2cce::runtime)
+```
+
+`cu2cce::runtime` 只表示 cu2cce-bridge 的桥接运行库，不代表完整 CUDA Toolkit。
 
 ## Experimental BLAS branch
 

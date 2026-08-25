@@ -6,15 +6,17 @@
 #   cmake_cce -S . -B build
 #   cmake --build build
 #
-# The wrapper creates a per-invocation CUDA-toolkit shim for CMake's compiler
-# detection. The shim is intentionally left on disk because CMake uses the
-# configured compiler again during a later `cmake --build` invocation.
+# The wrapper creates a CUDA-toolkit-shaped shim for CMake's compiler
+# detection. Set CU2CCE_CMAKE_SHIM_DIR to keep it outside /tmp and make the
+# configured compiler path persistent across reboots or /tmp cleanup.
 
 set -euo pipefail
 
 CUCC_PATH="${CUCC_PATH:-}"
 CANN_BASE="${CANN_BASE:-/usr/local/Ascend/latest}"
 ASCEND_TOOLKIT_HOME="${ASCEND_TOOLKIT_HOME:-/usr/local/Ascend/ascend-toolkit/latest}"
+CU2CCE_NPU_ARCH="${CU2CCE_NPU_ARCH:-${CUCC_NPU_ARCH:-dav-c310-vec}}"
+
 if [ -z "$CUCC_PATH" ] || [ ! -x "$CUCC_PATH/bin/cucc" ]; then
     echo "cmake_cce: CUCC_PATH must point to an installed cu2cce-bridge directory" >&2
     echo "cmake_cce: expected $CUCC_PATH/bin/cucc" >&2
@@ -31,37 +33,100 @@ for arg in "$@"; do
     esac
 done
 
-SHIM_ROOT="${TMPDIR:-/tmp}/cu2cce-cmake-shim-$$"
+# A persistent directory can be selected by the caller. Otherwise retain the
+# old per-process /tmp behavior so ordinary users do not pollute source trees.
+if [ -n "${CU2CCE_CMAKE_SHIM_DIR:-}" ]; then
+    SHIM_ROOT="$CU2CCE_CMAKE_SHIM_DIR"
+else
+    SHIM_ROOT="${TMPDIR:-/tmp}/cu2cce-cmake-shim-$$"
+fi
 CUDA_DIR="$SHIM_ROOT/cuda"
-mkdir -p "$CUDA_DIR/bin" "$CUDA_DIR/include" "$CUDA_DIR/lib64" "$CUDA_DIR/nvvm/libdevice"
-ln -sf "$CUCC_PATH/tools/nvcc_entry.sh" "$CUDA_DIR/bin/nvcc"
-ln -sfn "$CUCC_PATH/include" "$CUDA_DIR/include/bridge"
-ln -sfn "$CUCC_PATH/include/cuda_runtime.h" "$CUDA_DIR/include/cuda_runtime.h"
-ln -sfn "$CUCC_PATH/include/cuda_runtime_api.h" "$CUDA_DIR/include/cuda_runtime_api.h"
+
+HOST_ARCH="$(uname -m 2>/dev/null || echo x86_64)"
+case "$HOST_ARCH" in
+    amd64) HOST_ARCH=x86_64 ;;
+    arm64) HOST_ARCH=aarch64 ;;
+esac
+HOST_OS="$(uname -s 2>/dev/null | tr '[:upper:]' '[:lower:]' || echo linux)"
+case "$HOST_OS" in
+    darwin) HOST_OS=darwin ;;
+    linux) HOST_OS=linux ;;
+esac
+HOST_TRIPLE="${HOST_ARCH}-${HOST_OS}"
+
+mkdir -p \
+    "$CUDA_DIR/bin" \
+    "$CUDA_DIR/lib64/stubs" \
+    "$CUDA_DIR/nvvm/libdevice" \
+    "$CUDA_DIR/lib64/cmake/CUDAToolkit" \
+    "$CUDA_DIR/targets/$HOST_TRIPLE"
+
+# Recreate the include link as a single directory link so all installed CUDA
+# compatibility headers are visible to projects that use toolkit-relative
+# paths. Do not copy or rewrite user source files.
+rm -rf "$CUDA_DIR/include"
+ln -s "$CUCC_PATH/include" "$CUDA_DIR/include"
+ln -sfn "$CUCC_PATH/tools/nvcc_entry.sh" "$CUDA_DIR/bin/nvcc"
+ln -sfn "$CUDA_DIR/include" "$CUDA_DIR/targets/$HOST_TRIPLE/include"
+ln -sfn "$CUDA_DIR/lib64" "$CUDA_DIR/targets/$HOST_TRIPLE/lib"
+
 printf 'CUDA Version 11.6.0\n' > "$CUDA_DIR/version.txt"
+
+# CMake's built-in toolkit probes inspect these paths even when the actual
+# compiler is the nvcc shim. Keep them present without inventing NVIDIA libs.
+ln -sfn "$CUCC_PATH/cmake_modules" "$CUDA_DIR/cmake_modules"
+ln -sfn "$CUCC_PATH/cmake_modules/FindCUDAToolkit.cmake" \
+    "$CUDA_DIR/lib64/cmake/CUDAToolkit/FindCUDAToolkit.cmake"
+printf 'include(\"${CMAKE_CURRENT_LIST_DIR}/FindCUDAToolkit.cmake\")\n' \
+    > "$CUDA_DIR/lib64/cmake/CUDAToolkit/CUDAToolkitConfig.cmake"
+
 printf 'cmake_cce: CUDA shim: %s\n' "$CUDA_DIR" >&2
+printf 'cmake_cce: host toolkit layout: %s\n' "$HOST_TRIPLE" >&2
+printf 'cmake_cce: Ascend architecture: %s\n' "$CU2CCE_NPU_ARCH" >&2
 
 export CUCC_PATH
 export CUDA_PATH="$CUDA_DIR"
 export CUDA_HOME="$CUDA_DIR"
-export ASCEND_TOOLKIT_HOME
 export CANN_BASE
+export ASCEND_TOOLKIT_HOME
+export CU2CCE_NPU_ARCH
+export CUCC_NPU_ARCH="$CU2CCE_NPU_ARCH"
 export PATH="$CUCC_PATH/bin:$CUDA_DIR/bin:$PATH"
-export LD_LIBRARY_PATH="$CUCC_PATH/lib:$CANN_BASE/lib64:${LD_LIBRARY_PATH:-}"
+export LD_LIBRARY_PATH="$CUCC_PATH/lib:$CANN_BASE/lib64:$CANN_BASE/runtime/lib64:${LD_LIBRARY_PATH:-}"
 
-# CMake's CUDA architecture probing is NVIDIA-specific. cucc/ccec selects the
-# Ascend target itself, so disable CMake's generated -gencode flags unless the
-# caller explicitly supplied a CMAKE_CUDA_ARCHITECTURES definition.
 args=("$@")
 have_arch=0
-for arg in "${args[@]}"; do
+have_module_path=0
+for index in "${!args[@]}"; do
+    arg="${args[$index]}"
     case "$arg" in
         -DCMAKE_CUDA_ARCHITECTURES=*|-DCMAKE_CUDA_ARCHITECTURES) have_arch=1;;
+        -DCMAKE_MODULE_PATH=*)
+            have_module_path=1
+            user_module_path="${arg#-DCMAKE_MODULE_PATH=}"
+            if [ -n "$user_module_path" ]; then
+                args[$index]="-DCMAKE_MODULE_PATH=$CUCC_PATH/cmake_modules;$user_module_path"
+            else
+                args[$index]="-DCMAKE_MODULE_PATH=$CUCC_PATH/cmake_modules"
+            fi
+            ;;
+        -DCMAKE_MODULE_PATH) have_module_path=1;;
     esac
 done
 if [ "$have_arch" -eq 0 ]; then
+    # CMake's generated -gencode flags describe NVIDIA GPUs. ccec selects the
+    # Ascend target through CU2CCE_NPU_ARCH instead.
     args+=("-DCMAKE_CUDA_ARCHITECTURES=OFF")
 fi
+if [ "$have_module_path" -eq 0 ]; then
+    args+=("-DCMAKE_MODULE_PATH=$CUCC_PATH/cmake_modules")
+fi
 args+=("-DCMAKE_CUDA_COMPILER=$CUDA_DIR/bin/nvcc")
+
+if [ "${CU2CCE_CMAKE_DEBUG:-0}" = "1" ]; then
+    printf 'cmake_cce: configure command:' >&2
+    printf ' %q' cmake "${args[@]}" >&2
+    printf '\n' >&2
+fi
 
 exec cmake "${args[@]}"

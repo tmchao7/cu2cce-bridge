@@ -34,3 +34,14 @@ The complete list and expected output strings are maintained in
 
 项目整体原理和测试设计哲学见
 `docs/01_Design/PROJECT_ARCHITECTURE.md`。
+
+## CMake compatibility examples
+
+- `cmake_demo/`: standard `project(... LANGUAGES CUDA)` smoke.
+- `cmake_compat/`: multiple `.cu` files, static/shared CUDA libraries, a
+  host-only executable and `CUDA::cudart`.
+- `cmake_compat_legacy/`: minimal legacy `FindCUDA` and
+  `cuda_add_executable` compatibility.
+
+These projects are configured with `cmake_cce`; see the CMake section of
+`QUICKSTART.md`.

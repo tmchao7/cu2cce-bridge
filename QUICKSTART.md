@@ -390,6 +390,8 @@ export CU2CCE_BRIDGE=/home/t50063365/workspace/repos/cu2cce-bridge
 export CUCC_PATH=$CU2CCE_BRIDGE/build/real_test/install
 export CUDA_PATH=$CUCC_PATH
 export PATH=$CUCC_PATH/bin:$CUCC_PATH/tools:$PATH
+# 可选：使用持久 shim，避免系统清理 /tmp 后 build 目录失效。
+export CU2CCE_CMAKE_SHIM_DIR=/tmp/cu2cce-cmake-shim
 
 cmake_cce -S /home/t50063365/workspace/repos/cu2cce-bridge/examples/cmake_demo \
     -B /tmp/cu2cce-cmake-build
@@ -403,9 +405,19 @@ CMake 的 CUDA compiler detection 会经过：
 cmake_cce → CMake CUDA shim → nvcc_entry → mock_nvcc → cucc → ccec
 ```
 
-当前属于实验性能力，首版重点覆盖 `project(... LANGUAGES CUDA)`、`.cu` target、
-普通编译/链接、Unix Makefiles 和 Ninja；不承诺完整 `find_package(CUDAToolkit)`、
-CUDA device-link 或 `CUDA::cudart/CUDA::cublas` package target。
+当前属于实验性能力，已覆盖 `project(... LANGUAGES CUDA)`、多个 `.cu`、静态/动态
+CUDA library、host+CUDA 混合、`find_package(CUDAToolkit)` + `CUDA::cudart`、
+基础 legacy `FindCUDA` 以及 Unix Makefiles/Ninja。仍不承诺完整 CUDA device-link、
+separable compilation、PTX/CUBIN/FATBIN 或 `CUDA::cublas` package target。
+
+如果工程要显式使用 cu2cce 自身运行库，可以在 `CMakeLists.txt` 中使用：
+
+```cmake
+find_package(cu2cce-bridge CONFIG REQUIRED)
+target_link_libraries(app PRIVATE cu2cce::runtime)
+```
+
+这个 target 是 cu2cce-bridge 原生 CMake package，不等价于完整的 CUDA Toolkit。
 
 ## 10. 构建环境与静态检查
 

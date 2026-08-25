@@ -408,10 +408,32 @@ CMake → shim/bin/nvcc → nvcc_entry → mock_nvcc → cucc → ccec
 ```
 
 `cmake_cce` 只负责配置阶段和 CMake compiler detection；`cucc` 仍是实际参数、
-头文件、库和 ccec 的驱动。临时 shim 保留到构建目录后续 `cmake --build` 使用。
-首版目标是核心 CUDA CMake 工程，不承诺完整 CUDA package discovery、device-link
-或 `CUDA::cudart/CUDA::cublas` target。示例位于 `examples/cmake_demo/`，真机入口
-会输出 `CMAKE_CCE_REGRESSION_PASS`。
+头文件、库和 ccec 的驱动。shim 默认位于 `/tmp/cu2cce-cmake-shim-<pid>/`，也可以
+通过 `CU2CCE_CMAKE_SHIM_DIR` 配置为持久目录。shim 同时提供标准 Toolkit 相对目录：
+`targets/<arch>-<os>/include`、`targets/<arch>-<os>/lib` 和 `lib64/stubs`，但不伪造
+未实现的 CUDA 库。
+
+当前已提供两个受控 CMake 兼容模块：
+
+- `FindCUDAToolkit.cmake`：只提供 bridge-backed `CUDA::cudart`；
+- `FindCUDA.cmake`：支持常见 `find_package(CUDA)`、`cuda_add_executable` 和
+  `cuda_add_library`，PTX/CUBIN/FATBIN helper 显式拒绝。
+
+示例位于 `examples/cmake_demo/`、`examples/cmake_compat/` 和
+`examples/cmake_compat_legacy/`。真机入口会分别验证标准 CMake、多 `.cu`、静态/动态
+library、`CUDA::cudart`、legacy FindCUDA 和可用时的 Ninja，并输出
+`CMAKE_CCE_REGRESSION_PASS`。CUDA device-link/separable compilation 和未验证的 CUDA
+library target 仍不属于正式支持范围。
+
+项目同时安装原生 CMake package：
+
+```cmake
+find_package(cu2cce-bridge CONFIG REQUIRED)
+target_link_libraries(app PRIVATE cu2cce::runtime)
+```
+
+该 target 是 bridge 自身的明确命名入口；它与实验性的 `CUDA::cudart` 兼容 target
+分离，避免把 bridge 运行库误表述为完整 NVIDIA CUDA Runtime。
 
 ## 10. 项目摘要
 

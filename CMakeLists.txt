@@ -74,6 +74,19 @@ install(PROGRAMS tools/nvcc_entry.sh
         DESTINATION ${CMAKE_INSTALL_PREFIX}/tools)
 install(DIRECTORY tools/mock DESTINATION ${CMAKE_INSTALL_PREFIX}/tools)
 
+# Optional CMake compatibility modules used by cmake_cce. These modules only
+# expose validated bridge-backed targets and legacy build macros; they do not
+# perform CUDA kernel conversion.
+install(DIRECTORY cmake_modules/ DESTINATION ${CMAKE_INSTALL_PREFIX}/cmake_modules)
+
+# Native cu2cce package. This is intentionally separate from CUDA::cudart:
+# it identifies the bridge itself and does not claim complete CUDA library
+# compatibility.
+install(FILES
+    cmake/cu2cce-bridgeConfig.cmake
+    cmake/cu2cce-bridgeConfigVersion.cmake
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/cmake/cu2cce-bridge)
+
 # 安装示例（真机验证资产）
 install(DIRECTORY examples/ DESTINATION ${CMAKE_INSTALL_PREFIX}/examples)
 # NVIDIA CUDA Samples helper headers are dependencies of the unmodified puresimt

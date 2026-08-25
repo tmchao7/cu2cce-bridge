@@ -44,8 +44,11 @@ BLAS 日志位于 `build/real_test/blas/`，成功标志为
 
 ## CMake integration (experimental)
 
-The CMake path is tested on `exp/cmake-cce` with the standard CUDA project in
-`examples/cmake_demo/`:
+The CMake path is tested on the CMake compatibility branch with these projects:
+
+- `examples/cmake_demo/` — standard CUDA CMake;
+- `examples/cmake_compat/` — multiple `.cu`, static/shared libraries and `CUDA::cudart`;
+- `examples/cmake_compat_legacy/` — legacy `FindCUDA` macros.
 
 ```bash
 cmake_cce -S examples/cmake_demo -B /tmp/cu2cce-cmake-build
@@ -53,5 +56,6 @@ cmake --build /tmp/cu2cce-cmake-build
 /tmp/cu2cce-cmake-build/cmake_vector_add
 ```
 
-The integration is currently experimental until the Ascend real-device smoke
-test reports `CMAKE_CCE_REGRESSION_PASS`.
+The integration is currently experimental. The Ascend real-device smoke test reports
+`CMAKE_CCE_REGRESSION_PASS` only when all mandatory CMake projects pass. Set
+`CU2CCE_CMAKE_SHIM_DIR` to keep the compiler shim in a persistent directory.

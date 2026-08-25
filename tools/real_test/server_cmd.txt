@@ -229,58 +229,106 @@ else
 fi
 
 printf '\n===== [5/5] CMake CUDA integration smoke =====\n'
-CMAKE_CCE="$REPO_LIB/../tools/cmake_cce"
-CMAKE_BUILD="$OUT/cmake-build"
-CMAKE_LOG="$OUT/cmake_configure.log"
-CMAKE_BUILD_LOG="$OUT/cmake_build.log"
-CMAKE_RUN_LOG="$OUT/cmake_run.log"
-rm -rf "$CMAKE_BUILD"
+CMAKE_CCE="$REPO_LIB/../bin/cmake_cce"
+CMAKE_PASS=1
+
+run_cmake_case() {
+    local name="$1"
+    local source_dir="$2"
+    local build_dir="$3"
+    local binary="$4"
+    local expected="$5"
+    local extra_args=("${@:6}")
+    local log_prefix="$OUT/$name"
+    local configure_log="${log_prefix}_configure.log"
+    local build_log="${log_prefix}_build.log"
+    local run_log="${log_prefix}_run.log"
+
+    rm -rf "$build_dir"
+    echo "----- [$name] configure: $source_dir -----"
+    if "$CMAKE_CCE" -S "$source_dir" -B "$build_dir" "${extra_args[@]}" \
+        -DCMAKE_CUDA_ARCHITECTURES=OFF >"$configure_log" 2>&1; then
+        echo "[PASS] [$name] CMake configure"
+    else
+        echo "[FAIL] [$name] CMake configure (log: $configure_log)"
+        tail -n 100 "$configure_log" 2>/dev/null || true
+        CMAKE_PASS=0
+        return 0
+    fi
+
+    if cmake --build "$build_dir" >"$build_log" 2>&1; then
+        echo "[PASS] [$name] CMake build"
+    else
+        echo "[FAIL] [$name] CMake build (log: $build_log)"
+        tail -n 100 "$build_log" 2>/dev/null || true
+        CMAKE_PASS=0
+        return 0
+    fi
+
+    if "$binary" >"$run_log" 2>&1 && grep -Fq "$expected" "$run_log"; then
+        echo "[PASS] [$name] CMake run: $(grep -F "$expected" "$run_log" | tail -n 1)"
+    else
+        echo "[FAIL] [$name] CMake run (log: $run_log)"
+        cat "$run_log" 2>/dev/null || true
+        CMAKE_PASS=0
+        return 0
+    fi
+
+    if grep -Eiq 'kernel[_ -]?convert|__simt_vf__|async_invoke|\.cce' \
+        "$configure_log" "$build_log"; then
+        echo "[FAIL] [$name] CMake path emitted legacy lowering markers"
+        CMAKE_PASS=0
+    else
+        echo "[PASS] [$name] no legacy lowering markers"
+    fi
+}
+
 if [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$CMAKE_CCE" ]; then
     export CUCC_PATH="$PWD/build/real_test/install"
     export CUDA_PATH="$CUCC_PATH"
     export PATH="$CUCC_PATH/bin:$PATH"
-    if "$CMAKE_CCE" -S examples/cmake_demo -B "$CMAKE_BUILD" \
-        -DCMAKE_CUDA_ARCHITECTURES=OFF >"$CMAKE_LOG" 2>&1; then
-        echo '[PASS] CMake configure'
-        if cmake --build "$CMAKE_BUILD" >"$CMAKE_BUILD_LOG" 2>&1; then
-            echo '[PASS] CMake build'
-            if "$CMAKE_BUILD/cmake_vector_add" >"$CMAKE_RUN_LOG" 2>&1 && \
-               grep -Fq 'cmake vectorAdd OK' "$CMAKE_RUN_LOG"; then
-                echo "[PASS] CMake run: $(grep -F 'cmake vectorAdd OK' "$CMAKE_RUN_LOG")"
-                if grep -Eiq 'kernel[_ -]?convert|__simt_vf__|async_invoke' "$CMAKE_LOG" "$CMAKE_BUILD_LOG"; then
-                    echo '[FAIL] CMake path emitted legacy lowering markers'
-                    FAIL=$((FAIL + 1))
-                else
-                    echo '[PASS] CMake path has no legacy lowering markers'
-                fi
-                echo 'CMAKE_CCE_REGRESSION_PASS'
-            else
-                echo '[FAIL] CMake run'; cat "$CMAKE_RUN_LOG"
-                FAIL=$((FAIL + 1))
-            fi
-        else
-            echo "[FAIL] CMake build (log: $CMAKE_BUILD_LOG)"
-            if [ -f "$CMAKE_BUILD_LOG" ]; then
-                tail -n 100 "$CMAKE_BUILD_LOG"
-            else
-                echo '[WARN] build log was not created'
-            fi
-            FAIL=$((FAIL + 1))
-        fi
+    export CU2CCE_CMAKE_SHIM_DIR="$OUT/cmake-shim"
+    run_cmake_case \
+        cmake_demo \
+        examples/cmake_demo \
+        "$OUT/cmake-build" \
+        "$OUT/cmake-build/cmake_vector_add" \
+        'cmake vectorAdd OK'
+    run_cmake_case \
+        cmake_compat \
+        examples/cmake_compat \
+        "$OUT/cmake-compat-build" \
+        "$OUT/cmake-compat-build/cmake_compat_app" \
+        'cmake_compat OK'
+
+    run_cmake_case \
+        cmake_compat_legacy \
+        examples/cmake_compat_legacy \
+        "$OUT/cmake-compat-legacy-build" \
+        "$OUT/cmake-compat-legacy-build/legacy_vector_add" \
+        'legacy CUDA OK'
+
+    if command -v ninja >/dev/null 2>&1; then
+        run_cmake_case \
+            cmake_ninja \
+            examples/cmake_demo \
+            "$OUT/cmake-ninja-build" \
+            "$OUT/cmake-ninja-build/cmake_vector_add" \
+            'cmake vectorAdd OK' \
+            -G Ninja
     else
-        echo "[FAIL] CMake configure (log: $CMAKE_LOG)"
-        if [ -f "$CMAKE_LOG" ]; then
-            echo '----- configure log tail -----'
-            tail -n 100 "$CMAKE_LOG"
-        else
-            echo '[WARN] configure log was not created'
-        fi
-        echo "[INFO] CMake build directory: $CMAKE_BUILD"
-        FAIL=$((FAIL + 1))
+        echo '[SKIP] CMake Ninja smoke: ninja is not installed'
     fi
 else
     echo '[FAIL] CMake smoke unavailable: missing device or installed cmake_cce'
+    CMAKE_PASS=0
+fi
+
+if [ "$CMAKE_PASS" -eq 1 ]; then
+    echo 'CMAKE_CCE_REGRESSION_PASS'
+else
     FAIL=$((FAIL + 1))
+    echo 'CMAKE_CCE_REGRESSION_FAIL（查看上方各 CMake 日志）'
 fi
 
 printf '\n===== FINAL SUMMARY =====\n'
@@ -290,7 +338,9 @@ if [ "$TEST_BLOCKED_BY_DEVICE" -eq 1 ]; then
     echo 'RESULT=TEST_BLOCKED_BY_DEVICE'
 elif [ "$FAIL" -eq 0 ]; then
     echo 'PURESIMT_REGRESSION_PASS'
-    echo 'CMAKE_CCE_REGRESSION_PASS'
+    if [ "$CMAKE_PASS" -eq 1 ]; then
+        echo 'CMAKE_CCE_REGRESSION_PASS'
+    fi
 else
     echo 'REGRESSION_FAIL（查看上方各 .log）'
 fi

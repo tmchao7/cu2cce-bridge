@@ -4,9 +4,8 @@
 # Usage:
 #   bash tools/real_test/clean.sh
 #
-# This intentionally removes the entire build/real_test directory, including
-# stale outputs from earlier experimental/new-homogeneous runs, then recreates
-# the empty directory for the next server_cmd/build_bridge run.
+# This removes build/real_test, the temporary CMake shim directories created by
+# the regression suite, and then recreates an empty output directory.
 
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -14,4 +13,19 @@ BUILD="$ROOT/build/real_test"
 
 rm -rf "$BUILD"
 mkdir -p "$BUILD"
+
+# The default cmake_cce shim is process-scoped, but stale directories can be
+# left behind after an interrupted configure. Remove only our known prefix.
+for shim in "${TMPDIR:-/tmp}"/cu2cce-cmake-shim-*; do
+    [ -e "$shim" ] || [ -L "$shim" ] || continue
+    rm -rf "$shim"
+done
+
+# A caller-selected shim under this repository's generated build tree is safe
+# to remove together with build/real_test; never delete arbitrary user paths.
+if [ -n "${CU2CCE_CMAKE_SHIM_DIR:-}" ] &&
+   [[ "$CU2CCE_CMAKE_SHIM_DIR" == "$ROOT/build/"* ]]; then
+    rm -rf "$CU2CCE_CMAKE_SHIM_DIR"
+fi
+
 echo "Cleaned all generated real-test outputs: $BUILD"
