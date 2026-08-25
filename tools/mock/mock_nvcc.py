@@ -73,12 +73,18 @@ def filter_args(args):
 def run_cucc(args, compiler_id=False):
     cucc = Path(os.environ["CUCC_PATH"]) / "bin" / "cucc"
     forwarded = filter_args(args)
-    # CMake's compiler-id source uses CUDA predefined macros to emit its ID.
-    # Defining them is harmless for normal user sources and lets CMake identify
-    # the shim as a CUDA-compatible compiler.
-    if compiler_id:
-        forwarded = ["-D__CUDACC__", "-D__CUDACC_VER_MAJOR__=11",
-                     "-D__CUDACC_VER_MINOR__=6"] + forwarded
+    # CMake's CUDA ABI/compiler checks contain a guard that rejects any compiler
+    # which does not define __CUDACC__. The real backend is ccec, but the shim
+    # must preserve these source-level CUDA compiler identity macros for CMake
+    # and for normal CUDA CMake targets.
+    cuda_macros = [
+        "-D__CUDACC__",
+        "-D__CUDACC_VER_MAJOR__=11",
+        "-D__CUDACC_VER_MINOR__=6",
+        "-D__CUDACC_VER_BUILD__=0",
+        "-D__CUDACC_VER__=110600",
+    ]
+    forwarded = cuda_macros + forwarded
     return subprocess.call([str(cucc), *forwarded])
 
 
