@@ -212,13 +212,18 @@ for pair in \
     # the shadow math header for that sample (it would conflict with glibc specs).
     case "$name" in
         vectorAdd)
+            # Official helper headers use host C++ math APIs and vectorAdd calls
+            # fabs without including math.h itself. Use system math for this
+            # helper-heavy official sample rather than predeclaring shadow math.
+            EXTRA_FLAGS+=( -D__CU2CCE_SYSTEM_LIBC__ -include math.h )
             INCLUDE_FLAGS+=( -I"$NVIDIA_COMMON" )
             ;;
         matrixMul)
+            EXTRA_FLAGS+=( -D__CU2CCE_SYSTEM_LIBC__ )
             INCLUDE_FLAGS+=( -I"$NVIDIA_COMMON" )
             ;;
         math_minimal)
-            EXTRA_FLAGS+=( -include "$REPO_INC/shadow/math.h" )
+            EXTRA_FLAGS+=( -D__CU2CCE_SYSTEM_LIBC__ -include math.h )
             ;;
     esac
     if "$CCEC" $PS_FLAGS "${EXTRA_FLAGS[@]}" "examples/puresimt/$src" \

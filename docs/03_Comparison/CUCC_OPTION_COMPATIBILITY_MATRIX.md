@@ -65,3 +65,8 @@ complete CUDA Cooperative Groups API compatibility.
 The runtime header intentionally does not preinclude `shadow/math.h`. Existing minimal math
 regressions explicitly request it, while upstream C++/CUDA projects use system math in
 `CU2CCE_LIBC_MODE=system`; this prevents shadow/system exception-specification conflicts.
+
+
+The official helper-heavy puresimt samples in the real-device script explicitly select
+`__CU2CCE_SYSTEM_LIBC__` and preinclude system `math.h`; this is a compiler-driver policy
+for upstream helper headers and does not modify the official CUDA sources.
