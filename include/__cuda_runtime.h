@@ -36,12 +36,12 @@
 /* CUDA runtime headers normally make common device/host math declarations
  * available transitively. Keep that source-level behavior without forcing the
  * minimal shadow libc declarations onto libstdc++ projects. */
-#if defined(__CU2CCE_SYSTEM_LIBC__) || !defined(__CU2CCE_DEVICE_COMPILATION__)
-/* Host-only C++ translation units use the real system math headers. */
+#if defined(__CU2CCE_SYSTEM_LIBC__)
+/* Large C++/CUDA projects can opt into the real system math declarations. */
 #include <math.h>
 #else
-/* ccec CUDA translation units use the minimal declaration-only header to avoid
- * the known glibc/ccec device-side header conflict. */
+/* The default puresimt path, including direct ccec invocations, uses the
+ * declaration-only header to avoid the known glibc/ccec device conflict. */
 #include "shadow/math.h"
 #endif
 

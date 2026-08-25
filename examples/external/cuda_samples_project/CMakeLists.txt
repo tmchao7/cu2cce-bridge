@@ -15,6 +15,10 @@ set(CMAKE_CUDA_STANDARD 17)
 # diagnoses and drops those GPU-generation flags; this harness does not invent an
 # Ascend architecture or enable CUDA separable compilation.
 set(CMAKE_CUDA_ARCHITECTURES OFF CACHE STRING "" FORCE)
+# Host-only upstream sources also include cuda_runtime.h and libstdc++ headers.
+# Use the system libc/math declarations for this external profile; the ordinary
+# puresimt regression keeps the shadow mode by default.
+add_compile_definitions(__CU2CCE_SYSTEM_LIBC__)
 
 set(_CU2CCE_SAMPLES
   "Samples/0_Introduction/vectorAdd"
