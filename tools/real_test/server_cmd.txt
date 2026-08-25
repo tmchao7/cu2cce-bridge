@@ -238,7 +238,7 @@ for pair in \
     fi
 done
 
-printf '\n===== [4/5] puresimt 汇总 =====\n'
+printf '\n===== [4/6] puresimt 汇总 =====\n'
 echo "FAIL=$FAIL DEVICE_HEALTHY=$DEVICE_HEALTHY TEST_BLOCKED_BY_DEVICE=$TEST_BLOCKED_BY_DEVICE"
 echo "完整日志：$OUT"
 if [ "$TEST_BLOCKED_BY_DEVICE" -eq 1 ]; then
@@ -249,7 +249,7 @@ else
     echo 'PURESIMT_REGRESSION_FAIL（查看上方各 .log）'
 fi
 
-printf '\n===== [5/5] CMake CUDA integration smoke =====\n'
+printf '\n===== [5/6] CMake CUDA integration smoke =====\n'
 CMAKE_CCE="$REPO_LIB/../bin/cmake_cce"
 CMAKE_PASS=1
 

@@ -461,7 +461,12 @@ class RuleDriver:
                 i += consumed
                 continue
 
-            if self.strict and argument.startswith("--"):
+            forward = self._find_rule("forward", phase, argument)
+            if forward:
+                reason = forward.get("reason", "ordinary compiler argument")
+                self._record(argument, "forward", reason)
+
+            if self.strict and argument.startswith("--") and not forward:
                 raise DriverError(f"unrecognized strict-mode CUDA option: {argument}")
 
             # A CUDA library with no validated mapping is preserved with a

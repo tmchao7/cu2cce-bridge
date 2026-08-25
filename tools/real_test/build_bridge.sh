@@ -43,6 +43,15 @@ done
 
 echo "== build_bridge：ASCEND_TOOLKIT_HOME=$ASCEND_TOOLKIT_HOME"
 echo "== 安装目录 CUCC_PATH=$CUCC_PATH"
+
+RULE_VALIDATOR="$ROOT/tools/validate_cucc_rules.py"
+RULES_FILE="$ROOT/config/cu2cce_rules.json"
+if [ -x "$RULE_VALIDATOR" ] || [ -f "$RULE_VALIDATOR" ]; then
+    python3 "$RULE_VALIDATOR" "$RULES_FILE"
+else
+    echo "❌ 缺少 cucc 规则校验器：$RULE_VALIDATOR"
+    exit 1
+fi
 [ -n "$ASCEND_TOOLKIT_HOME" ] && [ -d "$ASCEND_TOOLKIT_HOME" ] || {
     echo "❌ probe 未找到 CANN，先解决 env_probe.sh 的 MISS 项"; exit 1; }
 

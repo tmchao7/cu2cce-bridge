@@ -24,7 +24,9 @@ setup_debug_propagation
 # ---------------- 环境 ----------------
 ASCEND_TOOLKIT_HOME=${ASCEND_TOOLKIT_HOME:-/usr/local/Ascend/ascend-toolkit/latest}
 CUCC_PATH=${CUCC_PATH:-}
-CUBRIDGE_HOME=${CUBRIDGE_HOME:-$HOME}
+# Keep the old CUBRIDGE_HOME name as a compatibility alias, but use the
+# cu2cce-specific name for new projects.
+CU2CCE_HOME=${CU2CCE_HOME:-${CUBRIDGE_HOME:-$HOME}}
 
 if [ -z "${CUCC_PATH}" ]; then
     echo "make_cce: CUCC_PATH not set (point to cu2cce-bridge install dir)" >&2
@@ -32,7 +34,7 @@ if [ -z "${CUCC_PATH}" ]; then
 fi
 
 TEMP_DIR_NAME="cu2cce-bridge"
-DST_WCUDA="$CUBRIDGE_HOME/${TEMP_DIR_NAME}"
+DST_WCUDA="$CU2CCE_HOME/${TEMP_DIR_NAME}"
 
 # 若上一次残留且没有 make.log，清理（仿照 make_maca 的容错）
 if [ ! -f "$DST_WCUDA/make.log" ]; then
