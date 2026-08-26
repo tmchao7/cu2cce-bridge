@@ -59,38 +59,18 @@ def run_driver(args: List[str]) -> int:
     return driver_main(["--cmake-identity", *args])
 
 
-def _is_query_only(args: List[str]) -> bool:
-    return any(flag in args for flag in ("--version", "-V", "-help", "--help"))
-
-
-def _is_preprocess_or_dependency(args: List[str]) -> bool:
-    # These are compile-phase queries (no object output). Returning them to
-    # ccec through the rule driver would run a real (and unnecessary) compile
-    # during CMake configuration, so keep them answered by the shim.
-    return any(flag in args for flag in ("-E", "-M", "-MM", "-MD", "-MMD", "--pre-process"))
-
-
 def main() -> int:
     args = sys.argv[1:]
     if "__cmake_determine_cuda" in args:
         print(determine_cuda(), end="")
         return 0
-    if _is_query_only(args):
+    if "--version" in args:
         print(version(), end="")
         return 0
-    if _is_preprocess_or_dependency(args):
-        # Emit a syntactically complete, empty dependency file (or nothing for
-        # -E) so CMake never needs a real preprocessor from the shim. Real
-        # source preprocessing stays on ccec through cucc.
-        out = None
-        if "-MF" in args:
-            index = args.index("-MF")
-            if index + 1 < len(args):
-                out = Path(args[index + 1])
-        if out is not None:
-            out.parent.mkdir(parents=True, exist_ok=True)
-            out.write_text("", encoding="utf-8")
-        return 0
+    # Everything else is a real compile/link/preprocess invocation. In
+    # particular -MD/-MF/-MT are CMake's dependency-generation flags attached
+    # to every genuine CUDA object rule: they must reach the rule driver and
+    # ccec, never be swallowed by the shim.
     return run_driver(args)
 
 

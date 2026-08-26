@@ -107,10 +107,12 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
 
     def test_mock_nvcc_short_circuits_preprocess_and_deps(self) -> None:
         mock = (ROOT / "tools/mock/mock_nvcc.py").read_text(encoding="utf-8")
-        for flag in ("-E", "-M", "-MD", "--pre-process"):
-            self.assertIn(flag, mock)
         driver = (ROOT / "tools/cu2cce_driver.py").read_text(encoding="utf-8")
         self.assertIn("--proxy-mode", driver)
+        # -MD/-MF/-MT are real dependency-generation flags on genuine CUDA
+        # object rules; they must reach the rule driver, not be short-circuited.
+        self.assertNotIn('"-MD"', mock)
+        self.assertNotIn('"-M"', mock)
 
 
 if __name__ == "__main__":
