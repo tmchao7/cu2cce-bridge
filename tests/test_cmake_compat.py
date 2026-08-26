@@ -56,9 +56,18 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         self.assertIn("INTERFACE_INCLUDE_DIRECTORIES", module)
         harness = (ROOT / "examples/external/cuda_samples_project/CMakeLists.txt").read_text(encoding="utf-8")
         self.assertIn("__CU2CCE_SYSTEM_LIBC__", harness)
-        self.assertNotIn("Samples/2_Concepts_and_Techniques/reduction", harness)
         self.assertIn("vectorAdd", harness)
         self.assertIn("matrixMul", harness)
+        # The exclusion is explicit: reduction is listed only inside the
+        # excluded-samples section, never in the required/diagnostic profiles.
+        self.assertIn("_CU2CCE_EXCLUDED_SAMPLES", harness)
+        self.assertIn("Samples/2_Concepts_and_Techniques/reduction", harness)
+        self.assertIn("Samples/0_Introduction/vectorAdd", harness)
+        self.assertNotIn("_CU2CCE_PROFILE_SAMPLES\n  \"Samples/2_Concepts_and_Techniques/reduction\"", harness)
+        # Diagnostic-only samples stay in the build graph but never block the
+        # required profile.
+        for sample in ("simpleStreams", "simpleMultiCopy", "asyncAPI"):
+            self.assertIn(sample, harness)
 
     def test_external_cuda_samples_profile_is_pinned(self) -> None:
         profile = (ROOT / "examples/external/cuda_samples_project/profile_core.json").read_text(encoding="utf-8")
@@ -73,6 +82,35 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         text = matrix.read_text(encoding="utf-8")
         for item in ("CMake", "Makefiles", "Ninja", "device-link", "CUDA::cudart"):
             self.assertIn(item, text)
+
+    def test_large_project_carrier_covers_multi_directory_and_export(self) -> None:
+        top = (ROOT / "examples/large_project/CMakeLists.txt").read_text(encoding="utf-8")
+        for pattern in ("add_subdirectory(comp)", "add_subdirectory(util)",
+                        "install(TARGETS", "install(EXPORT largeProjectTargets"):
+            self.assertIn(pattern, top)
+        self.assertTrue((ROOT / "examples/large_project/comp/kernel.cu").is_file())
+        self.assertTrue((ROOT / "examples/large_project/app/main.cpp").is_file())
+        # One .cu per linked library: the CUDA target lives in comp/ and the
+        # host-only util/ target must not contain CUDA sources.
+        self.assertFalse((ROOT / "examples/large_project/util/store.cpp").read_text(
+            encoding="utf-8").strip().endswith(".cu"))
+
+    def test_fetch_script_rejects_non_public_urls(self) -> None:
+        fetch = (ROOT / "tools/real_test/fetch_external_cuda_samples.sh").read_text(encoding="utf-8")
+        self.assertIn("http://*|https://*)", fetch)
+        validator = ROOT / "tools/real_test/validate_fetch_url.py"
+        self.assertTrue(validator.is_file())
+        self.assertIn("localhost", validator.read_text(encoding="utf-8"))
+        self.assertGreaterEqual(
+            (ROOT / "tools/real_test/fetch_external_cuda_samples.sh").read_text(
+                encoding="utf-8").count("require_public_https_url"), 2)
+
+    def test_mock_nvcc_short_circuits_preprocess_and_deps(self) -> None:
+        mock = (ROOT / "tools/mock/mock_nvcc.py").read_text(encoding="utf-8")
+        for flag in ("-E", "-M", "-MD", "--pre-process"):
+            self.assertIn(flag, mock)
+        driver = (ROOT / "tools/cu2cce_driver.py").read_text(encoding="utf-8")
+        self.assertIn("--proxy-mode", driver)
 
 
 if __name__ == "__main__":

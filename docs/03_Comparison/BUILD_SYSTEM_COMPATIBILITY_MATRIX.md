@@ -16,6 +16,8 @@
 | install/export/package | `EXPERIMENTAL` | native `cu2cce::runtime` package | 需安装树真机回归 |
 | Unix Makefiles | `EXPERIMENTAL` | `examples/build_compat/make` | 通过 `make_cce` |
 | Ninja | `EXPERIMENTAL` | CMake Ninja smoke + `ninja_cce` | 需服务器安装 Ninja |
+| multi-directory CMake project | `EXPERIMENTAL` | `examples/large_project`（comp/util 子目录、跨目标依赖、install/export） | 每 linked library 仍为一个 `.cu` |
+| generated input + cross-directory target dependency | `DIAGNOSTIC_ONLY` | `examples/large_project/util` custom command | ccec 只编译 `.cu`；生成头/数据的宿主 target 需真机确认 |
 | response file | `EXPERIMENTAL` | `tests/test_cucc_rules.py` | 构建系统组合仍需扩大 |
 | dependency generation `-M/-MM/-MD/-MF/-MT` | `DIAGNOSTIC_ONLY` until device proof | driver phase tests | ccec 真实依赖输出需真机确认 |
 | query `--version/-V/--help` | `SUPPORTED` for driver | local unit tests | 输出是 cu2cce compatibility identity |
@@ -88,3 +90,19 @@ flag equivalent, so `cudaSetDeviceFlags` is a compatibility no-op and
 `cudaDeviceProp::canMapHostMemory` reports `0`; generic host mapping remains diagnostic-only.
 The simpleStreams profile is not required until its host/device `max` overload and pinned
 memory semantics are separately validated.
+
+## External profile and runtime-API diagnostic boundary
+
+- Required samples: `vectorAdd`, `matrixMul` (build + run).
+- Diagnostic-only samples (in configure/build graph, run failure does not block
+  required PASS): `simpleStreams`, `simpleMultiCopy`, `asyncAPI`.
+- Excluded sample: `reduction` (cross-warp `thread_block_tile` + device double).
+- Runtime APIs still `ACL_ERROR_API_NOT_SUPPORT` on CANN: `cudaHostRegister`,
+  `cudaHostGetDevicePointer`, `cudaHostUnregister`, `cudaHostGetFlags`. Declarations,
+  macro mapping, and runtime diagnostics exist; no no-op fake success.
+- Fetch security: external CUDA Samples URL must be http/https with a public
+  remote host; `tools/real_test/validate_fetch_url.py` rejects loopback,
+  private, link-local, multicast, reserved and special-use hosts (including
+  DNS-resolvable ones). Non-allowlisted hosts fall back to an exact
+  known-good GitHub allowlist (github.com / api.github.com / raw.githubusercontent.com /
+  codeload.github.com / objects.githubusercontent.com).

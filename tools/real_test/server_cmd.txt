@@ -267,6 +267,7 @@ fi
 printf '\n===== [5/7] CMake CUDA integration smoke =====\n'
 CMAKE_CCE="$REPO_LIB/../bin/cmake_cce"
 CMAKE_PASS=1
+LARGE_PROJECT_PASS=0
 
 run_cmake_case() {
     local name="$1"
@@ -343,6 +344,16 @@ if [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$CMAKE_CCE" ]; then
         "$OUT/cmake-compat-legacy-build" \
         "$OUT/cmake-compat-legacy-build/legacy_vector_add" \
         'legacy CUDA OK'
+
+    run_cmake_case \
+        cmake_large_project \
+        examples/large_project \
+        "$OUT/cmake-large-project-build" \
+        "$OUT/cmake-large-project-build/large_project_app" \
+        'large_project OK'
+    if [ "$CMAKE_PASS" -eq 1 ]; then
+        LARGE_PROJECT_PASS=1
+    fi
 
     run_cmake_case \
         cmake_build_compat \
@@ -494,6 +505,24 @@ if [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$EXTERNAL_FETCH" ] && [ -x "$CMAKE_CCE" 
                         CUDA_SAMPLES_PASS=0
                     fi
                 done
+                # Diagnostic-only samples stay in the external configure/build
+                # graph but never block the required profile. Each one is
+                # attempted and its outcome recorded for the runtime API
+                # compatibility log; a failure here only affects the
+                # diagnostic summary line.
+                printf '\n----- external diagnostic-only samples -----\n'
+                for sample in simpleStreams simpleMultiCopy asyncAPI; do
+                    binary="$EXTERNAL_BUILD/$sample/$sample"
+                    diag_log="$OUT/cuda_samples_diag_${sample}.log"
+                    echo "[INFO] external diagnostic [$sample] (timeout=${EXTERNAL_RUN_TIMEOUT}s)"
+                    if [ -x "$binary" ] && run_with_timeout "$EXTERNAL_RUN_TIMEOUT" "$binary" >"$diag_log" 2>&1; then
+                        echo "[DIAG-PASS] [$sample] (unexpectedly passed; re-classify or investigate API surface)"
+                        cat "$diag_log" 2>/dev/null
+                    else
+                        echo "[DIAG-ONLY] [$sample] not supported on this CANN (log tail:)"
+                        tail -n 25 "$diag_log" 2>/dev/null || true
+                    fi
+                done
                 if grep -Eiq 'kernel[_ -]?convert|__simt_vf__|async_invoke|\.cce' \
                     "$OUT/cuda_samples_configure.log" "$EXTERNAL_BUILD_LOG"; then
                     echo '[FAIL] external CUDA Samples emitted legacy lowering markers'
@@ -540,6 +569,9 @@ elif [ "$FAIL" -eq 0 ]; then
     fi
     if [ "${CUCC_RULES_PASS:-0}" -eq 1 ]; then
         echo 'CUCC_RULES_REGRESSION_PASS'
+    fi
+    if [ "${LARGE_PROJECT_PASS:-0}" -eq 1 ]; then
+        echo 'LARGE_PROJECT_REGRESSION_PASS'
     fi
 else
     echo 'REGRESSION_FAIL（查看上方各 .log）'
