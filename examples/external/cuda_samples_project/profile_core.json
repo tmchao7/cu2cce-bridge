@@ -16,6 +16,30 @@
       "expect": "Result = PASS"
     }
   ],
+  "diagnostic_only_samples": [
+    {
+      "name": "simpleStreams",
+      "path": "Samples/0_Introduction/simpleStreams",
+      "reason": "host/device max overload, pinned host memory, canMapHostMemory reporting not validated on CANN"
+    },
+    {
+      "name": "simpleMultiCopy",
+      "path": "Samples/0_Introduction/simpleMultiCopy",
+      "reason": "mapped host memory / cudaHostGetDevicePointer surface is ACL_ERROR_API_NOT_SUPPORT at runtime"
+    },
+    {
+      "name": "asyncAPI",
+      "path": "Samples/0_Introduction/asyncAPI",
+      "reason": "multi-stream event ordering validated only partially on CANN SIMT streams"
+    }
+  ],
+  "excluded_samples": [
+    {
+      "name": "reduction",
+      "path": "Samples/2_Concepts_and_Techniques/reduction",
+      "reason": "CANN 9.2 stable SIMT does not support cross-warp thread_block_tile sizes >32 or device double arithmetic"
+    }
+  ],
   "disabled_features": [
     "CUDA_ARCHITECTURES",
     "CUDA_SEPARABLE_COMPILATION",
@@ -24,18 +48,8 @@
     "CUDA libraries"
   ],
   "known_limitations": {
-    "reduction": "CANN 9.2 stable SIMT does not support cross-warp thread_block_tile sizes >32 or device double arithmetic; kept as diagnostic-only, not required profile."
-  },
-  "diagnostic_only_samples": [
-    {
-      "name": "simpleStreams",
-      "path": "Samples/0_Introduction/simpleStreams",
-      "reason": "device flags/property and host max semantics not fully validated"
-    },
-    {
-      "name": "simpleMultiCopy",
-      "path": "Samples/0_Introduction/simpleMultiCopy",
-      "reason": "pinned/multi-stream API coverage pending"
-    }
-  ]
+    "cudaHostRegister": "ACL_ERROR_API_NOT_SUPPORT at runtime; declaration and diagnostic exist",
+    "cudaHostGetDevicePointer": "ACL_ERROR_API_NOT_SUPPORT at runtime; declaration and diagnostic exist",
+    "cooperative_groups_thread_block_tile_gt_32": "CANN 9.2 stable SIMT does not support cross-warp tile sizes"
+  }
 }
