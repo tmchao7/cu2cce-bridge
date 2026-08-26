@@ -633,8 +633,12 @@ class RuleDriver:
 def main(argv: Optional[Sequence[str]] = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
     cmake_identity = False
+    proxy_mode = False
     if args and args[0] == "--cmake-identity":
         cmake_identity = True
+        args = args[1:]
+    if args and args[0] == "--proxy-mode":
+        proxy_mode = True
         args = args[1:]
     try:
         if "--version" in args or "-V" in args:
@@ -652,6 +656,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         prepared = driver.prepare(args)
         if dryrun:
             print(" ".join([prepared.compiler, *prepared.args]))
+            return 0
+        if proxy_mode:
+            # Emit the prepared command as a single shell-quoted line without
+            # executing ccec. The parent wrapper (mock_nvcc or a test harness)
+            # decides whether and how to execute the real compile.
+            print(shlex.join([prepared.compiler, *prepared.args]))
             return 0
         return driver.run_prepared(prepared)
     except DriverError as exc:
