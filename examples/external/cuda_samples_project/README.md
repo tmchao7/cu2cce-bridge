@@ -18,3 +18,9 @@ The external profile uses `CU2CCE_LIBC_MODE=system` so libstdc++ can include the
 `stdlib.h`, `stdio.h`, and `math.h` declarations. The default puresimt profile keeps
 `CU2CCE_LIBC_MODE=shadow` for the minimal-header glibc workaround used by the existing
 regression set.
+
+
+The `reduction` sample is intentionally excluded from the required profile. It combines
+CUDA Cooperative Groups cross-warp tiles (`64..512`) and device-side `double`, both outside
+the stable CANN 9.2 SIMT capability. It remains a documented diagnostic limitation rather
+than a silently modified or falsely passing sample.

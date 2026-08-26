@@ -23,7 +23,6 @@ add_compile_definitions(__CU2CCE_SYSTEM_LIBC__)
 set(_CU2CCE_SAMPLES
   "Samples/0_Introduction/vectorAdd"
   "Samples/0_Introduction/matrixMul"
-  "Samples/2_Concepts_and_Techniques/reduction"
   "Samples/0_Introduction/simpleStreams"
   "Samples/0_Introduction/simpleMultiCopy"
 )
@@ -42,20 +41,9 @@ endforeach()
 # registration helpers from separate translation units through RDC. Disable the
 # upstream sample request for separable compilation while keeping source files
 # untouched; this is an explicit compatibility boundary, not a hidden rewrite.
-foreach(_target vectorAdd matrixMul reduction simpleStreams simpleMultiCopy)
+foreach(_target vectorAdd matrixMul simpleStreams simpleMultiCopy)
   if(TARGET "${_target}")
     set_target_properties("${_target}" PROPERTIES CUDA_SEPARABLE_COMPILATION OFF)
   endif()
 endforeach()
 
-# The upstream reduction translation unit uses CUDA spellings (__device__ and
-# cg::reduce). Force the bridge facade before the upstream include so an
-# installed CANN cooperative_groups.h cannot win by include-order accident.
-if(TARGET reduction AND DEFINED ENV{CUCC_PATH})
-  set(_CU2CCE_COOP_GROUPS "$ENV{CUCC_PATH}/include/cooperative_groups.h")
-  if(EXISTS "${_CU2CCE_COOP_GROUPS}")
-    target_compile_options(reduction PRIVATE
-      "$<$<COMPILE_LANGUAGE:CUDA>:-include>"
-      "$<$<COMPILE_LANGUAGE:CUDA>:${_CU2CCE_COOP_GROUPS}>")
-  endif()
-endif()

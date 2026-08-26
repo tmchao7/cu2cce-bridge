@@ -74,6 +74,10 @@ class CuccRuleDriverTest(unittest.TestCase):
         self.assertIn("-lcce_bridge_runtime", prepared.args)
         self.assertNotIn("--enable-simt", prepared.args)
 
+    def test_fp64_policy_is_validated(self) -> None:
+        with self.assertRaises(DriverError):
+            self.driver(CU2CCE_DEVICE_FP64_POLICY="bad")
+
     def test_system_libc_mode_avoids_shadow_headers(self) -> None:
         prepared = self.driver(CU2CCE_LIBC_MODE="system").prepare(["-c", "main.cu", "-o", "main.o"])
         self.assertNotIn("__CU2CCE_NO_LIBC__", prepared.args)

@@ -70,3 +70,11 @@ regressions explicitly request it, while upstream C++/CUDA projects use system m
 The official helper-heavy puresimt samples in the real-device script explicitly select
 `__CU2CCE_SYSTEM_LIBC__` and preinclude system `math.h`; this is a compiler-driver policy
 for upstream helper headers and does not modify the official CUDA sources.
+
+
+## Device FP64 policy
+
+`CU2CCE_DEVICE_FP64_POLICY=error` is the default. When ccec reports device-side FP64
+unsupported, cucc preserves the original diagnostics and adds an actionable message: keep
+host-side `double`, but change device-side arithmetic to `float` or provide an explicit
+host fallback/mixed-precision path. cucc does not silently rewrite every `double` token.

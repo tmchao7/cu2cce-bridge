@@ -63,6 +63,9 @@ class RuleDriver:
         self.libc_mode = self.env.get("CU2CCE_LIBC_MODE", "shadow").lower()
         if self.libc_mode not in {"shadow", "system"}:
             raise DriverError("CU2CCE_LIBC_MODE must be shadow or system")
+        self.fp64_policy = self.env.get("CU2CCE_DEVICE_FP64_POLICY", "error").lower()
+        if self.fp64_policy not in {"error", "warn", "allow"}:
+            raise DriverError("CU2CCE_DEVICE_FP64_POLICY must be error, warn, or allow")
         self.cmake_identity = cmake_identity
         self.rules_path = self._select_rules_file(rules_file)
         try:
@@ -578,6 +581,26 @@ class RuleDriver:
         trace_path.parent.mkdir(parents=True, exist_ok=True)
         trace_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
+    def _emit_capability_diagnostics(self, stderr_text: str) -> None:
+        if self.fp64_policy == "allow":
+            return
+        fp64_markers = (
+            "double precision operation is not allowed in aicore function",
+            "Input type T only supports",
+            "double is not supported",
+        )
+        if not any(marker in stderr_text for marker in fp64_markers):
+            return
+        message = (
+            "cu2cce: device-side FP64/double is unsupported by the current Ascend "
+            "SIMT/AICore target. Host-side double remains supported; change the "
+            "device-side value/accumulator to float, or provide an explicit host "
+            "fallback/mixed-precision implementation."
+        )
+        print(message, file=sys.stderr)
+        if self.fp64_policy == "warn":
+            print("cu2cce: continuing because CU2CCE_DEVICE_FP64_POLICY=warn", file=sys.stderr)
+
     def run_prepared(self, prepared: PreparedCommand) -> int:
         if not Path(prepared.compiler).is_file():
             print(
@@ -585,7 +608,23 @@ class RuleDriver:
                 file=sys.stderr,
             )
             return 1
-        return subprocess.call([prepared.compiler, *prepared.args], env=self.env)
+        process = subprocess.Popen(
+            [prepared.compiler, *prepared.args],
+            env=self.env,
+            stdout=None,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        stderr_lines: List[str] = []
+        assert process.stderr is not None
+        for line in process.stderr:
+            sys.stderr.write(line)
+            sys.stderr.flush()
+            stderr_lines.append(line)
+        return_code = process.wait()
+        if return_code != 0:
+            self._emit_capability_diagnostics("".join(stderr_lines))
+        return return_code
 
     def run(self, argv: Sequence[str]) -> int:
         return self.run_prepared(self.prepare(argv))

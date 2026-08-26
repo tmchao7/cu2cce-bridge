@@ -53,3 +53,21 @@ The curated external profile is pinned to NVIDIA/cuda-samples `v12.8` revision
 CUDA-era CMake features newer than the CANN compatibility version, its status is
 `EXPERIMENTAL`; the profile validates the build graph and selected core samples,
 not complete CUDA 12.8 API compatibility.
+
+
+## External CUDA Samples reduction limitation
+
+The external required profile intentionally excludes NVIDIA's `reduction` sample. The
+source instantiates device-side `double` kernels and uses cross-warp
+`thread_block_tile<64/128/256/512>`. Stable CANN 9.2 SIMT does not provide that combination.
+This is recorded as `UNSUPPORTED` for the current backend; it does not affect the
+validated external CMake profile (`vectorAdd`, `matrixMul`, `simpleStreams`,
+`simpleMultiCopy`).
+
+
+## Current external profile
+
+The required external CMake profile now uses NVIDIA CUDA Samples `vectorAdd`, `matrixMul`,
+`simpleStreams`, and `simpleMultiCopy`. The upstream `reduction` sample is excluded and
+recorded as a known limitation because stable CANN 9.2 does not support its cross-warp
+`thread_block_tile<64..512>` and device-side `double` instantiations.

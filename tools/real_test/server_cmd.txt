@@ -477,15 +477,14 @@ if [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$EXTERNAL_FETCH" ] && [ -x "$CMAKE_CCE" 
             if run_with_timeout "$EXTERNAL_BUILD_TIMEOUT" env \
                CU2CCE_LIBC_MODE=system CUCC_PATH="$PWD/build/real_test/install" CUDA_PATH="$CUCC_PATH" \
                PATH="$CUCC_PATH/bin:$PATH" \
-               cmake --build "$EXTERNAL_BUILD" --target vectorAdd matrixMul reduction simpleStreams simpleMultiCopy \
+               cmake --build "$EXTERNAL_BUILD" --target vectorAdd matrixMul simpleStreams simpleMultiCopy \
                 >"$EXTERNAL_BUILD_LOG" 2>&1; then
                 echo '[PASS] external CUDA Samples build'
-                for sample in vectorAdd matrixMul reduction; do
+                for sample in vectorAdd matrixMul; do
                     binary="$EXTERNAL_BUILD/$sample/$sample"
                     run_log="$OUT/cuda_samples_${sample}.run.log"
                     if [ "$sample" = vectorAdd ]; then expect='Test PASSED'; fi
                     if [ "$sample" = matrixMul ]; then expect='Result = PASS'; fi
-                    if [ "$sample" = reduction ]; then expect='Test passed'; fi
                     echo "[INFO] external [$sample] run (timeout=${EXTERNAL_RUN_TIMEOUT}s)"
                     if [ -x "$binary" ] && run_with_timeout "$EXTERNAL_RUN_TIMEOUT" "$binary" >"$run_log" 2>&1 && grep -Fq "$expect" "$run_log"; then
                         echo "[PASS] external [$sample]: $(grep -F "$expect" "$run_log" | tail -n 1)"
