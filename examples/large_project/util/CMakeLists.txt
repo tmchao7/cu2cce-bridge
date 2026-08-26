@@ -5,6 +5,10 @@ cmake_minimum_required(VERSION 3.18)
 # projects: a custom command in this directory drives a generator that the app
 # target in the top directory consumes.
 add_library(large_host_lib STATIC store.cpp)
+target_include_directories(large_host_lib PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+  $<INSTALL_INTERFACE:include>
+)
 install(TARGETS large_host_lib EXPORT largeProjectTargets
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
