@@ -46,4 +46,3 @@ foreach(_target vectorAdd matrixMul simpleStreams simpleMultiCopy)
     set_target_properties("${_target}" PROPERTIES CUDA_SEPARABLE_COMPILATION OFF)
   endif()
 endforeach()
-
