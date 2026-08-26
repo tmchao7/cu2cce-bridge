@@ -1,5 +1,5 @@
 #pragma once
-// Generated-input placeholder. The real generated file content is produced by
-// the gen_data_file custom target in util/; keep this header dependency-free so
-// no CUDA/device include leaks into the host util library.
-#define CU2CCE_LARGE_INPUT_FILE_CU2CCE "<generated>"
+// Generated-input placeholder. The generated input file content is produced by
+// the gen_data_file custom target in util/; expose the generated directory via
+// the large_gen_data INTERFACE target so dependent host targets never need a
+// CUDA/device include in their own translation units.

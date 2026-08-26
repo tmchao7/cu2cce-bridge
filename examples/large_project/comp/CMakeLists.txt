@@ -5,3 +5,7 @@ cmake_minimum_required(VERSION 3.18)
 add_library(large_kernel_lib STATIC kernel.cu)
 target_include_directories(large_kernel_lib PUBLIC
   "${CMAKE_CURRENT_SOURCE_DIR}")
+install(TARGETS large_kernel_lib EXPORT largeProjectTargets
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+)

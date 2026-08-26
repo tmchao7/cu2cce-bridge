@@ -25,9 +25,8 @@ add_dependencies(large_project_app generate_kernel_data)
 target_include_directories(large_project_app PRIVATE
   "${CMAKE_CURRENT_SOURCE_DIR}/app")
 
-install(TARGETS large_project_app large_kernel_lib large_host_lib
+install(TARGETS large_project_app
   RUNTIME DESTINATION bin
-  LIBRARY DESTINATION lib
 )
 install(EXPORT largeProjectTargets
   DESTINATION lib/cmake/large_project

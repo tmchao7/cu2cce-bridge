@@ -94,6 +94,10 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         # host-only util/ target must not contain CUDA sources.
         self.assertFalse((ROOT / "examples/large_project/util/store.cpp").read_text(
             encoding="utf-8").strip().endswith(".cu"))
+        # The install export must include every target it references.
+        for sub in ("comp/CMakeLists.txt", "util/CMakeLists.txt"):
+            self.assertIn("EXPORT largeProjectTargets",
+                          (ROOT / "examples/large_project" / sub).read_text(encoding="utf-8"))
 
     def test_fetch_script_rejects_non_public_urls(self) -> None:
         fetch = (ROOT / "tools/real_test/fetch_external_cuda_samples.sh").read_text(encoding="utf-8")

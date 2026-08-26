@@ -5,6 +5,10 @@ cmake_minimum_required(VERSION 3.18)
 # projects: a custom command in this directory drives a generator that the app
 # target in the top directory consumes.
 add_library(large_host_lib STATIC store.cpp)
+install(TARGETS large_host_lib EXPORT largeProjectTargets
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+)
 
 add_executable(generate_kernel_data gen_data.cpp)
 target_include_directories(generate_kernel_data PRIVATE
@@ -18,8 +22,9 @@ add_custom_command(
 )
 add_custom_target(gen_data_file DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/input_data.bin")
 
-add_library(large_data_header STATIC data.h)
-# Reference the generated file in an interface property so the cross-target
-# ordering is expressed in the CMake graph rather than in source code.
-target_compile_definitions(large_data_header INTERFACE
-  CU2CCE_LARGE_INPUT_FILE="${CMAKE_CURRENT_BINARY_DIR}/input_data.bin")
+# Publish the generated-input location through an interface include directory
+# (instead of an empty library target, which CMake cannot determine a linker
+# language for and which must not be part of the install export).
+add_library(large_gen_data INTERFACE)
+target_include_directories(large_gen_data INTERFACE
+  "${CMAKE_CURRENT_BINARY_DIR}")

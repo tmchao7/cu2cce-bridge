@@ -44,14 +44,12 @@ set(_CU2CCE_DIAGNOSTIC_SAMPLES
 foreach(_relative IN LISTS _CU2CCE_PROFILE_SAMPLES)
   if(EXISTS "${CUDA_SAMPLES_SOURCE_DIR}/${_relative}/CMakeLists.txt")
     get_filename_component(_name "${_relative}" NAME)
-    set(_sample_diag FALSE)
     if(_relative IN_LIST _CU2CCE_DIAGNOSTIC_SAMPLES)
-      set(_sample_diag TRUE)
+      set_property(GLOBAL APPEND PROPERTY cu2cce_diagnostic_samples "${_name}")
     endif()
-    set_property(GLOBAL APPEND PROPERTY cu2cce_diagnostic_samples "${_name}")
     add_subdirectory(
       "${CUDA_SAMPLES_SOURCE_DIR}/${_relative}"
-      "${CMAKE_CURRENT_BINARY_DIR}/${_name}${_sample_diag}"
+      "${CMAKE_CURRENT_BINARY_DIR}/${_name}"
     )
   endif()
 endforeach()

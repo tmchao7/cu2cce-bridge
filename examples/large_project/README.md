@@ -10,7 +10,7 @@
 #   top/                app/main.cpp -> large_util_lib; depends on gen_data_file
 #   comp/               large_kernel_lib (one .cu; kernel.cu + kernel.h)
 #   util/               large_host_lib (store.cpp), generate_kernel_data,
-#                       large_data_header (interface-only, generated input path)
+#                       large_gen_data (INTERFACE include for generated input)
 #
 # Backend boundary exercised: exactly one .cu per linked library target. The
 # kernel library is the single CUDA translation unit; everything else is host
