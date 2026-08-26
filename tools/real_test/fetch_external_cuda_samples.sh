@@ -8,9 +8,61 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 OUT_DIR="${OUT_DIR:-$ROOT/build/real_test}"
 SOURCE_DIR="${CUDA_SAMPLES_SOURCE_DIR:-$OUT_DIR/external/nvidia_cuda_samples}"
 REPO_URL="${CUDA_SAMPLES_REPO:-https://github.com/NVIDIA/cuda-samples.git}"
+VALIDATOR="$ROOT/tools/real_test/validate_fetch_url.py"
 REF="${CUDA_SAMPLES_REF:-db3eea23946bca2e90a75eca2b5b3e07158a9e11}"
 TAG="${CUDA_SAMPLES_TAG:-v12.8}"
 FETCH_MODE="${CUDA_SAMPLES_FETCH_MODE:-git}"
+
+# Every server-side fetch must use http/https and a public remote host. The
+# validator rejects loopback, private, link-local, multicast, reserved and
+# special-use addresses (including hostnames that resolve to them).
+require_public_https_url() {
+    local url="$1"
+    local scheme host
+    case "$url" in
+        http://*|https://*) ;;
+        *)
+            echo "external CUDA Samples: refusing non-http(s) URL: $url" >&2
+            exit 1
+            ;;
+    esac
+    host="${url#*://}"
+    host="${host%%/*}"
+    case "$host" in
+        *@*|*:*)
+            echo "external CUDA Samples: refusing URL with credentials or port: $url" >&2
+            exit 1
+            ;;
+        "")
+            echo "external CUDA Samples: refusing URL without a host: $url" >&2
+            exit 1
+            ;;
+    esac
+    if [ -x "$VALIDATOR" ]; then
+        if python3 "$VALIDATOR" "$host"; then
+            echo "external CUDA Samples: refusing blocked host '$host' for $url" >&2
+            exit 1
+        fi
+        return 0
+    fi
+    # Fallback without the validator: only allow exact known-good public hosts.
+    case "$host" in
+        github.com|api.github.com|raw.githubusercontent.com|codeload.github.com|objects.githubusercontent.com)
+            return 0
+            ;;
+        *)
+            echo "external CUDA Samples: missing validator and host '$host' is not allowlisted" >&2
+            exit 1
+            ;;
+    esac
+}
+
+require_public_https_url "$REPO_URL"
+
+FILE_REPO_URL="${CUDA_SAMPLES_FILE_REPO_URL:-https://api.github.com/repos/NVIDIA/cuda-samples}"
+ARCHIVE_URL="${CUDA_SAMPLES_ARCHIVE_URL:-https://github.com/NVIDIA/cuda-samples/archive/${REF}.tar.gz}"
+require_public_https_url "$ARCHIVE_URL"
+require_public_https_url "$FILE_REPO_URL"
 
 mkdir -p "$(dirname "$SOURCE_DIR")"
 
