@@ -43,6 +43,7 @@ typedef struct _cceDeviceProp_t {
     int l2CacheSize;
     int maxThreadsPerMultiProcessor;
     int computeMode;
+    int canMapHostMemory; /**< CUDA host-memory mapping capability; Ascend bridge reports 0 by default. */
 } _cceDeviceProp_t;
 
 #ifdef __cplusplus

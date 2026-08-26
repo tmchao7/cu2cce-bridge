@@ -178,6 +178,15 @@ aclError wcudaDeviceSynchronize(void) {
     WCUDA_RETURN(aclrtSynchronizeDevice());
 }
 
+aclError wcudaSetDeviceFlags(unsigned int flags) {
+    /* CUDA scheduling/map-host flags have no direct Ascend runtime equivalent.
+     * Keep the call source-compatible and let cudaDeviceProp::canMapHostMemory
+     * report whether generic host mapping is available. */
+    (void)flags;
+    BRIDGE_INIT();
+    WCUDA_RETURN(ACL_SUCCESS);
+}
+
 aclError wcudaDeviceReset(void) {
     /* 释放当前 device 资源（对应 cudaDeviceReset）。
      * 昇腾官方 ACL GEMM sample 的进程收尾顺序是 aclrtResetDevice -> aclFinalize。
@@ -251,6 +260,8 @@ aclError wcudaGetDeviceProperties(_cceDeviceProp_t *prop, int device) {
      * helper_cuda.h can remain unmodified. */
     prop->major = 9;
     prop->minor = 0;
+    /* Generic host-memory mapping is not exposed by this bridge path. */
+    prop->canMapHostMemory = 0;
 
     WCUDA_RETURN(ACL_SUCCESS);
 }

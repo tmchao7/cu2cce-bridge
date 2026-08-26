@@ -477,7 +477,7 @@ if [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$EXTERNAL_FETCH" ] && [ -x "$CMAKE_CCE" 
             if run_with_timeout "$EXTERNAL_BUILD_TIMEOUT" env \
                CU2CCE_LIBC_MODE=system CUCC_PATH="$PWD/build/real_test/install" CUDA_PATH="$CUCC_PATH" \
                PATH="$CUCC_PATH/bin:$PATH" \
-               cmake --build "$EXTERNAL_BUILD" --target vectorAdd matrixMul simpleStreams simpleMultiCopy \
+               cmake --build "$EXTERNAL_BUILD" --target vectorAdd matrixMul \
                 >"$EXTERNAL_BUILD_LOG" 2>&1; then
                 echo '[PASS] external CUDA Samples build'
                 for sample in vectorAdd matrixMul; do

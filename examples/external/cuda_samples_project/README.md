@@ -24,3 +24,9 @@ The `reduction` sample is intentionally excluded from the required profile. It c
 CUDA Cooperative Groups cross-warp tiles (`64..512`) and device-side `double`, both outside
 the stable CANN 9.2 SIMT capability. It remains a documented diagnostic limitation rather
 than a silently modified or falsely passing sample.
+
+
+The required CMake profile currently builds and runs `vectorAdd` and `matrixMul`.
+`simpleStreams` and `simpleMultiCopy` are retained as diagnostic-only candidates while
+CUDA device flags, device-property fields, pinned host memory, and host/device math
+overload behavior are completed in the runtime wrapper.

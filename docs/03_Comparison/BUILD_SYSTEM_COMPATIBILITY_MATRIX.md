@@ -71,3 +71,20 @@ The required external CMake profile now uses NVIDIA CUDA Samples `vectorAdd`, `m
 `simpleStreams`, and `simpleMultiCopy`. The upstream `reduction` sample is excluded and
 recorded as a known limitation because stable CANN 9.2 does not support its cross-warp
 `thread_block_tile<64..512>` and device-side `double` instantiations.
+
+
+The external required profile is intentionally limited to `vectorAdd` and `matrixMul`.
+`simpleStreams` and `simpleMultiCopy` remain diagnostic-only until their CUDA runtime
+flags, `cudaDeviceProp` fields, host-memory mapping, and host-side overload behavior are
+validated on CANN.
+
+
+## CUDA runtime wrapper additions
+
+The bridge now declares and implements the basic `simpleStreams` device/event flag surface:
+`cudaDeviceBlockingSync`, `cudaDeviceMapHost`, `cudaEventDefault`,
+`cudaEventBlockingSync`, and `cudaSetDeviceFlags`. Ascend has no direct CUDA scheduling
+flag equivalent, so `cudaSetDeviceFlags` is a compatibility no-op and
+`cudaDeviceProp::canMapHostMemory` reports `0`; generic host mapping remains diagnostic-only.
+The simpleStreams profile is not required until its host/device `max` overload and pinned
+memory semantics are separately validated.

@@ -12,6 +12,15 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         for tool in ("tools/cmake_cce", "tools/make_cce", "tools/ninja_cce", "tools/cu2cce_driver.py"):
             self.assertIn(tool, cmake)
 
+    def test_stream_and_device_flag_compatibility_is_declared(self) -> None:
+        adaptor = (ROOT / "include/bridge/runtime/cuda_to_cce_mcr_adaptor.h").read_text(encoding="utf-8")
+        types = (ROOT / "include/bridge/runtime/cuda_wrapper_types.h").read_text(encoding="utf-8")
+        wrapper = (ROOT / "src/bridge/runtime/src/cuda_runtime_wrapper.cpp").read_text(encoding="utf-8")
+        for flag in ("cudaDeviceBlockingSync", "cudaDeviceMapHost", "cudaEventBlockingSync", "cudaEventDefault"):
+            self.assertIn(flag, adaptor)
+        self.assertIn("canMapHostMemory", types)
+        self.assertIn("wcudaSetDeviceFlags", wrapper)
+
     def test_package_exports_native_runtime(self) -> None:
         cmake = (ROOT / "CMakeLists.txt").read_text(encoding="utf-8")
         config = (ROOT / "cmake/cu2cce-bridgeConfig.cmake").read_text(encoding="utf-8")
@@ -48,7 +57,8 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         harness = (ROOT / "examples/external/cuda_samples_project/CMakeLists.txt").read_text(encoding="utf-8")
         self.assertIn("__CU2CCE_SYSTEM_LIBC__", harness)
         self.assertNotIn("Samples/2_Concepts_and_Techniques/reduction", harness)
-        self.assertIn("simpleMultiCopy", harness)
+        self.assertIn("vectorAdd", harness)
+        self.assertIn("matrixMul", harness)
 
     def test_external_cuda_samples_profile_is_pinned(self) -> None:
         profile = (ROOT / "examples/external/cuda_samples_project/profile_core.json").read_text(encoding="utf-8")

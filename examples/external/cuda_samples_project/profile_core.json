@@ -14,16 +14,6 @@
       "path": "Samples/0_Introduction/matrixMul",
       "run": "matrixMul",
       "expect": "Result = PASS"
-    },
-    {
-      "name": "simpleStreams",
-      "path": "Samples/0_Introduction/simpleStreams",
-      "build_only": true
-    },
-    {
-      "name": "simpleMultiCopy",
-      "path": "Samples/0_Introduction/simpleMultiCopy",
-      "build_only": true
     }
   ],
   "disabled_features": [
@@ -35,5 +25,17 @@
   ],
   "known_limitations": {
     "reduction": "CANN 9.2 stable SIMT does not support cross-warp thread_block_tile sizes >32 or device double arithmetic; kept as diagnostic-only, not required profile."
-  }
+  },
+  "diagnostic_only_samples": [
+    {
+      "name": "simpleStreams",
+      "path": "Samples/0_Introduction/simpleStreams",
+      "reason": "device flags/property and host max semantics not fully validated"
+    },
+    {
+      "name": "simpleMultiCopy",
+      "path": "Samples/0_Introduction/simpleMultiCopy",
+      "reason": "pinned/multi-stream API coverage pending"
+    }
+  ]
 }

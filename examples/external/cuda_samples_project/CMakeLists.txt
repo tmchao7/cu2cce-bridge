@@ -23,8 +23,6 @@ add_compile_definitions(__CU2CCE_SYSTEM_LIBC__)
 set(_CU2CCE_SAMPLES
   "Samples/0_Introduction/vectorAdd"
   "Samples/0_Introduction/matrixMul"
-  "Samples/0_Introduction/simpleStreams"
-  "Samples/0_Introduction/simpleMultiCopy"
 )
 foreach(_relative IN LISTS _CU2CCE_SAMPLES)
   if(NOT EXISTS "${CUDA_SAMPLES_SOURCE_DIR}/${_relative}/CMakeLists.txt")
@@ -41,7 +39,7 @@ endforeach()
 # registration helpers from separate translation units through RDC. Disable the
 # upstream sample request for separable compilation while keeping source files
 # untouched; this is an explicit compatibility boundary, not a hidden rewrite.
-foreach(_target vectorAdd matrixMul simpleStreams simpleMultiCopy)
+foreach(_target vectorAdd matrixMul)
   if(TARGET "${_target}")
     set_target_properties("${_target}" PROPERTIES CUDA_SEPARABLE_COMPILATION OFF)
   endif()

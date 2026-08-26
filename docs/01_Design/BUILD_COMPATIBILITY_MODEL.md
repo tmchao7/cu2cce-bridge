@@ -161,3 +161,12 @@ CU2CCE_STRICT_FLAGS=1 cucc ...
 
 严格模式用于发现未验证的 CUDA library、未知长选项和潜在语义丢失；默认模式则对
 明确无意义的 NVIDIA 参数给出 warning 并继续处理。
+
+
+## Runtime API expansion policy
+
+When an external sample exposes an uncovered CUDA runtime API, add the CUDA spelling,
+wrapper declaration, and CANN-backed/no-op implementation separately. A compile-only
+constant is not marked `SUPPORTED` until its runtime semantics are tested. APIs with no
+Ascend equivalent must return a documented no-op or `ACL_ERROR_API_NOT_SUPPORT`, not a
+fake success that hides semantic loss.
