@@ -14,6 +14,37 @@
 #if __has_include("simt_api/asc_simt.h")
 #include "simt_api/asc_simt.h"
 #endif
+#if __has_include("simt_api/device_types.h")
+/* Brings CANN's own execution-space selector __SIMT_DEVICE_FUNCTIONS_DECL__
+ * (server evidence 2026-08-27: expanded conditionally to __aicore__ or
+ * __simt_callee__ depending on the installed backend mode). */
+#include "simt_api/device_types.h"
+#endif
+#endif
+
+/*
+ * Execution-space keyword map for NVIDIA spellings.
+ *
+ * Round-4 server proof: the bisheng puresimt front-end parses __global__
+ * natively but rejects standalone __device__ ("unknown type name"). Mentor
+ * direction: bridge the recognized-form gap WITHOUT rewriting user source,
+ * by macro-mapping the NVIDIA spelling onto whatever CANN itself uses.
+ *
+ * We deliberately alias __device__ to CANN's own selector instead of
+ * hard-coding an attribute: device_types.h picks __aicore__ vs
+ * __simt_callee__ per installed backend mode, so this track follows the
+ * toolchain automatically. Escape hatch:
+ * build with -DCU2CCE_NO_DEVICE_KEYWORD_MAP if a future frontend ships
+ * native support and the map ever conflicts.
+ *
+ * Scope discipline: only __device__ is proven missing today, so only it is
+ * mapped. Do not speculatively add __host__ or __forceinline__ maps here;
+ * each needs its own failing-evidence case first.
+ */
+#if !defined(CU2CCE_NO_DEVICE_KEYWORD_MAP)
+#if !defined(__device__)
+#define __device__ __SIMT_DEVICE_FUNCTIONS_DECL__
+#endif
 #endif
 
 /* CUDA synchronization/shared-memory primitives. */
