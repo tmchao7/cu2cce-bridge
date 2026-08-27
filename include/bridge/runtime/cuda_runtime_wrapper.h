@@ -276,6 +276,11 @@ aclError CUBRIDGE_API wcudaDriverGetVersion(int *driverVersion);
  * official matrixMul sample uses cudaMallocHost(&float_ptr, size) without a
  * cast; keep that source unchanged while forwarding to the C ABI wrapper. */
 template <typename T>
+inline aclError wcudaMalloc(T **ptr, size_t size) {
+    return wcudaMalloc(reinterpret_cast<void **>(ptr), size);
+}
+
+template <typename T>
 inline aclError wcudaMallocHost(T **ptr, size_t size) {
     return wcudaMallocHost(reinterpret_cast<void **>(ptr), size);
 }

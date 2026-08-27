@@ -16,10 +16,16 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         adaptor = (ROOT / "include/bridge/runtime/cuda_to_cce_mcr_adaptor.h").read_text(encoding="utf-8")
         types = (ROOT / "include/bridge/runtime/cuda_wrapper_types.h").read_text(encoding="utf-8")
         wrapper = (ROOT / "src/bridge/runtime/src/cuda_runtime_wrapper.cpp").read_text(encoding="utf-8")
+        wrapper_h = (ROOT / "include/bridge/runtime/cuda_runtime_wrapper.h").read_text(encoding="utf-8")
         for flag in ("cudaDeviceBlockingSync", "cudaDeviceMapHost", "cudaEventBlockingSync", "cudaEventDefault"):
             self.assertIn(flag, adaptor)
         self.assertIn("canMapHostMemory", types)
         self.assertIn("wcudaSetDeviceFlags", wrapper)
+        # Typed allocation overloads keep unmodified CUDA sample calls working
+        # (e.g. matrixMul's cudaMallocHost(&float_ptr, ...) and any host code
+        # that uses cudaMalloc(&float_ptr, ...) without a void** cast).
+        self.assertIn("inline aclError wcudaMalloc(", wrapper_h)
+        self.assertIn("inline aclError wcudaMallocHost(", wrapper_h)
 
     def test_package_exports_native_runtime(self) -> None:
         cmake = (ROOT / "CMakeLists.txt").read_text(encoding="utf-8")
