@@ -20,7 +20,11 @@ add_subdirectory(comp)
 add_subdirectory(util)
 
 add_executable(large_project_app app/main.cpp)
-target_link_libraries(large_project_app PRIVATE large_util_lib)
+# The app consumes the CUDA kernel library (comp/ include via PUBLIC build
+# interface) and CUDA::cudart (cuda_runtime.h include dirs); large_util_lib
+# provides the host helpers and the generated-input include path.
+target_link_libraries(large_project_app PRIVATE
+  large_util_lib large_kernel_lib CUDA::cudart)
 add_dependencies(large_project_app generate_kernel_data)
 target_include_directories(large_project_app PRIVATE
   "${CMAKE_CURRENT_SOURCE_DIR}/app")

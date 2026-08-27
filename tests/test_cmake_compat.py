@@ -90,6 +90,10 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
             self.assertIn(pattern, top)
         self.assertTrue((ROOT / "examples/large_project/comp/kernel.cu").is_file())
         self.assertTrue((ROOT / "examples/large_project/app/main.cpp").is_file())
+        # The app links the CUDA kernel library and CUDA::cudart so the host
+        # main.cpp can find cuda_runtime.h and the exported kernel symbol.
+        self.assertIn("large_kernel_lib", top)
+        self.assertIn("CUDA::cudart", top)
         # One .cu per linked library: the CUDA target lives in comp/ and the
         # host-only util/ target must not contain CUDA sources.
         self.assertFalse((ROOT / "examples/large_project/util/store.cpp").read_text(
