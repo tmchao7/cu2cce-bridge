@@ -168,6 +168,37 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
             self.assertIn(case, server_cmd)
         self.assertGreaterEqual(server_cmd.count("profile_runs"), 10)
 
+    def test_crt_math_compat_surface_is_forward_only(self) -> None:
+        # Batch A: crt header family ships forward-first compat for the
+        # common CUDA include surface. No fabricated device math — missing
+        # symbols must surface as compile errors naming themselves.
+        crt = ROOT / "include/crt"
+        for name in ("host_defines.h", "math_functions.h", "device_functions.h",
+                     "common_functions.h", "vector_types.h", "builtin_types.h"):
+            self.assertTrue((crt / name).is_file(), name)
+        self.assertTrue((ROOT / "include/device_launch_parameters.h").is_file())
+
+        runtime_chain = (ROOT / "include/cuda_runtime.h").read_text(encoding="utf-8")
+        for hdr in ("crt/host_defines.h", "crt/common_functions.h", "crt/math_functions.h"):
+            self.assertIn(f"#include <{hdr}>", runtime_chain)
+
+        math_hdr = (crt / "math_functions.h").read_text(encoding="utf-8")
+        self.assertIn("__has_include(<simt_api/math_functions.h>)", math_hdr)
+        self.assertIn("UNSUPPORTED", math_hdr)  # double-precision boundary
+
+        vectors = (crt / "vector_types.h").read_text(encoding="utf-8")
+        # dim3 belongs to bisheng; redefining it here would collide.
+        self.assertNotIn("} dim3;", vectors)
+        self.assertNotIn("typedef.*dim3", vectors)
+        for shape in ("float4", "int3", "double2"):
+            self.assertIn(shape, vectors)
+
+        server_cmd = (ROOT / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
+        self.assertIn("inventory_simt_api.sh", server_cmd)
+        self.assertIn("simt_api_inventory.log", server_cmd)
+        self.assertIn("device_math_minimal.cu", server_cmd)
+        self.assertTrue((ROOT / "tools/real_test/inventory_simt_api.sh").is_file())
+
     def test_cuda_language_module_override_is_shipped_and_injected(self) -> None:
         override = ROOT / "cmake_modules/override/CUDAOverrides.cmake"
         self.assertTrue(override.is_file())

@@ -163,6 +163,16 @@ fi
 export LD_LIBRARY_PATH="$REPO_LIB:$CANN_BASE/lib64:${LD_LIBRARY_PATH:-}"
 mark_timing env_bridge_rebuild
 
+# 补齐依据（只读、非门禁）：枚举本机 CANN simt_api 头与声明符号。
+printf '\n----- [2.6] CANN simt_api 只读清单 -----\n'
+if bash tools/real_test/inventory_simt_api.sh >"$OUT/simt_api_inventory.log" 2>&1; then
+    hdr_count=$(grep -c '^== HEADER' "$OUT/simt_api_inventory.log" 2>/dev/null)
+    case "$hdr_count" in ''|*[!0-9]*) hdr_count=0 ;; esac
+    echo "[PASS] simt_api inventory：$hdr_count 个头 -> $OUT/simt_api_inventory.log"
+else
+    echo '[INFO] simt_api inventory 不可用（非阻断）'
+fi
+
 if profile_runs "fast,full"; then
 CUCC_RULES_PASS=1
 printf '\n===== [2.75/7] cucc puresimt 直通检查 =====\n'
@@ -314,6 +324,32 @@ elif [ "$FAIL" -eq 0 ]; then
 else
     echo 'PURESIMT_REGRESSION_FAIL（查看上方各 .log）'
 fi
+
+# 诊断载体：crt/vector + 设备数学符号探针。编译失败本身就是证据
+# （错误文本直接指出缺哪个符号），绝不伪实现。
+printf '\n----- device_math_minimal (diagnostic-only probe) -----\n'
+if "$CCEC" $PS_FLAGS -D__CU2CCE_SYSTEM_LIBC__ -include math.h \
+    examples/puresimt/device_math_minimal.cu \
+    -I"$REPO_INC" -I"$CANN_BASE/include" \
+    -L"$CANN_BASE/lib64" -L"$REPO_LIB" \
+    -Wl,-rpath,"$REPO_LIB" -Wl,-rpath,"$CANN_BASE/lib64" \
+    -lascendc_runtime -lascendcl -lruntime -lregister -lerror_manager \
+    -lprofapi -lascendalog -lmmpa -lascend_dump -lc_sec -lstdc++ \
+    -lcce_bridge_runtime -o "$OUT/device_math_minimal" \
+    >"$OUT/device_math_minimal.log" 2>&1; then
+    if "$OUT/device_math_minimal" >"$OUT/device_math_minimal.run.log" 2>&1 \
+        && grep -Fq 'device_math_minimal OK' "$OUT/device_math_minimal.run.log"; then
+        echo '[DIAG-PASS] device_math_minimal（crt/向量 + 设备数学链路可用）'
+        tail -n 3 "$OUT/device_math_minimal.run.log"
+    else
+        echo '[DIAG-ONLY] device_math_minimal run（log tail:）'
+        tail -n 25 "$OUT/device_math_minimal.run.log" 2>/dev/null || true
+    fi
+else
+    echo '[DIAG-ONLY] device_math_minimal 编译失败——缺失符号即清单证据（log 首 40 行）:'
+    head -n 40 "$OUT/device_math_minimal.log" 2>/dev/null || true
+fi
+
 mark_timing puresimt_suite
 else
     echo '[SKIP] puresimt suite + cucc direct checks (profile=external)'
@@ -477,6 +513,8 @@ elif [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$CMAKE_CCE" ]; then
             cat "$OUT/cmake-install.log" 2>/dev/null
             CMAKE_PASS=0
         fi
+    elif ! profile_runs "full"; then
+        echo "[SKIP] CMake install/export smoke (profile=$REGRESSION_PROFILE)"
     else
         echo '[SKIP] CMake install/export smoke: configure/build prerequisite failed'
     fi

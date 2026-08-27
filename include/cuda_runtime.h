@@ -9,6 +9,13 @@
 
 #include<__cuda_runtime.h>
 
+/* NVIDIA parity: the crt compatibility surface travels with <cuda_runtime.h>
+ * exactly like upstream. These are forward-only headers — see include/crt/
+ * for the per-header honesty boundaries (no fabricated device math). */
+#include <crt/host_defines.h>
+#include <crt/common_functions.h>
+#include <crt/math_functions.h>
+
 #if !defined(__CUDACC_RTC__)
 #define EXCLUDE_FROM_RTC
 #include "cuda_runtime_api.h"

@@ -223,6 +223,10 @@ CMake → cmake_cce → CUDA shim → nvcc_entry → mock_nvcc → cucc → ccec
 | NVIDIA architecture flag handling | `EXPERIMENTAL` | `-gencode`/`-arch=sm_*` are diagnosed and not mapped to fake Ascend architectures |
 | PTX/CUBIN/FATBIN/device-link rejection | `UNSUPPORTED` | explicitly rejected by the puresimt driver |
 | Automatic unvalidated CUDA library replacement | `UNSUPPORTED` | no blanket `-lcublas`/`-lcufft`/`-lcusparse` mapping |
+| crt include-surface compat (`host_defines`, `common_functions`) | `EXPERIMENTAL` | `include/crt/*` forward-only headers shipped with `<cuda_runtime.h>` |
+| Device math forwarding (`crt/math_functions.h` → `simt_api`) | `EXPERIMENTAL` until server proof | forward-only; missing single-precision symbols fail compiles naming themselves via `device_math_minimal` diagnostic carrier; double precision is `UNSUPPORTED`（不做伪实现） |
+| CUDA vector types (`float2/3/4`, int/double families) | `EXPERIMENTAL` | `include/crt/vector_types.h`；`dim3` 保持 bisheng 原生，不定义 union 位域别名 |
+| Installed-CANN symbol inventory | `SUPPORTED`（driver 层） | 只读 `tools/real_test/inventory_simt_api.sh` → `build/real_test/puresimt/simt_api_inventory.log`，替代无法抓取正文的 hiascend SPA 页面 |
 
 `CU2CCE_DEBUG=1` prints rule decisions. `CU2CCE_TRACE_FILE` writes a parameter-only JSON
 trace. `CU2CCE_STRICT_FLAGS=1` turns unvalidated CUDA library use and unknown long CUDA
