@@ -83,8 +83,30 @@ endif()
 
 set(CUDAToolkit_CUDART_LIBRARY "${_CU2CCE_RUNTIME}")
 set(CUDA_CUDART_LIBRARY "${_CU2CCE_RUNTIME}")
+
+# Alias-family targets so large projects that reference the common CUDA
+# imported-target spellings keep configuring. These are all backed by the
+# bridge runtime (puresimt consumes CUDA source directly; there is no separate
+# device-runtime library on Ascend). CUDA::toolkit carries the include dirs;
+# cudart_static/cudadevrt are aliases of the same bridge runtime so link lines
+# with those spellings resolve instead of failing with missing targets.
+if(NOT TARGET CUDA::toolkit)
+  add_library(CUDA::toolkit INTERFACE IMPORTED)
+  set_target_properties(CUDA::toolkit PROPERTIES
+    INTERFACE_INCLUDE_DIRECTORIES "${CUDAToolkit_INCLUDE_DIRS}")
+endif()
+foreach(_alias cudart_static cudadevrt cudart)
+  if(NOT TARGET CUDA::${_alias})
+    add_library(CUDA::${_alias} INTERFACE IMPORTED)
+    set_target_properties(CUDA::${_alias} PROPERTIES
+      INTERFACE_LINK_LIBRARIES CUDA::cudart)
+  endif()
+endforeach()
+
 set(CUDAToolkit_LIBRARIES CUDA::cudart)
 set(CUDA_LIBRARIES CUDA::cudart)
+set(CUDAToolkit_CUDART_STATIC_LIBRARY "${_CU2CCE_RUNTIME}")
+set(CUDAToolkit_CUDA_DRIVER_LIBRARY "${_CU2CCE_RUNTIME}")
 
 
 if(CUDAToolkit_FIND_QUIETLY)

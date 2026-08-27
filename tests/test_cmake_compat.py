@@ -102,6 +102,22 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         top = (ROOT / "CMakeLists.txt").read_text(encoding="utf-8")
         self.assertIn("install(DIRECTORY cmake_modules/", top)
 
+    def test_cudatoolkit_alias_family_targets_are_declared(self) -> None:
+        module = (ROOT / "cmake_modules/FindCUDAToolkit.cmake").read_text(encoding="utf-8")
+        self.assertIn("CUDA::toolkit", module)
+        # The alias family is built by a foreach loop, so the literal target
+        # names appear as the loop list and the CUDA::${_alias} pattern.
+        self.assertIn("foreach(_alias cudart_static cudadevrt cudart)", module)
+        self.assertIn("CUDA::${_alias}", module)
+        self.assertIn("INTERFACE_LINK_LIBRARIES CUDA::cudart", module)
+
+    def test_matrix_records_multi_cu_diagnostic_evidence(self) -> None:
+        matrix = ROOT / "docs/03_Comparison/BUILD_SYSTEM_COMPATIBILITY_MATRIX.md"
+        text = matrix.read_text(encoding="utf-8")
+        self.assertIn("multiple definition of", text)
+        self.assertIn("BishengLaunchKernelWithHostArgs", text)
+        self.assertIn("CU2CCE_CMAKE_NO_OVERRIDE", text)
+
     def test_build_matrix_exists(self) -> None:
         matrix = ROOT / "docs/03_Comparison/BUILD_SYSTEM_COMPATIBILITY_MATRIX.md"
         text = matrix.read_text(encoding="utf-8")

@@ -47,6 +47,37 @@ CMake 参数过滤问题，也不能用 `--allow-multiple-definition` 伪装修�
 linked static/shared library 限制为一个 `.cu`，并把该场景标记为未完成的 backend
 translation-unit aggregation 能力。
 
+### 真机证据（multi_cu_diagnostic，DIAGNOSTIC_ONLY）
+
+`examples/multi_cu_diagnostic`（2 个 `.cu` + 1 个 static library，separable OFF）
+在服务器回归中如实复现该边界：
+
+- configure：`[PASS] multi_cu_diagnostic configure` —— CMake 配置面完全通过；
+- 归档：`Linking CUDA static library libmulti_cu_lib.a` + `Built target multi_cu_lib`（100%）；
+- 链接：host 链接在 `ld` 层报
+  `multiple definition of 'BishengLaunchKernelWithHostArgs'` 与
+  `multiple definition of '__cce_rtLinkedDevBinaryAscPureSimtEagerRegister'`
+  （kernel_b.cu.o vs kernel_a.cu.o），collect2 error → `DIAG-ONLY`，不阻塞 required。
+
+结论：多 `.cu` 静态库 = `DIAGNOSTIC_ONLY`（构建面能过，链接面受后端限制）；不作为
+required profile，`server_cmd.txt` 有专门的非阻塞段记录。
+
+## CMake CUDA 语言模块 override（真机验证通过）
+
+`cmake_cce` 默认注入 `-DCMAKE_USER_MAKE_RULES_OVERRIDE[_CUDA]` →
+`cmake_modules/override/CUDAOverrides.cmake`，在 CMake 内置探测开始前固定：
+
+- `CMAKE_CUDA_COMPILER` / `CMAKE_CUDA_DEVICE_LINKER` / `CMAKE_CUDA_FATBINARY` =
+  shim nvcc（现代 CMake 不再去探测缺失的 nvlink/fatbinary）；
+- toolkit root 指向 shim 的 CUDA 形状目录；vendor 正则接受 shim 的
+  NVIDIA-compat 身份；
+- `CUDA_RUNTIME_LIBRARY=None`、`CUDA_ARCHITECTURES=OFF`（Ascend arch 由
+  `CU2CCE_NPU_ARCH` 决定，零硬编码）。
+
+真机回归下 `cmake_demo` / `cmake_compat` / `cmake_compat_legacy` /
+`cmake_large_project` / `cmake_build_compat` / `cmake_ninja` 全部 PASS，无回归。
+回退开关：`CU2CCE_CMAKE_NO_OVERRIDE=1`（或用旧纯 `-DCMAKE_CUDA_*` 路径）。
+
 ## External upstream project
 
 The curated external profile is pinned to NVIDIA/cuda-samples `v12.8` revision
