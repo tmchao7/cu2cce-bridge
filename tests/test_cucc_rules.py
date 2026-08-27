@@ -11,7 +11,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
-from cu2cce_driver import DriverError, RuleDriver  # noqa: E402
+from cu2cce_driver import DriverError, RuleDriver, scan_device_double_usage  # noqa: E402
 
 
 class CuccRuleDriverTest(unittest.TestCase):
@@ -94,6 +94,61 @@ class CuccRuleDriverTest(unittest.TestCase):
     def test_fp64_policy_is_validated(self) -> None:
         with self.assertRaises(DriverError):
             self.driver(CU2CCE_DEVICE_FP64_POLICY="bad")
+
+    def test_device_double_scanner_hits_only_device_regions(self) -> None:
+        # Mentor guidance (2026-08-27): unsupported device types must be
+        # reported proactively so the user downgrades to float manually.
+        source = (
+            "// double in a comment must be ignored\n"
+            "double host_var = 1.0;\n"                      # host scope: OK
+            "static const char *s = \"double in string\";\n"
+            "\n"
+            "__device__ float dev_fn(float v) {\n"
+            "    double acc = 0.5;\n"                       # body hit
+            "    return v;\n"
+            "}\n"
+            "__global__ void kern(const double* a, double* o) {\n"  # params hit
+            "    o[0] = a[0];\n"
+            "}\n"
+            "double host_fn(double x) { return x; }\n"      # host-only fn: OK
+        )
+        hits = scan_device_double_usage(source)
+        hit_lines = {ln for ln, _ in hits}
+        self.assertIn(6, hit_lines)
+        self.assertIn(9, hit_lines)
+        for banned in (2, 3, 12):
+            self.assertNotIn(banned, hit_lines, f"false positive at line {banned}")
+
+    def test_error_policy_blocks_build_before_ccec(self) -> None:
+        src = Path(self.tmp.name) / "with_double.cu"
+        src.write_text(
+            "__global__ void k(const double* a, double* o) {\n"
+            "    o[threadIdx.x] = a[threadIdx.x] * 2.0;\n"
+            "}\n",
+            encoding="utf-8",
+        )
+        with self.assertRaises(DriverError) as ctx:
+            self.driver(CU2CCE_DEVICE_FP64_POLICY="error").prepare(
+                ["-c", str(src), "-o", str(src.with_suffix(".o"))]
+            )
+        self.assertIn("[type-policy]", str(ctx.exception))
+        self.assertIn("float", str(ctx.exception))
+
+    def test_warn_policy_reports_then_continues_to_prepare(self) -> None:
+        src = Path(self.tmp.name) / "warn_case.cu"
+        src.write_text("__device__ void d() { double x = 0; (void)x; }\n", encoding="utf-8")
+        prepared = self.driver(CU2CCE_DEVICE_FP64_POLICY="warn").prepare(
+            ["-c", str(src), "-o", str(src.with_suffix(".o"))]
+        )
+        self.assertEqual(prepared.phase, "compile")  # did not raise
+
+    def test_allow_policy_skips_scan_entirely(self) -> None:
+        src = Path(self.tmp.name) / "allow_case.cu"
+        src.write_text("__global__ void g(double* o) { *o = 1.0; }\n", encoding="utf-8")
+        prepared = self.driver(CU2CCE_DEVICE_FP64_POLICY="allow").prepare(
+            ["-c", str(src), "-o", str(src.with_suffix(".o"))]
+        )
+        self.assertEqual(prepared.phase, "compile")
 
     def test_system_libc_mode_avoids_shadow_headers(self) -> None:
         prepared = self.driver(CU2CCE_LIBC_MODE="system").prepare(["-c", "main.cu", "-o", "main.o"])

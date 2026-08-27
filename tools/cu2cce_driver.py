@@ -1,14 +1,22 @@
 #!/usr/bin/env python3
 """Rule-driven CUDA/nvcc argument adapter for cu2cce-bridge.
 
-This module only transforms compiler arguments. It never reads, parses, or
-rewrites CUDA source files. The actual compiler remains CANN ccec.
+This module only transforms compiler arguments. It never rewrites CUDA
+source files. The actual compiler remains CANN ccec.
+
+One read-only exception serves diagnostics: sources may be scanned (never
+modified) to pre-flight report device-side use of types the Ascend backend
+cannot run at all — bisheng has no device-side FP64/double support, so
+affected code must be downgraded to float manually by the user (mentor
+guidance, 2026-08-27). Policy knob: CU2CCE_DEVICE_FP64_POLICY =
+error (default) | warn | allow.
 """
 from __future__ import annotations
 
 import fnmatch
 import json
 import os
+import re
 import shlex
 import subprocess
 import sys
@@ -19,6 +27,173 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
 class DriverError(RuntimeError):
     """A user-facing command-line policy error."""
+
+
+# ---------------------------------------------------------------------------
+# Device-side FP64 scanning (read-only, line-number preserving)
+# ---------------------------------------------------------------------------
+
+_DOUBLE_TOKEN_RE = re.compile(r"\bdouble[1-4]?\b")
+_DEVICE_FUNC_SIG_RE = re.compile(r"__global__\b|__device__\b")
+
+
+def _strip_noncode_preserving_lines(source: str) -> str:
+    """Blank out comments and string/char literal CONTENTS.
+
+    Newlines survive untouched so offsets stay valid for error reporting;
+    every other removed byte becomes a single space.
+    """
+    out: List[str] = []
+    i = 0
+    n = len(source)
+    state: Optional[str] = None  # 'block' | 'line' | '"' | "'"
+    while i < n:
+        ch = source[i]
+        nxt = source[i + 1] if i + 1 < n else ""
+        if state is None:
+            if ch == "/" and nxt == "*":
+                state = "block"
+                out.append("  ")
+                i += 2
+                continue
+            if ch == "/" and nxt == "/":
+                state = "line"
+                out.append("  ")
+                i += 2
+                continue
+            if ch in "\"'":
+                state = ch
+                out.append(ch)  # keep the opening quote
+                i += 1
+                continue
+            out.append(ch)
+            i += 1
+            continue
+        if state == "block":
+            if ch == "*" and nxt == "/":
+                state = None
+                out.append("  ")
+                i += 2
+                continue
+            out.append("\n" if ch == "\n" else " ")
+            i += 1
+            continue
+        if state == "line":
+            if ch == "\n":
+                state = None
+                out.append("\n")
+            else:
+                out.append(" ")
+            i += 1
+            continue
+        # string or char literal: preserve quotes, blank contents, honor escapes
+        if ch == "\\" and i + 1 < n:
+            out.extend([" ", " "])
+            i += 2
+            continue
+        if (state == '"' and ch == '"') or (state == "'" and ch == "'"):
+            state = None
+            out.append(ch)
+            i += 1
+            continue
+        out.append("\n" if ch == "\n" else " ")
+        i += 1
+    return "".join(out)
+
+
+def _line_start_offsets(text: str) -> List[int]:
+    starts = [0]
+    for idx, ch in enumerate(text):
+        if ch == "\n":
+            starts.append(idx + 1)
+    return starts
+
+
+def scan_device_double_usage(source: str) -> List[Tuple[int, str]]:
+    """Return [(line_no, matched_token)] for double usage inside device code.
+
+    Device regions are function bodies opened by a signature containing
+    __device__ or __global__ (nested braces inherit). Host-only code —
+    including double math in plain C++ functions — never matches. Comments,
+    strings, and char literals are ignored. Purely lexical/heuristic:
+    macro-generated signatures may be missed; the policy knob's "allow"
+    exists for those edge cases.
+    """
+    cleaned = _strip_noncode_preserving_lines(source)
+    line_starts = _line_start_offsets(cleaned)
+    structs = list(re.finditer(r"[{};]", cleaned))
+
+    def current_line(offset: int) -> int:
+        lo, hi = 0, len(line_starts) - 1
+        while lo < hi:
+            mid = (lo + hi + 1) // 2
+            if line_starts[mid] <= offset:
+                lo = mid
+            else:
+                hi = mid - 1
+        return lo + 1
+
+    def collect_hits(begin: int, end: int, findings: List[Tuple[int, str]]) -> None:
+        seen_before = {(ln, tok) for ln, tok in findings}
+        for match in _DOUBLE_TOKEN_RE.finditer(cleaned[begin:end]):
+            tok = match.group(0)
+            item = (current_line(begin + match.start()), tok)
+            if item not in seen_before:
+                seen_before.add(item)
+                findings.append(item)
+
+    # Single structural walk: attribute every brace pair to whether it
+    # opens/joins device code (signature text since the previous structural
+    # character mentions __device__/__global__), collect hits for those
+    # signature segments directly (covers parameter lists and prototypes),
+    # and record body ranges for interior scanning.
+    findings: List[Tuple[int, str]] = []
+    stack: List[Tuple[bool]] = []
+    device_ranges: List[Tuple[int, int]] = []
+    active = 0
+    range_begin: Optional[int] = None
+    prev_end = 0
+    for m in structs:
+        tok = m.group(0)
+        sig_text = cleaned[prev_end:m.start()]
+        sig_is_device = bool(_DEVICE_FUNC_SIG_RE.search(sig_text))
+        if tok == "{":
+            if sig_is_device:
+                collect_hits(prev_end, m.start(), findings)
+                if active == 0:
+                    range_begin = prev_end
+                active += 1
+            stack.append((sig_is_device,))
+        elif tok == "}":
+            if stack:
+                (enters,) = stack.pop()
+                if enters:
+                    active -= 1
+                    if active == 0 and range_begin is not None:
+                        device_ranges.append((range_begin, m.end()))
+                        range_begin = None
+        else:  # ';'
+            if sig_is_device:
+                collect_hits(prev_end, m.start(), findings)
+        prev_end = m.end()
+
+    for begin, end in device_ranges:
+        collect_hits(begin, end, findings)
+    return findings
+
+
+_TYPE_POLICY_MESSAGE_HEAD = (
+    "[type-policy] cu2cce: device-side FP64/double is unsupported by the "
+    "current Ascend SIMT/AICore target. Host-side double remains supported."
+)
+
+
+def _format_device_double_report(path: Path, findings: Sequence[Tuple[int, str]]) -> str:
+    lines = [f"{path}:{ln}: type '{tok}' used in device context" for ln, tok in findings[:8]]
+    extra = len(findings) - min(len(findings), 8)
+    if extra > 0:
+        lines.append(f"... {extra} more device-side double site(s)")
+    return "\n".join(lines)
 
 
 @dataclass
@@ -500,6 +675,8 @@ class RuleDriver:
             raise DriverError("CUDA assembly output (-S) is not produced by the ccec puresimt driver; use cucc -c to compile objects")
         self._resolve_simt_root()
         context = self._context(phase, source_is_cuda, expanded)
+        if source_is_cuda and self.fp64_policy != "allow" and phase == "compile":
+            self._pre_flight_report_device_double(inputs)
         result: List[str] = []
         i = 0
         while i < len(expanded):
@@ -685,6 +862,40 @@ class RuleDriver:
         trace_path.parent.mkdir(parents=True, exist_ok=True)
         trace_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
+    def _pre_flight_report_device_double(self, inputs: Sequence[str]) -> None:
+        """Proactively surface device-side double usage before ccec runs.
+
+        Mentor guidance (2026-08-27): unsupported device types must be
+        reported with actionable "downgrade to float" advice; the user then
+        edits their source manually. error policy stops the build here;
+        warn prints and continues (letting ccec produce its own errors);
+        allow skips the scan entirely.
+        """
+        any_findings = False
+        for path_text in inputs:
+            path = Path(path_text)
+            if path.suffix != ".cu":
+                continue
+            try:
+                source = path.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                if self.debug_enabled:
+                    print(f"[type-policy] could not read {path}; FP64 scan skipped", file=sys.stderr)
+                continue
+            findings = scan_device_double_usage(source)
+            if not findings:
+                continue
+            any_findings = True
+            print(_TYPE_POLICY_MESSAGE_HEAD, file=sys.stderr)
+            print(_format_device_double_report(path, findings), file=sys.stderr)
+        if not any_findings or self.fp64_policy != "error":
+            return
+        raise DriverError(
+            "[type-policy] build stopped: CU2CCE_DEVICE_FP64_POLICY=error and "
+            "device-side double usage was reported above. Downgrade those "
+            "sites to float, or rerun with CU2CCE_DEVICE_FP64_POLICY=warn/allow."
+        )
+
     def _emit_capability_diagnostics(self, stderr_text: str) -> None:
         if self.fp64_policy == "allow":
             return
@@ -696,8 +907,8 @@ class RuleDriver:
         if not any(marker in stderr_text for marker in fp64_markers):
             return
         message = (
-            "cu2cce: device-side FP64/double is unsupported by the current Ascend "
-            "SIMT/AICore target. Host-side double remains supported; change the "
+            "[type-policy] cu2cce: device-side FP64/double is unsupported by the "
+            "current Ascend SIMT/AICore target. Host-side double remains supported; change the "
             "device-side value/accumulator to float, or provide an explicit host "
             "fallback/mixed-precision implementation."
         )

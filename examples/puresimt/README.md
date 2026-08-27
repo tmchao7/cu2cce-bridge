@@ -53,6 +53,7 @@ The next operator-focused tests use the same minimal-source policy:
 - `half_minimal.cu` — CUDA FP16/half2 aliases and conversion round-trip, backed by CANN `simt_api/asc_fp16.h`.
 - `bf16x2_minimal.cu` — CUDA BF16/BF16x2 aliases and conversion round-trip, backed by CANN `simt_api/asc_bf16.h`.
 - `device_math_minimal.cu` — **diagnostic-only** probe (own non-blocking harness segment, not the required [3/7] list): exercises the `include/crt/` forward-only math/vector surface in both execution spaces and verifies device results against libm. A missing symbol fails THIS file's compile with its own name; that error is the inventory input for the next compat batch.
+- `double_policy_diag.cu` — **diagnostic-only** carrier demonstrating the proactive FP64 type policy: device-side double triggers cucc's `[type-policy]` report before ccec runs (`error` blocks, `warn` advises then continues), teaching the "downgrade to float manually" workflow for data types Ascend cannot execute.
 
 
 ## Coverage model

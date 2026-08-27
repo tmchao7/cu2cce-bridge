@@ -350,6 +350,38 @@ else
     head -n 40 "$OUT/device_math_minimal.log" 2>/dev/null || true
 fi
 
+# 诊断载体：主动 FP64 类型策略（导师方向：不支持的类型由 cucc 报错/警告，
+# 引导用户手动降级为 float）。warn 展示提示后放行；error 必须在 ccec 前
+# 拦截。均不计入必需门禁。
+printf '\n----- double_policy_diag (diagnostic-only type-policy demo) -----\n'
+DP_LOG="$OUT/double_policy_diag.log"
+if env CU2CCE_DEVICE_FP64_POLICY=warn CUCC_PATH="$PWD/build/real_test/install" CUDA_PATH="$CUCC_PATH" \
+    "$CUCC_BIN" -c examples/puresimt/double_policy_diag.cu -o "$OUT/double_policy_diag.o" >"$DP_LOG" 2>&1; then
+    echo '[DIAG-INFO] warn-mode：策略提示已给出后继续编译'
+else
+    echo '[DIAG-INFO] warn-mode：继续编译后按预期被 CANN 后端拒绝（double 无 device 支持）'
+fi
+if grep -Fq '[type-policy]' "$DP_LOG"; then
+    echo '[DIAG-PASS] FP64 警告在 ccec 之前主动给出（warn 模式）'
+    head -n 6 "$DP_LOG"
+else
+    echo '[DIAG-ONLY] 未捕获 [type-policy] 提示——需排查扫描器'
+    tail -n 20 "$DP_LOG" 2>/dev/null || true
+fi
+if env CU2CCE_DEVICE_FP64_POLICY=error CUCC_PATH="$PWD/build/real_test/install" CUDA_PATH="$CUCC_PATH" \
+    "$CUCC_BIN" -c examples/puresimt/double_policy_diag.cu -o "$OUT/double_policy_diag.o" >"$DP_LOG.err" 2>&1; then
+    echo '[DIAG-ONLY] error-mode 竟然放行了——策略未生效'
+else
+    if grep -Fq '[type-policy]' "$DP_LOG.err"; then
+        echo '[DIAG-PASS] error-mode 在调用 ccec 前拦截并指明行号'
+        head -n 4 "$DP_LOG.err"
+    else
+        echo '[DIAG-ONLY] error-mode 有拦截但缺少 [type-policy] 标记'
+        head -n 8 "$DP_LOG.err" 2>/dev/null || true
+    fi
+fi
+rm -f "$OUT/double_policy_diag.o"
+
 mark_timing puresimt_suite
 else
     echo '[SKIP] puresimt suite + cucc direct checks (profile=external)'
