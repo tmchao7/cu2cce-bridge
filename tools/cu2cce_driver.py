@@ -254,7 +254,12 @@ class RuleDriver:
         inputs, output, compile_only, has_object, explicit_language = RuleDriver._scan_inputs(args)
         source_is_cuda = RuleDriver._has_cuda_source(args) or explicit_language in ("cuda", "cu", "c++-cuda")
         if "--device-link" in args or "-dlink" in args:
-            return "device_link", "unsupported", inputs, output, source_is_cuda
+            # Device-link is handled at link time through the injected
+            # -lcce_bridge_runtime target; the cucc CMake layer forces
+            # CUDA_SEPARABLE_COMPILATION OFF, so a stray -dlink phase is
+            # downgraded to a normal link instead of a hard error. The rules
+            # file rejects the flags explicitly with a diagnostic reason.
+            return "device_link", "link", inputs, output, source_is_cuda
         if "-E" in args:
             return "preprocess", "preprocess", inputs, output, source_is_cuda
         if "-M" in args or "-MM" in args:
@@ -410,7 +415,7 @@ class RuleDriver:
             ]
         phase, mode, inputs, output, source_is_cuda = self._phase(expanded)
         if mode == "unsupported":
-            raise DriverError("CUDA assembly output (-S) is not supported by the ccec puresimt driver")
+            raise DriverError("CUDA assembly output (-S) is not produced by the ccec puresimt driver; use cucc -c to compile objects")
         self._resolve_simt_root()
         context = self._context(phase, source_is_cuda, expanded)
         result: List[str] = []

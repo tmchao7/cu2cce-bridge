@@ -105,10 +105,48 @@ class CuccRuleDriverTest(unittest.TestCase):
         self.assertIn("-lcce_bridge_runtime", prepared.args)
 
     def test_ptx_and_device_link_are_rejected(self) -> None:
-        for flag in ("--ptx", "--device-link", "-rdc=true"):
+        for flag in ("--ptx", "-rdc=true"):
             with self.subTest(flag=flag):
                 with self.assertRaises(DriverError):
                     self.driver().prepare([flag, "main.cu"])
+
+    def test_device_link_flag_is_dropped_and_phase_downgraded(self) -> None:
+        # The cucc CMake layer forces CUDA_SEPARABLE_COMPILATION OFF, so a
+        # stray -dlink/--device-link must not hard-crash configure. The flag
+        # is dropped by the rules and the phase degrades to a normal link.
+        prepared = self.driver().prepare(["main.cu", "-o", "app", "-dlink"])
+        self.assertEqual(prepared.phase, "device_link")
+        self.assertEqual(prepared.mode, "link")
+        self.assertNotIn("-dlink", prepared.args)
+        self.assertNotIn("--device-link", prepared.args)
+
+    def test_new_large_project_flags_are_dropped(self) -> None:
+        for flag in ("-maxrregcount", "-maxrregcount=128",
+                     "--generate-line-info", "-cubin", "--Werror",
+                     "-m64", "--machine", "--machine=64",
+                     "-Xcudafe", "-Xcudafe=--no-abi",
+                     "--use_fast_math", "-G",
+                     "--ftz", "--ftz=true",
+                     "-Wl,-Bstatic", "-Wl,--start-group",
+                     "-Xnvlink", "--forward-unknown-to-host-compiler=on",
+                     "-rdc=off"):
+            with self.subTest(flag=flag):
+                prepared = self.driver().prepare(["-c", "main.cu", flag, "-o", "main.o"])
+                self.assertNotIn(flag, prepared.args, flag)
+
+    def test_rdc_true_variants_are_rejected(self) -> None:
+        # -rdc / -rdc=true / --relocatable-device-code / =true are still a
+        # hard error (separable compilation is not just dropped); the =false
+        # and -rdc=off spellings are benign and dropped by the drop rules.
+        for flag in ("-rdc", "-rdc=true", "--relocatable-device-code",
+                     "--relocatable-device-code=true"):
+            with self.subTest(flag=flag):
+                with self.assertRaises(DriverError):
+                    self.driver().prepare([flag, "main.cu"])
+        for flag in ("-rdc=off", "--relocatable-device-code=false"):
+            with self.subTest(flag=flag):
+                prepared = self.driver().prepare(["-c", "main.cu", flag, "-o", "main.o"])
+                self.assertNotIn(flag, prepared.args, flag)
 
     def test_response_file_uses_shell_quoting(self) -> None:
         response = Path(self.tmp.name) / "options.rsp"

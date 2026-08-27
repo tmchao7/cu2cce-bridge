@@ -355,6 +355,33 @@ if [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$CMAKE_CCE" ]; then
         LARGE_PROJECT_PASS=1
     fi
 
+    # Diagnostic-only: multi-.cu static library boundary. A duplicate
+    # eager-registration symbol here is an expected backend limitation; the
+    # outcome is recorded but never blocks the required profile.
+    printf '\n----- multi_cu_diagnostic (diagnostic-only, non-blocking) -----\n'
+    MULTICU_BUILD="$OUT/multi-cu-build"
+    rm -rf "$MULTICU_BUILD"
+    if "$CMAKE_CCE" -S examples/multi_cu_diagnostic -B "$MULTICU_BUILD" \
+        -DCMAKE_CUDA_ARCHITECTURES=OFF >"$OUT/multi_cu_configure.log" 2>&1; then
+        echo '[PASS] multi_cu_diagnostic configure'
+        if cmake --build "$MULTICU_BUILD" >"$OUT/multi_cu_build.log" 2>&1; then
+            echo '[PASS] multi_cu_diagnostic build'
+            if "$MULTICU_BUILD/multi_cu_diag_app" >"$OUT/multi_cu_run.log" 2>&1 \
+                && grep -Fq 'multi_cu diagnostic OK' "$OUT/multi_cu_run.log"; then
+                echo '[DIAG-PASS] multi_cu_diagnostic run (two .cu + one static lib works)'
+            else
+                echo '[DIAG-ONLY] multi_cu_diagnostic run (log tail:)'
+                tail -n 30 "$OUT/multi_cu_run.log" 2>/dev/null || true
+            fi
+        else
+            echo '[DIAG-ONLY] multi_cu_diagnostic build (duplicate registration or similar; log tail:)'
+            tail -n 40 "$OUT/multi_cu_build.log" 2>/dev/null || true
+        fi
+    else
+        echo '[DIAG-ONLY] multi_cu_diagnostic configure (configure log tail:)'
+        tail -n 40 "$OUT/multi_cu_configure.log" 2>/dev/null || true
+    fi
+
     run_cmake_case \
         cmake_build_compat \
         examples/build_compat/cmake \

@@ -264,6 +264,209 @@
         "pattern": "--cuda-gpu-arch",
         "takes_value": true,
         "reason": "Clang CUDA GPU architecture is not used by Ascend ccec"
+      },
+      {
+        "pattern": "-maxrregcount",
+        "takes_value": true,
+        "reason": "NVIDIA register-count control is not used by the Ascend SIMT backend"
+      },
+      {
+        "pattern": "-maxrregcount=*",
+        "reason": "NVIDIA register-count control is not used by the Ascend SIMT backend"
+      },
+      {
+        "pattern": "--maxrregcount",
+        "takes_value": true,
+        "reason": "NVIDIA register-count control is not used by the Ascend SIMT backend"
+      },
+      {
+        "pattern": "--maxrregcount=*",
+        "reason": "NVIDIA register-count control is not used by the Ascend SIMT backend"
+      },
+      {
+        "pattern": "--generate-line-info",
+        "reason": "CUDA lineinfo option is not part of the current ccec policy"
+      },
+      {
+        "pattern": "-cubin",
+        "reason": "CUBIN generation is unsupported on Ascend puresimt"
+      },
+      {
+        "pattern": "--Werror",
+        "reason": "ccec uses the host clang -Werror spelling"
+      },
+      {
+        "pattern": "-m64",
+        "reason": "ccec targets the Ascend device, host bitness is fixed"
+      },
+      {
+        "pattern": "--machine",
+        "takes_value": true,
+        "reason": "host machine type is fixed by the ccec toolchain"
+      },
+      {
+        "pattern": "--machine=*",
+        "reason": "host machine type is fixed by the ccec toolchain"
+      },
+      {
+        "pattern": "-Xcudafe",
+        "takes_value": true,
+        "reason": "cudafe host-frontend options are not part of the ccec toolchain"
+      },
+      {
+        "pattern": "-Xcudafe=*",
+        "reason": "cudafe host-frontend options are not part of the ccec toolchain"
+      },
+      {
+        "pattern": "--cudafe",
+        "takes_value": true,
+        "reason": "cudafe host-frontend options are not part of the ccec toolchain"
+      },
+      {
+        "pattern": "--cudafe=*",
+        "reason": "cudafe host-frontend options are not part of the ccec toolchain"
+      },
+      {
+        "pattern": "--use_fast_math",
+        "reason": "NVIDIA fast-math flags are not mapped to ccec; use ccec float options if needed"
+      },
+      {
+        "pattern": "--use-fast-math",
+        "reason": "NVIDIA fast-math flags are not mapped to ccec; use ccec float options if needed"
+      },
+      {
+        "pattern": "--fmad",
+        "takes_value": true,
+        "reason": "NVIDIA fmad control is not part of the ccec policy"
+      },
+      {
+        "pattern": "--fmad=*",
+        "reason": "NVIDIA fmad control is not part of the ccec policy"
+      },
+      {
+        "pattern": "--prec-div",
+        "takes_value": true,
+        "reason": "NVIDIA precision control is not part of the ccec policy"
+      },
+      {
+        "pattern": "--prec-div=*",
+        "reason": "NVIDIA precision control is not part of the ccec policy"
+      },
+      {
+        "pattern": "--prec-sqrt",
+        "takes_value": true,
+        "reason": "NVIDIA precision control is not part of the ccec policy"
+      },
+      {
+        "pattern": "--prec-sqrt=*",
+        "reason": "NVIDIA precision control is not part of the ccec policy"
+      },
+      {
+        "pattern": "--ftz",
+        "takes_value": true,
+        "reason": "NVIDIA flush-to-zero control is not part of the ccec policy"
+      },
+      {
+        "pattern": "--ftz=*",
+        "reason": "NVIDIA flush-to-zero control is not part of the ccec policy"
+      },
+      {
+        "pattern": "-G",
+        "reason": "NVIDIA device-debug mode is not part of the ccec policy"
+      },
+      {
+        "pattern": "--generate-code=*",
+        "reason": "NVIDIA GPU code generation is not used by Ascend ccec",
+        "when": "always"
+      },
+      {
+        "pattern": "--resource-usage",
+        "reason": "NVIDIA resource-usage report is not part of the ccec toolchain"
+      },
+      {
+        "pattern": "-rdc=*",
+        "reason": "separable-compilation off spelling is dropped; the cucc CMake layer forces CUDA_SEPARABLE_COMPILATION OFF"
+      },
+      {
+        "pattern": "--relocatable-device-code=*",
+        "reason": "separable-compilation off spelling is dropped; the cucc CMake layer forces CUDA_SEPARABLE_COMPILATION OFF"
+      },
+      {
+        "pattern": "--forward-unknown-to-host-compiler=*",
+        "reason": "nvcc forwarding control is not needed by ccec"
+      },
+      {
+        "pattern": "--pre-include",
+        "takes_value": true,
+        "reason": "ccec uses the driver-injected -include instead"
+      },
+      {
+        "pattern": "--pre-include=*",
+        "reason": "ccec uses the driver-injected -include instead"
+      },
+      {
+        "pattern": "--include-path",
+        "takes_value": true,
+        "reason": "ccec uses -I include paths"
+      },
+      {
+        "pattern": "--include-path=*",
+        "reason": "ccec uses -I include paths"
+      },
+      {
+        "pattern": "--library-path",
+        "takes_value": true,
+        "reason": "ccec uses -L library paths"
+      },
+      {
+        "pattern": "--library-path=*",
+        "reason": "ccec uses -L library paths"
+      },
+      {
+        "pattern": "-Wl,-Bstatic",
+        "reason": "cudart static library control is not needed; cu2cce injects the bridge runtime"
+      },
+      {
+        "pattern": "-Wl,-Bdynamic",
+        "reason": "cudart static library control is not needed; cu2cce injects the bridge runtime"
+      },
+      {
+        "pattern": "-Wl,--start-group",
+        "reason": "link-group quoting is not required by ccec link lines"
+      },
+      {
+        "pattern": "-Wl,--end-group",
+        "reason": "link-group quoting is not required by ccec link lines"
+      },
+      {
+        "pattern": "-Xnvlink",
+        "takes_value": true,
+        "reason": "nvlink driver options are not part of the Ascend toolchain"
+      },
+      {
+        "pattern": "-Xnvlink=*",
+        "reason": "nvlink driver options are not part of the Ascend toolchain"
+      },
+      {
+        "pattern": "-Xcyco",
+        "takes_value": true,
+        "reason": "cyco driver options are not part of the Ascend toolchain"
+      },
+      {
+        "pattern": "-Xcyco=*",
+        "reason": "cyco driver options are not part of the Ascend toolchain"
+      },
+      {
+        "pattern": "--dlink-time-opt",
+        "reason": "NVIDIA device-link optimization is not part of the ccec toolchain"
+      },
+      {
+        "pattern": "--device-link",
+        "reason": "CUDA device-link is disabled; the cucc CMake layer forces CUDA_SEPARABLE_COMPILATION OFF"
+      },
+      {
+        "pattern": "-dlink",
+        "reason": "CUDA device-link is disabled; the cucc CMake layer forces CUDA_SEPARABLE_COMPILATION OFF"
       }
     ],
     "replace": [
@@ -304,15 +507,15 @@
         "reason": "FATBIN generation is unsupported on Ascend puresimt"
       },
       {
-        "pattern": "--device-link",
-        "reason": "CUDA device-link is unsupported on Ascend puresimt"
-      },
-      {
-        "pattern": "-dlink",
-        "reason": "CUDA device-link is unsupported on Ascend puresimt"
+        "pattern": "-rdc",
+        "reason": "CUDA separable compilation is unsupported on Ascend puresimt"
       },
       {
         "pattern": "-rdc=true",
+        "reason": "CUDA separable compilation is unsupported on Ascend puresimt"
+      },
+      {
+        "pattern": "--relocatable-device-code",
         "reason": "CUDA separable compilation is unsupported on Ascend puresimt"
       },
       {
