@@ -15,6 +15,7 @@
 #include <crt/host_defines.h>
 #include <crt/common_functions.h>
 #include <crt/math_functions.h>
+#include <crt/vector_functions_compat.h>
 
 #if !defined(__CUDACC_RTC__)
 #define EXCLUDE_FROM_RTC

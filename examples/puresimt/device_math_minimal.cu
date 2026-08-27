@@ -14,7 +14,11 @@
 #include <crt/builtin_types.h>
 #include <device_launch_parameters.h>
 
-__device__ __host__ static float probe_chain(float x) {
+/* Device-only on purpose: main() recomputes the reference chain inline, so
+ * this helper never needs cross-space visibility. (Round-2 lesson: marking
+ * helpers __device__ __host__ relied on macro fallbacks that turned out to
+ * strip the keywords; keep single-space helpers single-space.) */
+static __device__ float probe_chain(float x) {
     /* one call site per probed symbol family */
     float v = expf(x);
     v += logf(v > 0.f ? v : 1.f);

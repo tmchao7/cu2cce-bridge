@@ -179,8 +179,19 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         self.assertTrue((ROOT / "include/device_launch_parameters.h").is_file())
 
         runtime_chain = (ROOT / "include/cuda_runtime.h").read_text(encoding="utf-8")
-        for hdr in ("crt/host_defines.h", "crt/common_functions.h", "crt/math_functions.h"):
+        for hdr in ("crt/host_defines.h", "crt/common_functions.h", "crt/math_functions.h",
+                    "crt/vector_functions_compat.h"):
             self.assertIn(f"#include <{hdr}>", runtime_chain)
+
+        host_defines = (crt / "host_defines.h").read_text(encoding="utf-8")
+        # Keyword-vs-macro lesson: ccec treats __host__/__device__ as language
+        # keywords; #define-fallbacks silently strip execution spaces. No real
+        # preprocessor directive may define them (comments explaining why are
+        # fine, so match directives per line, not substring).
+        import re as _re
+        for line in host_defines.splitlines():
+            self.assertIsNone(_re.search(r'^\s*#\s*define\s+__(?:host|device)__', line),
+                              f"forbidden execution-space macro redefinition: {line!r}")
 
         math_hdr = (crt / "math_functions.h").read_text(encoding="utf-8")
         self.assertIn("__has_include(<simt_api/math_functions.h>)", math_hdr)
