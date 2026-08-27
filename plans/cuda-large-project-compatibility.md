@@ -42,7 +42,7 @@ code base uses:
 ```text
 top/    app/main.cpp -> large_util_lib; depends on util/gen_data_file
 comp/   large_kernel_lib (single .cu kernel library)
-util/   large_host_lib (store.cpp), generate_kernel_data, large_data_header,
+util/   large_util_lib (store.cpp), generate_kernel_data, large_gen_data,
         custom-command generated input
 ```
 

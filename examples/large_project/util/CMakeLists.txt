@@ -4,12 +4,12 @@ cmake_minimum_required(VERSION 3.18)
 # This exercises cross-directory CMake target dependencies exercised by large CUDA
 # projects: a custom command in this directory drives a generator that the app
 # target in the top directory consumes.
-add_library(large_host_lib STATIC store.cpp)
-target_include_directories(large_host_lib PUBLIC
+add_library(large_util_lib STATIC store.cpp)
+target_include_directories(large_util_lib PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   $<INSTALL_INTERFACE:include>
 )
-install(TARGETS large_host_lib EXPORT largeProjectTargets
+install(TARGETS large_util_lib EXPORT largeProjectTargets
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
 )
