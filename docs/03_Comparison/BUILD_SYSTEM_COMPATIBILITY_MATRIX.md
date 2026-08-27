@@ -16,8 +16,8 @@
 | install/export/package | `EXPERIMENTAL` | native `cu2cce::runtime` package | 需安装树真机回归 |
 | Unix Makefiles | `EXPERIMENTAL` | `examples/build_compat/make` | 通过 `make_cce` |
 | Ninja | `EXPERIMENTAL` | CMake Ninja smoke + `ninja_cce` | 需服务器安装 Ninja |
-| multi-directory CMake project | `EXPERIMENTAL` | `examples/large_project`（comp/util 子目录、跨目标依赖、install/export） | 每 linked library 仍为一个 `.cu` |
-| generated input + cross-directory target dependency | `DIAGNOSTIC_ONLY` | `examples/large_project/util` custom command | ccec 只编译 `.cu`；生成头/数据的宿主 target 需真机确认 |
+| multi-directory CMake project | `SUPPORTED` for validated core | `examples/large_project` 真机通过（configure/build/run/install-export，`LARGE_PROJECT_REGRESSION_PASS`） | 每 linked library 仍为一个 `.cu` |
+| generated input + cross-directory target dependency | `SUPPORTED` for validated core | `examples/large_project/util` custom command 真机通过 | 生成的数据文件仅供 host 侧读取，不进入 device 编译 |
 | response file | `EXPERIMENTAL` | `tests/test_cucc_rules.py` | 构建系统组合仍需扩大 |
 | dependency generation `-M/-MM/-MD/-MF/-MT` | `DIAGNOSTIC_ONLY` until device proof | driver phase tests | ccec 真实依赖输出需真机确认 |
 | query `--version/-V/--help` | `SUPPORTED` for driver | local unit tests | 输出是 cu2cce compatibility identity |
