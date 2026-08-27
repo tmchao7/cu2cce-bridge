@@ -83,4 +83,22 @@ if [ -n "$VF_IMPL" ] && [ -f "$VF_IMPL" ]; then
 else
     echo '(vector_functions_impl.h not found next to simt_api)'
 fi
+
+# ---- Device-helper spelling evidence ----
+# Server round-4 fact: standalone "__device__" is rejected ("unknown type
+# name") while __global__ parses fine. Hunt for the canonical device
+# spelling this toolchain actually defines (__SIMT_DEVICE_FUNCTIONS_DECL__
+# expansions, aicore attributes, or a __device__ macro somewhere).
+echo
+echo "== DEVICE SPELLING EVIDENCE =="
+DPP_DIR=""
+[ -n "$DPP" ] && DPP_DIR="$(dirname "$DPP")"
+for base in "$ROOT" "${ROOT%/asc/include/simt_api}/asc" "$DPP_DIR" "/usr/local/Ascend/cann-"*/tools/bisheng_compiler/lib/clang/*/include; do
+    [ -d "$base" ] || continue
+    echo "-- base: $base --"
+    grep -rnE '^\s*#\s*define\s+(__SIMT_DEVICE_FUNCTIONS_DECL__|__device__|__global__|__aicore__)\b' \
+        "$base" 2>/dev/null | head -n 20 || true
+done
+echo "-- aicore-ish attribute tokens seen in simt_api headers --"
+grep -rhoE '__[a-z0-9_]*aicore[a-z0-9_]*__' "$ROOT" 2>/dev/null | sort | uniq -c | sort -rn | head -n 15 || true
 exit 0

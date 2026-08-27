@@ -13,16 +13,19 @@
  *                                       kernel downstream);
  *   allow                            -> scan skipped entirely.
  *
+ * Note: the standalone __device__ spelling is unrecognized by the bisheng
+ * SIMT front-end, so the float twin here lives entirely inside the
+ * __global__ kernel body (helper-function spellings are tracked separately
+ * by the inventory evidence step).
+ *
  * The harness records this as DIAG-ONLY; it never enters required gates.
  */
 #include <cstdio>
 #include <cuda_runtime.h>
 
-__device__ float scale_twice(float v) { return v * 2.f; }
-
 __global__ void ok_kernel(const float *in, float *out) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
-    out[i] = scale_twice(in[i]);
+    out[i] = in[i] * 2.f;
 }
 
 __global__ void bad_double_kernel(const double *in, double *out) {

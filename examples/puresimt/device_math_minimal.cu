@@ -1,25 +1,26 @@
 /*
- * Diagnostic-only probe v3: PURE single-precision device-math verification.
+ * Diagnostic-only probe v4: PURE single-precision device-math verification.
  *
  * Policy: a missing symbol fails THIS carrier's compile with the symbol
  * name in the error text — that error IS the inventory. Nothing here is
  * faked; the harness records the outcome as DIAG-ONLY without blocking.
  *
- * Correctness model: the device computes a fixed op-chain and the host
- * recomputes the same chain with libm; values must agree closely.
+ * Correctness model: the device kernel computes a fixed op-chain inline and
+ * the host recomputes the same chain with libm; values must agree closely.
  *
- * Boundary reminder (confirmed by Ascend team, 2026-08-27): the bisheng
- * DEVICE side has NO double support at all — even doubleN vector types do
- * not exist. Everything below therefore stays float32 on both sides.
- *
- * ccec qualification rule learned on-server: spellings like __device__
- * come FIRST, right before the return type (storage-class-first forms
- * such as "static __device__" are rejected as unknown type names).
+ * Platform facts recorded by earlier probe rounds (2026-08-27):
+ * - bisheng device side has NO double support at all; even doubleN vector
+ *   types do not exist. Everything below stays float32 on both sides.
+ * - The standalone spelling "__device__" is NOT recognized by the bisheng
+ *   SIMT front-end ("unknown type name"), unlike __global__. Until the
+ *   canonical device-helper spelling is proven via the extended inventory,
+ *   this probe inlines all logic into the __global__ kernel body and calls
+ *   no qualified helper functions.
  */
 #include <cstdio>
 #include <cuda_runtime.h>
 
-__device__ float probe_chain(float x) {
+__global__ void probe_kernel(float x, float *out) {
     /* one call site per probed symbol family */
     float v = expf(x);
     v += logf(v > 0.f ? v : 1.f);
@@ -28,11 +29,7 @@ __device__ float probe_chain(float x) {
     v += tanhf(v);
     v += powf(v * 0.25f + 1.f, 2.f);
     v += fminf(v, 10.f) + fmaxf(v, -10.f);
-    return v;
-}
-
-__global__ void probe_kernel(float x, float *out) {
-    *out = probe_chain(x);
+    *out = v;
 }
 
 static int close_enough(float got, float ref) {

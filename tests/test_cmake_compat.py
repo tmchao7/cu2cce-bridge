@@ -221,11 +221,22 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
             self.assertIsNone(_re.search(r'^\s*(template\s*<|typedef\b|#define(?! __CU2CCE_CRT_VECTOR_FUNCTIONS_COMPAT_H__))', line),
                               f"compat layer must stay inert for now: {line!r}")
 
-        carrier = (ROOT / "examples/puresimt/device_math_minimal.cu").read_text(encoding="utf-8")
         # Ascend device has no double at all; the probe must stay float-only.
+        carrier = (ROOT / "examples/puresimt/device_math_minimal.cu").read_text(encoding="utf-8")
         for forbidden in ("double2", "make_float3", "make_float4"):
             self.assertNotIn(forbidden, carrier)
-        self.assertRegex(carrier, r"__device__\s+float\s+probe_chain")
+        # Round-4 platform fact: standalone "__device__" is rejected by the
+        # bisheng SIMT front-end. The probe therefore inlines its op-chain
+        # into the __global__ kernel until the canonical device-helper
+        # spelling is proven by the inventory evidence step. Comments and
+        # strings are stripped before scanning so the documented fact does
+        # not trip its own guard.
+        code_only = _re.sub(r"/\*.*?\*/", "", carrier, flags=_re.S)
+        code_only = _re.sub(r"//[^\n]*", "", code_only)
+        for line in code_only.splitlines():
+            self.assertIsNone(_re.search(r"\b(__device__|__host__)\b", line),
+                              f"probe must avoid qualified helpers entirely: {line!r}")
+        self.assertRegex(code_only, r"__global__\s+void\s+probe_kernel")
 
         server_cmd = (ROOT / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
         self.assertIn("inventory_simt_api.sh", server_cmd)
