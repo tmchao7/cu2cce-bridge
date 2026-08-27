@@ -21,6 +21,17 @@
 #   cd /home/t50063365/workspace/repos/cu2cce-bridge
 #   git pull --ff-only gitcode "$REGRESSION_BRANCH"
 #   bash tools/real_test/server_cmd.txt
+#
+# 回归画像（环境变量 CU2CCE_REGRESSION_PROFILE）：
+#   fast（默认）：设备门禁 + bridge 重编 + cucc 直通 + puresimt 核心子集
+#                 （官方 vectorAdd/matrixMul + event/multiKernel/atomic/
+#                 math minimal）+ CMake 仅 cmake_demo 与 cmake_large_project；
+#                 慢而次要的段（外部样本、legacy、install/export、Ninja、
+#                 multi_cu、make/ninja smoke）跳过并打 [SKIP]。
+#   external    ：设备门禁 + bridge 重编 + 整个 External NVIDIA Samples 段
+#                 （含诊断样本），用于 wrapper/runtime 改动的定向验证。
+#   full        ：全部段落，行为与历史版本一致（里程碑/冻结前使用）。
+#   示例：CU2CCE_REGRESSION_PROFILE=full bash tools/real_test/server_cmd.txt
 
 set +e
 set +u
@@ -37,10 +48,36 @@ OUT="$PWD/build/real_test/puresimt"
 mkdir -p "$OUT"
 rm -f "$OUT"/*
 FAIL=0
-CUCC_RULES_PASS=1
 DEVICE_HEALTHY=0
 DEVICE_ACCESS_DENIED=0
 TEST_BLOCKED_BY_DEVICE=0
+
+# ---- 回归画像：fast（默认）| external | full ----------------------------
+# 各测试段用 profile_runs 决定是否执行；跳过的段打 [SKIP]，最终汇总给出
+# 对应 *_SECTION_SKIPPED。被跳过的段绝不冒充 PASS，也不计入 FAIL。
+REGRESSION_PROFILE="${CU2CCE_REGRESSION_PROFILE:-fast}"
+case "$REGRESSION_PROFILE" in
+    fast|external|full) ;;
+    *)
+        echo "[WARN] unknown CU2CCE_REGRESSION_PROFILE='$REGRESSION_PROFILE'; using fast"
+        REGRESSION_PROFILE=fast
+        ;;
+esac
+echo "PROFILE=$REGRESSION_PROFILE"
+
+profile_runs() {
+    # 用法: profile_runs "<允许执行的逗号分隔画像列表>"
+    case ",$1," in
+        *",$REGRESSION_PROFILE,"*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+_SECTION_T0=$SECONDS
+mark_timing() {
+    echo "[timing] $1=$(( SECONDS - _SECTION_T0 ))s"
+    _SECTION_T0=$SECONDS
+}
 
 printf '\n===== [1/4] 只读设备健康门禁 =====\n'
 for node in /dev/davinci0 /dev/davinci_manager /dev/hisi_hdc; do
@@ -124,7 +161,10 @@ if [ -e "$PWD/build/real_test/install/lib/libcce_bridge_runtime.so" ]; then
     REPO_LIB="$PWD/build/real_test/install/lib"
 fi
 export LD_LIBRARY_PATH="$REPO_LIB:$CANN_BASE/lib64:${LD_LIBRARY_PATH:-}"
+mark_timing env_bridge_rebuild
 
+if profile_runs "fast,full"; then
+CUCC_RULES_PASS=1
 printf '\n===== [2.75/7] cucc puresimt 直通检查 =====\n'
 CUCC_BIN="$PWD/build/real_test/install/bin/cucc"
 CUCC_OBJ="$OUT/cucc_vectorAdd_minimal.o"
@@ -172,8 +212,12 @@ if [ "$CUCC_RULES_PASS" -eq 1 ]; then
 else
     echo 'CUCC_RULES_REGRESSION_FAIL'
 fi
+mark_timing cucc_direct
 
 printf '\n===== [3/7] puresimt CUDA Samples + operator tests 编译 + 运行 =====\n'
+if [ "$REGRESSION_PROFILE" = fast ]; then
+    echo '[INFO] puresimt core subset (profile=fast): vectorAdd matrixMul event/multiKernel/atomic/math minimal；其余 17 个用例由 full 画像覆盖'
+fi
 CCEC="$CANN_BASE/bin/ccec"
 PS_FLAGS="-x asc --cce-aicore-arch=dav-c310-vec --enable-simt -std=c++17"
 for pair in \
@@ -203,6 +247,13 @@ for pair in \
     src=${pair%%|*}
     key=${pair#*|}
     name=$(basename "$src" .cu)
+    # fast 画像只跑核心子集（官方两样例 + 四个覆盖近期改动面的 minimal）。
+    if [ "$REGRESSION_PROFILE" = fast ]; then
+        case "$name" in
+            vectorAdd|matrixMul|event_minimal|multiKernel_minimal|atomicAdd_minimal|math_minimal) ;;
+            *) continue ;;
+        esac
+    fi
     bin="$OUT/$name"
     echo "===== [$name] $CCEC $PS_FLAGS examples/puresimt/$src ====="
     EXTRA_FLAGS=()
@@ -263,11 +314,13 @@ elif [ "$FAIL" -eq 0 ]; then
 else
     echo 'PURESIMT_REGRESSION_FAIL（查看上方各 .log）'
 fi
+mark_timing puresimt_suite
+else
+    echo '[SKIP] puresimt suite + cucc direct checks (profile=external)'
+fi
 
 printf '\n===== [5/7] CMake CUDA integration smoke =====\n'
 CMAKE_CCE="$REPO_LIB/../bin/cmake_cce"
-CMAKE_PASS=1
-LARGE_PROJECT_PASS=0
 
 run_cmake_case() {
     local name="$1"
@@ -320,32 +373,54 @@ run_cmake_case() {
     fi
 }
 
-if [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$CMAKE_CCE" ]; then
+# 按画像执行的用例包装：fast 只保留 cmake_demo 与 cmake_large_project；
+# 其余用例仅在 full 下执行；external 画像整体跳过本段。
+cmake_case_core() {
+    if profile_runs "fast,full"; then
+        run_cmake_case "$@"
+    else
+        echo "[SKIP] [$1] (profile=$REGRESSION_PROFILE)"
+    fi
+}
+cmake_case_full_only() {
+    if profile_runs "full"; then
+        run_cmake_case "$@"
+    else
+        echo "[SKIP] [$1] (profile=$REGRESSION_PROFILE)"
+    fi
+}
+unset CMAKE_PASS LARGE_PROJECT_PASS
+
+if [ "$REGRESSION_PROFILE" = external ]; then
+    echo '[SKIP] CMake section (profile=external)'
+elif [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$CMAKE_CCE" ]; then
+    CMAKE_PASS=1
+    LARGE_PROJECT_PASS=0
     export CUCC_PATH="$PWD/build/real_test/install"
     export CUDA_PATH="$CUCC_PATH"
     export PATH="$CUCC_PATH/bin:$PATH"
     export CU2CCE_CMAKE_SHIM_DIR="$OUT/cmake-shim"
-    run_cmake_case \
+    cmake_case_core \
         cmake_demo \
         examples/cmake_demo \
         "$OUT/cmake-build" \
         "$OUT/cmake-build/cmake_vector_add" \
         'cmake vectorAdd OK'
-    run_cmake_case \
+    cmake_case_full_only \
         cmake_compat \
         examples/cmake_compat \
         "$OUT/cmake-compat-build" \
         "$OUT/cmake-compat-build/cmake_compat_app" \
         'cmake_compat OK'
 
-    run_cmake_case \
+    cmake_case_full_only \
         cmake_compat_legacy \
         examples/cmake_compat_legacy \
         "$OUT/cmake-compat-legacy-build" \
         "$OUT/cmake-compat-legacy-build/legacy_vector_add" \
         'legacy CUDA OK'
 
-    run_cmake_case \
+    cmake_case_core \
         cmake_large_project \
         examples/large_project \
         "$OUT/cmake-large-project-build" \
@@ -359,6 +434,7 @@ if [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$CMAKE_CCE" ]; then
     # eager-registration symbol here is an expected backend limitation; the
     # outcome is recorded but never blocks the required profile.
     printf '\n----- multi_cu_diagnostic (diagnostic-only, non-blocking) -----\n'
+    if profile_runs "full"; then
     MULTICU_BUILD="$OUT/multi-cu-build"
     rm -rf "$MULTICU_BUILD"
     if "$CMAKE_CCE" -S examples/multi_cu_diagnostic -B "$MULTICU_BUILD" \
@@ -381,14 +457,17 @@ if [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$CMAKE_CCE" ]; then
         echo '[DIAG-ONLY] multi_cu_diagnostic configure (configure log tail:)'
         tail -n 40 "$OUT/multi_cu_configure.log" 2>/dev/null || true
     fi
+    else
+        echo '[SKIP] multi_cu_diagnostic (profile='$REGRESSION_PROFILE')'
+    fi
 
-    run_cmake_case \
+    cmake_case_full_only \
         cmake_build_compat \
         examples/build_compat/cmake \
         "$OUT/cmake-build-compat-build" \
         "$OUT/cmake-build-compat-build/build_compat_app" \
         'make_cce build_compat OK'
-    if [ "$CMAKE_PASS" -eq 1 ]; then
+    if profile_runs "full" && [ "${CMAKE_PASS:-0}" -eq 1 ]; then
         rm -rf "$OUT/cmake-build-compat-install"
         if cmake --install "$OUT/cmake-build-compat-build" --prefix "$OUT/cmake-build-compat-install" >"$OUT/cmake-install.log" 2>&1 && \
            [ -f "$OUT/cmake-build-compat-install/lib/cmake/build_compat/buildCompatTargets.cmake" ]; then
@@ -402,7 +481,7 @@ if [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$CMAKE_CCE" ]; then
         echo '[SKIP] CMake install/export smoke: configure/build prerequisite failed'
     fi
 
-    if command -v ninja >/dev/null 2>&1; then
+    if profile_runs "full" && command -v ninja >/dev/null 2>&1; then
         run_cmake_case \
             cmake_ninja \
             examples/cmake_demo \
@@ -410,6 +489,8 @@ if [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$CMAKE_CCE" ]; then
             "$OUT/cmake-ninja-build/cmake_vector_add" \
             'cmake vectorAdd OK' \
             -G Ninja
+    elif ! profile_runs "full"; then
+        echo '[SKIP] CMake Ninja smoke (profile='$REGRESSION_PROFILE')'
     else
         echo '[SKIP] CMake Ninja smoke: ninja is not installed'
     fi
@@ -417,8 +498,11 @@ else
     echo '[FAIL] CMake smoke unavailable: missing device or installed cmake_cce'
     CMAKE_PASS=0
 fi
+mark_timing cmake_suite
 
-if [ "$CMAKE_PASS" -eq 1 ]; then
+if [ "$REGRESSION_PROFILE" = external ]; then
+    echo 'CMAKE_CCE_SECTION_SKIPPED (profile=external)'
+elif [ "${CMAKE_PASS:-0}" -eq 1 ]; then
     echo 'CMAKE_CCE_REGRESSION_PASS'
 else
     FAIL=$((FAIL + 1))
@@ -426,11 +510,14 @@ else
 fi
 
 printf '\n===== [6/7] Make/Ninja build compatibility smoke =====\n'
-BUILD_COMPAT_PASS=1
 MAKE_CCE="$REPO_LIB/../bin/make_cce"
 NINJA_CCE="$REPO_LIB/../bin/ninja_cce"
 MAKE_COMPAT_LOG="$OUT/make_compat.log"
 MAKE_COMPAT_RUN_LOG="$OUT/make_compat.run.log"
+unset BUILD_COMPAT_PASS
+
+if profile_runs "full"; then
+BUILD_COMPAT_PASS=1
 if [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$MAKE_CCE" ]; then
     rm -rf "$OUT/make-home" examples/build_compat/make/build
     if CUCC_PATH="$PWD/build/real_test/install" CUBRIDGE_HOME="$OUT/make-home" \
@@ -452,7 +539,7 @@ else
     echo '[FAIL] make_cce smoke unavailable'
     BUILD_COMPAT_PASS=0
 fi
-if [ "$BUILD_COMPAT_PASS" -eq 1 ] && [ "$CMAKE_PASS" -eq 1 ] && command -v ninja >/dev/null 2>&1 && [ -x "$NINJA_CCE" ]; then
+if [ "${BUILD_COMPAT_PASS:-0}" -eq 1 ] && [ "${CMAKE_PASS:-0}" -eq 1 ] && command -v ninja >/dev/null 2>&1 && [ -x "$NINJA_CCE" ]; then
     if CUCC_PATH="$PWD/build/real_test/install" "$NINJA_CCE" -C "$OUT/cmake-ninja-build" >"$OUT/ninja_cce.log" 2>&1; then
         echo '[PASS] ninja_cce wrapper'
     else
@@ -461,7 +548,12 @@ if [ "$BUILD_COMPAT_PASS" -eq 1 ] && [ "$CMAKE_PASS" -eq 1 ] && command -v ninja
         BUILD_COMPAT_PASS=0
     fi
 fi
-if [ "$BUILD_COMPAT_PASS" -eq 1 ]; then
+fi
+mark_timing make_ninja_suite
+
+if [ "$REGRESSION_PROFILE" != full ]; then
+    echo 'BUILD_COMPAT_SECTION_SKIPPED (profile='$REGRESSION_PROFILE')'
+elif [ "${BUILD_COMPAT_PASS:-0}" -eq 1 ]; then
     echo 'BUILD_COMPATIBILITY_REGRESSION_PASS'
 else
     FAIL=$((FAIL + 1))
@@ -469,7 +561,6 @@ else
 fi
 
 printf '\n===== [7/7] External NVIDIA CUDA Samples CMake smoke =====\n'
-CUDA_SAMPLES_PASS=1
 EXTERNAL_FETCH="$PWD/tools/real_test/fetch_external_cuda_samples.sh"
 EXTERNAL_SOURCE="$OUT/external/nvidia_cuda_samples"
 EXTERNAL_BUILD="$OUT/cuda-samples-build"
@@ -491,7 +582,12 @@ run_with_timeout() {
 }
 
 rm -rf "$EXTERNAL_BUILD"
-if [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$EXTERNAL_FETCH" ] && [ -x "$CMAKE_CCE" ]; then
+CUDA_SAMPLES_EXECUTED=0
+if ! profile_runs "external,full"; then
+    echo "[SKIP] external NVIDIA CUDA Samples section (profile=$REGRESSION_PROFILE)"
+elif [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$EXTERNAL_FETCH" ] && [ -x "$CMAKE_CCE" ]; then
+    CUDA_SAMPLES_EXECUTED=1
+    CUDA_SAMPLES_PASS=1
     echo "[INFO] external CUDA Samples fetch (timeout=${EXTERNAL_FETCH_TIMEOUT}s)"
     if run_with_timeout "$EXTERNAL_FETCH_TIMEOUT" env \
        OUT_DIR="$OUT" CUDA_SAMPLES_SOURCE_DIR="$EXTERNAL_SOURCE" \
@@ -592,8 +688,11 @@ else
     echo '[FAIL] external CUDA Samples smoke unavailable'
     CUDA_SAMPLES_PASS=0
 fi
+mark_timing external_samples
 
-if [ "$CUDA_SAMPLES_PASS" -eq 1 ]; then
+if [ "${CUDA_SAMPLES_EXECUTED:-0}" -ne 1 ]; then
+    echo 'CUDA_SAMPLES_SECTION_SKIPPED (profile='$REGRESSION_PROFILE')'
+elif [ "${CUDA_SAMPLES_PASS:-0}" -eq 1 ]; then
     echo 'CUDA_SAMPLES_CMAKE_REGRESSION_PASS'
 else
     FAIL=$((FAIL + 1))
@@ -603,17 +702,18 @@ fi
 printf '\n===== FINAL SUMMARY =====\n'
 echo "FAIL=$FAIL DEVICE_HEALTHY=$DEVICE_HEALTHY TEST_BLOCKED_BY_DEVICE=$TEST_BLOCKED_BY_DEVICE"
 echo "完整日志：$OUT"
+echo "PROFILE=$REGRESSION_PROFILE"
 if [ "$TEST_BLOCKED_BY_DEVICE" -eq 1 ]; then
     echo 'RESULT=TEST_BLOCKED_BY_DEVICE'
 elif [ "$FAIL" -eq 0 ]; then
     echo 'PURESIMT_REGRESSION_PASS'
-    if [ "$CMAKE_PASS" -eq 1 ]; then
+    if [ "${CMAKE_PASS:-0}" -eq 1 ]; then
         echo 'CMAKE_CCE_REGRESSION_PASS'
     fi
     if [ "${BUILD_COMPAT_PASS:-0}" -eq 1 ]; then
         echo 'BUILD_COMPATIBILITY_REGRESSION_PASS'
     fi
-    if [ "${CUDA_SAMPLES_PASS:-0}" -eq 1 ]; then
+    if [ "${CUDA_SAMPLES_PASS:-0}" -eq 1 ] && [ "${CUDA_SAMPLES_EXECUTED:-0}" -eq 1 ]; then
         echo 'CUDA_SAMPLES_CMAKE_REGRESSION_PASS'
     fi
     if [ "${CUCC_RULES_PASS:-0}" -eq 1 ]; then
@@ -621,6 +721,15 @@ elif [ "$FAIL" -eq 0 ]; then
     fi
     if [ "${LARGE_PROJECT_PASS:-0}" -eq 1 ]; then
         echo 'LARGE_PROJECT_REGRESSION_PASS'
+    fi
+    # 未执行段的诚实标注：skip 不算 PASS 也不算 FAIL。
+    if [ "$REGRESSION_PROFILE" = external ]; then
+        echo 'CMAKE_CCE_SECTION_SKIPPED'
+        echo 'PURESIMT_SECTION_SKIPPED'
+        echo 'CUCC_RULES_SECTION_SKIPPED'
+    elif [ "$REGRESSION_PROFILE" = fast ]; then
+        echo 'BUILD_COMPAT_SECTION_SKIPPED'
+        echo 'CUDA_SAMPLES_SECTION_SKIPPED'
     fi
 else
     echo 'REGRESSION_FAIL（查看上方各 .log）'

@@ -140,6 +140,34 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
             self.assertIn(field, types)
         self.assertIn("failed, exit=$diag_status", server_cmd)
 
+    def test_regression_profiles_are_wired(self) -> None:
+        # The harness supports three profiles. fast (default) keeps the daily
+        # feedback loop short; external targets wrapper/runtime iteration;
+        # full preserves the historical whole-suite behavior.
+        server_cmd = (ROOT / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
+        self.assertIn('CU2CCE_REGRESSION_PROFILE:-fast', server_cmd)
+        self.assertIn("fast|external|full", server_cmd)
+        for helper in ("profile_runs()", "cmake_case_core()", "cmake_case_full_only()"):
+            self.assertIn(helper, server_cmd)
+        for marker in ("mark_timing puresimt_suite", "mark_timing cmake_suite",
+                       "mark_timing make_ninja_suite", "mark_timing external_samples",
+                       "mark_timing env_bridge_rebuild", "mark_timing cucc_direct"):
+            self.assertIn(marker, server_cmd)
+        # Skipped sections must be visible and must never fake a PASS badge.
+        for skipped in ("PURESIMT_SECTION_SKIPPED", "CUCC_RULES_SECTION_SKIPPED",
+                        "CMAKE_CCE_SECTION_SKIPPED", "BUILD_COMPAT_SECTION_SKIPPED",
+                        "CUDA_SAMPLES_SECTION_SKIPPED"):
+            self.assertIn(skipped, server_cmd)
+        self.assertIn("[SKIP] external NVIDIA CUDA Samples section", server_cmd)
+        # fast keeps only the core puresimt subset; every legacy case stays in
+        # the file guarded by profile checks so full remains complete.
+        fast_filter = "vectorAdd|matrixMul|event_minimal|multiKernel_minimal|atomicAdd_minimal|math_minimal"
+        self.assertIn(fast_filter, server_cmd)
+        for case in ("cmake_demo", "cmake_compat", "cmake_compat_legacy",
+                     "cmake_large_project", "cmake_build_compat", "cmake_ninja"):
+            self.assertIn(case, server_cmd)
+        self.assertGreaterEqual(server_cmd.count("profile_runs"), 10)
+
     def test_cuda_language_module_override_is_shipped_and_injected(self) -> None:
         override = ROOT / "cmake_modules/override/CUDAOverrides.cmake"
         self.assertTrue(override.is_file())

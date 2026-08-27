@@ -176,6 +176,24 @@ git pull --ff-only gitcode main
 bash tools/real_test/server_cmd.txt
 ```
 
+回归画像（`CU2CCE_REGRESSION_PROFILE`，默认 `fast`）：
+
+- `fast`：设备门禁 + bridge 重编 + cucc 直通 + puresimt 核心子集
+  （官方 vectorAdd/matrixMul + event/multiKernel/atomic/math minimal）+
+  CMake 仅 cmake_demo 与 cmake_large_project。日常开发用，最短反馈。
+- `external`：设备门禁 + bridge 重编 + 整个 External NVIDIA Samples 段
+  （含诊断样本逐个编译运行）。改 wrapper/runtime 后定向验证。
+- `full`：全部段落（含 legacy CMake、install/export、Ninja、multi_cu、
+  make/ninja smoke 与外部样本），里程碑或冻结前使用。
+
+```bash
+CU2CCE_REGRESSION_PROFILE=full bash tools/real_test/server_cmd.txt
+```
+
+被跳过的段会打 `[SKIP] ... (profile=...)`，最终汇总输出对应
+`*_SECTION_SKIPPED`；skip 既不计 FAIL 也绝不冒充 PASS。各段有 `[timing]`
+计时行，慢点可直接定位。
+
 当前回归包括：
 
 - NVIDIA 官方 `vectorAdd`

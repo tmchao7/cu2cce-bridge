@@ -14,7 +14,11 @@ main 已锁定 puresimt：用户写原始 CUDA `.cu`，ccec 通过
 ## 真机基线
 
 `tools/real_test/server_cmd.txt` 是唯一验收入口，当前包含 23 个真机用例和 cucc
-直通检查。验收标志：
+直通检查，并通过 `CU2CCE_REGRESSION_PROFILE` 支持三档画像：`fast`（默认，
+核心子集：官方两样例 + event/multiKernel/atomic/math minimal + CMake 两代表
+案例）、`external`（bridge 重编 + 全部外部 NVIDIA 样本，含诊断样本）、
+`full`（历史全量）。跳过段输出 `[SKIP]` 与汇总 `*_SECTION_SKIPPED`，不计
+FAIL 也不冒充 PASS；验收标志在 full 或 fast 执行段内语义不变。验收标志：
 
 ```text
 FAIL=0 DEVICE_HEALTHY=1 PURESIMT_REGRESSION_PASS
