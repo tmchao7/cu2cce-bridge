@@ -50,6 +50,8 @@
   "known_limitations": {
     "cudaHostRegister": "ACL_ERROR_API_NOT_SUPPORT at runtime; declaration and diagnostic exist",
     "cudaHostGetDevicePointer": "ACL_ERROR_API_NOT_SUPPORT at runtime; declaration and diagnostic exist",
-    "cooperative_groups_thread_block_tile_gt_32": "CANN 9.2 stable SIMT does not support cross-warp tile sizes"
+    "cooperative_groups_thread_block_tile_gt_32": "CANN 9.2 stable SIMT does not support cross-warp tile sizes",
+    "cudaDeviceProp_copy_engines": "deviceOverlap and asyncEngineCount report 0: ACL exposes no overlapping copy engines, so concurrent copy+execution is honestly shown as unsupported",
+    "default_stream": "CUDA default/legacy/per-thread streams resolve to one lazily created bridge-owned ACL stream across event record, async memcpy/memset, stream sync/query/wait and host callbacks"
   }
 }

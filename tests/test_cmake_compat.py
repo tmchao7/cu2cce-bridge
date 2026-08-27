@@ -118,6 +118,28 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         self.assertIn("inline T max(T left, T right)", adaptor)
         self.assertIn("inline T min(T left, T right)", adaptor)
 
+    def test_bridge_runtime_surface_for_diagnostic_samples(self) -> None:
+        # Second server diagnostic round peeled two more layers:
+        #   simpleStreams ran until cudaEventRecord(start_event, 0) and died
+        #     with ACL 100000 because a nullptr stream was rejected outright;
+        #   simpleMultiCopy still failed to compile on cudaHostAllocDefault
+        #     and _cceDeviceProp_t.deviceOverlap/.asyncEngineCount;
+        #   asyncAPI exited silently, so the harness must report exit status.
+        cpp = (ROOT / "src/bridge/runtime/src/cuda_runtime_wrapper.cpp").read_text(encoding="utf-8")
+        adaptor = (ROOT / "include/bridge/runtime/cuda_to_cce_mcr_adaptor.h").read_text(encoding="utf-8")
+        wrapper = (ROOT / "include/bridge/runtime/cuda_runtime_wrapper.h").read_text(encoding="utf-8")
+        types = (ROOT / "include/bridge/runtime/cuda_wrapper_types.h").read_text(encoding="utf-8")
+        server_cmd = (ROOT / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
+
+        self.assertIn("wcuda_resolve_stream", cpp)
+        for flag in ("cudaHostAllocDefault", "cudaHostAllocPortable",
+                     "cudaHostAllocMapped", "cudaHostAllocWriteCombined"):
+            self.assertIn(flag, adaptor)
+        self.assertIn("inline aclError wcudaHostAlloc(T **ptr", wrapper)
+        for field in ("deviceOverlap", "asyncEngineCount"):
+            self.assertIn(field, types)
+        self.assertIn("failed, exit=$diag_status", server_cmd)
+
     def test_cuda_language_module_override_is_shipped_and_injected(self) -> None:
         override = ROOT / "cmake_modules/override/CUDAOverrides.cmake"
         self.assertTrue(override.is_file())

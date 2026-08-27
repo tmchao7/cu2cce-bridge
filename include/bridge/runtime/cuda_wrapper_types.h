@@ -44,6 +44,11 @@ typedef struct _cceDeviceProp_t {
     int maxThreadsPerMultiProcessor;
     int computeMode;
     int canMapHostMemory; /**< CUDA host-memory mapping capability; Ascend bridge reports 0 by default. */
+    /* CUDA copy-engine fields used by simpleMultiCopy-style capability tables.
+     * Ascend does not expose overlapping copy engines through ACL; both stay 0
+     * so "concurrent copy + execution" is honestly reported as unsupported. */
+    int deviceOverlap;
+    int asyncEngineCount;
 } _cceDeviceProp_t;
 
 #ifdef __cplusplus

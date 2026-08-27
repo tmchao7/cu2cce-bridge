@@ -555,12 +555,20 @@ if [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$EXTERNAL_FETCH" ] && [ -x "$CMAKE_CCE" 
                         tail -n 25 "$diag_build_log" 2>/dev/null || true
                         continue
                     fi
+                    if [ ! -x "$binary" ]; then
+                        echo "[DIAG-ONLY] [$sample] binary missing after build step"
+                        continue
+                    fi
                     echo "[INFO] external diagnostic [$sample] run (timeout=${EXTERNAL_RUN_TIMEOUT}s)"
-                    if [ -x "$binary" ] && run_with_timeout "$EXTERNAL_RUN_TIMEOUT" "$binary" >"$diag_log" 2>&1; then
+                    # Capture the real exit status: an empty log with a nonzero
+                    # status is itself evidence (crash/abort vs. timeout=124).
+                    run_with_timeout "$EXTERNAL_RUN_TIMEOUT" "$binary" >"$diag_log" 2>&1
+                    diag_status=$?
+                    if [ "$diag_status" -eq 0 ]; then
                         echo "[DIAG-PASS] [$sample] (unexpectedly passed; re-classify or investigate API surface)"
                         cat "$diag_log" 2>/dev/null
                     else
-                        echo "[DIAG-ONLY] [$sample] not supported on this CANN (log tail:)"
+                        echo "[DIAG-ONLY] [$sample] failed, exit=$diag_status (log tail:)"
                         tail -n 25 "$diag_log" 2>/dev/null || true
                     fi
                 done

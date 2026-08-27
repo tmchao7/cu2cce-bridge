@@ -145,6 +145,29 @@ configure 直接失败——CMake 规定这两个属性只能用于 OBJECT 目�
 修正后仅在 `TYPE STREQUAL OBJECT_LIBRARY` 且 CMake>=3.28 时设置；普通
 executable 的按架构产物由 `CUDA_ARCHITECTURES OFF` 移除。
 
+### 真机证据（第二轮：诊断样本剥洋葱推进）
+
+类型守卫修复后 external configure/build 恢复 PASS，必需样本照旧 PASS；三个
+诊断样本进入真实结果：
+
+- `simpleStreams`：编译通过并实际运行（打印 device prop、pinned memory 分配
+  均成功），最终停在
+  `simpleStreams.cu:353 code=100000(unknown) "cudaEventRecord(start_event, 0)"`。
+  根因：桥内 `wcudaEventRecord` 把 nullptr 流一律判 INVALID_PARAM，而 CUDA 的
+  默认流就是 0。修复：新增 `wcuda_resolve_stream`——为三种 CUDA 默认流拼写
+  惰性创建一条桥内自有 ACL 流，event record、async memcpy/memset、stream
+  sync/query/waitEvent、host callback 共 10 处守卫统一走它。
+- `simpleMultiCopy`：仍编译失败但已是下一层缺口：
+  `cudaHostAllocDefault` 未声明 + `_cceDeviceProp_t` 缺 `deviceOverlap` /
+  `asyncEngineCount`。修复：adaptor 补 4 个 hostAlloc 标志常量、
+  `wcudaHostAlloc` 类型化模板重载、deviceProp 结构补两个字段（如实报 0，
+  ACL 无重叠拷贝引擎）。
+- `asyncAPI`：编译通过，运行却无任何输出静默退出。harness 已改为记录
+  `exit=$diag_status`，下一轮日志即可区分崩溃/超时/错误码。
+
+默认流语义与 copy-engine 字段的诚实边界已同步记入 profile_core.json
+known_limitations。
+
 
 ## CUDA runtime wrapper additions
 

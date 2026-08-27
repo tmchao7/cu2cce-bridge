@@ -84,6 +84,13 @@
 #define cudaEventDisableTiming 2
 #define cudaEventInterprocess 4
 
+// CUDA pinned-host allocation flags (cudaHostAlloc). Values mirror the NVIDIA
+// enum layout so host code storing them stays source-compatible.
+#define cudaHostAllocDefault 0x00
+#define cudaHostAllocPortable 0x01
+#define cudaHostAllocMapped 0x02
+#define cudaHostAllocWriteCombined 0x04
+
 //--------------------- function replace --------------------//
 
 // Device Management

@@ -289,6 +289,13 @@ template <typename T>
 inline aclError wcudaMallocHostWithFlags(T **ptr, size_t size, unsigned int flags) {
     return wcudaMallocHostWithFlags(reinterpret_cast<void **>(ptr), size, flags);
 }
+
+/* simpleMultiCopy and similar samples call cudaHostAlloc(&float_ptr, ...) with
+ * a typed pointer; NVIDIA exposes the same overload family. */
+template <typename T>
+inline aclError wcudaHostAlloc(T **ptr, size_t size, unsigned int flags) {
+    return wcudaHostAlloc(reinterpret_cast<void **>(ptr), size, flags);
+}
 #endif
 
 #endif //__CUDA_RUNTIME_WRAPPER_H__
