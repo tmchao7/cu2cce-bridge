@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
-from typing import Any, Dict, Iterable, List
+from typing import Any, Dict, List
 
 ACTIONS = {"forward", "drop", "replace", "inject", "reject"}
 PHASES = {"all", "compile", "link", "compile_and_link"}
