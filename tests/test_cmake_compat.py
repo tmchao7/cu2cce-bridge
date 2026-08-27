@@ -83,6 +83,25 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         self.assertIn("checkout --detach", fetch)
         self.assertTrue((ROOT / "plans/cuda-large-project-compatibility.md").is_file())
 
+    def test_cuda_language_module_override_is_shipped_and_injected(self) -> None:
+        override = ROOT / "cmake_modules/override/CUDAOverrides.cmake"
+        self.assertTrue(override.is_file())
+        text = override.read_text(encoding="utf-8")
+        for token in ("CMAKE_CUDA_COMPILER", "CMAKE_CUDA_DEVICE_LINKER",
+                      "CMAKE_CUDA_FATBINARY", "CMAKE_CUDA_RUNTIME_LIBRARY",
+                      "CMAKE_CUDA_ARCHITECTURES OFF", "ENV{CUDA_PATH}"):
+            self.assertIn(token, text)
+        # The wrapper must inject the override by default and honour the
+        # NO_OVERRIDE escape hatch.
+        cmake_cce = (ROOT / "tools/cmake_cce").read_text(encoding="utf-8")
+        self.assertIn("CMAKE_USER_MAKE_RULES_OVERRIDE", cmake_cce)
+        self.assertIn("CU2CCE_CMAKE_NO_OVERRIDE", cmake_cce)
+        # The top-level CMake install ships cmake_modules/ as a directory
+        # (which includes the override/ subtree), so the override module
+        # reaches an installed prefix.
+        top = (ROOT / "CMakeLists.txt").read_text(encoding="utf-8")
+        self.assertIn("install(DIRECTORY cmake_modules/", top)
+
     def test_build_matrix_exists(self) -> None:
         matrix = ROOT / "docs/03_Comparison/BUILD_SYSTEM_COMPATIBILITY_MATRIX.md"
         text = matrix.read_text(encoding="utf-8")
