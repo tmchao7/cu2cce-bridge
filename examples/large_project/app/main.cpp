@@ -4,8 +4,11 @@
 
 #include <cuda_runtime.h>
 
-#include "comp/kernel.h"
-#include "util/store.h"
+// Project headers are resolved through the PUBLIC include dirs propagated by
+// the linked targets (large_kernel_lib -> comp/, large_util_lib -> util/),
+// which is the convention used by real CUDA projects via helper include paths.
+#include <kernel.h>
+#include <store.h>
 
 int main() {
     constexpr int n = 8;

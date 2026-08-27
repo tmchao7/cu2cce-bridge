@@ -111,13 +111,15 @@ if [ "$archive_ok" -eq 0 ]; then
     rm -rf "$SOURCE_DIR"
     # The pinned revision is the v12.8 tag. Cloning the tag directly avoids a
     # default-branch checkout followed by a second network fetch, which can
-    # exceed the server smoke timeout on GitHub connections.
+    # exceed the server smoke timeout on GitHub connections. git checkout
+    # prints a detached-HEAD notice to stdout, so silence the notice; only the
+    # rev-parse comparison below is authoritative.
     if [ "$TAG" = "v12.8" ]; then
-        git clone --depth 1 --filter=blob:none --branch "$TAG" "$REPO_URL" "$SOURCE_DIR"
+        git clone --depth 1 --filter=blob:none --branch "$TAG" "$REPO_URL" "$SOURCE_DIR" >/dev/null 2>&1
     else
-        git clone --filter=blob:none --no-checkout "$REPO_URL" "$SOURCE_DIR"
-        git -C "$SOURCE_DIR" fetch --depth 1 origin "$REF"
-        git -C "$SOURCE_DIR" checkout --detach "$REF"
+        git clone --filter=blob:none --no-checkout "$REPO_URL" "$SOURCE_DIR" >/dev/null 2>&1
+        git -C "$SOURCE_DIR" fetch --depth 1 origin "$REF" >/dev/null 2>&1
+        git -C "$SOURCE_DIR" checkout --detach "$REF" >/dev/null 2>&1
     fi
     actual="$(git -C "$SOURCE_DIR" rev-parse HEAD)"
     if [ "$actual" != "$REF" ]; then
