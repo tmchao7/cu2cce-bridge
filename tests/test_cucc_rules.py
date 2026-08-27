@@ -284,6 +284,44 @@ class CuccRuleDriverTest(unittest.TestCase):
             ["-c", "main.cu"],
         )
 
+    def test_mock_nvcc_probe_short_circuits(self) -> None:
+        # CMake probes that must never reach the rule driver/ccec:
+        #   - __cmake_determine_cuda and --version already verified elsewhere;
+        #   - --simple-preprocess (CMake >=3.24) answered by the shim;
+        #   - CMakeCUDACompilerABI.cu neutered to a placeholder object.
+        mock = Path(__file__).resolve().parents[1] / "tools/mock/mock_nvcc.py"
+        probe = subprocess.run([
+            sys.executable, str(mock), "--simple-preprocess", "-x", "cu", "probe.cu",
+        ], capture_output=True, text=True)
+        self.assertEqual(probe.returncode, 0, probe.stderr)
+        self.assertIn("__CUDACC_VER_MAJOR__ 11", probe.stdout)
+
+        abi_obj = Path(self.tmp.name) / "abi.o"
+        abi = subprocess.run([
+            sys.executable, str(mock), "-c",
+            "Modules/CMakeCUDACompilerABI.cu", "-o", str(abi_obj),
+        ], capture_output=True, text=True)
+        self.assertEqual(abi.returncode, 0, abi.stderr)
+        self.assertTrue(abi_obj.is_file())
+        self.assertGreater(abi_obj.stat().st_size, 0)
+
+    def test_mock_nvcc_abi_neuter_pure(self) -> None:
+        # The ABI-neuter handler writes a placeholder where CMake expects the
+        # ABI object, without invoking any compiler.
+        import importlib.util  # noqa: PLC0415
+        mock_path = Path(__file__).resolve().parents[1] / "tools/mock/mock_nvcc.py"
+        spec = importlib.util.spec_from_file_location("mock_nvcc_abi", mock_path)
+        assert spec is not None and spec.loader is not None
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        cwd = Path(self.tmp.name)
+        obj = cwd / "sub" / "abi-placeholder.o"
+        code = module._handle_abi_probe([
+            "-c", "Modules/CMakeCUDACompilerABI.cu", "-o", str(obj),
+        ], cwd)
+        self.assertEqual(code, 0)
+        self.assertTrue(obj.is_file())
+
     def test_explicit_cuda_arch_injects_arch_macro(self) -> None:
         # A user-pinned CUDA_ARCHITECTURES value (mapped to CU2CCE_CUDA_ARCH
         # by the caller) is injected as __CUDA_ARCH__ so device code behind

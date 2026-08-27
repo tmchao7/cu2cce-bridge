@@ -32,6 +32,47 @@ def determine_cuda() -> str:
 '''
 
 
+def _simple_preprocess_response() -> str:
+    """Answer CMake >=3.24's --simple-preprocess CUDA-version probe.
+
+    CMake runs `nvcc --simple-preprocess -x cu ...` and greps for the CUDA
+    version string. The shim replies with a fragment CMake parses into the
+    configured CUDA-compat version; nothing is compiled."""
+    return """#define __CUDACC_VER_MAJOR__ 11
+#define __CUDACC_VER_MINOR__ 6
+#define __CUDACC_VER_BUILD__ 0
+"""
+
+
+def _is_abi_probe(args: List[str]) -> bool:
+    return any("CMakeCUDACompilerABI.cu" in arg or "CMakeCompilerABI.cpp" in arg
+               for arg in args)
+
+
+def _output_arg(args: List[str]) -> str:
+    """Return the -o value from the invocation, or an empty string."""
+    for i, arg in enumerate(args[:-1]):
+        if arg in ("-o", "-MF", "-MT"):
+            return args[i + 1]
+    return ""
+
+
+def _handle_abi_probe(args: List[str], cwd: Path) -> int:
+    """Neuter the ABI probe without compiling anything.
+
+    The ABI probe would otherwise reach ccec; a placeholder object is written
+    so CMake's ABI scan sees the file and gives up arch autodetection
+    explicitly (no fake success, matching the no-no-op policy)."""
+    out = _output_arg(args)
+    if out:
+        out_path = Path(out)
+        if not out_path.is_absolute():
+            out_path = cwd / out_path
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_bytes(b"\x7fELFcu2cce-abi-placeholder")
+    return 0
+
+
 def _driver_path() -> Path:
     explicit = os.environ.get("CU2CCE_DRIVER")
     if explicit:
@@ -81,6 +122,11 @@ def main() -> int:
     if "--version" in args:
         print(version(), end="")
         return 0
+    if "--simple-preprocess" in args:
+        print(_simple_preprocess_response(), end="")
+        return 0
+    if _is_abi_probe(args):
+        return _handle_abi_probe(args, Path.cwd())
     # Everything else is a real compile/link/preprocess invocation. In
     # particular -MD/-MF/-MT are CMake's dependency-generation flags attached
     # to every genuine CUDA object rule: they must reach the rule driver and
