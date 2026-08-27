@@ -44,12 +44,26 @@ def _driver_path() -> Path:
     return Path(__file__).resolve().parents[1] / "cu2cce_driver.py"
 
 
+def _splice_cudaflags(args: List[str], env: "os._Environ|dict|None" = None) -> List[str]:
+    """Prepend CUDAFLAGS from the environment, nvcc-style.
+
+    CUDAFLAGS is parsed with the standard-library shlex and never evaluated,
+    so no environment-controlled text can be executed. Returns a new list."""
+    environ = os.environ if env is None else env
+    cudaflags = environ.get("CUDAFLAGS", "")
+    if not cudaflags or not cudaflags.strip():
+        return args
+    import shlex  # noqa: PLC0415
+    return [*shlex.split(cudaflags), *args]
+
+
 def run_driver(args: List[str]) -> int:
     """Delegate to the shared rule driver without spawning a shell.
 
     The driver is loaded in-process so the user-supplied argument list is
     passed as a Python list, never through a command line evaluation.
     """
+    args = _splice_cudaflags(args)
     driver = _driver_path()
     if not driver.is_file():
         print(f"mock_nvcc: rule driver not found at {driver}", file=sys.stderr)

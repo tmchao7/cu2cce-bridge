@@ -25,8 +25,22 @@ Rules are implemented by `config/cu2cce_rules.json` and shared by `cucc` and the
 | `--version/-V/--help` | exact | query | DRIVER | `SUPPORTED` | compatibility identity output |
 | `--dryrun` | exact | all | DRIVER | `SUPPORTED` | prints final ccec command |
 | `-shared` | exact | compile/link | INJECT `-fPIC` | `SUPPORTED` for tested shape | required for ccec TLS/registration relocations |
-| `--device-link/-dlink` | exact | device link | REJECT | `UNSUPPORTED` | no current ccec aggregation path |
-| `-rdc=true` | exact | device link | REJECT | `UNSUPPORTED` | separable compilation not validated |
+| `--device-link/-dlink` | exact | device link | DROP + phase degrade | `DIAGNOSTIC_ONLY` | CMake layer forces `CUDA_SEPARABLE_COMPILATION OFF`; stray flag no longer hard-crashes configure |
+| `-rdc` / `-rdc=true` / `--relocatable-device-code(=true)` | exact/equal | device link | REJECT | `UNSUPPORTED` | separable compilation not validated |
+| `-rdc=off` / `--relocatable-device-code=false` | equal | all | DROP | `DIAGNOSTIC_ONLY` | benign separable-off spelling |
+| `-maxrregcount/--maxrregcount` | separate/equal | compile | DROP | `DIAGNOSTIC_ONLY` | NVIDIA register-control not used |
+| `--generate-line-info` | exact | compile | DROP | `DIAGNOSTIC_ONLY` | same policy as `-lineinfo` |
+| `-cubin` | exact | compile | DROP | `DIAGNOSTIC_ONLY` | CUBIN artifact unsupported |
+| `--Werror` | exact | all | DROP | `DIAGNOSTIC_ONLY` | ccec uses host `-Werror` spelling |
+| `-m64/--machine` | separate/equal | all | DROP | `DIAGNOSTIC_ONLY` | host bitness fixed by ccec |
+| `-Xcudafe/--cudafe` | separate/equal | compile | DROP | `DIAGNOSTIC_ONLY` | cudafe not part of toolchain |
+| `-Xnvlink/-Xcyco` | separate/equal | compile | DROP | `DIAGNOSTIC_ONLY` | nvlink/cyco not used |
+| `--use_fast_math/--fmad/--prec-div/--prec-sqrt/--ftz` | exact/equal | compile | DROP | `DIAGNOSTIC_ONLY` | NVIDIA float semantics not mapped; use ccec options |
+| `-G` | exact | compile | DROP | `DIAGNOSTIC_ONLY` | NVIDIA device-debug mode not used |
+| `-Wl,-Bstatic/-Bdynamic/--start-group/--end-group` | exact | link | DROP | `DIAGNOSTIC_ONLY` | cudart static grouping not needed |
+| `--resource-usage` | exact | compile | DROP | `DIAGNOSTIC_ONLY` | not part of ccec toolchain |
+| `--forward-unknown-to-host-compiler=*` | equal | all | DROP | `DIAGNOSTIC_ONLY` | nvcc forwarding control not needed |
+| `--pre-include/--include-path/--library-path` | separate/equal | compile | DROP | `DIAGNOSTIC_ONLY` | ccec uses -include/-I/-L |
 | `--ptx/--cubin/--fatbin` | exact | compile | REJECT | `UNSUPPORTED` | puresimt consumes CUDA source directly |
 | `-lcudart` | exact | link | DROP + runtime inject | `SUPPORTED` for bridge path | uses `libcce_bridge_runtime.so` |
 | `-lcublas/-lcufft/-lcusparse` | exact | link | WARN_FORWARD | `EXPERIMENTAL`/`UNSUPPORTED` | no blanket CANN replacement |

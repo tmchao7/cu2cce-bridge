@@ -316,6 +316,7 @@ class RuleDriver:
                 self.cucc_path and (self.cucc_path / "include/bridge/kernel/simt_adaptor.h").is_file()
             ),
             "link_stage": phase in ("link", "compile_and_link"),
+            "has_cuda_arch": bool(self.env.get("CU2CCE_CUDA_ARCH", "").strip()),
         }
 
     def _resolve_simt_root(self) -> None:
@@ -342,6 +343,7 @@ class RuleDriver:
             "CANN_BASE": self.cann_base,
             "CUCC_CUDA_VERSION": self.cucc_cuda_version,
             "CU2CCE_NPU_ARCH": self.npu_arch,
+            "CU2CCE_CUDA_ARCH": self.env.get("CU2CCE_CUDA_ARCH", "").strip(),
             "SIMT_API_ROOT": simt_root,
             "SIMT_API_PARENT": str(Path(simt_root).parent) if simt_root else "",
         }
@@ -402,6 +404,86 @@ class RuleDriver:
         self._record(argument, "forward", message)
         return True
 
+    # Host compiler flags that a large project propagates through
+    # -Xcompiler (CMake CUDA_PROPAGATE_HOST_FLAGS). Anything that pins host
+    # ABI/machine specificity is dropped with a warning; generic safe flags
+    # are forwarded to ccec unchanged.
+    _HOST_FLAG_ALLOWED = frozenset({
+        "-fPIC", "-fpic", "-fno-exceptions", "-fexceptions",
+        "-fno-rtti", "-frtti", "-fno-strict-aliasing", "-fstrict-aliasing",
+        "-fvisibility=hidden", "-fvisibility=default",
+        "-fno-omit-frame-pointer", "-fomit-frame-pointer",
+        "-fno-common", "-fcommon", "-fno-stack-protector", "-fstack-protector",
+        "-fno-stack-protector-all", "-fopenmp", "-pthread",
+        "-fno-plt", "-fplt", "-fno-asynchronous-unwind-tables",
+        "-fno-unwind-tables", "-fno-delete-null-pointer-checks",
+        "-fno-inline", "-fno-inline-functions",
+        "-fno-builtin", "-fno-builtin-memcpy",
+        "-funwind-tables", "-fno-sanitize=all", "-fno-ident",
+        "-fno-asynchronous-unwind-tables", "-fno-var-tracking",
+        "-fvar-tracking", "-fvar-tracking-assignments",
+        "-fno-var-tracking-assignments",
+    })
+
+    _HOST_FLAG_DROPPED = frozenset({
+        "-m64", "-m32", "-mx32", "-march", "-mtune", "-msse",
+        "-msse2", "-msse3", "-mavx", "-mavx2", "-mfma", "-mno-sse",
+        "-fPIE", "-fpie", "-no-pie", "-pie", "-static",
+    })
+
+    def _split_host_flag(self, flag: str) -> Tuple[str, Optional[str]]:
+        """Return (base, consumed-value-token or None) for a host flag."""
+        stripped = flag.strip()
+        for prefix in ("-march=", "-mtune=", "-msse", "-msse2=", "-msse3=",
+                       "-mavx=", "-mavx2=", "-mfma=", "-mno-sse", "-fPIE=",
+                       "-fpie=", "-no-pie", "-pie", "-static"):
+            if stripped.startswith(prefix):
+                return prefix.rstrip("="), None
+        return stripped, None
+
+    def _conda_link_flags(self) -> List[str]:
+        """Conda link flags honoured by cu-bridge-style drivers.
+
+        When the build runs inside a conda environment (CONDA_EXE is set) and
+        the caller did not already pass LDFLAGS on the command line, append the
+        environment LDFLAGS so conda's sysroot/rpath survives the injection of
+        the bridge link flags."""
+        if not self.env.get("CONDA_EXE"):
+            return []
+        if not self.env.get("LDFLAGS"):
+            return []
+        ldflags = self.env["LDFLAGS"].strip()
+        if not ldflags:
+            return []
+        if any(flag == "LDFLAGS" for action in self.actions for flag in (action.argument,)):
+            return []
+        try:
+            return shlex.split(ldflags, posix=True)
+        except ValueError:
+            return ldflags.split()
+
+    def _handle_host_flag(self, argument: str, values: Sequence[str]) -> Tuple[bool, List[str]]:
+        """Decide what to do with a -Xcompiler-propagated host flag.
+
+        Returns (handled, replacement-args). handled=True means the flag is
+        either dropped (with a diagnostic) or rewritten; handled=False means
+        it should fall through to the ordinary rule pipeline.
+        """
+        for flag in values:
+            base, _ = self._split_host_flag(flag)
+            # Drop host ABI/machine-specific flags (-march/-mtune/-m64...
+            # and the explicit DROPPED set). -fno-* and other safe flags are
+            # forwarded when present in the ALLOWED set, otherwise handled
+            # below by the ordinary rule pipeline.
+            if base in self._HOST_FLAG_DROPPED or base.startswith("-m"):
+                self._warn(f"dropping host-specific flag {flag}: host ABI/machine flags are not applied to the Ascend device compile")
+                self._record(argument, "drop", f"host-specific flag {flag} is not applied to ccec")
+                return True, []
+            if base in self._HOST_FLAG_ALLOWED:
+                self._record(argument, "forward", f"host flag {flag} is safe for ccec")
+                return True, list(values)
+        return False, []
+
     def prepare(self, argv: Sequence[str]) -> PreparedCommand:
         expanded = self._expand_response_files(list(argv))
         if self.cmake_identity:
@@ -460,6 +542,16 @@ class RuleDriver:
                 else:
                     raw = replace.get("to", argument)
                     values = [str(raw)] if not isinstance(raw, list) else [str(x) for x in raw]
+                # -Xcompiler/--compiler-options carry host flags (CMake
+                # CUDA_PROPAGATE_HOST_FLAGS). Drop machine-specific ones that
+                # would break the Ascend device compile, keep safe ones.
+                if argument in ("-Xcompiler", "-Xcompiler=*", "--compiler-options", "--compiler-options=*"):
+                    handled, filtered = self._handle_host_flag(argument, values)
+                    if handled:
+                        self._record(argument, "replace", reason, filtered)
+                        result.extend(filtered)
+                        i += consumed
+                        continue
                 self._record(argument, "replace", reason, values)
                 result.extend(values)
                 i += consumed
@@ -525,6 +617,13 @@ class RuleDriver:
             result.insert(0, "-c")
 
         compiler = self._compiler_path()
+        conda_ldflags = self._conda_link_flags()
+        if conda_ldflags and phase in ("link", "compile_and_link"):
+            # conda-packaged CUDA projects carry LDFLAGS pointing at the conda
+            # sysroot/rpath. The driver's injected link line must observe them;
+            # defer to the caller's environment when no explicit LDFLAGS given.
+            self._record("LDFLAGS", "forward", "conda LDFLAGS appended to link")
+            result.extend(conda_ldflags)
         prepared = PreparedCommand(
             phase=phase,
             mode=mode,

@@ -633,6 +633,13 @@
       },
       {
         "tokens": [
+          "-D",
+          "__CUDA_ARCH__=${CU2CCE_CUDA_ARCH}"
+        ],
+        "when": "has_cuda_arch"
+      },
+      {
+        "tokens": [
           "--cce-aicore-arch=${CU2CCE_NPU_ARCH}"
         ]
       },

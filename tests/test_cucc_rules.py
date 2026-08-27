@@ -64,6 +64,23 @@ class CuccRuleDriverTest(unittest.TestCase):
         self.assertIn("--cce-aicore-arch=dav-c310-vec", prepared.args)
         self.assertIn("__CU2CCE_DEVICE_COMPILATION__", prepared.args)
 
+    def test_propagated_host_flags_are_filtered(self) -> None:
+        # CMake CUDA_PROPAGATE_HOST_FLAGS sends host flags through
+        # -Xcompiler. -m64/-march are machine-specific and must not reach the
+        # Ascend device compile; -fno-exceptions/-fPIC are safe and are kept.
+        dropped = self.driver().prepare([
+            "-c", "main.cu", "-Xcompiler", "-m64",
+            "-Xcompiler", "-march=native", "-o", "main.o",
+        ])
+        self.assertNotIn("-m64", dropped.args)
+        self.assertNotIn("-march=native", dropped.args)
+        kept = self.driver().prepare([
+            "-c", "main.cu", "-Xcompiler", "-fno-exceptions",
+            "-Xcompiler", "-fPIC", "-o", "main.o",
+        ])
+        self.assertIn("-fno-exceptions", kept.args)
+        self.assertIn("-fPIC", kept.args)
+
     def test_object_link_drops_cudart_but_does_not_map_cublas(self) -> None:
         prepared = self.driver().prepare([
             "build/main.o", "-lcudart", "-lcublas", "-o", "build/app",
@@ -233,6 +250,51 @@ class CuccRuleDriverTest(unittest.TestCase):
         prepared = RuleDriver(env=self.env, cmake_identity=True).prepare(["-c", "main.cu", "-o", "main.o"])
         self.assertIn("-D__CUDACC__", prepared.args)
         self.assertIn("-D__CUDACC_VER__=110600", prepared.args)
+
+    def test_conda_ldflags_are_appended_to_link_phase(self) -> None:
+        env = dict(self.env)
+        env["CONDA_EXE"] = "/opt/conda/bin/conda"
+        env["LDFLAGS"] = "-L/opt/conda/lib -Wl,-rpath,/opt/conda/lib"
+        linked = RuleDriver(env=env).prepare(["main.o", "-o", "app"])
+        self.assertEqual(linked.phase, "link")
+        self.assertIn("-L/opt/conda/lib", linked.args)
+        self.assertIn("-Wl,-rpath,/opt/conda/lib", linked.args)
+        # Compile phase must not gain conda link flags.
+        compiled = RuleDriver(env=env).prepare(["-c", "main.cu", "-o", "main.o"])
+        self.assertNotIn("-L/opt/conda/lib", compiled.args)
+
+    def test_mock_nvcc_splices_cudaflags_env(self) -> None:
+        # mock_nvcc reads CUDAFLAGS (nvcc style) and feeds it to the shared
+        # rule driver. The driver trace captures the final argument list
+        # without executing any compiler, so this stays a pure-contract test.
+        import importlib.util  # noqa: PLC0415
+        mock_path = Path(__file__).resolve().parents[1] / "tools/mock/mock_nvcc.py"
+        spec = importlib.util.spec_from_file_location("mock_nvcc_mod", mock_path)
+        assert spec is not None and spec.loader is not None
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        env = {"CUDAFLAGS": "-lineinfo --cuda-gpu-arch=sm_80"}
+        spliced = module._splice_cudaflags(["-c", "main.cu", "-o", "main.o"], env)
+        self.assertIn("-lineinfo", spliced)
+        self.assertIn("--cuda-gpu-arch=sm_80", spliced)
+        self.assertEqual(spliced[2:], ["-c", "main.cu", "-o", "main.o"])
+        # Empty CUDAFLAGS is a no-op.
+        self.assertEqual(
+            module._splice_cudaflags(["-c", "main.cu"], {"CUDAFLAGS": ""}),
+            ["-c", "main.cu"],
+        )
+
+    def test_explicit_cuda_arch_injects_arch_macro(self) -> None:
+        # A user-pinned CUDA_ARCHITECTURES value (mapped to CU2CCE_CUDA_ARCH
+        # by the caller) is injected as __CUDA_ARCH__ so device code behind
+        # `#if __CUDA_ARCH__ >= NNN` compiles against the intended fake arch.
+        prepared = self.driver(CU2CCE_CUDA_ARCH="800").prepare([
+            "-c", "main.cu", "-o", "main.o",
+        ])
+        self.assertIn("__CUDA_ARCH__=800", prepared.args)
+        # Without the env var, nothing is injected.
+        plain = self.driver().prepare(["-c", "main.cu", "-o", "main.o"])
+        self.assertNotIn("__CUDA_ARCH__", " ".join(plain.args))
 
 
 if __name__ == "__main__":
