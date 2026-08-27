@@ -1,6 +1,5 @@
 /*
- * Diagnostic-only probe: which single-precision device math symbols and
- * crt/vector compat surfaces does THIS CANN actually provide?
+ * Diagnostic-only probe v3: PURE single-precision device-math verification.
  *
  * Policy: a missing symbol fails THIS carrier's compile with the symbol
  * name in the error text — that error IS the inventory. Nothing here is
@@ -8,17 +7,19 @@
  *
  * Correctness model: the device computes a fixed op-chain and the host
  * recomputes the same chain with libm; values must agree closely.
+ *
+ * Boundary reminder (confirmed by Ascend team, 2026-08-27): the bisheng
+ * DEVICE side has NO double support at all — even doubleN vector types do
+ * not exist. Everything below therefore stays float32 on both sides.
+ *
+ * ccec qualification rule learned on-server: spellings like __device__
+ * come FIRST, right before the return type (storage-class-first forms
+ * such as "static __device__" are rejected as unknown type names).
  */
 #include <cstdio>
 #include <cuda_runtime.h>
-#include <crt/builtin_types.h>
-#include <device_launch_parameters.h>
 
-/* Device-only on purpose: main() recomputes the reference chain inline, so
- * this helper never needs cross-space visibility. (Round-2 lesson: marking
- * helpers __device__ __host__ relied on macro fallbacks that turned out to
- * strip the keywords; keep single-space helpers single-space.) */
-static __device__ float probe_chain(float x) {
+__device__ float probe_chain(float x) {
     /* one call site per probed symbol family */
     float v = expf(x);
     v += logf(v > 0.f ? v : 1.f);
@@ -31,9 +32,7 @@ static __device__ float probe_chain(float x) {
 }
 
 __global__ void probe_kernel(float x, float *out) {
-    /* exercise our crt vector shape factory inside device code as well */
-    float4 lanes = make_float4(x, 2.f * x, 3.f * x, 4.f * x);
-    *out = probe_chain(lanes.y) + lanes.w * 0.f;
+    *out = probe_chain(x);
 }
 
 static int close_enough(float got, float ref) {
@@ -47,6 +46,7 @@ static int close_enough(float got, float ref) {
 int main() {
     const float x = 0.75f;
 
+    /* host reference recomputes the identical chain with libm */
     float ref = expf(x);
     ref += logf(ref > 0.f ? ref : 1.f);
     ref += sqrtf(fabsf(ref));
@@ -84,13 +84,6 @@ int main() {
         return 1;
     }
 
-    /* host-side vector shapes must also be constructible outside kernels */
-    float3 h3 = make_float3(1.f, 2.f, 3.f);
-    if (h3.z != 3.f) {
-        std::printf("vector type broken\n");
-        return 1;
-    }
-
-    std::printf("device_math_minimal OK (crt/vector+math surface reachable)\n");
+    std::printf("device_math_minimal OK (single-precision device math chain verified)\n");
     return 0;
 }

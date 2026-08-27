@@ -178,17 +178,24 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
             self.assertTrue((crt / name).is_file(), name)
         self.assertTrue((ROOT / "include/device_launch_parameters.h").is_file())
 
-        runtime_chain = (ROOT / "include/cuda_runtime.h").read_text(encoding="utf-8")
-        for hdr in ("crt/host_defines.h", "crt/common_functions.h", "crt/math_functions.h",
-                    "crt/vector_functions_compat.h"):
-            self.assertIn(f"#include <{hdr}>", runtime_chain)
-
-        host_defines = (crt / "host_defines.h").read_text(encoding="utf-8")
-        # Keyword-vs-macro lesson: ccec treats __host__/__device__ as language
-        # keywords; #define-fallbacks silently strip execution spaces. No real
-        # preprocessor directive may define them (comments explaining why are
-        # fine, so match directives per line, not substring).
+        # Chain-included headers must be INERT unless every symbol is proven:
+        # only the three safe forwarders travel with <cuda_runtime.h>. Match
+        # directives per line, not substrings, so explanatory comments cannot
+        # trip these checks.
         import re as _re
+        runtime_chain = (ROOT / "include/cuda_runtime.h").read_text(encoding="utf-8")
+        for hdr in ("crt/host_defines.h", "crt/common_functions.h", "crt/math_functions.h"):
+            self.assertIsNotNone(
+                _re.search(r'^\s*#\s*include\s+<' + _re.escape(hdr) + r'>',
+                           runtime_chain, _re.MULTILINE),
+                f"missing expected forwarder include: {hdr}")
+        for line in runtime_chain.splitlines():
+            self.assertIsNone(_re.search(r'^\s*#\s*include\s+.*vector_functions_compat', line),
+                              f"unproven factory layer must stay out of the chain: {line!r}")
+
+        # Keyword-vs-macro lesson: ccec treats __host__/__device__ as language
+        # keywords; #define-fallbacks silently strip execution spaces.
+        host_defines = (crt / "host_defines.h").read_text(encoding="utf-8")
         for line in host_defines.splitlines():
             self.assertIsNone(_re.search(r'^\s*#\s*define\s+__(?:host|device)__', line),
                               f"forbidden execution-space macro redefinition: {line!r}")
@@ -204,6 +211,19 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         self.assertNotIn("typedef struct", vectors)
         self.assertNotIn("dim3", vectors)
         self.assertIn("ext_vector_type", vectors)  # records the native proof
+
+        compat = (crt / "vector_functions_compat.h").read_text(encoding="utf-8")
+        # Stay doc-only until the extended inventory lists the exact factory
+        # surface; a past speculative entry referenced double2, which does
+        # not exist on bisheng and broke every chain-including TU.
+        self.assertNotIn("template <typename", compat)
+        self.assertNotIn("double2", compat)
+
+        carrier = (ROOT / "examples/puresimt/device_math_minimal.cu").read_text(encoding="utf-8")
+        # Ascend device has no double at all; the probe must stay float-only.
+        for forbidden in ("double2", "make_float3", "make_float4"):
+            self.assertNotIn(forbidden, carrier)
+        self.assertRegex(carrier, r"__device__\s+float\s+probe_chain")
 
         server_cmd = (ROOT / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
         self.assertIn("inventory_simt_api.sh", server_cmd)

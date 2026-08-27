@@ -55,4 +55,32 @@ grep -hoE '\b(__)?[a-z][a-z0-9_]*\(' "$ROOT"/*.h 2>/dev/null \
     | sed 's/(//' \
     | grep -vE '^(if|for|while|switch|return|sizeof|defined|case|do)$' \
     | sort | uniq -c | sort -rn | head -n 500
+
+# ---- Bisheng internal vector surface: the definitive type/factory list ----
+# These two greps answer, in one shot:
+#   a) which ext_vector_type typedefs the compiler injects (char1..float4..)?
+#   b) does the double family exist at all? (Ascend device has NO double —
+#      expected: zero doubleN entries)
+#   c) which make_* factories exist and their execution-space annotation?
+DPP="$(find /usr/local/Ascend -path '*bisheng_compiler/lib/clang/*/include/__clang_dpp_types.h' 2>/dev/null | head -n 1)"
+echo
+echo "== COMPILER-NATIVE VECTOR TYPES ($DPP) =="
+if [ -n "$DPP" ] && [ -f "$DPP" ]; then
+    grep -nE 'typedef' "$DPP" | grep -E '__attribute__\(\(ext_vector_type' || echo '(no matches)'
+    echo "-- double mentions --"
+    grep -icE 'double' "$DPP" | sed 's/^/double token count: /'
+else
+    echo '(bisheng internal header not found under /usr/local/Ascend)'
+fi
+
+VF_IMPL="$(find "$ROOT/.." -name vector_functions_impl.h 2>/dev/null | head -n 1)"
+echo
+echo "== make_* FACTORY SURFACE ($VF_IMPL) =="
+if [ -n "$VF_IMPL" ] && [ -f "$VF_IMPL" ]; then
+    grep -nE 'make_(float|int|uint|char|uchar|short|ushort|longlong)[0-9]*' "$VF_IMPL" | head -n 200
+    echo "-- double factory mentions --"
+    grep -cE 'make_double' "$VF_IMPL" | sed 's/^/make_double count: /'
+else
+    echo '(vector_functions_impl.h not found next to simt_api)'
+fi
 exit 0
