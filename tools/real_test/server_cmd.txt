@@ -334,7 +334,7 @@ if "$CCEC" $PS_FLAGS -D__CU2CCE_SYSTEM_LIBC__ -include math.h \
     -L"$CANN_BASE/lib64" -L"$REPO_LIB" \
     -Wl,-rpath,"$REPO_LIB" -Wl,-rpath,"$CANN_BASE/lib64" \
     -lascendc_runtime -lascendcl -lruntime -lregister -lerror_manager \
-    -lprofapi -lascendalog -lmmpa -lascend_dump -lc_sec -lstdc++ \
+    -lprofapi -lascendalog -lmmpa -lascend_dump -lc_sec -lstdc++ -lm \
     -lcce_bridge_runtime -o "$OUT/device_math_minimal" \
     >"$OUT/device_math_minimal.log" 2>&1; then
     if "$OUT/device_math_minimal" >"$OUT/device_math_minimal.run.log" 2>&1 \
