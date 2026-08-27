@@ -44,6 +44,7 @@ set(_CU2CCE_DIAGNOSTIC_SAMPLES
 foreach(_relative IN LISTS _CU2CCE_PROFILE_SAMPLES)
   if(EXISTS "${CUDA_SAMPLES_SOURCE_DIR}/${_relative}/CMakeLists.txt")
     get_filename_component(_name "${_relative}" NAME)
+    set_property(GLOBAL APPEND PROPERTY cu2cce_sample_targets "${_name}")
     if(_relative IN_LIST _CU2CCE_DIAGNOSTIC_SAMPLES)
       set_property(GLOBAL APPEND PROPERTY cu2cce_diagnostic_samples "${_name}")
     endif()
@@ -56,11 +57,25 @@ endforeach()
 
 # The current ccec puresimt backend does not aggregate identical device
 # registration helpers from separate translation units through RDC. Disable the
-# upstream sample request for separable compilation while keeping source files
+# upstream request for separable compilation while keeping source files
 # untouched; this is an explicit compatibility boundary, not a hidden rewrite.
-foreach(_target vectorAdd matrixMul)
+#
+# Upstream v12.x sample CMakeLists also hard-code per-target CUDA_ARCHITECTURES
+# lists (asyncAPI requests sm_61..sm_120). Those GPU generations are meaningless
+# on Ascend, yet they make CMake emit an NVIDIA binary-artifact pipeline:
+# the server log showed ld.lld being asked to open
+# "=asyncAPI/CMakeFiles/asyncAPI.dir/sm_120.cubin" and failing. Every sample
+# target is therefore forced back onto the neutral configuration AFTER it has
+# registered itself; upstream sources stay unmodified.
+get_property(_CU2CCE_SAMPLE_TARGETS GLOBAL PROPERTY cu2cce_sample_targets)
+foreach(_target IN LISTS _CU2CCE_SAMPLE_TARGETS)
   if(TARGET "${_target}")
-    set_target_properties("${_target}" PROPERTIES CUDA_SEPARABLE_COMPILATION OFF)
+    set_target_properties("${_target}" PROPERTIES
+      CUDA_ARCHITECTURES OFF
+      CUDA_SEPARABLE_COMPILATION OFF
+      CUDA_CUBIN_COMPILATION OFF
+      CUDA_FATBIN_COMPILATION OFF
+    )
   endif()
 endforeach()
 

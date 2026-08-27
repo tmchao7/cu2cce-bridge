@@ -20,17 +20,17 @@
     {
       "name": "simpleStreams",
       "path": "Samples/0_Introduction/simpleStreams",
-      "reason": "host/device max overload, pinned host memory, canMapHostMemory reporting not validated on CANN"
+      "reason": "compile blocked on CANN by device-only integer max overloads in simt_api/math_functions.h (host calls not viable); bridge simt_adaptor adds host-callable min/max templates. Pinned-memory and canMapHostMemory runtime semantics still unvalidated"
     },
     {
       "name": "simpleMultiCopy",
       "path": "Samples/0_Introduction/simpleMultiCopy",
-      "reason": "mapped host memory / cudaHostGetDevicePointer surface is ACL_ERROR_API_NOT_SUPPORT at runtime"
+      "reason": "same host min/max compile gap as simpleStreams (7 call sites), addressed by the same bridge templates; mapped-host-memory / cudaHostGetDevicePointer surface remains unverified at runtime"
     },
     {
       "name": "asyncAPI",
       "path": "Samples/0_Introduction/asyncAPI",
-      "reason": "multi-stream event ordering validated only partially on CANN SIMT streams"
+      "reason": "upstream per-target CUDA_ARCHITECTURES sm_61..sm_120 made CMake emit a per-arch .cubin pipeline that puresimt cannot consume (ld.lld failed to open =asyncAPI/.../sm_120.cubin); harness now forces CUDA_ARCHITECTURES/CUBIN/FATBIN OFF for every sample target. Stream/event ordering remains unverified"
     }
   ],
   "excluded_samples": [

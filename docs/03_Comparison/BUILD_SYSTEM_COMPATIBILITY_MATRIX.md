@@ -121,6 +121,24 @@ diagnostic tails because the harness never compiled these targets before trying 
 them; with the per-sample build phase any outcome reflects real compile/runtime behavior
 on CANN.
 
+### 真机证据（诊断样本首轮逐个编译）
+
+- `simpleStreams` / `simpleMultiCopy` 在**编译期**失败：CANN
+  `simt_api/math_functions.h` 将整数 `min/max` 仅声明为 `__device__`，host 调用报
+  "candidate function not viable: call to __device__ function from __host__
+  function"（simpleStreams 1 处、simpleMultiCopy 7 处）。修复：
+  `include/bridge/kernel/simt_adaptor.h` 追加全局命名空间值语义 `min/max`
+  模板——模板与非模板静态声明永不合并，设备语境仍精确匹配 CANN 原生候选，
+  既有通过样本的重载决议不变。
+- `asyncAPI` 在**产物阶段**失败：其上游 CMakeLists 自设 per-target
+  `CUDA_ARCHITECTURES sm_61..sm_120`，CMake 因此生成按架构的 `.cubin` 规则，
+  `ld.lld: cannot open output file =asyncAPI/.../sm_120.cubin`。修复：harness 在
+  `add_subdirectory` 之后对全部样本目标强制
+  `CUDA_ARCHITECTURES/SEPARABLE/CUBIN/FATBIN = OFF`。
+
+两项修复待服务器复验；pinned memory、host mapping、事件次序等运行时面仍为
+diagnostic-only。
+
 
 ## CUDA runtime wrapper additions
 

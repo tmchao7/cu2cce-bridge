@@ -43,4 +43,31 @@
 #define __WARP_SIZE__ 32
 #endif
 
+/*
+ * Host-side arithmetic overloads for the CUDA min/max family.
+ *
+ * NVIDIA's crt/math_functions.h exposes integer/float min and max as
+ * callable from both host and device, so upstream sample host code may call
+ * them unqualified (simpleStreams, simpleMultiCopy do). CANN 9.2's
+ * simt_api/math_functions.h only marks those overloads __device__, which
+ * makes the host calls fail with "candidate function not viable: call to
+ * __device__ function from __host__ function".
+ *
+ * A same-signature redeclaration cannot fix this: CANN's declarations are
+ * static internal-linkage functions whose execution-space attribute persists,
+ * so a matching host declaration would either collide on linkage or keep the
+ * device-only space. Instead, value-returning TEMPLATES are added to the
+ * global namespace: templates never merge or clash with the native
+ * non-template declarations, device-context overload resolution keeps
+ * preferring the exact-match native candidates, and host-context calls that
+ * previously had no viable candidate now resolve here.
+ */
+#if defined(__cplusplus) && !defined(__CU2CCE_NO_HOST_ARITHMETIC_OVERLOADS__)
+template <typename T>
+inline T max(T left, T right) { return left > right ? left : right; }
+
+template <typename T>
+inline T min(T left, T right) { return left < right ? left : right; }
+#endif
+
 #endif /* __BRIDGE_KERNEL_SIMT_ADAPTOR_H__ */

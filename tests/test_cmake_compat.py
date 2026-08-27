@@ -90,6 +90,27 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         self.assertIn('cmake --build "$EXTERNAL_BUILD" --target "$sample"', server_cmd)
         self.assertIn("cuda_samples_${sample}.build.log", server_cmd)
         self.assertIn("cuda_samples_diag_${sample}.log", server_cmd)
+        ext_cmake = (ROOT / "examples/external/cuda_samples_project/CMakeLists.txt").read_text(encoding="utf-8")
+        # Every sample target is swept AFTER add_subdirectory: upstream
+        # per-target CUDA_ARCHITECTURES lists (asyncAPI requests sm_61..sm_120)
+        # otherwise make CMake emit a per-arch .cubin pipeline the puresimt
+        # backend cannot consume.
+        self.assertIn("cu2cce_sample_targets", ext_cmake)
+        for prop in ("CUDA_ARCHITECTURES OFF", "CUDA_SEPARABLE_COMPILATION OFF",
+                     "CUDA_CUBIN_COMPILATION OFF", "CUDA_FATBIN_COMPILATION OFF"):
+            self.assertIn(prop, ext_cmake)
+
+    def test_simt_adaptor_supplies_host_minmax_templates(self) -> None:
+        # The server diagnostic run proved simpleStreams/simpleMultiCopy fail
+        # because CANN simt_api/math_functions.h marks integer min/max
+        # __device__-only ("call to __device__ function from __host__
+        # function"). Value-returning templates are the only overload shape
+        # that adds viable host candidates without colliding with CANN's
+        # static non-template declarations or changing device resolution.
+        adaptor = (ROOT / "include/bridge/kernel/simt_adaptor.h").read_text(encoding="utf-8")
+        self.assertIn("__CU2CCE_NO_HOST_ARITHMETIC_OVERLOADS__", adaptor)
+        self.assertIn("inline T max(T left, T right)", adaptor)
+        self.assertIn("inline T min(T left, T right)", adaptor)
 
     def test_cuda_language_module_override_is_shipped_and_injected(self) -> None:
         override = ROOT / "cmake_modules/override/CUDAOverrides.cmake"
