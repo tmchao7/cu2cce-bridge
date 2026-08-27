@@ -187,11 +187,12 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         self.assertIn("UNSUPPORTED", math_hdr)  # double-precision boundary
 
         vectors = (crt / "vector_types.h").read_text(encoding="utf-8")
-        # dim3 belongs to bisheng; redefining it here would collide.
-        self.assertNotIn("} dim3;", vectors)
-        self.assertNotIn("typedef.*dim3", vectors)
-        for shape in ("float4", "int3", "double2"):
-            self.assertIn(shape, vectors)
+        # Server evidence: bisheng injects the whole vector-type family as
+        # ext_vector_type typedefs; bridge-side structs collided. The file
+        # must stay documentation-only (no redefinitions, no dim3).
+        self.assertNotIn("typedef struct", vectors)
+        self.assertNotIn("dim3", vectors)
+        self.assertIn("ext_vector_type", vectors)  # records the native proof
 
         server_cmd = (ROOT / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
         self.assertIn("inventory_simt_api.sh", server_cmd)
