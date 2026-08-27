@@ -139,6 +139,12 @@ on CANN.
 两项修复待服务器复验；pinned memory、host mapping、事件次序等运行时面仍为
 diagnostic-only。
 
+复验迭代补充：无条件给所有目标设置 `CUDA_CUBIN/FATBIN_COMPILATION` 会让外部
+configure 直接失败——CMake 规定这两个属性只能用于 OBJECT 目标（即使赋值 OFF，
+出现在 executable 上即报 "property can only be applied to OBJECT targets"）。
+修正后仅在 `TYPE STREQUAL OBJECT_LIBRARY` 且 CMake>=3.28 时设置；普通
+executable 的按架构产物由 `CUDA_ARCHITECTURES OFF` 移除。
+
 
 ## CUDA runtime wrapper additions
 

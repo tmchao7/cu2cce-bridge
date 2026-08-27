@@ -99,6 +99,12 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         for prop in ("CUDA_ARCHITECTURES OFF", "CUDA_SEPARABLE_COMPILATION OFF",
                      "CUDA_CUBIN_COMPILATION OFF", "CUDA_FATBIN_COMPILATION OFF"):
             self.assertIn(prop, ext_cmake)
+        # CMake rejects CUDA_CUBIN/FATBIN_COMPILATION on non-OBJECT targets at
+        # configure time even when set to OFF; the harness must type-guard the
+        # sweep so executables never see those properties.
+        self.assertIn('STREQUAL "OBJECT_LIBRARY"', ext_cmake)
+        self.assertGreater(ext_cmake.index("CUDA_SEPARABLE_COMPILATION OFF"),
+                           ext_cmake.index("add_subdirectory"))
 
     def test_simt_adaptor_supplies_host_minmax_templates(self) -> None:
         # The server diagnostic run proved simpleStreams/simpleMultiCopy fail

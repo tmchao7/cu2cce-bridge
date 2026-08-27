@@ -67,15 +67,29 @@ endforeach()
 # "=asyncAPI/CMakeFiles/asyncAPI.dir/sm_120.cubin" and failing. Every sample
 # target is therefore forced back onto the neutral configuration AFTER it has
 # registered itself; upstream sources stay unmodified.
+#
+# CUDA_CUBIN_COMPILATION / CUDA_FATBIN_COMPILATION are validated by CMake and
+# may ONLY appear on OBJECT-library targets; touching an executable with them
+# aborts configure regardless of the value ("property can only be applied to
+# OBJECT targets"). Disabling the architecture list is what removes per-arch
+# artifact generation for ordinary executables, so the two properties stay
+# type-guarded below and are inert for all current samples.
 get_property(_CU2CCE_SAMPLE_TARGETS GLOBAL PROPERTY cu2cce_sample_targets)
 foreach(_target IN LISTS _CU2CCE_SAMPLE_TARGETS)
   if(TARGET "${_target}")
     set_target_properties("${_target}" PROPERTIES
       CUDA_ARCHITECTURES OFF
       CUDA_SEPARABLE_COMPILATION OFF
-      CUDA_CUBIN_COMPILATION OFF
-      CUDA_FATBIN_COMPILATION OFF
     )
+    get_target_property(_cu2cce_target_type "${_target}" TYPE)
+    if(_cu2cce_target_type STREQUAL "OBJECT_LIBRARY"
+        AND CMAKE_VERSION VERSION_GREATER_EQUAL 3.28)
+      set_target_properties("${_target}" PROPERTIES
+        CUDA_CUBIN_COMPILATION OFF
+        CUDA_FATBIN_COMPILATION OFF
+      )
+    endif()
+    unset(_cu2cce_target_type)
   endif()
 endforeach()
 
