@@ -82,6 +82,14 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         self.assertIn("CUDA_SAMPLES_SOURCE_DIR", fetch)
         self.assertIn("checkout --detach", fetch)
         self.assertTrue((ROOT / "plans/cuda-large-project-compatibility.md").is_file())
+        # Diagnostic samples must be compiled by the harness before any run
+        # attempt: earlier server runs printed empty [DIAG-ONLY] tails because
+        # only vectorAdd/matrixMul were in the required "--target" list.
+        server_cmd = (ROOT / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
+        self.assertIn("for sample in simpleStreams simpleMultiCopy asyncAPI; do", server_cmd)
+        self.assertIn('cmake --build "$EXTERNAL_BUILD" --target "$sample"', server_cmd)
+        self.assertIn("cuda_samples_${sample}.build.log", server_cmd)
+        self.assertIn("cuda_samples_diag_${sample}.log", server_cmd)
 
     def test_cuda_language_module_override_is_shipped_and_injected(self) -> None:
         override = ROOT / "cmake_modules/override/CUDAOverrides.cmake"

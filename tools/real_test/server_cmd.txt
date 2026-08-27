@@ -533,15 +533,29 @@ if [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$EXTERNAL_FETCH" ] && [ -x "$CMAKE_CCE" 
                     fi
                 done
                 # Diagnostic-only samples stay in the external configure/build
-                # graph but never block the required profile. Each one is
-                # attempted and its outcome recorded for the runtime API
-                # compatibility log; a failure here only affects the
-                # diagnostic summary line.
+                # graph but never block the required profile. They are NOT part
+                # of the required "--target vectorAdd matrixMul" invocation, so
+                # each one is compiled separately here before running; an
+                # unsupported sample surfaces its true failure point (compile vs
+                # run) through the per-sample logs instead of masking as a
+                # silent no-op.
                 printf '\n----- external diagnostic-only samples -----\n'
                 for sample in simpleStreams simpleMultiCopy asyncAPI; do
                     binary="$EXTERNAL_BUILD/$sample/$sample"
+                    diag_build_log="$OUT/cuda_samples_${sample}.build.log"
                     diag_log="$OUT/cuda_samples_diag_${sample}.log"
-                    echo "[INFO] external diagnostic [$sample] (timeout=${EXTERNAL_RUN_TIMEOUT}s)"
+                    echo "[INFO] external diagnostic [$sample] build (timeout=${EXTERNAL_BUILD_TIMEOUT}s)"
+                    if [ -x "$binary" ]; then
+                        echo "[INFO] external diagnostic [$sample] binary already present"
+                    elif ! run_with_timeout "$EXTERNAL_BUILD_TIMEOUT" env \
+                       CU2CCE_LIBC_MODE=system CUCC_PATH="$PWD/build/real_test/install" CUDA_PATH="$CUCC_PATH" \
+                       PATH="$CUCC_PATH/bin:$PATH" \
+                       cmake --build "$EXTERNAL_BUILD" --target "$sample" >"$diag_build_log" 2>&1; then
+                        echo "[DIAG-ONLY] [$sample] build failed (build log tail:)"
+                        tail -n 25 "$diag_build_log" 2>/dev/null || true
+                        continue
+                    fi
+                    echo "[INFO] external diagnostic [$sample] run (timeout=${EXTERNAL_RUN_TIMEOUT}s)"
                     if [ -x "$binary" ] && run_with_timeout "$EXTERNAL_RUN_TIMEOUT" "$binary" >"$diag_log" 2>&1; then
                         echo "[DIAG-PASS] [$sample] (unexpectedly passed; re-classify or investigate API surface)"
                         cat "$diag_log" 2>/dev/null

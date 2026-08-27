@@ -112,6 +112,16 @@ flags, `cudaDeviceProp` fields, host-memory mapping, and host-side overload beha
 validated on CANN.
 
 
+Diagnostic samples are NOT part of the required `--target vectorAdd matrixMul`
+invocation: each one is compiled separately right after the required profile and then run,
+with a non-blocking `[DIAG-ONLY]`/`[DIAG-PASS]` outcome. Evidence lives in
+`build/real_test/puresimt/cuda_samples_<sample>.build.log` and
+`build/real_test/puresimt/cuda_samples_diag_<sample>.log`. Earlier runs printed empty
+diagnostic tails because the harness never compiled these targets before trying to run
+them; with the per-sample build phase any outcome reflects real compile/runtime behavior
+on CANN.
+
+
 ## CUDA runtime wrapper additions
 
 The bridge now declares and implements the basic `simpleStreams` device/event flag surface:
