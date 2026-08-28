@@ -49,8 +49,11 @@ class BlasSurfaceContractTest(unittest.TestCase):
         self.assertIn("run_blas_case cublas_sgemm examples/blas/cublas_sgemm.cu", script)
         self.assertIn("run_blas_case cublas_gemmex examples/blas/cublas_gemmex.cu", script)
         self.assertIn("run_blas_case cublas_gemv examples/blas/cublas_gemv.cu", script)
-        for section in ("[1/7]", "[2/7]", "[3/7]", "[4/7]", "[5/7]", "[6/7]", "[7/7]"):
+        for section in ("[1/8]", "[2/8]", "[3/8]", "[4/8]", "[5/8]", "[6/8]", "[7/8]", "[8/8]"):
             self.assertIn(section, script)
+        # the GemvEx contract probe is diagnostic-only and must not gate
+        self.assertIn("[7/8] aclblasGemvEx parameter-matrix probe", script)
+        self.assertIn("[PROBE-ONLY] gemv_param_probe compile failed (non-blocking)", script)
         for example in ("examples/blas/cublas_gemmex.cu", "examples/blas/cublas_gemv.cu"):
             self.assertTrue((ROOT / example).is_file(), example)
 
