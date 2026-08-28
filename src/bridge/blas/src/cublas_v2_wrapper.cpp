@@ -38,6 +38,9 @@ aclError wcublasCreate(cublasHandle_t *handle) {
         return ACL_ERROR_BAD_ALLOC;
     }
     h->stream = nullptr; /* 默认 stream（nullptr 由调用方后续 SetStream） */
+    h->pointerMode = CUBLAS_POINTER_MODE_HOST; /* cublas 默认：scalar 为 host 指针 */
+    h->mathMode = CUBLAS_DEFAULT_MATH;
+    h->atomicsMode = CUBLAS_ATOMICS_NOT_ALLOWED;
     *handle = h;
     return ACL_SUCCESS;
 }
@@ -71,6 +74,60 @@ aclError wcublasGetVersion(int *version) {
     if (version != nullptr) {
         *version = 0;
     }
+    return ACL_SUCCESS;
+}
+
+/* ---------------- 模式类 API ----------------
+ * PointerMode 被 GemmEx 真实落实（HOST→staging；DEVICE→透传）；
+ * MathMode/AtomicsMode 是性能提示语义，存取透传，不据此改变数值行为。 */
+
+aclError wcublasSetPointerMode(cublasHandle_t handle, cublasPointerMode_t mode) {
+    if (handle == nullptr ||
+        (mode != CUBLAS_POINTER_MODE_HOST && mode != CUBLAS_POINTER_MODE_DEVICE)) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    handle->pointerMode = mode;
+    return ACL_SUCCESS;
+}
+
+aclError wcublasGetPointerMode(cublasHandle_t handle, cublasPointerMode_t *mode) {
+    if (handle == nullptr || mode == nullptr) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    *mode = handle->pointerMode;
+    return ACL_SUCCESS;
+}
+
+aclError wcublasSetMathMode(cublasHandle_t handle, cublasMath_t mode) {
+    if (handle == nullptr || mode < CUBLAS_DEFAULT_MATH || mode > CUBLAS_PEDANTIC_MATH) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    handle->mathMode = mode;
+    return ACL_SUCCESS;
+}
+
+aclError wcublasGetMathMode(cublasHandle_t handle, cublasMath_t *mode) {
+    if (handle == nullptr || mode == nullptr) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    *mode = handle->mathMode;
+    return ACL_SUCCESS;
+}
+
+aclError wcublasSetAtomicsMode(cublasHandle_t handle, cublasAtomicsMode_t mode) {
+    if (handle == nullptr ||
+        (mode != CUBLAS_ATOMICS_NOT_ALLOWED && mode != CUBLAS_ATOMICS_ALLOWED)) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    handle->atomicsMode = mode;
+    return ACL_SUCCESS;
+}
+
+aclError wcublasGetAtomicsMode(cublasHandle_t handle, cublasAtomicsMode_t *mode) {
+    if (handle == nullptr || mode == nullptr) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    *mode = handle->atomicsMode;
     return ACL_SUCCESS;
 }
 
@@ -396,47 +453,214 @@ aclError wcublasDgemm(cublasHandle_t handle, aclTransType transa, aclTransType t
  * aclblasGemvEx 存在（FP32 gemv，torch_cblas.h 确认）。Sgemv 真实映射；
  * axpy/copy/dot/scal/swap/nrm2 昇腾无对应，保持 not-support 占位。 */
 
-static aclError not_supported_placeholder() { return ACL_ERROR_API_NOT_SUPPORT; }
+/* BLAS1 占位统一入口：即使最终返回 not-support，也先完成与真实实现
+ * 相同强度的参数校验——错误归因一致，且未来填充实现时签名不动。 */
+static aclError blas1_validate(int n, const void *x, const void *y) {
+    if (n <= 0 || x == nullptr || y == nullptr) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    return ACL_ERROR_API_NOT_SUPPORT;
+}
 
 aclError wcublasSgemv(cublasHandle_t handle, aclTransType trans, int m, int n, const float *alpha,
                       const float *A, int lda, const float *x, int incx, const float *beta,
                       float *y, int incy) {
-    if (handle == nullptr) {
+    if (handle == nullptr || alpha == nullptr || beta == nullptr || A == nullptr || x == nullptr ||
+        y == nullptr || m <= 0 || n <= 0 || incx == 0 || incy == 0 ||
+        lda < ((trans == ACL_TRANS_N) ? m : n)) {
         return ACL_ERROR_INVALID_PARAM;
     }
-    /* aclblasGemvEx(transA, m, n, alpha, a, lda, dtA, x, incx, dtX, beta, y, incy, dtY, type, stream) */
-    return aclblasGemvEx(trans, m, n, alpha, A, lda, ACL_FLOAT, x, incx, ACL_FLOAT, beta, y,
-                         incy, ACL_FLOAT, ACL_COMPUTE_HIGH_PRECISION, handle->stream);
+    if (handle->stream == nullptr) {
+        aclError sret = aclrtCreateStream(&handle->stream);
+        if (sret != ACL_SUCCESS) {
+            return sret;
+        }
+    }
+    /* 真机教训同 Sgemm：CANN 计算接口要求 device scalar；host alpha/beta
+     * 先 staging（PointerMode=DEVICE 时视为调用方已给 device 指针，透传）。 */
+    void *devAlpha = nullptr;
+    void *devBeta = nullptr;
+    aclError ret = ACL_SUCCESS;
+    if (handle->pointerMode == CUBLAS_POINTER_MODE_HOST) {
+        ret = aclrtMalloc(&devAlpha, sizeof(float), ACL_MEM_MALLOC_HUGE_FIRST);
+        if (ret != ACL_SUCCESS) {
+            return ret;
+        }
+        ret = aclrtMalloc(&devBeta, sizeof(float), ACL_MEM_MALLOC_HUGE_FIRST);
+        if (ret == ACL_SUCCESS) {
+            ret = aclrtMemcpy(devAlpha, sizeof(float), alpha, sizeof(float), ACL_MEMCPY_HOST_TO_DEVICE);
+        }
+        if (ret == ACL_SUCCESS) {
+            ret = aclrtMemcpy(devBeta, sizeof(float), beta, sizeof(float), ACL_MEMCPY_HOST_TO_DEVICE);
+        }
+        if (ret != ACL_SUCCESS) {
+            aclrtFree(devAlpha);
+            aclrtFree(devBeta);
+            return ret;
+        }
+        ret = aclblasGemvEx(trans, m, n, devAlpha, A, lda, ACL_FLOAT, x, incx, ACL_FLOAT, devBeta,
+                            y, incy, ACL_FLOAT, ACL_COMPUTE_HIGH_PRECISION, handle->stream);
+        aclrtFree(devAlpha);
+        aclrtFree(devBeta);
+    } else {
+        ret = aclblasGemvEx(trans, m, n, alpha, A, lda, ACL_FLOAT, x, incx, ACL_FLOAT, beta, y,
+                            incy, ACL_FLOAT, ACL_COMPUTE_HIGH_PRECISION, handle->stream);
+    }
+    if (ret != ACL_SUCCESS) {
+        return ret;
+    }
+    return aclrtSynchronizeStream(handle->stream);
 }
 
 aclError wcublasSaxpy(cublasHandle_t handle, int n, const float *alpha, const float *x, int incx,
                       float *y, int incy) {
-    (void)handle; (void)n; (void)alpha; (void)x; (void)incx; (void)y; (void)incy;
-    return not_supported_placeholder();
+    (void)handle; (void)incx; (void)incy;
+    return blas1_validate(n, x, y);
 }
 
 aclError wcublasScopy(cublasHandle_t handle, int n, const float *x, int incx, float *y, int incy) {
-    (void)handle; (void)n; (void)x; (void)incx; (void)y; (void)incy;
-    return not_supported_placeholder();
+    (void)handle; (void)incx; (void)incy;
+    return blas1_validate(n, x, y);
 }
 
 aclError wcublasSdot(cublasHandle_t handle, int n, const float *x, int incx, const float *y,
                      int incy, float *result) {
-    (void)handle; (void)n; (void)x; (void)incx; (void)y; (void)incy; (void)result;
-    return not_supported_placeholder();
+    (void)handle; (void)incx; (void)incy;
+    if (result == nullptr) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    return blas1_validate(n, x, y);
 }
 
 aclError wcublasSscal(cublasHandle_t handle, int n, const float *alpha, float *x, int incx) {
-    (void)handle; (void)n; (void)alpha; (void)x; (void)incx;
-    return not_supported_placeholder();
+    (void)handle; (void)incx;
+    if (alpha == nullptr || n <= 0 || x == nullptr) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    return ACL_ERROR_API_NOT_SUPPORT;
 }
 
 aclError wcublasSswap(cublasHandle_t handle, int n, float *x, int incx, float *y, int incy) {
-    (void)handle; (void)n; (void)x; (void)incx; (void)y; (void)incy;
-    return not_supported_placeholder();
+    (void)handle; (void)incx; (void)incy;
+    return blas1_validate(n, x, y);
 }
 
 aclError wcublasSnrm2(cublasHandle_t handle, int n, const float *x, int incx, float *result) {
-    (void)handle; (void)n; (void)x; (void)incx; (void)result;
-    return not_supported_placeholder();
+    (void)handle; (void)incx;
+    if (result == nullptr) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    return blas1_validate(n, x, nullptr);
+}
+
+/* ---------------- GemmEx / SgemmEx ----------------
+ * dtype 显式入口：直接映射 aclblasGemmEx，不做 Sgemm 那样的 fp32→fp16
+ * staging（dtype 由调用方声明，桥不再隐式改类型）。仅接受真机界定的
+ * 组合；alpha/beta 按 PointerMode staging（教训：CANN 要求 device scalar）。 */
+
+static bool gemmex_dtype_supported(cudaDataType a, cudaDataType b, cudaDataType c) {
+    return (a == CUDA_R_16F && b == CUDA_R_16F && c == CUDA_R_16F) ||
+           (a == CUDA_R_16F && b == CUDA_R_16F && c == CUDA_R_32F) ||
+           (a == CUDA_R_8I && b == CUDA_R_8I && c == CUDA_R_32I);
+}
+
+static bool gemmex_dtype_to_acl(cudaDataType t, aclDataType *out) {
+    switch (t) {
+        case CUDA_R_16F: *out = ACL_FLOAT16; return true;
+        case CUDA_R_32F: *out = ACL_FLOAT; return true;
+        case CUDA_R_8I: *out = ACL_INT8; return true;
+        case CUDA_R_32I: *out = ACL_INT32; return true;
+        default: return false;
+    }
+}
+
+aclError wcublasGemmEx(cublasHandle_t handle, aclTransType transa, aclTransType transb, int m,
+                       int n, int k, const void *alpha, const void *A, cudaDataType Atype, int lda,
+                       const void *B, cudaDataType Btype, int ldb, const void *beta, void *C,
+                       cudaDataType Ctype, int ldc, cublasComputeType_t computeType) {
+    if (handle == nullptr || alpha == nullptr || beta == nullptr || A == nullptr || B == nullptr ||
+        C == nullptr || m <= 0 || n <= 0 || k <= 0) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    if (!gemmex_dtype_supported(Atype, Btype, Ctype)) {
+        std::fprintf(stderr,
+                     "[cce_bridge][GemmEx] dtype combo (A=%d,B=%d,C=%d) not supported by "
+                     "CANN aclblasGemmEx\n",
+                     (int)Atype, (int)Btype, (int)Ctype);
+        return ACL_ERROR_API_NOT_SUPPORT;
+    }
+    /* compute 只接受 32F 族（68=CUBLAS_COMPUTE_32F, 151=CUDA_R_32F）或 16F 族
+     * （64/150）。ACL 侧统一用 HIGH_PRECISION；16F compute 的降精度语义无法
+     * 在 ACL 枚举上保证，诚实拒绝以避免静默数值差异。 */
+    const bool compute32 = (computeType == CUBLAS_COMPUTE_32F || computeType == (cublasComputeType_t)CUDA_R_32F);
+    const bool compute16 = (computeType == CUBLAS_COMPUTE_16F || computeType == (cublasComputeType_t)CUDA_R_16F);
+    if (!compute32 && !compute16) {
+        std::fprintf(stderr, "[cce_bridge][GemmEx] unsupported computeType=%llu\n",
+                     (unsigned long long)computeType);
+        return ACL_ERROR_API_NOT_SUPPORT;
+    }
+    if (Atype == CUDA_R_8I && !compute32) {
+        /* INT8 输入按 CUDA 语义必须配 32I/32F 标量，16F 标量无意义 */
+        return ACL_ERROR_INVALID_PARAM;
+    }
+
+    aclDataType dtA = ACL_FLOAT16;
+    aclDataType dtB = ACL_FLOAT16;
+    aclDataType dtC = ACL_FLOAT16;
+    (void)gemmex_dtype_to_acl(Atype, &dtA);
+    (void)gemmex_dtype_to_acl(Btype, &dtB);
+    (void)gemmex_dtype_to_acl(Ctype, &dtC);
+
+    if (handle->stream == nullptr) {
+        aclError sret = aclrtCreateStream(&handle->stream);
+        if (sret != ACL_SUCCESS) {
+            return sret;
+        }
+    }
+
+    const size_t scalar_bytes = compute16 ? 2u : 4u; /* 16F 标量 2 字节；32F/32I 标量 4 字节 */
+    void *devAlpha = nullptr;
+    void *devBeta = nullptr;
+    const void *useAlpha = alpha;
+    const void *useBeta = beta;
+    aclError ret = ACL_SUCCESS;
+    if (handle->pointerMode == CUBLAS_POINTER_MODE_HOST) {
+        ret = aclrtMalloc(&devAlpha, scalar_bytes, ACL_MEM_MALLOC_HUGE_FIRST);
+        if (ret != ACL_SUCCESS) {
+            return ret;
+        }
+        ret = aclrtMalloc(&devBeta, scalar_bytes, ACL_MEM_MALLOC_HUGE_FIRST);
+        if (ret == ACL_SUCCESS) {
+            ret = aclrtMemcpy(devAlpha, scalar_bytes, alpha, scalar_bytes, ACL_MEMCPY_HOST_TO_DEVICE);
+        }
+        if (ret == ACL_SUCCESS) {
+            ret = aclrtMemcpy(devBeta, scalar_bytes, beta, scalar_bytes, ACL_MEMCPY_HOST_TO_DEVICE);
+        }
+        if (ret != ACL_SUCCESS) {
+            aclrtFree(devAlpha);
+            aclrtFree(devBeta);
+            return ret;
+        }
+        useAlpha = devAlpha;
+        useBeta = devBeta;
+    }
+
+    ret = gemm_impl(handle, transa, transb, m, n, k, useAlpha, A, lda, dtA, B, ldb, dtB, useBeta,
+                    C, ldc, dtC);
+
+    if (devAlpha != nullptr) {
+        aclrtFree(devAlpha);
+    }
+    if (devBeta != nullptr) {
+        aclrtFree(devBeta);
+    }
+    return ret;
+}
+
+aclError wcublasSgemmEx(cublasHandle_t handle, aclTransType transa, aclTransType transb, int m,
+                        int n, int k, const void *alpha, const void *A, cudaDataType Atype, int lda,
+                        const void *B, cudaDataType Btype, int ldb, const void *beta, void *C,
+                        cudaDataType Ctype, int ldc) {
+    return wcublasGemmEx(handle, transa, transb, m, n, k, alpha, A, Atype, lda, B, Btype, ldb,
+                         beta, C, Ctype, ldc, CUBLAS_COMPUTE_32F);
 }
