@@ -11,13 +11,15 @@
 2. `02_Architecture/03_cucc_driver.md`：cucc 编译驱动详解（五阶段/规则五动作/注入链/FP64 策略/CLI 模式）。
 3. `02_Architecture/04_shadow_headers.md`：shadow 头机制与 libc 双模式（含 crt 前向层与两个宿主/设备同名陷阱）。
 4. `02_Architecture/05_cmake_design.md`：CMake 设计及其能力（三层漏斗/能力矩阵/设计要点）。
-5. `02_Architecture/02_deep_dive.md`：运行时深度解析（BRIDGE_INIT/默认流语义/事件注册表/launch 路径/平台事实清单）。
-6. `03_Scope/SUPPORTED_SCOPE.md`：支持范围总览（能力正面清单）。
-7. `03_Scope/LIMITS_AND_BOUNDARIES.md`：边界与限制（反面清单唯一权威入口，含证据与"为什么不绕过"）。
-8. `03_Comparison/`：各能力矩阵（PURESIMT / BUILD_SYSTEM / CUCC_OPTION / BLAS / mapping / CU2CCE_VS_CUBRIDGE_REVIEW / CURRENT_STATE）。
-9. `01_Design/ASCEND_RESEARCH_NOTES.md`：CANN/SIMT/runtime 事实库。
-10. `reference/asc-devkit-simt/`：Ascend SIMT API 参考头和示例。
-11. `tools/real_test/diag/`：历史 runtime context 排障工具和案例。
+5. `02_Architecture/06_cmake_principle_flow.md`：CMake 原理与完整工作流（一次 configure 的逐层拆解 + 真实命令 trace + 失败模式表）。
+6. `02_Architecture/07_cucc_adaptability.md`：cucc 能力现状与反硬编码论证（三层适配模型：153 条 JSON 规则 / 策略层清单 / 开关层全表；"新增 flag 零代码"实操）。
+7. `02_Architecture/02_deep_dive.md`：运行时深度解析（BRIDGE_INIT/默认流语义/事件注册表/launch 路径/平台事实清单）。
+8. `03_Scope/SUPPORTED_SCOPE.md`：支持范围总览（能力正面清单）。
+9. `03_Scope/LIMITS_AND_BOUNDARIES.md`：边界与限制（反面清单唯一权威入口，含证据与"为什么不绕过"）。
+10. `03_Comparison/`：各能力矩阵（PURESIMT / BUILD_SYSTEM / CUCC_OPTION / BLAS / mapping / CU2CCE_VS_CUBRIDGE_REVIEW / CURRENT_STATE）。
+11. `01_Design/ASCEND_RESEARCH_NOTES.md`：CANN/SIMT/runtime 事实库。
+12. `reference/asc-devkit-simt/`：Ascend SIMT API 参考头和示例。
+13. `tools/real_test/diag/`：历史 runtime context 排障工具和案例。
 
 ## 目录结构
 
