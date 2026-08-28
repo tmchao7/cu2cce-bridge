@@ -88,6 +88,11 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         server_cmd = (ROOT / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
         self.assertIn("for sample in simpleStreams simpleMultiCopy asyncAPI; do", server_cmd)
         self.assertIn('cmake --build "$EXTERNAL_BUILD" --parallel "$EXTERNAL_JOBS" --target "$sample"', server_cmd)
+        # Regression guard: prefixing a shell FUNCTION with env yields
+        # "env: 'run_with_timeout': No such file or directory" (exit 127)
+        # and silently swallows every diagnostic run.
+        self.assertIn('WCUDA_DEBUG="${WCUDA_DEBUG:-}" run_with_timeout', server_cmd)
+        self.assertNotIn('env WCUDA_DEBUG=', server_cmd)
         self.assertIn("cuda_samples_${sample}.build.log", server_cmd)
         self.assertIn("cuda_samples_diag_${sample}.log", server_cmd)
         ext_cmake = (ROOT / "examples/external/cuda_samples_project/CMakeLists.txt").read_text(encoding="utf-8")

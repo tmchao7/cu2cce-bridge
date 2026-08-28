@@ -719,7 +719,9 @@ elif [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$EXTERNAL_FETCH" ] && [ -x "$CMAKE_CCE
                     # status is itself evidence (crash/abort vs. timeout=124).
                     # WCUDA_DEBUG=1 flows through to the bridge runtime for
                     # per-call return-code traces when attribution is needed.
-                    env WCUDA_DEBUG="${WCUDA_DEBUG:-}" run_with_timeout "$EXTERNAL_RUN_TIMEOUT" "$binary" >"$diag_log" 2>&1
+                    # (Export, don't prefix with env: run_with_timeout is a
+                    # shell function, which env cannot launch.)
+                    WCUDA_DEBUG="${WCUDA_DEBUG:-}" run_with_timeout "$EXTERNAL_RUN_TIMEOUT" "$binary" >"$diag_log" 2>&1
                     diag_status=$?
                     if [ "$diag_status" -eq 0 ]; then
                         echo "[DIAG-PASS] [$sample] (unexpectedly passed; re-classify or investigate API surface)"
