@@ -501,17 +501,21 @@ aclError wcublasSgemv(cublasHandle_t handle, aclTransType trans, int m, int n, c
             return ret;
         }
     }
-    /* aclblasGemvEx 的 lda 与 aclblasGemmEx 的 lda/ldb/ldc 同为保留参数，
-     * 文档要求传 -1（真机教训：原样传宿主 lda 触发 100000 参数校验失败）。 */
-    const int acl_ld = -1;
+    /* aclblasGemvEx 的 lda 注释为常规 leading dimension（与 GemmEx 的保留参数
+     * 不同），按宿主语义原样传；GemmEx 教训仍适用的是：调用前必须有
+     * aclopSetModelDir 的算子环境（round-3 探针验证项）。 */
     std::fprintf(stderr,
-                 "[cce_bridge][Sgemv] enter trans=%d shape=(m=%d,n=%d) cuda_ld=%d acl_ld=%d "
+                 "[cce_bridge][Sgemv] enter trans=%d shape=(m=%d,n=%d) lda=%d "
                  "incx=%d incy=%d stream=%p scalar_dev=%d\n",
-                 (int)trans, m, n, lda, acl_ld, incx, incy, (void *)handle->stream,
+                 (int)trans, m, n, lda, incx, incy, (void *)handle->stream,
                  handle->pointerMode == CUBLAS_POINTER_MODE_HOST ? 1 : 0);
+    aclError model_ret = ensure_gemm_model_dir();
+    if (model_ret != ACL_SUCCESS) {
+        return model_ret;
+    }
     ret = aclblasGemvEx(trans, m, n,
                         (handle->pointerMode == CUBLAS_POINTER_MODE_HOST) ? devAlpha : alpha,
-                        A, acl_ld, ACL_FLOAT, x, incx, ACL_FLOAT,
+                        A, lda, ACL_FLOAT, x, incx, ACL_FLOAT,
                         (handle->pointerMode == CUBLAS_POINTER_MODE_HOST) ? devBeta : beta,
                         y, incy, ACL_FLOAT, ACL_COMPUTE_HIGH_PRECISION, handle->stream);
     std::fprintf(stderr, "[cce_bridge][Sgemv] aclblasGemvEx ret=%d recent=%s\n", (int)ret,

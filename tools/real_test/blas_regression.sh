@@ -101,6 +101,36 @@ else
     FAIL=$((FAIL + 1))
 fi
 
+# GEMV-shaped single-op model (GEMM with n=1) for the aclblasGemvEx path.
+# Non-blocking: gemv is experimental and the [7/8] probe records the outcome.
+cat >"$OUT/gemv_fp16_fp32.json" <<'JSON'
+[
+  {
+    "op": "GEMM",
+    "input_desc": [
+      {"format": "ND", "shape": [8, 8], "type": "float"},
+      {"format": "ND", "shape": [8, 1], "type": "float"},
+      {"format": "ND", "shape": [8, 1], "type": "float"},
+      {"format": "ND", "shape": [], "type": "float"},
+      {"format": "ND", "shape": [], "type": "float"}
+    ],
+    "output_desc": [{"format": "ND", "shape": [8, 1], "type": "float"}],
+    "attr": [
+      {"name": "transpose_a", "type": "bool", "value": false},
+      {"name": "transpose_b", "type": "bool", "value": false}
+    ]
+  }
+]
+JSON
+if [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$ATC" ] && [ -n "$SOC_NAME" ] && \
+   "$ATC" --singleop="$OUT/gemv_fp16_fp32.json" --soc_version="$SOC_NAME" \
+       --output="$MODEL_DIR/gemv_fp32" >"$OUT/atc_gemv.log" 2>&1; then
+    echo '[PASS] ATC GEMV-shaped model generated'
+else
+    echo '[PROBE-ONLY] ATC GEMV model generation failed (gemv stays experimental)'
+    tail -n 5 "$OUT/atc_gemv.log" 2>/dev/null || true
+fi
+
 printf '\n===== [4/8] cublasSgemm -> aclblasGemmEx =====\n'
 CCEC="$CANN_BASE/bin/ccec"
 
