@@ -66,6 +66,31 @@
  * include/bridge/runtime/cuda_wrapper_types.h）模拟 cudaDeviceProp 常用字段。 */
 #define cudaDeviceProp _cceDeviceProp_t
 
+// CUDA device scheduling/mapping flags. Ascend has no CUDA scheduling flag
+// equivalent; the runtime wrapper accepts them as a compatibility no-op.
+#define cudaDeviceScheduleAuto 0
+#define cudaDeviceScheduleSpin 1
+#define cudaDeviceScheduleYield 2
+#define cudaDeviceScheduleBlockingSync 4
+#define cudaDeviceBlockingSync cudaDeviceScheduleBlockingSync
+#define cudaDeviceScheduleMask 7
+#define cudaDeviceMapHost 8
+#define cudaDeviceLmemResizeToMax 16
+#define cudaDeviceMask 31
+
+// CUDA event creation flags.
+#define cudaEventDefault 0
+#define cudaEventBlockingSync 1
+#define cudaEventDisableTiming 2
+#define cudaEventInterprocess 4
+
+// CUDA pinned-host allocation flags (cudaHostAlloc). Values mirror the NVIDIA
+// enum layout so host code storing them stays source-compatible.
+#define cudaHostAllocDefault 0x00
+#define cudaHostAllocPortable 0x01
+#define cudaHostAllocMapped 0x02
+#define cudaHostAllocWriteCombined 0x04
+
 //--------------------- function replace --------------------//
 
 // Device Management
@@ -74,6 +99,7 @@
 #define cudaGetDevice wcudaGetDevice
 #define cudaDeviceSynchronize wcudaDeviceSynchronize
 #define cudaDeviceReset wcudaDeviceReset
+#define cudaSetDeviceFlags wcudaSetDeviceFlags
 #define cudaGetDeviceProperties wcudaGetDeviceProperties
 #define cudaDeviceGetAttribute wcudaDeviceGetAttribute
 /* Device 配置类（昇腾无对应/语义不同，声明保证可编译） */

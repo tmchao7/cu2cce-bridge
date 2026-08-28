@@ -98,12 +98,14 @@ args=("$@")
 have_arch=0
 have_module_path=0
 have_runtime=0
+have_override=0
 for index in "${!args[@]}"; do
     arg="${args[$index]}"
     case "$arg" in
         -DCMAKE_CUDA_ARCHITECTURES=*|-DCMAKE_CUDA_ARCHITECTURES) have_arch=1;;
         -DCMAKE_CUDA_RUNTIME_LIBRARY=*) have_runtime=1;;
         -DCMAKE_CUDA_RUNTIME_LIBRARY) have_runtime=1;;
+        -DCMAKE_USER_MAKE_RULES_OVERRIDE*|-DCMAKE_USER_MAKE_RULES_OVERRIDE_CUDA*) have_override=1;;
         -DCMAKE_MODULE_PATH=*)
             have_module_path=1
             user_module_path="${arg#-DCMAKE_MODULE_PATH=}"
@@ -131,6 +133,19 @@ if [ "$have_module_path" -eq 0 ]; then
     args+=("-DCMAKE_MODULE_PATH=$CUCC_PATH/cmake_modules")
 fi
 args+=("-DCMAKE_CUDA_COMPILER=$CUDA_DIR/bin/nvcc")
+
+# CMake-user-make-rules override: deterministically pin the CUDA compiler
+# identity before CMake's stock detection runs. Disable with
+# CU2CCE_CMAKE_NO_OVERRIDE=1 to fall back to the pure -DCMAKE_CUDA_* +
+# module-path path.
+if [ "${CU2CCE_CMAKE_NO_OVERRIDE:-0}" != "1" ] && [ "$have_override" -eq 0 ]; then
+    if [ -f "$CUCC_PATH/cmake_modules/override/CUDAOverrides.cmake" ]; then
+        args+=("-DCMAKE_USER_MAKE_RULES_OVERRIDE=$CUCC_PATH/cmake_modules/override/CUDAOverrides.cmake")
+        args+=("-DCMAKE_USER_MAKE_RULES_OVERRIDE_CUDA=$CUCC_PATH/cmake_modules/override/CUDAOverrides.cmake")
+    else
+        echo "cmake_cce: override module missing; continuing without override" >&2
+    fi
+fi
 
 if [ "${CU2CCE_CMAKE_DEBUG:-0}" = "1" ]; then
     printf 'cmake_cce: configure command:' >&2

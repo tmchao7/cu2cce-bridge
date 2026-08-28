@@ -37,14 +37,58 @@
 #define CUBLAS_OP_T ACL_TRANS_T
 #define CUBLAS_OP_C ACL_TRANS_NZ /* acl 无 C(共轭转置)，映射到 NZ */
 
+//------------ GemmEx dtype/compute 常量（值与 NVIDIA library_types.h 对齐） ------------//
+#if !defined(CUDA_R_16F)
+typedef enum {
+    CUDA_R_16F = 150,
+    CUDA_R_32F = 151,
+    CUDA_R_64F = 152,
+    CUDA_R_8I = 160,
+    CUDA_R_32I = 170
+} cudaDataType;
+#endif
+
+/* cublasComputeType_t 的 NVIDIA 值（_16F=64, _32F=68）。桥只接受 32F 族并
+ * 映射到 ACL_COMPUTE_HIGH_PRECISION；16F/其它诚实返回 not-support。 */
+#if !defined(CUBLAS_COMPUTE_32F)
+typedef unsigned long long cublasComputeType_t;
+#define CUBLAS_COMPUTE_16F 64ULL
+#define CUBLAS_COMPUTE_32F 68ULL
+#endif
+
+//------------ 模式类 API（无 ACL 对应；wcublas 层存取 + 按语义落实） ------------//
+typedef enum {
+    CUBLAS_POINTER_MODE_HOST = 0,
+    CUBLAS_POINTER_MODE_DEVICE = 1
+} cublasPointerMode_t;
+
+typedef enum {
+    CUBLAS_DEFAULT_MATH = 0,
+    CUBLAS_TENSOR_OP_MATH = 1,
+    CUBLAS_PEDANTIC_MATH = 2
+} cublasMath_t;
+
+typedef enum {
+    CUBLAS_ATOMICS_NOT_ALLOWED = 0,
+    CUBLAS_ATOMICS_ALLOWED = 1
+} cublasAtomicsMode_t;
+
 //------------ function replace ------------//
 #define cublasCreate wcublasCreate
 #define cublasDestroy wcublasDestroy
 #define cublasSetStream wcublasSetStream
 #define cublasGetStream wcublasGetStream
 #define cublasGetVersion wcublasGetVersion
+#define cublasSetMathMode wcublasSetMathMode
+#define cublasGetMathMode wcublasGetMathMode
+#define cublasSetPointerMode wcublasSetPointerMode
+#define cublasGetPointerMode wcublasGetPointerMode
+#define cublasSetAtomicsMode wcublasSetAtomicsMode
+#define cublasGetAtomicsMode wcublasGetAtomicsMode
 #define cublasSgemm wcublasSgemm
 #define cublasDgemm wcublasDgemm
+#define cublasGemmEx wcublasGemmEx
+#define cublasSgemmEx wcublasSgemmEx
 /* BLAS1/BLAS2（昇腾 aclblas 是否有 FP32 变体待真机核对；当前声明占位返回 not-support） */
 #define cublasSgemv wcublasSgemv
 #define cublasSaxpy wcublasSaxpy
@@ -58,6 +102,9 @@
  * 前端类型为不透明指针（对应 CUDA 的 cublasHandle_t）。 */
 typedef struct _wcceBlasHandle {
     aclrtStream stream; /* 关联的 stream（昇腾 aclblas 计算接口直接传 stream） */
+    cublasPointerMode_t pointerMode; /* HOST(默认)：GemmEx 把 host scalar staging 到 device */
+    cublasMath_t mathMode;           /* 存取透传：性能提示语义，桥不据此改变数值行为 */
+    cublasAtomicsMode_t atomicsMode; /* 存取透传：昇腾无对应调度开关 */
 } _wcceBlasHandle;
 typedef _wcceBlasHandle *cublasHandle_t;
 
@@ -72,6 +119,16 @@ aclError wcublasSetStream(cublasHandle_t handle, aclrtStream stream);
 aclError wcublasGetStream(cublasHandle_t handle, aclrtStream *stream);
 aclError wcublasGetVersion(int *version);
 
+/* 模式类：PointerMode 会被 GemmEx 真实落实（HOST→staging device scalar；
+ * DEVICE→直接透传）；MathMode/AtomicsMode 存取透传（性能提示语义），
+ * 越界枚举值一律拒绝。 */
+aclError wcublasSetMathMode(cublasHandle_t handle, cublasMath_t mode);
+aclError wcublasGetMathMode(cublasHandle_t handle, cublasMath_t *mode);
+aclError wcublasSetPointerMode(cublasHandle_t handle, cublasPointerMode_t mode);
+aclError wcublasGetPointerMode(cublasHandle_t handle, cublasPointerMode_t *mode);
+aclError wcublasSetAtomicsMode(cublasHandle_t handle, cublasAtomicsMode_t mode);
+aclError wcublasGetAtomicsMode(cublasHandle_t handle, cublasAtomicsMode_t *mode);
+
 /* CUBLAS 的 Sgemm 形状：
  *   cublasSgemm(handle, transa, transb, m, n, k, &alpha, A, lda, B, ldb, &beta, C, ldc)
  * wrapper 内部转 aclblasGemmEx（补 dataType/transC/computeType/stream）。
@@ -85,6 +142,20 @@ aclError wcublasSgemm(cublasHandle_t handle, aclTransType transa, aclTransType t
 aclError wcublasDgemm(cublasHandle_t handle, aclTransType transa, aclTransType transb, int m, int n,
                       int k, const double *alpha, const double *A, int lda, const double *B,
                       int ldb, const double *beta, double *C, int ldc);
+
+/* cublasGemmEx：dtype 显式入口。支持组合（真机 acl_cblas.h 界定）：
+ *   (16F,16F,16F) / (16F,16F,32F) / (8I,8I,32I)；其它组合诚实 NOT_SUPPORT。
+ * compute 只接受 CUBLAS_COMPUTE_32F / CUDA_R_32F（→ACL_COMPUTE_HIGH_PRECISION）。
+ * alpha/beta 语义按 PointerMode：HOST（默认）staging 到 device；DEVICE 直接透传。 */
+aclError wcublasGemmEx(cublasHandle_t handle, aclTransType transa, aclTransType transb, int m,
+                       int n, int k, const void *alpha, const void *A, cudaDataType Atype, int lda,
+                       const void *B, cudaDataType Btype, int ldb, const void *beta, void *C,
+                       cudaDataType Ctype, int ldc, cublasComputeType_t computeType);
+/* cublasSgemmEx：GemmEx 的 32F compute 固定形态。 */
+aclError wcublasSgemmEx(cublasHandle_t handle, aclTransType transa, aclTransType transb, int m,
+                        int n, int k, const void *alpha, const void *A, cudaDataType Atype, int lda,
+                        const void *B, cudaDataType Btype, int ldb, const void *beta, void *C,
+                        cudaDataType Ctype, int ldc);
 
 /* BLAS1/BLAS2 占位（昇腾 aclblas 的 FP32 gemv 用 aclblasGemvEx，axpy 等待核对；当前占位） */
 aclError wcublasSgemv(cublasHandle_t handle, aclTransType trans, int m, int n, const float *alpha,

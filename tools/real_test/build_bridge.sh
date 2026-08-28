@@ -43,6 +43,15 @@ done
 
 echo "== build_bridge：ASCEND_TOOLKIT_HOME=$ASCEND_TOOLKIT_HOME"
 echo "== 安装目录 CUCC_PATH=$CUCC_PATH"
+
+RULE_VALIDATOR="$ROOT/tools/validate_cucc_rules.py"
+RULES_FILE="$ROOT/config/cu2cce_rules.json"
+if [ -x "$RULE_VALIDATOR" ] || [ -f "$RULE_VALIDATOR" ]; then
+    python3 "$RULE_VALIDATOR" "$RULES_FILE"
+else
+    echo "❌ 缺少 cucc 规则校验器：$RULE_VALIDATOR"
+    exit 1
+fi
 [ -n "$ASCEND_TOOLKIT_HOME" ] && [ -d "$ASCEND_TOOLKIT_HOME" ] || {
     echo "❌ probe 未找到 CANN，先解决 env_probe.sh 的 MISS 项"; exit 1; }
 
@@ -82,8 +91,10 @@ echo "== 产物校验（${CUCC_PATH}） =="
 fail=0
 for f in lib/libcce_bridge_runtime.so \
          include/cuda_runtime.h include/bridge/kernel/simt_adaptor.h \
-         bin/cucc bin/cmake_cce bin/make_cce tools/nvcc_entry.sh \
-         tools/cu2cce_driver.py config/cu2cce_rules.json \
+         bin/cucc bin/cmake_cce bin/make_cce bin/ninja_cce tools/nvcc_entry.sh \
+         tools/cu2cce_driver.py tools/validate_cucc_rules.py config/cu2cce_rules.json \
+         tools/real_test/fetch_external_cuda_samples.sh \
+         lib/cmake/cu2cce-bridge/cu2cceTargets.cmake \
          cmake_modules/FindCUDA.cmake cmake_modules/FindCUDAToolkit.cmake \
          lib/cmake/cu2cce-bridge/cu2cce-bridgeConfig.cmake; do
     if [ -e "$CUCC_PATH/$f" ]; then

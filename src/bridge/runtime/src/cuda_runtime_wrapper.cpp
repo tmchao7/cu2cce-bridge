@@ -21,6 +21,8 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <mutex>
+#include <unordered_map>
 #include <unistd.h> /* usleep */
 
 /* ---------------- 内部状态 ---------------- */
@@ -45,6 +47,68 @@ static void wcuda_mark(const char *label, aclError e) {
         fprintf(stderr, "[wcuda] %-26s ret=%d (%s)\n", label, (int)e,
                 e == ACL_SUCCESS ? "OK" : "FAIL");
     }
+}
+
+/* ---------------- CUDA 默认流表示 ---------------- */
+
+/* CUDA 的默认流（cudaStream_t 0，及 legacy/per-thread 变体）在昇腾没有对应
+ * 句柄；aclrt* 家族把 nullptr 流一律判 ACL_ERROR_INVALID_PARAM（100000），
+ * 上游 simpleStreams 的 cudaEventRecord(start_event, 0) 就是这样失败的
+ * （真机日志 code=100000）。这里惰性创建一条桥内自有流作为 CUDA 三种默认流
+ * 拼写的后端替身；用户显式创建的流原样透传。创建失败时持续返回同一错误，
+ * 不做静默伪造。 */
+/* Bridge-owned stand-in for the CUDA default stream (set by the resolver). */
+static aclrtStream g_bridge_default_stream = nullptr;
+static bool g_bridge_default_stream_ready = false;
+
+static bool wcuda_is_bridge_default(aclrtStream s) {
+    return g_bridge_default_stream_ready && s != nullptr && s == g_bridge_default_stream;
+}
+
+/* 记录在桥内默认流上的事件登记表（消费点语义，见 wcudaEventRecord 注释）。 */
+static std::mutex g_event_mode_mu;
+static std::unordered_map<void *, bool> g_event_on_default;
+
+static void wcuda_event_mark_default(aclrtEvent event, bool on_default) {
+    std::lock_guard<std::mutex> guard(g_event_mode_mu);
+    g_event_on_default[(void *)event] = on_default;
+}
+
+static bool wcuda_event_is_default(aclrtEvent event) {
+    std::lock_guard<std::mutex> guard(g_event_mode_mu);
+    auto it = g_event_on_default.find((void *)event);
+    return it != g_event_on_default.end() && it->second;
+}
+
+static aclError wcuda_resolve_stream(aclrtStream request, aclrtStream *resolved) {
+    if (resolved == nullptr) {
+        return ACL_ERROR_INVALID_PARAM;
+    }
+    if (request != nullptr) {
+        *resolved = request;
+        return ACL_SUCCESS;
+    }
+    BRIDGE_INIT(); /* 默认流可能是进程内的首个 runtime API */
+    static aclError create_status = ACL_SUCCESS;
+    static std::once_flag once;
+    std::call_once(once, []() {
+        aclrtStream handle = nullptr;
+        create_status = aclrtCreateStream(&handle);
+        if (create_status != ACL_SUCCESS || handle == nullptr) {
+            g_bridge_default_stream = nullptr;
+            if (create_status == ACL_SUCCESS) {
+                create_status = ACL_ERROR_RT_INTERNAL_ERROR;
+            }
+        } else {
+            g_bridge_default_stream = handle;
+            g_bridge_default_stream_ready = true;
+        }
+    });
+    if (g_bridge_default_stream == nullptr) {
+        return create_status;
+    }
+    *resolved = g_bridge_default_stream;
+    return ACL_SUCCESS;
 }
 
 /* ---------------- bridge 初始化 ---------------- */
@@ -178,6 +242,15 @@ aclError wcudaDeviceSynchronize(void) {
     WCUDA_RETURN(aclrtSynchronizeDevice());
 }
 
+aclError wcudaSetDeviceFlags(unsigned int flags) {
+    /* CUDA scheduling/map-host flags have no direct Ascend runtime equivalent.
+     * Keep the call source-compatible and let cudaDeviceProp::canMapHostMemory
+     * report whether generic host mapping is available. */
+    (void)flags;
+    BRIDGE_INIT();
+    WCUDA_RETURN(ACL_SUCCESS);
+}
+
 aclError wcudaDeviceReset(void) {
     /* 释放当前 device 资源（对应 cudaDeviceReset）。
      * 昇腾官方 ACL GEMM sample 的进程收尾顺序是 aclrtResetDevice -> aclFinalize。
@@ -251,6 +324,11 @@ aclError wcudaGetDeviceProperties(_cceDeviceProp_t *prop, int device) {
      * helper_cuda.h can remain unmodified. */
     prop->major = 9;
     prop->minor = 0;
+    /* Generic host-memory mapping is not exposed by this bridge path. */
+    prop->canMapHostMemory = 0;
+    /* No overlapping copy engines are exposed through ACL (see struct comment). */
+    prop->deviceOverlap = 0;
+    prop->asyncEngineCount = 0;
 
     WCUDA_RETURN(ACL_SUCCESS);
 }
@@ -440,22 +518,23 @@ aclError wcudaStreamDestroy(aclrtStream stream) {
 }
 
 aclError wcudaStreamSynchronize(aclrtStream stream) {
-    if (stream == nullptr) {
+    aclrtStream resolved = nullptr;
+    if (wcuda_resolve_stream(stream, &resolved) != ACL_SUCCESS) {
         WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
     }
-    WCUDA_RETURN(aclrtSynchronizeStream(stream));
+    WCUDA_RETURN(aclrtSynchronizeStream(resolved));
 }
 
 aclError wcudaStreamQuery(aclrtStream stream) {
-    BRIDGE_INIT(); /* 首次调用即本函数时先完成 ACL 初始化（107002 教训） */
-    if (stream == nullptr) {
+    aclrtStream resolved = nullptr;
+    if (wcuda_resolve_stream(stream, &resolved) != ACL_SUCCESS) {
         WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
     }
     /* aclrtStreamQuery(stream, aclrtStreamStatus *status)。
      * CUDA 语义：cudaStreamQuery 已完成返回 success，未完成返回 cudaErrorNotReady。
      * 昇腾用 status 输出判断：ACL_STREAM_STATUS_COMPLETE / NOT_READY。 */
     aclrtStreamStatus status = ACL_STREAM_STATUS_COMPLETE;
-    aclError ret = aclrtStreamQuery(stream, &status);
+    aclError ret = aclrtStreamQuery(resolved, &status);
     if (ret != ACL_SUCCESS) {
         WCUDA_RETURN(ret);
     }
@@ -467,10 +546,11 @@ aclError wcudaStreamQuery(aclrtStream stream) {
 
 aclError wcudaStreamWaitEvent(aclrtStream stream, aclrtEvent event, unsigned int flags) {
     (void)flags;
-    if (stream == nullptr || event == nullptr) {
+    aclrtStream resolved = nullptr;
+    if (event == nullptr || wcuda_resolve_stream(stream, &resolved) != ACL_SUCCESS) {
         WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
     }
-    WCUDA_RETURN(aclrtStreamWaitEvent(stream, event));
+    WCUDA_RETURN(aclrtStreamWaitEvent(resolved, event));
 }
 
 /* ---- Stream capture（昇腾无 CUDA Graph 捕获，占位返回 not-support） ---- */
@@ -560,12 +640,18 @@ aclError wcudaEventRecord(aclrtEvent event, aclrtStream stream) {
     if (event == nullptr) {
         WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
     }
-    /* CUDA 的 cudaEventRecord 在 stream 为空时用默认 stream。
-     * 昇腾侧 aclrtRecordEvent 的 stream 参数语义待真机核对（有的版本 stream 可传 null）。 */
-    if (stream == nullptr) {
+    /* CUDA 的 cudaEventRecord(event, 0) 用默认流。桥内用惰性创建的自有流
+     * 表示三种 CUDA 默认流拼写（见 wcuda_resolve_stream 注释）。 */
+    aclrtStream resolved = nullptr;
+    if (wcuda_resolve_stream(stream, &resolved) != ACL_SUCCESS) {
         WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
     }
-    WCUDA_RETURN(aclrtRecordEvent(event, stream));
+    /* Legacy 默认流语义（simpleStreams 议题定案，2026-08-28）：stream-0 上的
+     * 工作与所有阻塞流隐式同步。同步点放在"消费时"（EventSynchronize/Query/
+     * ElapsedTime）而非"记录时"——记录时全设备同步会破坏 asyncAPI 这类
+     * 中途向默认流记事件的流水线（真机回归：data 25→0、spin 4800→33）。 */
+    wcuda_event_mark_default(event, wcuda_is_bridge_default(resolved));
+    WCUDA_RETURN(aclrtRecordEvent(event, resolved));
 }
 
 aclError wcudaEventRecordWithFlags(aclrtEvent event, aclrtStream stream, unsigned int flags) {
@@ -577,6 +663,14 @@ aclError wcudaEventRecordWithFlags(aclrtEvent event, aclrtStream stream, unsigne
 aclError wcudaEventSynchronize(aclrtEvent event) {
     if (event == nullptr) {
         WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
+    }
+    /* legacy 默认流语义的消费点：默认流事件完成 ⇒ 全部流工作完成。 */
+    if (wcuda_event_is_default(event)) {
+        BRIDGE_INIT();
+        aclError dev_ret = aclrtSynchronizeDevice();
+        if (dev_ret != ACL_SUCCESS) {
+            WCUDA_RETURN(dev_ret);
+        }
     }
     WCUDA_RETURN(aclrtSynchronizeEvent(event));
 }
@@ -598,6 +692,15 @@ aclError wcudaEventQuery(aclrtEvent event) {
     if (status != ACL_EVENT_RECORDED_STATUS_COMPLETE) {
         WCUDA_RETURN(ACL_ERROR_RT_EVENT_NOT_COMPLETE);
     }
+    /* legacy 默认流语义的消费点：轮询到 COMPLETE 时，若事件记录在默认流上，
+     * 必须确保全部流的工作（含创建流上在途的异步拷贝/内核）真正落地后才
+     * 返回 success——否则 asyncAPI 式"query 忙等后读 host"会读到在途数据。 */
+    if (wcuda_event_is_default(event)) {
+        aclError dev_ret = aclrtSynchronizeDevice();
+        if (dev_ret != ACL_SUCCESS) {
+            WCUDA_RETURN(dev_ret);
+        }
+    }
     WCUDA_RETURN(ACL_SUCCESS);
 }
 
@@ -605,7 +708,25 @@ aclError wcudaEventElapsedTime(float *ms, aclrtEvent start, aclrtEvent end) {
     if (ms == nullptr || start == nullptr || end == nullptr) {
         WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
     }
-    WCUDA_RETURN(aclrtEventElapsedTime(ms, start, end));
+    aclError ret = ACL_SUCCESS;
+    /* simpleStreams 议题取证：跨流计时值是否可信（现场观察到 streamed 段
+     * elapsed≈0 且数据大部分未生效）。默认流事件对 elapsed 时先同步设备，
+     * 保证读取瞬间所有相关工作已落地。 */
+    if (wcuda_event_is_default(start) || wcuda_event_is_default(end)) {
+        ret = aclrtSynchronizeDevice();
+        if (wcuda_dbg()) {
+            fprintf(stderr, "[wcuda] wcudaEventElapsedTime default-sync ret=%d\n", (int)ret);
+        }
+        if (ret != ACL_SUCCESS) {
+            return ret;
+        }
+    }
+    ret = aclrtEventElapsedTime(ms, start, end);
+    if (wcuda_dbg()) {
+        fprintf(stderr, "[wcuda] wcudaEventElapsedTime ret=%d ms=%.6f start=%p end=%p\n",
+                (int)ret, (double)*ms, (void *)start, (void *)end);
+    }
+    return ret;
 }
 
 /* ---------------- Memory Management ---------------- */
@@ -676,10 +797,17 @@ aclError wcudaMemcpyAsync(void *dst, const void *src, size_t count, aclrtMemcpyK
     if (dst == nullptr || src == nullptr) {
         WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
     }
-    if (stream == nullptr) {
+    aclrtStream resolved = nullptr;
+    if (wcuda_resolve_stream(stream, &resolved) != ACL_SUCCESS) {
         WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
     }
-    WCUDA_RETURN(aclrtMemcpyAsync(dst, count, src, count, kind, stream));
+    aclError ret = aclrtMemcpyAsync(dst, count, src, count, kind, resolved);
+    /* simpleStreams 议题取证：流水线里的每个异步拷贝都要留下去向。 */
+    if (wcuda_dbg()) {
+        fprintf(stderr, "[wcuda] wcudaMemcpyAsync ret=%d n=%zu kind=%d stream=%p dst=%p src=%p\n",
+                (int)ret, count, (int)kind, (void *)resolved, dst, src);
+    }
+    return ret;
 }
 
 aclError wcudaMemcpy2D(void *dst, size_t dpitch, const void *src, size_t spitch, size_t width,
@@ -706,15 +834,16 @@ aclError wcudaMemcpy2D(void *dst, size_t dpitch, const void *src, size_t spitch,
 
 aclError wcudaMemcpy2DAsync(void *dst, size_t dpitch, const void *src, size_t spitch, size_t width,
                             size_t height, aclrtMemcpyKind kind, aclrtStream stream) {
-    if (dst == nullptr || src == nullptr || stream == nullptr || width == 0 || height == 0 ||
-        dpitch < width || spitch < width) {
+    aclrtStream resolved = nullptr;
+    if (dst == nullptr || src == nullptr || width == 0 || height == 0 || dpitch < width ||
+        spitch < width || wcuda_resolve_stream(stream, &resolved) != ACL_SUCCESS) {
         WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
     }
     char *dstBytes = (char *)dst;
     const char *srcBytes = (const char *)src;
     for (size_t row = 0; row < height; ++row) {
         aclError ret = aclrtMemcpyAsync(dstBytes + row * dpitch, width, srcBytes + row * spitch,
-                                        width, kind, stream);
+                                        width, kind, resolved);
         if (ret != ACL_SUCCESS) {
             WCUDA_RETURN(ret);
         }
@@ -749,13 +878,14 @@ aclError wcudaMemset2D(void *devPtr, size_t pitch, int value, size_t width, size
 
 aclError wcudaMemset2DAsync(void *devPtr, size_t pitch, int value, size_t width, size_t height,
                             aclrtStream stream) {
-    if (devPtr == nullptr || stream == nullptr) {
+    aclrtStream resolved = nullptr;
+    if (devPtr == nullptr || wcuda_resolve_stream(stream, &resolved) != ACL_SUCCESS) {
         WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
     }
     /* 昇腾无 aclrtMemset2dAsync，用逐行 aclrtMemsetAsync 模拟。 */
     char *row = (char *)devPtr;
     for (size_t y = 0; y < height; ++y) {
-        aclError ret = aclrtMemsetAsync(row + y * pitch, width, value, width, stream);
+        aclError ret = aclrtMemsetAsync(row + y * pitch, width, value, width, resolved);
         if (ret != ACL_SUCCESS) {
             WCUDA_RETURN(ret);
         }
@@ -1033,10 +1163,12 @@ aclError wcudaMemcpyPeerAsync(void *dst, int dstDevice, const void *src, int src
                               size_t count, aclrtStream stream) {
     (void)dstDevice;
     (void)srcDevice;
-    if (dst == nullptr || src == nullptr || stream == nullptr) {
+    aclrtStream resolved = nullptr;
+    if (dst == nullptr || src == nullptr ||
+        wcuda_resolve_stream(stream, &resolved) != ACL_SUCCESS) {
         WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
     }
-    WCUDA_RETURN(aclrtMemcpyAsync(dst, count, src, count, ACL_MEMCPY_DEVICE_TO_DEVICE, stream));
+    WCUDA_RETURN(aclrtMemcpyAsync(dst, count, src, count, ACL_MEMCPY_DEVICE_TO_DEVICE, resolved));
 }
 
 /* ---- SOMA（Stream Ordered Memory Allocator） ----
@@ -1124,10 +1256,11 @@ aclError wcudaPointerGetAttributes(void *attributes, const void *ptr) {
 }
 
 aclError wcudaMemsetAsync(void *devPtr, int value, size_t count, aclrtStream stream) {
-    if (devPtr == nullptr || stream == nullptr) {
+    aclrtStream resolved = nullptr;
+    if (devPtr == nullptr || wcuda_resolve_stream(stream, &resolved) != ACL_SUCCESS) {
         WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
     }
-    WCUDA_RETURN(aclrtMemsetAsync(devPtr, count, value, count, stream));
+    WCUDA_RETURN(aclrtMemsetAsync(devPtr, count, value, count, resolved));
 }
 
 aclError wcudaMemGetInfo(size_t *free, size_t *total) {
@@ -1353,8 +1486,18 @@ aclError wcudaLaunchKernel(const void *hostFunction, dim3 gridDim, dim3 blockDim
     /* 昇腾 aclrtLaunchSIMTKernelWithArgsArray(func, gridDim, blockDim, dynUbufSize, stream, cfg, args)
      * 官方文档确认：Ascend 950PR/950DT 支持（A2/A3/910B 不支持）。
      * cfg 传 nullptr（默认配置）。dynUbufSize = CUDA 的 sharedMemBytes。 */
-    WCUDA_RETURN(aclrtLaunchSIMTKernelWithArgsArray((void *)hostFunction, gridDim, blockDim,
-                                                    sharedMemBytes, stream, nullptr, args));
+    aclError ret = aclrtLaunchSIMTKernelWithArgsArray((void *)hostFunction, gridDim, blockDim,
+                                                      sharedMemBytes, stream, nullptr, args);
+    /* simpleStreams 议题取证：多流流水线的每次 launch 都要留下 return 码
+     * 与网格形状（现场现象：流水线工作大面积未生效但返回全 0）。 */
+    if (wcuda_dbg()) {
+        fprintf(stderr,
+                "[wcuda] wcudaLaunchKernel ret=%d grid=(%u,%u,%u) block=(%u,%u,%u) stream=%p "
+                "func=%p args=%p\n",
+                (int)ret, gridDim.x, gridDim.y, gridDim.z, blockDim.x, blockDim.y, blockDim.z,
+                (void *)stream, (void *)hostFunction, (void *)args);
+    }
+    return ret;
 }
 
 /* ---------------- Profiler Control ----------------
@@ -1393,12 +1536,13 @@ aclError wcudaThreadGetCacheConfig(int *cacheConfig) {
  * 完整的线程注册流程需真机验证 aclrtSubscribeReport 的线程-流绑定语义后补全。 */
 
 aclError wcudaLaunchHostFunc(aclrtStream stream, wcceHostFn_t fn, void *userData) {
-    if (stream == nullptr || fn == nullptr) {
+    aclrtStream resolved = nullptr;
+    if (fn == nullptr || wcuda_resolve_stream(stream, &resolved) != ACL_SUCCESS) {
         WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
     }
     /* blockType 用 ACL_CALLBACK_NO_BLOCK（不阻塞 stream 后续任务，语义接近 cudaLaunchHostFunc）。
      * ⚠️ 待真机：需先 aclrtSubscribeReport 注册回调线程，否则回调可能不触发。 */
-    WCUDA_RETURN(aclrtLaunchCallback(fn, userData, ACL_CALLBACK_NO_BLOCK, stream));
+    WCUDA_RETURN(aclrtLaunchCallback(fn, userData, ACL_CALLBACK_NO_BLOCK, resolved));
 }
 
 aclError wcudaFuncGetAttributes(void *attr, const void *func) {

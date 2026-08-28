@@ -52,6 +52,8 @@ The next operator-focused tests use the same minimal-source policy:
 
 - `half_minimal.cu` — CUDA FP16/half2 aliases and conversion round-trip, backed by CANN `simt_api/asc_fp16.h`.
 - `bf16x2_minimal.cu` — CUDA BF16/BF16x2 aliases and conversion round-trip, backed by CANN `simt_api/asc_bf16.h`.
+- `device_math_minimal.cu` — **required-gate member (fast core subset)** since round-7 after consecutive [DIAG-PASS] server rounds: a standalone `__device__` helper (spelled with NVIDIA's keyword, bridged by simt_adaptor onto CANN's execution-space selector) runs the single-precision math chain inside a kernel, cross-checked against libm on the host. Exercises the crt forward-only surface plus the execution-space keyword map end-to-end.
+- `double_policy_diag.cu` — **diagnostic-only** carrier demonstrating the proactive FP64 type policy: device-side double triggers cucc's `[type-policy]` report before ccec runs (`error` blocks, `warn` advises then continues), teaching the "downgrade to float manually" workflow for data types Ascend cannot execute.
 
 
 ## Coverage model

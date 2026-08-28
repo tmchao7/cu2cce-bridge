@@ -13,12 +13,26 @@ set(_CU2CCE_CANN_BASE "$ENV{CANN_BASE}")
 if(NOT _CU2CCE_CANN_BASE)
   set(_CU2CCE_CANN_BASE "/usr/local/Ascend/latest")
 endif()
+set(_CU2CCE_TOOLKIT "$ENV{ASCEND_TOOLKIT_HOME}")
+if(NOT _CU2CCE_TOOLKIT)
+  set(_CU2CCE_TOOLKIT "/usr/local/Ascend/ascend-toolkit/latest")
+endif()
+
+set(_CU2CCE_CANN_INCLUDE_DIRS "${_CU2CCE_PREFIX}/include")
+foreach(_include_dir
+    "${_CU2CCE_CANN_BASE}/include"
+    "${_CU2CCE_TOOLKIT}/include")
+  if(EXISTS "${_include_dir}")
+    list(APPEND _CU2CCE_CANN_INCLUDE_DIRS "${_include_dir}")
+  endif()
+endforeach()
+list(REMOVE_DUPLICATES _CU2CCE_CANN_INCLUDE_DIRS)
 
 set(CUDAToolkit_FOUND TRUE)
 set(CUDA_FOUND TRUE)
 set(CUDAToolkit_VERSION "11.6")
 set(CUDA_VERSION "11.6")
-set(CUDAToolkit_INCLUDE_DIRS "${_CU2CCE_PREFIX}/include")
+set(CUDAToolkit_INCLUDE_DIRS "${_CU2CCE_CANN_INCLUDE_DIRS}")
 set(CUDA_INCLUDE_DIRS "${CUDAToolkit_INCLUDE_DIRS}")
 set(CUDAToolkit_LIBRARY_ROOT "${_CU2CCE_PREFIX}")
 set(CUDAToolkit_LIBRARY_DIR "${_CU2CCE_PREFIX}/lib")
@@ -44,7 +58,7 @@ if(NOT TARGET CUDA::cudart)
   add_library(CUDA::cudart UNKNOWN IMPORTED)
   set_target_properties(CUDA::cudart PROPERTIES
     IMPORTED_LOCATION "${_CU2CCE_RUNTIME}"
-    INTERFACE_INCLUDE_DIRECTORIES "${_CU2CCE_PREFIX}/include"
+    INTERFACE_INCLUDE_DIRECTORIES "${CUDAToolkit_INCLUDE_DIRS}"
   )
 
   # A C++ host target that links CUDA::cudart does not pass through cucc's
@@ -69,8 +83,30 @@ endif()
 
 set(CUDAToolkit_CUDART_LIBRARY "${_CU2CCE_RUNTIME}")
 set(CUDA_CUDART_LIBRARY "${_CU2CCE_RUNTIME}")
+
+# Alias-family targets so large projects that reference the common CUDA
+# imported-target spellings keep configuring. These are all backed by the
+# bridge runtime (puresimt consumes CUDA source directly; there is no separate
+# device-runtime library on Ascend). CUDA::toolkit carries the include dirs;
+# cudart_static/cudadevrt are aliases of the same bridge runtime so link lines
+# with those spellings resolve instead of failing with missing targets.
+if(NOT TARGET CUDA::toolkit)
+  add_library(CUDA::toolkit INTERFACE IMPORTED)
+  set_target_properties(CUDA::toolkit PROPERTIES
+    INTERFACE_INCLUDE_DIRECTORIES "${CUDAToolkit_INCLUDE_DIRS}")
+endif()
+foreach(_alias cudart_static cudadevrt cudart)
+  if(NOT TARGET CUDA::${_alias})
+    add_library(CUDA::${_alias} INTERFACE IMPORTED)
+    set_target_properties(CUDA::${_alias} PROPERTIES
+      INTERFACE_LINK_LIBRARIES CUDA::cudart)
+  endif()
+endforeach()
+
 set(CUDAToolkit_LIBRARIES CUDA::cudart)
 set(CUDA_LIBRARIES CUDA::cudart)
+set(CUDAToolkit_CUDART_STATIC_LIBRARY "${_CU2CCE_RUNTIME}")
+set(CUDAToolkit_CUDA_DRIVER_LIBRARY "${_CU2CCE_RUNTIME}")
 
 
 if(CUDAToolkit_FIND_QUIETLY)

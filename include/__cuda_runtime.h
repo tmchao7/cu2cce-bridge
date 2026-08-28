@@ -32,6 +32,16 @@
 #include "bridge/runtime/cuda_to_cce_mcr_adaptor.h"
 #include "bridge/runtime/cuda_wrapper_internal.h"
 #include "bridge/runtime/cuda_wrapper_types.h"
+
+/* Large C++/CUDA projects can opt into the real system math declarations.
+ * The default runtime header does not include shadow/math.h transitively: a
+ * CUDA sample may include libstdc++'s <math.h> later, and predeclaring the
+ * shadow functions would conflict with glibc exception specifications. Minimal
+ * tests that need math declarations explicitly preinclude shadow/math.h. */
+#if defined(__CU2CCE_SYSTEM_LIBC__)
+#include <math.h>
+#endif
+
 /* puresimt kernel 原语（__shared__/__syncthreads/atomicAdd）在 -x asc 直通下
  * 由本适配头映射到昇腾 SIMT（__ubuf__/asc_syncthreads/asc_atomic_add） */
 #include "bridge/kernel/simt_adaptor.h"

@@ -1,0 +1,17 @@
+#!/bin/bash
+# ninja_cce —— run Ninja for a cu2cce-generated build tree.
+# CMake has already recorded the CUDA shim/compiler in the build directory;
+# this wrapper only validates the bridge environment and forwards arguments.
+set -euo pipefail
+
+CUCC_PATH="${CUCC_PATH:-}"
+if [ -z "$CUCC_PATH" ] || [ ! -x "$CUCC_PATH/bin/cucc" ]; then
+    echo "ninja_cce: CUCC_PATH must point to an installed cu2cce-bridge directory" >&2
+    exit 1
+fi
+if ! command -v ninja >/dev/null 2>&1; then
+    echo "ninja_cce: ninja executable not found" >&2
+    exit 1
+fi
+export PATH="$CUCC_PATH/bin:$PATH"
+exec ninja "$@"

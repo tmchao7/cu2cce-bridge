@@ -76,3 +76,30 @@ cucc -c examples/puresimt/vectorAdd_minimal.cu -o /tmp/vector.o
 
 The default policy warns and drops NVIDIA-only flags, preserves ordinary compiler
 flags, and rejects PTX/CUBIN/FATBIN/device-link features.
+
+## Build compatibility smoke
+
+The current compatibility branch also exercises:
+
+- `examples/build_compat/cmake/` — multi-CUDA static library plus host C++ and install/export;
+- `examples/build_compat/make/` — Makefile `nvcc` interception, multiple objects and dependency flags;
+- `ninja_cce` — wrapper for a CMake-generated Ninja build directory.
+
+The final server summary reports `BUILD_COMPATIBILITY_REGRESSION_PASS` only when the
+required Make/Ninja checks pass in addition to puresimt and CMake checks.
+
+
+## External NVIDIA CUDA Samples
+
+The build compatibility branch fetches a pinned upstream sample tree into
+`build/real_test/external/nvidia_cuda_samples/` and configures the unmodified
+selected sample CMake projects through `cmake_cce`. The pinned profile is
+`v12.8` revision `db3eea23946bca2e90a75eca2b5b3e07158a9e11`; it is an experimental
+build-graph test, not a full CUDA 12.8 compatibility claim.
+
+
+## libc header modes
+
+The ordinary puresimt regression keeps the default `CU2CCE_LIBC_MODE=shadow` mode.
+External C++/CUDA projects that include libstdc++ headers should use
+`CU2CCE_LIBC_MODE=system`; the external CUDA Samples profile sets this automatically.

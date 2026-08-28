@@ -1,0 +1,136 @@
+#!/bin/bash
+# Fetch the pinned NVIDIA CUDA Samples source used by the build compatibility smoke.
+# Prefer GitHub's commit archive: it avoids a full git checkout of a large
+# repository and keeps the exact source revision reproducible.
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+OUT_DIR="${OUT_DIR:-$ROOT/build/real_test}"
+SOURCE_DIR="${CUDA_SAMPLES_SOURCE_DIR:-$OUT_DIR/external/nvidia_cuda_samples}"
+REPO_URL="${CUDA_SAMPLES_REPO:-https://github.com/NVIDIA/cuda-samples.git}"
+VALIDATOR="$ROOT/tools/real_test/validate_fetch_url.py"
+REF="${CUDA_SAMPLES_REF:-db3eea23946bca2e90a75eca2b5b3e07158a9e11}"
+TAG="${CUDA_SAMPLES_TAG:-v12.8}"
+FETCH_MODE="${CUDA_SAMPLES_FETCH_MODE:-git}"
+
+# Every server-side fetch must use http/https and a public remote host. The
+# validator rejects loopback, private, link-local, multicast, reserved and
+# special-use addresses (including hostnames that resolve to them).
+require_public_https_url() {
+    local url="$1"
+    local scheme host
+    case "$url" in
+        http://*|https://*) ;;
+        *)
+            echo "external CUDA Samples: refusing non-http(s) URL: $url" >&2
+            exit 1
+            ;;
+    esac
+    host="${url#*://}"
+    host="${host%%/*}"
+    case "$host" in
+        *@*|*:*)
+            echo "external CUDA Samples: refusing URL with credentials or port: $url" >&2
+            exit 1
+            ;;
+        "")
+            echo "external CUDA Samples: refusing URL without a host: $url" >&2
+            exit 1
+            ;;
+    esac
+    if [ -x "$VALIDATOR" ]; then
+        if python3 "$VALIDATOR" "$host"; then
+            echo "external CUDA Samples: refusing blocked host '$host' for $url" >&2
+            exit 1
+        fi
+        return 0
+    fi
+    # Fallback without the validator: only allow exact known-good public hosts.
+    case "$host" in
+        github.com|api.github.com|raw.githubusercontent.com|codeload.github.com|objects.githubusercontent.com)
+            return 0
+            ;;
+        *)
+            echo "external CUDA Samples: missing validator and host '$host' is not allowlisted" >&2
+            exit 1
+            ;;
+    esac
+}
+
+require_public_https_url "$REPO_URL"
+
+FILE_REPO_URL="${CUDA_SAMPLES_FILE_REPO_URL:-https://api.github.com/repos/NVIDIA/cuda-samples}"
+ARCHIVE_URL="${CUDA_SAMPLES_ARCHIVE_URL:-https://github.com/NVIDIA/cuda-samples/archive/${REF}.tar.gz}"
+require_public_https_url "$ARCHIVE_URL"
+require_public_https_url "$FILE_REPO_URL"
+
+mkdir -p "$(dirname "$SOURCE_DIR")"
+
+# A previous successful archive fetch is reusable and avoids network work.
+if [ -f "$SOURCE_DIR/.cu2cce_revision" ] &&
+   [ "$(cat "$SOURCE_DIR/.cu2cce_revision")" = "$REF" ] &&
+   [ -d "$SOURCE_DIR/Samples" ]; then
+    printf 'CUDA_SAMPLES_SOURCE_DIR=%s\nCUDA_SAMPLES_REF=%s\n' "$SOURCE_DIR" "$REF"
+    exit 0
+fi
+
+rm -rf "$SOURCE_DIR"
+mkdir -p "$SOURCE_DIR"
+
+archive_ok=0
+if [ "$FETCH_MODE" = "archive" ] && command -v curl >/dev/null 2>&1 && command -v tar >/dev/null 2>&1; then
+    ARCHIVE_DIR="$(mktemp -d "$(dirname "$SOURCE_DIR")/.cuda-samples-fetch.XXXXXX")"
+    ARCHIVE="$ARCHIVE_DIR/cuda-samples.tar.gz"
+    trap 'rm -rf "$ARCHIVE_DIR"' EXIT
+    ARCHIVE_URL="${CUDA_SAMPLES_ARCHIVE_URL:-https://github.com/NVIDIA/cuda-samples/archive/${REF}.tar.gz}"
+    echo "[INFO] downloading pinned CUDA Samples archive: $ARCHIVE_URL" >&2
+    if curl --fail --location --retry 3 --http1.1 --connect-timeout 30 \
+         --max-time "${CUDA_SAMPLES_CURL_TIMEOUT:-240}" \
+         "$ARCHIVE_URL" --output "$ARCHIVE"; then
+        tar -xzf "$ARCHIVE" -C "$ARCHIVE_DIR"
+        extracted="$(find "$ARCHIVE_DIR" -mindepth 1 -maxdepth 1 -type d -name 'cuda-samples-*' -print -quit)"
+        if [ -n "$extracted" ] && [ -d "$extracted/Samples" ]; then
+            cp -a "$extracted/." "$SOURCE_DIR/"
+            printf '%s\n' "$REF" > "$SOURCE_DIR/.cu2cce_revision"
+            archive_ok=1
+        fi
+    fi
+    if [ "$archive_ok" -eq 0 ]; then
+        echo '[WARN] CUDA Samples archive fetch failed; falling back to shallow git fetch' >&2
+        rm -rf "$ARCHIVE_DIR"
+    fi
+fi
+
+if [ "$archive_ok" -eq 0 ]; then
+    # Fallback for environments without curl/tar or when archive download is
+    # blocked. This path is slower but preserves exact commit verification.
+    if ! command -v git >/dev/null 2>&1; then
+        echo "neither archive tools nor git are available for external CUDA Samples" >&2
+        exit 1
+    fi
+    rm -rf "$SOURCE_DIR"
+    # The pinned revision is the v12.8 tag. Cloning the tag directly avoids a
+    # default-branch checkout followed by a second network fetch, which can
+    # exceed the server smoke timeout on GitHub connections. git checkout
+    # prints a detached-HEAD notice to stdout, so silence the notice; only the
+    # rev-parse comparison below is authoritative.
+    if [ "$TAG" = "v12.8" ]; then
+        git clone --depth 1 --filter=blob:none --branch "$TAG" "$REPO_URL" "$SOURCE_DIR" >/dev/null 2>&1
+    else
+        git clone --filter=blob:none --no-checkout "$REPO_URL" "$SOURCE_DIR" >/dev/null 2>&1
+        git -C "$SOURCE_DIR" fetch --depth 1 origin "$REF" >/dev/null 2>&1
+        git -C "$SOURCE_DIR" checkout --detach "$REF" >/dev/null 2>&1
+    fi
+    actual="$(git -C "$SOURCE_DIR" rev-parse HEAD)"
+    if [ "$actual" != "$REF" ]; then
+        echo "external CUDA Samples revision mismatch: expected $REF, got $actual" >&2
+        exit 1
+    fi
+    printf '%s\n' "$actual" > "$SOURCE_DIR/.cu2cce_revision"
+fi
+
+if [ ! -d "$SOURCE_DIR/Samples" ]; then
+    echo "external CUDA Samples source tree is incomplete: $SOURCE_DIR" >&2
+    exit 1
+fi
+printf 'CUDA_SAMPLES_SOURCE_DIR=%s\nCUDA_SAMPLES_REF=%s\n' "$SOURCE_DIR" "$REF"

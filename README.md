@@ -176,6 +176,24 @@ git pull --ff-only gitcode main
 bash tools/real_test/server_cmd.txt
 ```
 
+回归画像（`CU2CCE_REGRESSION_PROFILE`，默认 `fast`）：
+
+- `fast`：设备门禁 + bridge 重编 + cucc 直通 + puresimt 核心子集
+  （官方 vectorAdd/matrixMul + event/multiKernel/atomic/math minimal）+
+  CMake 仅 cmake_demo 与 cmake_large_project。日常开发用，最短反馈。
+- `external`：设备门禁 + bridge 重编 + 整个 External NVIDIA Samples 段
+  （含诊断样本逐个编译运行）。改 wrapper/runtime 后定向验证。
+- `full`：全部段落（含 legacy CMake、install/export、Ninja、multi_cu、
+  make/ninja smoke 与外部样本），里程碑或冻结前使用。
+
+```bash
+CU2CCE_REGRESSION_PROFILE=full bash tools/real_test/server_cmd.txt
+```
+
+被跳过的段会打 `[SKIP] ... (profile=...)`，最终汇总输出对应
+`*_SECTION_SKIPPED`；skip 既不计 FAIL 也绝不冒充 PASS。各段有 `[timing]`
+计时行，慢点可直接定位。
+
 当前回归包括：
 
 - NVIDIA 官方 `vectorAdd`
@@ -246,6 +264,9 @@ CUDA cuBLAS to CANN ACL CBLAS development is maintained separately on
 - `tools/cu2cce_driver.py`：cucc 与 CMake mock 共用的参数规则驱动。
 - `config/cu2cce_rules.json`：CUDA 参数 filter/replacer/inject/reject 规则。
 - `bin/cmake_cce`：CMake CUDA 工程入口；配置时使用 `cmake_cce -S . -B build`。
+- `bin/make_cce` / `bin/ninja_cce`：Makefile/Ninja 构建入口。
+- `docs/03_Comparison/BUILD_SYSTEM_COMPATIBILITY_MATRIX.md`：大型项目构建兼容矩阵。
+- `examples/external/cuda_samples_project/`：固定版本 NVIDIA CUDA Samples 的 CMake 外部工程 harness。
 - `examples/puresimt/`：维护中的 CUDA examples。
 - `tools/real_test/server_cmd.txt`：唯一主线真机回归入口。
 - `tools/real_test/diag/`：非主线 ACL/runtime 排障工具。

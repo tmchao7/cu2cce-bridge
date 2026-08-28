@@ -35,6 +35,7 @@ aclError CUBRIDGE_API wcudaSetDevice(int device);
 aclError CUBRIDGE_API wcudaGetDevice(int *device);
 aclError CUBRIDGE_API wcudaDeviceSynchronize(void);
 aclError CUBRIDGE_API wcudaDeviceReset(void);
+aclError CUBRIDGE_API wcudaSetDeviceFlags(unsigned int flags);
 aclError CUBRIDGE_API wcudaGetDeviceProperties(_cceDeviceProp_t *prop, int device);
 /* 常用设备属性查询（attr 取值见 cudaDeviceAttr 枚举，见 adaptor 宏表）
  * 昇腾无 aclrtDeviceGetAttribute，从 _cceDeviceProp_t 字段映射。 */
@@ -275,6 +276,11 @@ aclError CUBRIDGE_API wcudaDriverGetVersion(int *driverVersion);
  * official matrixMul sample uses cudaMallocHost(&float_ptr, size) without a
  * cast; keep that source unchanged while forwarding to the C ABI wrapper. */
 template <typename T>
+inline aclError wcudaMalloc(T **ptr, size_t size) {
+    return wcudaMalloc(reinterpret_cast<void **>(ptr), size);
+}
+
+template <typename T>
 inline aclError wcudaMallocHost(T **ptr, size_t size) {
     return wcudaMallocHost(reinterpret_cast<void **>(ptr), size);
 }
@@ -282,6 +288,13 @@ inline aclError wcudaMallocHost(T **ptr, size_t size) {
 template <typename T>
 inline aclError wcudaMallocHostWithFlags(T **ptr, size_t size, unsigned int flags) {
     return wcudaMallocHostWithFlags(reinterpret_cast<void **>(ptr), size, flags);
+}
+
+/* simpleMultiCopy and similar samples call cudaHostAlloc(&float_ptr, ...) with
+ * a typed pointer; NVIDIA exposes the same overload family. */
+template <typename T>
+inline aclError wcudaHostAlloc(T **ptr, size_t size, unsigned int flags) {
+    return wcudaHostAlloc(reinterpret_cast<void **>(ptr), size, flags);
 }
 #endif
 
