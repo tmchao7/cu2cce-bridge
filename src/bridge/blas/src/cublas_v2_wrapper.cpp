@@ -494,17 +494,33 @@ aclError wcublasSgemv(cublasHandle_t handle, aclTransType trans, int m, int n, c
             ret = aclrtMemcpy(devBeta, sizeof(float), beta, sizeof(float), ACL_MEMCPY_HOST_TO_DEVICE);
         }
         if (ret != ACL_SUCCESS) {
+            std::fprintf(stderr, "[cce_bridge][Sgemv] scalar staging failed ret=%d recent=%s\n",
+                         (int)ret, aclGetRecentErrMsg() != nullptr ? aclGetRecentErrMsg() : "(null)");
             aclrtFree(devAlpha);
             aclrtFree(devBeta);
             return ret;
         }
-        ret = aclblasGemvEx(trans, m, n, devAlpha, A, lda, ACL_FLOAT, x, incx, ACL_FLOAT, devBeta,
-                            y, incy, ACL_FLOAT, ACL_COMPUTE_HIGH_PRECISION, handle->stream);
+    }
+    /* aclblasGemvEx 的 lda 与 aclblasGemmEx 的 lda/ldb/ldc 同为保留参数，
+     * 文档要求传 -1（真机教训：原样传宿主 lda 触发 100000 参数校验失败）。 */
+    const int acl_ld = -1;
+    std::fprintf(stderr,
+                 "[cce_bridge][Sgemv] enter trans=%d shape=(m=%d,n=%d) cuda_ld=%d acl_ld=%d "
+                 "incx=%d incy=%d stream=%p scalar_dev=%d\n",
+                 (int)trans, m, n, lda, acl_ld, incx, incy, (void *)handle->stream,
+                 handle->pointerMode == CUBLAS_POINTER_MODE_HOST ? 1 : 0);
+    ret = aclblasGemvEx(trans, m, n,
+                        (handle->pointerMode == CUBLAS_POINTER_MODE_HOST) ? devAlpha : alpha,
+                        A, acl_ld, ACL_FLOAT, x, incx, ACL_FLOAT,
+                        (handle->pointerMode == CUBLAS_POINTER_MODE_HOST) ? devBeta : beta,
+                        y, incy, ACL_FLOAT, ACL_COMPUTE_HIGH_PRECISION, handle->stream);
+    std::fprintf(stderr, "[cce_bridge][Sgemv] aclblasGemvEx ret=%d recent=%s\n", (int)ret,
+                 aclGetRecentErrMsg() != nullptr ? aclGetRecentErrMsg() : "(null)");
+    if (devAlpha != nullptr) {
         aclrtFree(devAlpha);
+    }
+    if (devBeta != nullptr) {
         aclrtFree(devBeta);
-    } else {
-        ret = aclblasGemvEx(trans, m, n, alpha, A, lda, ACL_FLOAT, x, incx, ACL_FLOAT, beta, y,
-                            incy, ACL_FLOAT, ACL_COMPUTE_HIGH_PRECISION, handle->stream);
     }
     if (ret != ACL_SUCCESS) {
         return ret;

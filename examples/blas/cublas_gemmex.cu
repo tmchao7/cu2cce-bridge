@@ -10,9 +10,9 @@
 #include <cublas_v2.h>
 #include <stdio.h>
 
-#define M 16
-#define N 16
-#define K 16
+#define M 32
+#define N 32
+#define K 32
 
 int main(void) {
     __fp16 hA[M * K], hB[K * N];
