@@ -662,7 +662,14 @@ aclError wcudaEventElapsedTime(float *ms, aclrtEvent start, aclrtEvent end) {
     if (ms == nullptr || start == nullptr || end == nullptr) {
         WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
     }
-    WCUDA_RETURN(aclrtEventElapsedTime(ms, start, end));
+    aclError ret = aclrtEventElapsedTime(ms, start, end);
+    /* simpleStreams 议题取证：跨流计时值是否可信（现场观察到 streamed 段
+     * elapsed≈0 且数据大部分未生效）。 */
+    if (wcuda_dbg()) {
+        fprintf(stderr, "[wcuda] wcudaEventElapsedTime ret=%d ms=%.6f start=%p end=%p\n",
+                (int)ret, (double)*ms, (void *)start, (void *)end);
+    }
+    return ret;
 }
 
 /* ---------------- Memory Management ---------------- */
@@ -737,7 +744,13 @@ aclError wcudaMemcpyAsync(void *dst, const void *src, size_t count, aclrtMemcpyK
     if (wcuda_resolve_stream(stream, &resolved) != ACL_SUCCESS) {
         WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
     }
-    WCUDA_RETURN(aclrtMemcpyAsync(dst, count, src, count, kind, resolved));
+    aclError ret = aclrtMemcpyAsync(dst, count, src, count, kind, resolved);
+    /* simpleStreams 议题取证：流水线里的每个异步拷贝都要留下去向。 */
+    if (wcuda_dbg()) {
+        fprintf(stderr, "[wcuda] wcudaMemcpyAsync ret=%d n=%zu kind=%d stream=%p dst=%p src=%p\n",
+                (int)ret, count, (int)kind, (void *)resolved, dst, src);
+    }
+    return ret;
 }
 
 aclError wcudaMemcpy2D(void *dst, size_t dpitch, const void *src, size_t spitch, size_t width,
@@ -1416,8 +1429,18 @@ aclError wcudaLaunchKernel(const void *hostFunction, dim3 gridDim, dim3 blockDim
     /* 昇腾 aclrtLaunchSIMTKernelWithArgsArray(func, gridDim, blockDim, dynUbufSize, stream, cfg, args)
      * 官方文档确认：Ascend 950PR/950DT 支持（A2/A3/910B 不支持）。
      * cfg 传 nullptr（默认配置）。dynUbufSize = CUDA 的 sharedMemBytes。 */
-    WCUDA_RETURN(aclrtLaunchSIMTKernelWithArgsArray((void *)hostFunction, gridDim, blockDim,
-                                                    sharedMemBytes, stream, nullptr, args));
+    aclError ret = aclrtLaunchSIMTKernelWithArgsArray((void *)hostFunction, gridDim, blockDim,
+                                                      sharedMemBytes, stream, nullptr, args);
+    /* simpleStreams 议题取证：多流流水线的每次 launch 都要留下 return 码
+     * 与网格形状（现场现象：流水线工作大面积未生效但返回全 0）。 */
+    if (wcuda_dbg()) {
+        fprintf(stderr,
+                "[wcuda] wcudaLaunchKernel ret=%d grid=(%u,%u,%u) block=(%u,%u,%u) stream=%p "
+                "func=%p args=%p\n",
+                (int)ret, gridDim.x, gridDim.y, gridDim.z, blockDim.x, blockDim.y, blockDim.z,
+                (void *)stream, (void *)hostFunction, (void *)args);
+    }
+    return ret;
 }
 
 /* ---------------- Profiler Control ----------------
