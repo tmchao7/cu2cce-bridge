@@ -708,16 +708,20 @@ aclError wcudaEventElapsedTime(float *ms, aclrtEvent start, aclrtEvent end) {
     if (ms == nullptr || start == nullptr || end == nullptr) {
         WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
     }
-    aclError ret = aclrtEventElapsedTime(ms, start, end);
+    aclError ret = ACL_SUCCESS;
     /* simpleStreams 议题取证：跨流计时值是否可信（现场观察到 streamed 段
      * elapsed≈0 且数据大部分未生效）。默认流事件对 elapsed 时先同步设备，
      * 保证读取瞬间所有相关工作已落地。 */
     if (wcuda_event_is_default(start) || wcuda_event_is_default(end)) {
-        aclError sync_ret = aclrtSynchronizeDevice();
+        ret = aclrtSynchronizeDevice();
         if (wcuda_dbg()) {
-            fprintf(stderr, "[wcuda] wcudaEventElapsedTime default-sync ret=%d\n", (int)sync_ret);
+            fprintf(stderr, "[wcuda] wcudaEventElapsedTime default-sync ret=%d\n", (int)ret);
+        }
+        if (ret != ACL_SUCCESS) {
+            return ret;
         }
     }
+    ret = aclrtEventElapsedTime(ms, start, end);
     if (wcuda_dbg()) {
         fprintf(stderr, "[wcuda] wcudaEventElapsedTime ret=%d ms=%.6f start=%p end=%p\n",
                 (int)ret, (double)*ms, (void *)start, (void *)end);
