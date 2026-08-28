@@ -2,6 +2,7 @@
 
 ## 推荐阅读顺序
 
+0. `03_Comparison/MENTOR_REPORT_2026-08-28.md`：**阶段汇报单一入口**——CMake 大项目能力/用法 × cucc 能力对比 cu-bridge（含现场演示脚本）。
 1. `01_Design/PROJECT_ARCHITECTURE.md`：项目原理、设计哲学、编译/运行逻辑。
 2. `03_Comparison/PURESIMT_COMPATIBILITY_MATRIX.md`：23 个真机用例和 CUDA API 状态矩阵。
 3. `03_Comparison/BUILD_SYSTEM_COMPATIBILITY_MATRIX.md`：大型 CUDA 项目构建系统矩阵。
