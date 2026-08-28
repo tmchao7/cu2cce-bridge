@@ -244,7 +244,14 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         server_cmd = (ROOT / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
         self.assertIn("inventory_simt_api.sh", server_cmd)
         self.assertIn("simt_api_inventory.log", server_cmd)
-        self.assertIn("device_math_minimal.cu", server_cmd)
+        # Round-6+: the math probe was PROMOTED into the required [3/7]
+        # gate after consecutive [DIAG-PASS] server rounds; it is no longer
+        # a standalone diagnostic segment.
+        self.assertIn("'device_math_minimal.cu|device_math_minimal OK'", server_cmd)
+        self.assertIn("vectorAdd|matrixMul|event_minimal|multiKernel_minimal|atomicAdd_minimal|math_minimal|device_math_minimal",
+                      server_cmd)
+        self.assertNotIn("device_math_minimal (diagnostic-only probe)", server_cmd)
+        self.assertIn("double_policy_diag (diagnostic-only type-policy demo)", server_cmd)
         self.assertTrue((ROOT / "tools/real_test/inventory_simt_api.sh").is_file())
 
     def test_cuda_language_module_override_is_shipped_and_injected(self) -> None:

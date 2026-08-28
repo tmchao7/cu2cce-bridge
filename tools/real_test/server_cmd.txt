@@ -245,6 +245,7 @@ for pair in \
     'stencil_minimal.cu|stencil_minimal OK' \
     'core_ops_minimal.cu|core_ops_minimal OK' \
     'math_minimal.cu|math_minimal OK' \
+    'device_math_minimal.cu|device_math_minimal OK' \
     'event_minimal.cu|event_minimal OK' \
     'pitchedMemcpy_minimal.cu|pitchedMemcpy_minimal OK' \
     'multiKernel_minimal.cu|multiKernel_minimal OK' \
@@ -257,10 +258,10 @@ for pair in \
     src=${pair%%|*}
     key=${pair#*|}
     name=$(basename "$src" .cu)
-    # fast 画像只跑核心子集（官方两样例 + 四个覆盖近期改动面的 minimal）。
+    # fast 画像只跑核心子集（官方两样例 + 近期改动面覆盖的 minimal）。
     if [ "$REGRESSION_PROFILE" = fast ]; then
         case "$name" in
-            vectorAdd|matrixMul|event_minimal|multiKernel_minimal|atomicAdd_minimal|math_minimal) ;;
+            vectorAdd|matrixMul|event_minimal|multiKernel_minimal|atomicAdd_minimal|math_minimal|device_math_minimal) ;;
             *) continue ;;
         esac
     fi
@@ -286,13 +287,18 @@ for pair in \
         math_minimal)
             EXTRA_FLAGS+=( -D__CU2CCE_SYSTEM_LIBC__ -include math.h )
             ;;
+        device_math_minimal)
+            # device helper (via __device__ map) + libm cross-check needs libm
+            # and the system math declarations on the host side.
+            EXTRA_FLAGS+=( -D__CU2CCE_SYSTEM_LIBC__ -include math.h )
+            ;;
     esac
     if "$CCEC" $PS_FLAGS "${EXTRA_FLAGS[@]}" "examples/puresimt/$src" \
         "${INCLUDE_FLAGS[@]}" \
         -L"$CANN_BASE/lib64" -L"$REPO_LIB" \
         -Wl,-rpath,"$REPO_LIB" -Wl,-rpath,"$CANN_BASE/lib64" \
         -lascendc_runtime -lascendcl -lruntime -lregister -lerror_manager \
-        -lprofapi -lascendalog -lmmpa -lascend_dump -lc_sec -lstdc++ \
+        -lprofapi -lascendalog -lmmpa -lascend_dump -lc_sec -lstdc++ -lm \
         -lcce_bridge_runtime -o "$bin" >"$OUT/${name}.log" 2>&1; then
         ldd "$bin" >"$OUT/${name}.ldd.log" 2>&1 || true
         if [ "$DEVICE_HEALTHY" -ne 1 ]; then
@@ -323,31 +329,6 @@ elif [ "$FAIL" -eq 0 ]; then
     echo 'PURESIMT_REGRESSION_PASS'
 else
     echo 'PURESIMT_REGRESSION_FAIL（查看上方各 .log）'
-fi
-
-# 诊断载体：crt/vector + 设备数学符号探针。编译失败本身就是证据
-# （错误文本直接指出缺哪个符号），绝不伪实现。
-printf '\n----- device_math_minimal (diagnostic-only probe) -----\n'
-if "$CCEC" $PS_FLAGS -D__CU2CCE_SYSTEM_LIBC__ -include math.h \
-    examples/puresimt/device_math_minimal.cu \
-    -I"$REPO_INC" -I"$CANN_BASE/include" \
-    -L"$CANN_BASE/lib64" -L"$REPO_LIB" \
-    -Wl,-rpath,"$REPO_LIB" -Wl,-rpath,"$CANN_BASE/lib64" \
-    -lascendc_runtime -lascendcl -lruntime -lregister -lerror_manager \
-    -lprofapi -lascendalog -lmmpa -lascend_dump -lc_sec -lstdc++ -lm \
-    -lcce_bridge_runtime -o "$OUT/device_math_minimal" \
-    >"$OUT/device_math_minimal.log" 2>&1; then
-    if "$OUT/device_math_minimal" >"$OUT/device_math_minimal.run.log" 2>&1 \
-        && grep -Fq 'device_math_minimal OK' "$OUT/device_math_minimal.run.log"; then
-        echo '[DIAG-PASS] device_math_minimal（crt/向量 + 设备数学链路可用）'
-        tail -n 3 "$OUT/device_math_minimal.run.log"
-    else
-        echo '[DIAG-ONLY] device_math_minimal run（log tail:）'
-        tail -n 25 "$OUT/device_math_minimal.run.log" 2>/dev/null || true
-    fi
-else
-    echo '[DIAG-ONLY] device_math_minimal 编译失败——缺失符号即清单证据（log 首 40 行）:'
-    head -n 40 "$OUT/device_math_minimal.log" 2>/dev/null || true
 fi
 
 # 诊断载体：主动 FP64 类型策略（导师方向：不支持的类型由 cucc 报错/警告，
