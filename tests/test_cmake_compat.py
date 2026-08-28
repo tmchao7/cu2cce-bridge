@@ -87,7 +87,7 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         # only vectorAdd/matrixMul were in the required "--target" list.
         server_cmd = (ROOT / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
         self.assertIn("for sample in simpleStreams simpleMultiCopy asyncAPI; do", server_cmd)
-        self.assertIn('cmake --build "$EXTERNAL_BUILD" --target "$sample"', server_cmd)
+        self.assertIn('cmake --build "$EXTERNAL_BUILD" --parallel "$EXTERNAL_JOBS" --target "$sample"', server_cmd)
         self.assertIn("cuda_samples_${sample}.build.log", server_cmd)
         self.assertIn("cuda_samples_diag_${sample}.log", server_cmd)
         ext_cmake = (ROOT / "examples/external/cuda_samples_project/CMakeLists.txt").read_text(encoding="utf-8")
@@ -159,6 +159,14 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
                         "CUDA_SAMPLES_SECTION_SKIPPED"):
             self.assertIn(skipped, server_cmd)
         self.assertIn("[SKIP] external NVIDIA CUDA Samples section", server_cmd)
+        # Round-8 performance work: the source cache must survive clean.sh
+        # (it lives outside build/), the build tree is incremental, and
+        # compilation is parallel.
+        self.assertIn('CU2CCE_EXTERNAL_CACHE_DIR:-$PWD/.cu2cce-cache', server_cmd)
+        self.assertNotIn('EXTERNAL_SOURCE="$OUT/external/nvidia_cuda_samples"', server_cmd)
+        self.assertIn('cmake --build "$EXTERNAL_BUILD" --parallel "$EXTERNAL_JOBS"', server_cmd)
+        self.assertIn("EXTERNAL_JOBS=", server_cmd)
+        self.assertNotIn('rm -rf "$EXTERNAL_BUILD"', server_cmd)
         # fast keeps only the core puresimt subset; every legacy case stays in
         # the file guarded by profile checks so full remains complete.
         fast_filter = "vectorAdd|matrixMul|event_minimal|multiKernel_minimal|atomicAdd_minimal|math_minimal"

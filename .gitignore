@@ -93,3 +93,4 @@ tools/real_test/SERVER_STEPS_*.txt
 
 # Mimosa 安全扫描状态（本地工具产物，不提交）
 .mimosa/
+.cu2cce-cache/

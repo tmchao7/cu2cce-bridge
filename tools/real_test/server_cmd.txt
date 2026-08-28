@@ -613,13 +613,18 @@ fi
 
 printf '\n===== [7/7] External NVIDIA CUDA Samples CMake smoke =====\n'
 EXTERNAL_FETCH="$PWD/tools/real_test/fetch_external_cuda_samples.sh"
-EXTERNAL_SOURCE="$OUT/external/nvidia_cuda_samples"
+# Source cache lives OUTSIDE build/ on purpose: the standard pull flow runs
+# clean.sh, which wipes build/, and the fetch script reuses a tree whose
+# .cu2cce_revision matches the pin — so a persistent cache turns every
+# post-clean run into a zero-network hit.
+EXTERNAL_SOURCE="${CU2CCE_EXTERNAL_CACHE_DIR:-$PWD/.cu2cce-cache}/nvidia_cuda_samples"
 EXTERNAL_BUILD="$OUT/cuda-samples-build"
 EXTERNAL_LOG="$OUT/cuda_samples.log"
 EXTERNAL_BUILD_LOG="$OUT/cuda_samples_build.log"
 EXTERNAL_FETCH_TIMEOUT="${CU2CCE_EXTERNAL_FETCH_TIMEOUT:-300}"
 EXTERNAL_BUILD_TIMEOUT="${CU2CCE_EXTERNAL_BUILD_TIMEOUT:-1200}"
 EXTERNAL_RUN_TIMEOUT="${CU2CCE_EXTERNAL_RUN_TIMEOUT:-180}"
+EXTERNAL_JOBS="$(nproc 2>/dev/null || echo 4)"
 
 run_with_timeout() {
     local seconds="$1"
@@ -632,7 +637,10 @@ run_with_timeout() {
     fi
 }
 
-rm -rf "$EXTERNAL_BUILD"
+# Incremental build tree: keep it across runs and let cmake decide what to
+# rebuild. CMake validates all paths on configure; a stale tree that cannot
+# be salvaged falls back to a clean reconfigure automatically.
+mkdir -p "$EXTERNAL_BUILD"
 CUDA_SAMPLES_EXECUTED=0
 if ! profile_runs "external,full"; then
     echo "[SKIP] external NVIDIA CUDA Samples section (profile=$REGRESSION_PROFILE)"
@@ -651,7 +659,7 @@ elif [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$EXTERNAL_FETCH" ] && [ -x "$CMAKE_CCE
     fi
 
     if [ "$CUDA_SAMPLES_PASS" -eq 1 ]; then
-        echo "[INFO] external CUDA Samples configure/build (build timeout=${EXTERNAL_BUILD_TIMEOUT}s)"
+        echo "[INFO] external CUDA Samples configure/build (build timeout=${EXTERNAL_BUILD_TIMEOUT}s, jobs=${EXTERNAL_JOBS})"
         if env CUCC_PATH="$PWD/build/real_test/install" CUDA_PATH="$CUCC_PATH" \
            PATH="$CUCC_PATH/bin:$PATH" CU2CCE_LIBC_MODE=system \
            "$CMAKE_CCE" -S examples/external/cuda_samples_project -B "$EXTERNAL_BUILD" \
@@ -662,7 +670,7 @@ elif [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$EXTERNAL_FETCH" ] && [ -x "$CMAKE_CCE
             if run_with_timeout "$EXTERNAL_BUILD_TIMEOUT" env \
                CU2CCE_LIBC_MODE=system CUCC_PATH="$PWD/build/real_test/install" CUDA_PATH="$CUCC_PATH" \
                PATH="$CUCC_PATH/bin:$PATH" \
-               cmake --build "$EXTERNAL_BUILD" --target vectorAdd matrixMul \
+               cmake --build "$EXTERNAL_BUILD" --parallel "$EXTERNAL_JOBS" --target vectorAdd matrixMul \
                 >"$EXTERNAL_BUILD_LOG" 2>&1; then
                 echo '[PASS] external CUDA Samples build'
                 for sample in vectorAdd matrixMul; do
@@ -697,7 +705,7 @@ elif [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$EXTERNAL_FETCH" ] && [ -x "$CMAKE_CCE
                     elif ! run_with_timeout "$EXTERNAL_BUILD_TIMEOUT" env \
                        CU2CCE_LIBC_MODE=system CUCC_PATH="$PWD/build/real_test/install" CUDA_PATH="$CUCC_PATH" \
                        PATH="$CUCC_PATH/bin:$PATH" \
-                       cmake --build "$EXTERNAL_BUILD" --target "$sample" >"$diag_build_log" 2>&1; then
+                       cmake --build "$EXTERNAL_BUILD" --parallel "$EXTERNAL_JOBS" --target "$sample" >"$diag_build_log" 2>&1; then
                         echo "[DIAG-ONLY] [$sample] build failed (build log tail:)"
                         tail -n 25 "$diag_build_log" 2>/dev/null || true
                         continue
@@ -709,7 +717,9 @@ elif [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$EXTERNAL_FETCH" ] && [ -x "$CMAKE_CCE
                     echo "[INFO] external diagnostic [$sample] run (timeout=${EXTERNAL_RUN_TIMEOUT}s)"
                     # Capture the real exit status: an empty log with a nonzero
                     # status is itself evidence (crash/abort vs. timeout=124).
-                    run_with_timeout "$EXTERNAL_RUN_TIMEOUT" "$binary" >"$diag_log" 2>&1
+                    # WCUDA_DEBUG=1 flows through to the bridge runtime for
+                    # per-call return-code traces when attribution is needed.
+                    env WCUDA_DEBUG="${WCUDA_DEBUG:-}" run_with_timeout "$EXTERNAL_RUN_TIMEOUT" "$binary" >"$diag_log" 2>&1
                     diag_status=$?
                     if [ "$diag_status" -eq 0 ]; then
                         echo "[DIAG-PASS] [$sample] (unexpectedly passed; re-classify or investigate API surface)"
