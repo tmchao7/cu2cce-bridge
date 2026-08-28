@@ -33,7 +33,7 @@ main 不生成 `__simt_vf__`、`__global__[aicore]`、`cce::async_invoke` 包装
 ## 项目原理与设计文档
 
 完整的项目原理、设计哲学、编译链、Runtime bridge、SIMT 运行逻辑和维护方法见：
-[PROJECT_ARCHITECTURE.md](docs/01_Design/PROJECT_ARCHITECTURE.md)。
+[docs/02_Architecture/](docs/02_Architecture/01_global_overview.md)（五篇：全局认知/运行时深度/cucc 驱动/shadow 头/CMake 设计）。
 
 ## 兼容性矩阵
 
@@ -271,7 +271,8 @@ CUDA cuBLAS to CANN ACL CBLAS development is maintained separately on
 - `tools/real_test/server_cmd.txt`：唯一主线真机回归入口。
 - `tools/real_test/diag/`：非主线 ACL/runtime 排障工具。
 - `docs/README.md`：文档导航和阅读顺序。
-- `docs/01_Design/PROJECT_ARCHITECTURE.md`：项目原理与设计文档。
+- `docs/02_Architecture/`：架构五篇（全局认知/深度解析/cucc 驱动/shadow 头/CMake 设计）。
+- `docs/03_Scope/`：支持范围总览与边界限制。
 - `docs/reference/asc-devkit-simt/`：Ascend SIMT API 参考资料。
 
 ## 用户 Quickstart

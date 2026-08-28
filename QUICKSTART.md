@@ -12,11 +12,16 @@
 2. 先构建 bridge，得到 `build/real_test/install/`。
 3. 使用安装目录里的 `cucc` 编译和链接你的 `.cu`，然后直接运行生成的程序。
 
-完整真机回归入口只有一个：
+完整真机回归入口（三画像）：
 
 ```bash
-bash tools/real_test/server_cmd.txt
+CU2CCE_REGRESSION_PROFILE=fast     bash tools/real_test/server_cmd.txt   # 日常，≈40s
+CU2CCE_REGRESSION_PROFILE=external bash tools/real_test/server_cmd.txt   # 外部官方样本，≈30s
+CU2CCE_REGRESSION_PROFILE=full     bash tools/real_test/server_cmd.txt   # 全量，≈3min
 ```
+
+> 文档地图：**支持范围与限制** → `docs/03_Scope/`；**架构原理五篇** →
+> `docs/02_Architecture/`；阶段汇报 → `docs/03_Comparison/MENTOR_REPORT_2026-08-28.md`。
 
 ---
 
@@ -125,6 +130,24 @@ bash tools/real_test/build_bridge.sh
 /home/t50063365/workspace/repos/cu2cce-bridge/build/real_test/install/lib/libcce_bridge_runtime.so
 ```
 
+安装目录完整产物树（`$CUCC_PATH` = 该 install 目录）：
+
+```text
+$CUCC_PATH/
+├── bin/
+│   ├── cucc                 # nvcc 兼容编译驱动（命令行路径）
+│   ├── cmake_cce            # CMake 入口包装器（大型项目用这个）
+│   ├── make_cce             # Make 入口包装器
+│   └── ninja_cce            # Ninja 入口包装器
+├── lib/
+│   ├── libcce_bridge_runtime.so   # wcuda* → aclrt* 运行时
+│   └── cmake/cu2cce-bridge/       # cu2cce-bridgeConfig.cmake（包定位）
+├── include/                       # cuda_runtime.h / crt/ / bridge/ / shadow/ ...
+├── config/cu2cce_rules.json       # cucc 参数规则（数据驱动核心）
+├── cmake_modules/                 # FindCUDAToolkit / override / FindCUDA
+└── tools/                         # nvcc_entry.sh / cu2cce_driver.py 等
+```
+
 以后如果修改了 `src/`、`include/`、`CMakeLists.txt` 或 `bin/cucc`，需要重新执行：
 
 ```bash
@@ -133,14 +156,15 @@ bash tools/real_test/build_bridge.sh
 
 ---
 
-## 5. 运行项目完整真机回归
+## 5. 运行项目真机回归（三画像）
 
 这是验证 bridge 是否正常的推荐第一步：
 
 ```bash
 cd /home/t50063365/workspace/repos/cu2cce-bridge
 git pull --ff-only gitcode main
-bash tools/real_test/server_cmd.txt
+CU2CCE_REGRESSION_PROFILE=fast bash tools/real_test/server_cmd.txt     # 日常，≈40s
+# external（官方样本，≈30s）/ full（全量，≈3min）按需切换 PROFILE
 ```
 
 成功标志：
@@ -148,7 +172,8 @@ bash tools/real_test/server_cmd.txt
 ```text
 FAIL=0
 DEVICE_HEALTHY=1
-PURESIMT_REGRESSION_PASS
+PURESIMT_REGRESSION_PASS（以及 CMAKE_CCE / BUILD_COMPATIBILITY /
+CUDA_SAMPLES_CMAKE / CUCC_RULES / LARGE_PROJECT 六徽章按画像给出）
 ```
 
 ---
@@ -392,7 +417,7 @@ bash tools/real_test/clean.sh
 
 ---
 
-## CMake CUDA 工程（实验性）
+## CMake CUDA 工程（大型项目主线，真机验证）
 
 如果已有标准 CUDA CMake 工程：
 
@@ -423,10 +448,22 @@ CMake 的 CUDA compiler detection 会经过：
 cmake_cce → CMake CUDA shim → nvcc_entry → mock_nvcc → cucc → ccec
 ```
 
-当前属于实验性能力，已覆盖 `project(... LANGUAGES CUDA)`、多个 `.cu`、静态/动态
-CUDA library、host+CUDA 混合、`find_package(CUDAToolkit)` + `CUDA::cudart`、
-基础 legacy `FindCUDA` 以及 Unix Makefiles/Ninja。仍不承诺完整 CUDA device-link、
-separable compilation、PTX/CUBIN/FATBIN 或 `CUDA::cublas` package target。
+**能力现状（详见 `docs/02_Architecture/05_cmake_design.md` 与构建矩阵）**：
+真机验证覆盖 `project(... LANGUAGES CUDA)`、多目录 `add_subdirectory`、
+多个 `.cu`、静态/动态 CUDA library、host+CUDA 混合、
+`find_package(CUDAToolkit)` + `CUDA::cudart/toolkit/cudart_static/cudadevrt`
+别名族、`install(EXPORT)`、基础 legacy `FindCUDA`、Unix Makefiles/Ninja、
+跨目录生成文件依赖，以及 NVIDIA CUDA Samples 官方样例零改写接入
+（vectorAdd/matrixMul/simpleStreams/simpleMultiCopy）。
+
+仍不承诺：完整 CUDA device-link/RDC、separable compilation、
+PTX/CUBIN/FATBIN、`CUDA::cublas` package target（cuBLAS 走独立实验线，
+`CU2CCE_BLAS_TEST=1`），以及 multi-`.cu` 静态库（后端注册符号聚合缺口，
+见 `docs/03_Scope/LIMITS_AND_BOUNDARIES.md`）。
+
+大型项目建议：`export CU2CCE_LIBC_MODE=system`（系统 glibc 头）；
+上游/项目自设的 `CUDA_ARCHITECTURES sm_XX` 会被强制回 OFF（NVIDIA 架构
+在 Ascend 无意义）。
 
 如果工程要显式使用 cu2cce 自身运行库，可以在 `CMakeLists.txt` 中使用：
 
