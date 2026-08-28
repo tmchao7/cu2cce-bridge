@@ -717,18 +717,19 @@ elif [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$EXTERNAL_FETCH" ] && [ -x "$CMAKE_CCE
                     echo "[INFO] external diagnostic [$sample] run (timeout=${EXTERNAL_RUN_TIMEOUT}s)"
                     # Capture the real exit status: an empty log with a nonzero
                     # status is itself evidence (crash/abort vs. timeout=124).
-                    # WCUDA_DEBUG=1 flows through to the bridge runtime for
-                    # per-call return-code traces when attribution is needed.
-                    # (Export, don't prefix with env: run_with_timeout is a
-                    # shell function, which env cannot launch.)
-                    WCUDA_DEBUG="${WCUDA_DEBUG:-}" run_with_timeout "$EXTERNAL_RUN_TIMEOUT" "$binary" >"$diag_log" 2>&1
+                    # WCUDA_DEBUG is forced ON for diagnostic-only runs so a
+                    # failing sample leaves a per-call bridge trace
+                    # (00_project_journey/PENDING_ISSUES_ASCEND.md). Export
+                    # form, not env prefix: run_with_timeout is a shell
+                    # function and env cannot launch functions.
+                    WCUDA_DEBUG=1 run_with_timeout "$EXTERNAL_RUN_TIMEOUT" "$binary" >"$diag_log" 2>&1
                     diag_status=$?
                     if [ "$diag_status" -eq 0 ]; then
                         echo "[DIAG-PASS] [$sample] (unexpectedly passed; re-classify or investigate API surface)"
                         cat "$diag_log" 2>/dev/null
                     else
                         echo "[DIAG-ONLY] [$sample] failed, exit=$diag_status (log tail:)"
-                        tail -n 25 "$diag_log" 2>/dev/null || true
+                        tail -n 60 "$diag_log" 2>/dev/null || true
                     fi
                 done
                 if grep -Eiq 'kernel[_ -]?convert|__simt_vf__|async_invoke|\.cce' \
