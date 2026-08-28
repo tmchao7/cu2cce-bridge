@@ -363,6 +363,31 @@ else
 fi
 rm -f "$OUT/double_policy_diag.o"
 
+# 诊断载体：asyncAPI 单元素丢增的最小复现（昇腾侧议题取证，见
+# 00_project_journey/PENDING_ISSUES_ASCEND.md）。两个变体隔离条件：
+# 纯连续 launch vs 每轮事件同步；失配计数+首索引直接落日志。
+printf '\n----- async_repro_diag (diagnostic-only backend-semantics probe) -----\n'
+if "$CCEC" $PS_FLAGS examples/puresimt/async_repro_diag.cu \
+    -I"$REPO_INC" -I"$CANN_BASE/include" \
+    -L"$CANN_BASE/lib64" -L"$REPO_LIB" \
+    -Wl,-rpath,"$REPO_LIB" -Wl,-rpath,"$CANN_BASE/lib64" \
+    -lascendc_runtime -lascendcl -lruntime -lregister -lerror_manager \
+    -lprofapi -lascendalog -lmmpa -lascend_dump -lc_sec -lstdc++ -lm \
+    -lcce_bridge_runtime -o "$OUT/async_repro_diag" \
+    >"$OUT/async_repro_diag.log" 2>&1; then
+    if "$OUT/async_repro_diag" >"$OUT/async_repro_diag.run.log" 2>&1 \
+        && grep -Fq 'async_repro_diag OK' "$OUT/async_repro_diag.run.log"; then
+        echo '[DIAG-PASS] async_repro_diag（两种变体均无元素丢失）'
+        tail -n 3 "$OUT/async_repro_diag.run.log"
+    else
+        echo '[DIAG-ONLY] async_repro_diag 复现到元素丢失（昇腾侧议题证据，log 全文:）'
+        cat "$OUT/async_repro_diag.run.log" 2>/dev/null || true
+    fi
+else
+    echo '[DIAG-ONLY] async_repro_diag 编译失败（log 首 30 行）:'
+    head -n 30 "$OUT/async_repro_diag.log" 2>/dev/null || true
+fi
+
 mark_timing puresimt_suite
 else
     echo '[SKIP] puresimt suite + cucc direct checks (profile=external)'

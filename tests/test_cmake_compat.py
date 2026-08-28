@@ -267,6 +267,13 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
                       server_cmd)
         self.assertNotIn("device_math_minimal (diagnostic-only probe)", server_cmd)
         self.assertIn("double_policy_diag (diagnostic-only type-policy demo)", server_cmd)
+        self.assertIn("async_repro_diag (diagnostic-only backend-semantics probe)", server_cmd)
+        self.assertTrue((ROOT / "examples/puresimt/async_repro_diag.cu").is_file())
+        # the repro must expose mismatch counts (not just pass/fail) so the
+        # Ascend-side issue has quantitative evidence
+        repro = (ROOT / "examples/puresimt/async_repro_diag.cu").read_text(encoding="utf-8")
+        self.assertIn("MISMATCH count=", repro)
+        self.assertIn("variantB event-per-round", repro)
         self.assertTrue((ROOT / "tools/real_test/inventory_simt_api.sh").is_file())
 
     def test_cuda_language_module_override_is_shipped_and_injected(self) -> None:
