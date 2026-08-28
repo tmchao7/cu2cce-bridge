@@ -18,7 +18,7 @@ FAIL=0
 DEVICE_HEALTHY=0
 DEVICE_ACCESS_DENIED=0
 
-printf '\n===== [1/7] device + CANN gate =====\n'
+printf '\n===== [1/8] device + CANN gate =====\n'
 for node in /dev/davinci0 /dev/davinci_manager /dev/hisi_hdc; do
     if [ ! -e "$node" ] || ! test -r "$node" || ! test -w "$node"; then
         echo "[BLOCKED] DEVICE_ACCESS_DENIED_OR_MISSING: $node"
@@ -54,7 +54,7 @@ else
     echo '[BLOCKED] DEVICE_HEALTHY=0'
 fi
 
-printf '\n===== [2/7] bridge runtime rebuild =====\n'
+printf '\n===== [2/8] bridge runtime rebuild =====\n'
 if bash tools/real_test/build_bridge.sh; then
     echo '[PASS] bridge runtime rebuild'
 else
@@ -66,7 +66,7 @@ REPO_INC="$PWD/include"
 REPO_LIB="$PWD/build/real_test/install/lib"
 export LD_LIBRARY_PATH="$REPO_LIB:$CANN_BASE/lib64:${LD_LIBRARY_PATH:-}"
 
-printf '\n===== [3/7] official CANN GEMM model =====\n'
+printf '\n===== [3/8] official CANN GEMM model =====\n'
 SOC_NAME="$(grep -hF 'probe_device: soc name = ' "$OUT/probe.log" 2>/dev/null | sed 's/.*soc name = //' | head -1)"
 ATC="$CANN_BASE/bin/atc"
 MODEL_DIR="$OUT/gemm_models"
@@ -101,7 +101,7 @@ else
     FAIL=$((FAIL + 1))
 fi
 
-printf '\n===== [4/7] cublasSgemm -> aclblasGemmEx =====\n'
+printf '\n===== [4/8] cublasSgemm -> aclblasGemmEx =====\n'
 CCEC="$CANN_BASE/bin/ccec"
 
 # 通用 BLAS 用例：编译 + 运行 + 标记校验（tc_name tc_src tc_ok_marker）。
@@ -151,13 +151,40 @@ echo "[INFO] CCEC_VERSION:"
 "$CCEC" --version 2>&1 | head -n 3
 run_blas_case cublas_sgemm examples/blas/cublas_sgemm.cu 'cublas_sgemm_experimental OK'
 
-printf '\n===== [5/7] cublasGemmEx dtype-explicit (FP16xFP16->FP32) =====\n'
+printf '\n===== [5/8] cublasGemmEx dtype-explicit (FP16xFP16->FP32) =====\n'
 run_blas_case cublas_gemmex examples/blas/cublas_gemmex.cu 'cublas_gemmex_experimental OK'
 
-printf '\n===== [6/7] cublasSgemv -> aclblasGemvEx =====\n'
+printf '\n===== [6/8] cublasSgemv -> aclblasGemvEx =====\n'
 run_blas_case cublas_gemv examples/blas/cublas_gemv.cu 'cublas_gemv_experimental OK'
 
-printf '\n===== [7/7] summary =====\n'
+printf '\n===== [7/8] aclblasGemvEx parameter-matrix probe (diagnostic-only) =====\n'
+# GemvEx's contract differs from GemmEx's and the public doc site renders no
+# content; this probe enumerates scalar-location x lda x transpose x compute
+# in one run so the wrapper mapping can be fixed from evidence, not guesses.
+# Its outcome never blocks the summary.
+PROBE_BIN="$OUT/gemv_param_probe"
+if [ "$DEVICE_HEALTHY" -eq 1 ] && \
+   "$CCEC" -x asc --enable-simt --cce-aicore-arch=dav-c310-vec -std=c++17 \
+       examples/blas/gemv_param_probe.cu \
+       -I"$REPO_INC" -I"$CANN_BASE/include" \
+       -L"$REPO_LIB" -L"$CANN_BASE/lib64" \
+       -Wl,-rpath,"$REPO_LIB" -Wl,-rpath,"$CANN_BASE/lib64" \
+       -lcce_bridge_runtime -lacl_cblas -lascendcl -lstdc++ -lpthread -lm \
+       -o "$PROBE_BIN" >"$OUT/gemv_param_probe_compile.log" 2>&1; then
+    if "$PROBE_BIN" >"$OUT/gemv_param_probe.run.log" 2>&1; then
+        echo '[INFO] probe matrix:'
+        cat "$OUT/gemv_param_probe.run.log"
+    else
+        echo '[INFO] probe exited nonzero; matrix:'
+        cat "$OUT/gemv_param_probe.run.log" 2>/dev/null
+        tail -n 10 "$OUT/gemv_param_probe_compile.log" 2>/dev/null
+    fi
+else
+    echo '[PROBE-ONLY] gemv_param_probe compile failed (non-blocking)'
+    tail -n 15 "$OUT/gemv_param_probe_compile.log" 2>/dev/null || true
+fi
+
+printf '\n===== [8/8] summary =====\n'
 echo "FAIL=$FAIL DEVICE_HEALTHY=$DEVICE_HEALTHY"
 echo "Logs: $OUT"
 if [ "$FAIL" -eq 0 ] && [ "$DEVICE_HEALTHY" -eq 1 ]; then
