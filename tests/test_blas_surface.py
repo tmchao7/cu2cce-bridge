@@ -43,6 +43,12 @@ class BlasSurfaceContractTest(unittest.TestCase):
         # BLAS1 placeholders validate before not-support
         self.assertIn("blas1_validate", impl)
         self.assertNotIn("not_supported_placeholder()", impl)
+        # GemvEx reserved-parameter contract (server ErrMsg round-4): the
+        # (lda, incx, incy) triple must be (-1, -1, -1); strides other than 1
+        # are rejected on the host side with a clear message.
+        self.assertIn("A, -1, ACL_FLOAT, x, -1, ACL_FLOAT", impl)
+        self.assertIn("y, -1, ACL_FLOAT", impl)
+        self.assertIn("unsupported stride incx", impl)
 
     def test_blas_regression_has_three_cases(self) -> None:
         script = (ROOT / "tools/real_test/blas_regression.sh").read_text(encoding="utf-8")

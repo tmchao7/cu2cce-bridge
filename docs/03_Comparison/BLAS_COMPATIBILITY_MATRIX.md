@@ -26,7 +26,7 @@ FP32→FP16 input staging and requires an ATC/OPP GEMM model.
 | `cublasSetAtomicsMode/GetAtomicsMode` | handle-held mode | n/a | `EXPERIMENTAL` | stored and returned; Ascend exposes no equivalent scheduling switch |
 | `cublasSgemm` | `aclblasGemmEx` | FP32 input staged to FP16, FP32 C | `EXPERIMENTAL` | **PASS:** 32×32×32 identity-B test; requires ATC/OPP model and has FP32→FP16 precision loss |
 | `cublasGemmEx` / `cublasSgemmEx` | `aclblasGemmEx` | (16F,16F,16F) / (16F,16F,32F) / (8I,8I,32I); compute 32F family | `EXPERIMENTAL` until device proof | dtype-explicit entry added; no bridge-side dtype restaging; scalars staged per PointerMode; computeType limited to 32F/16F family (others honestly NOT_SUPPORT); real-device case `cublas_gemmex_experimental OK` pending |
-| `cublasSgemv` | `aclblasGemvEx` | FP32 | `EXPERIMENTAL` | device-scalar staging + stream sync added; real-device case `cublas_gemv_experimental OK` pending |
+| `cublasSgemv` | `aclblasGemvEx` | FP32 | `EXPERIMENTAL` | **契约实证（round-4 ErrMsg）**：(lda, incx, incy) 三元组为保留参数、必须全 -1（后端仅支持连续向量）；步长非 1 宿主侧明确拒绝；scalars staging + aclopSetModelDir 已对齐；真机 `cublas_gemv_experimental OK` 待本轮确认 |
 | `cublasDgemm` | none | FP64 | `UNSUPPORTED` | CANN 9.2 public `aclDataType` has no double GEMM path |
 | `cublasSaxpy/Scopy/Sdot/Sscal/Sswap/Snrm2` | placeholder | FP32 | `UNSUPPORTED` | return API-not-support **after** full parameter validation (unified `blas1_validate`), so error attribution stays consistent |
 

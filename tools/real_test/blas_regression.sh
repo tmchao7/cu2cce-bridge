@@ -201,7 +201,7 @@ if [ "$DEVICE_HEALTHY" -eq 1 ] && \
        -Wl,-rpath,"$REPO_LIB" -Wl,-rpath,"$CANN_BASE/lib64" \
        -lcce_bridge_runtime -lacl_cblas -lascendcl -lstdc++ -lpthread -lm \
        -o "$PROBE_BIN" >"$OUT/gemv_param_probe_compile.log" 2>&1; then
-    if "$PROBE_BIN" >"$OUT/gemv_param_probe.run.log" 2>&1; then
+    if CU2CCE_GEMM_MODEL_DIR="$MODEL_DIR" "$PROBE_BIN" >"$OUT/gemv_param_probe.run.log" 2>&1; then
         echo '[INFO] probe matrix:'
         cat "$OUT/gemv_param_probe.run.log"
     else

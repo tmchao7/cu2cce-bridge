@@ -470,6 +470,17 @@ aclError wcublasSgemv(cublasHandle_t handle, aclTransType trans, int m, int n, c
         lda < ((trans == ACL_TRANS_N) ? m : n)) {
         return ACL_ERROR_INVALID_PARAM;
     }
+    /* 真机契约（round-4 探针 ErrMsg 实证）：aclblasGemvEx 把 (lda, incx, incy)
+     * 作为一组保留参数校验，三元组必须全为 -1（"only support -1"），即后端
+     * 仅支持连续内存。宿主侧仍按 CUDA 语义校验 lda；步长仅接受 1（连续），
+     * 非 1 步长是合法 CUDA 输入但本后端无对应实现，诚实拒绝。 */
+    if (incx != 1 || incy != 1) {
+        std::fprintf(stderr,
+                     "[cce_bridge][Sgemv] unsupported stride incx=%d incy=%d: the CANN GemvEx "
+                     "backend only supports contiguous vectors (both reserved params must be -1)\n",
+                     incx, incy);
+        return ACL_ERROR_INVALID_PARAM;
+    }
     if (handle->stream == nullptr) {
         aclError sret = aclrtCreateStream(&handle->stream);
         if (sret != ACL_SUCCESS) {
@@ -501,13 +512,10 @@ aclError wcublasSgemv(cublasHandle_t handle, aclTransType trans, int m, int n, c
             return ret;
         }
     }
-    /* aclblasGemvEx 的 lda 注释为常规 leading dimension（与 GemmEx 的保留参数
-     * 不同），按宿主语义原样传；GemmEx 教训仍适用的是：调用前必须有
-     * aclopSetModelDir 的算子环境（round-3 探针验证项）。 */
     std::fprintf(stderr,
                  "[cce_bridge][Sgemv] enter trans=%d shape=(m=%d,n=%d) lda=%d "
-                 "incx=%d incy=%d stream=%p scalar_dev=%d\n",
-                 (int)trans, m, n, lda, incx, incy, (void *)handle->stream,
+                 "reserved=(-1,-1,-1) stream=%p scalar_dev=%d\n",
+                 (int)trans, m, n, lda, (void *)handle->stream,
                  handle->pointerMode == CUBLAS_POINTER_MODE_HOST ? 1 : 0);
     aclError model_ret = ensure_gemm_model_dir();
     if (model_ret != ACL_SUCCESS) {
@@ -515,9 +523,9 @@ aclError wcublasSgemv(cublasHandle_t handle, aclTransType trans, int m, int n, c
     }
     ret = aclblasGemvEx(trans, m, n,
                         (handle->pointerMode == CUBLAS_POINTER_MODE_HOST) ? devAlpha : alpha,
-                        A, lda, ACL_FLOAT, x, incx, ACL_FLOAT,
+                        A, -1, ACL_FLOAT, x, -1, ACL_FLOAT,
                         (handle->pointerMode == CUBLAS_POINTER_MODE_HOST) ? devBeta : beta,
-                        y, incy, ACL_FLOAT, ACL_COMPUTE_HIGH_PRECISION, handle->stream);
+                        y, -1, ACL_FLOAT, ACL_COMPUTE_HIGH_PRECISION, handle->stream);
     std::fprintf(stderr, "[cce_bridge][Sgemv] aclblasGemvEx ret=%d recent=%s\n", (int)ret,
                  aclGetRecentErrMsg() != nullptr ? aclGetRecentErrMsg() : "(null)");
     if (devAlpha != nullptr) {
