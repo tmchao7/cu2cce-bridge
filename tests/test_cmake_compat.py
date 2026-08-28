@@ -139,14 +139,19 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         server_cmd = (ROOT / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
 
         self.assertIn("wcuda_resolve_stream", cpp)
-        # Legacy default-stream semantics (simpleStreams root cause, fixed
-        # 2026-08-28): an event recorded on the bridge default stream must
-        # first wait for ALL streams' work, otherwise cross-stream elapsed
-        # timing reads ~0 and host reads race with in-flight async copies.
+        # Legacy default-stream semantics, consumption-point form (round-8
+        # regression lesson: syncing the device at RECORD time broke
+        # asyncAPI's mid-pipeline default-stream events). Events record
+        # freely; the device sync happens where results are consumed.
         self.assertIn("wcuda_is_bridge_default", cpp)
-        self.assertIn("wcudaEventRecord", cpp)
+        self.assertIn("wcuda_event_mark_default", cpp)
+        self.assertIn("wcuda_event_is_default", cpp)
         record_block = cpp[cpp.index("aclError wcudaEventRecord"):cpp.index("aclError wcudaEventRecordWithFlags")]
-        self.assertIn("aclrtSynchronizeDevice()", record_block)
+        self.assertNotIn("aclrtSynchronizeDevice()", record_block)
+        sync_block = cpp[cpp.index("aclError wcudaEventSynchronize"):cpp.index("aclError wcudaEventQuery")]
+        self.assertIn("aclrtSynchronizeDevice()", sync_block)
+        query_block = cpp[cpp.index("aclError wcudaEventQuery"):cpp.index("aclError wcudaEventElapsedTime")]
+        self.assertIn("aclrtSynchronizeDevice()", query_block)
         for flag in ("cudaHostAllocDefault", "cudaHostAllocPortable",
                      "cudaHostAllocMapped", "cudaHostAllocWriteCombined"):
             self.assertIn(flag, adaptor)

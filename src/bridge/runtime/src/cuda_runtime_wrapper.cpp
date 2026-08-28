@@ -22,6 +22,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <mutex>
+#include <unordered_map>
 #include <unistd.h> /* usleep */
 
 /* ---------------- 内部状态 ---------------- */
@@ -62,6 +63,21 @@ static bool g_bridge_default_stream_ready = false;
 
 static bool wcuda_is_bridge_default(aclrtStream s) {
     return g_bridge_default_stream_ready && s != nullptr && s == g_bridge_default_stream;
+}
+
+/* 记录在桥内默认流上的事件登记表（消费点语义，见 wcudaEventRecord 注释）。 */
+static std::mutex g_event_mode_mu;
+static std::unordered_map<void *, bool> g_event_on_default;
+
+static void wcuda_event_mark_default(aclrtEvent event, bool on_default) {
+    std::lock_guard<std::mutex> guard(g_event_mode_mu);
+    g_event_on_default[(void *)event] = on_default;
+}
+
+static bool wcuda_event_is_default(aclrtEvent event) {
+    std::lock_guard<std::mutex> guard(g_event_mode_mu);
+    auto it = g_event_on_default.find((void *)event);
+    return it != g_event_on_default.end() && it->second;
 }
 
 static aclError wcuda_resolve_stream(aclrtStream request, aclrtStream *resolved) {
@@ -631,16 +647,10 @@ aclError wcudaEventRecord(aclrtEvent event, aclrtStream stream) {
         WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
     }
     /* Legacy 默认流语义（simpleStreams 议题定案，2026-08-28）：stream-0 上的
-     * 工作与所有阻塞流隐式同步。因此默认流上的事件记录必须先等待全部流的
-     * 历史工作完成——否则跨流计时（start/stop 记在 0 流、工作在创建流）测到
-     * ≈0，且"同步 0 流事件后直接读 host 缓冲"的模式会与在途拷贝竞态。 */
-    if (wcuda_is_bridge_default(resolved)) {
-        BRIDGE_INIT();
-        aclError sync_ret = aclrtSynchronizeDevice();
-        if (sync_ret != ACL_SUCCESS) {
-            WCUDA_RETURN(sync_ret);
-        }
-    }
+     * 工作与所有阻塞流隐式同步。同步点放在"消费时"（EventSynchronize/Query/
+     * ElapsedTime）而非"记录时"——记录时全设备同步会破坏 asyncAPI 这类
+     * 中途向默认流记事件的流水线（真机回归：data 25→0、spin 4800→33）。 */
+    wcuda_event_mark_default(event, wcuda_is_bridge_default(resolved));
     WCUDA_RETURN(aclrtRecordEvent(event, resolved));
 }
 
@@ -653,6 +663,14 @@ aclError wcudaEventRecordWithFlags(aclrtEvent event, aclrtStream stream, unsigne
 aclError wcudaEventSynchronize(aclrtEvent event) {
     if (event == nullptr) {
         WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
+    }
+    /* legacy 默认流语义的消费点：默认流事件完成 ⇒ 全部流工作完成。 */
+    if (wcuda_event_is_default(event)) {
+        BRIDGE_INIT();
+        aclError dev_ret = aclrtSynchronizeDevice();
+        if (dev_ret != ACL_SUCCESS) {
+            WCUDA_RETURN(dev_ret);
+        }
     }
     WCUDA_RETURN(aclrtSynchronizeEvent(event));
 }
@@ -674,6 +692,15 @@ aclError wcudaEventQuery(aclrtEvent event) {
     if (status != ACL_EVENT_RECORDED_STATUS_COMPLETE) {
         WCUDA_RETURN(ACL_ERROR_RT_EVENT_NOT_COMPLETE);
     }
+    /* legacy 默认流语义的消费点：轮询到 COMPLETE 时，若事件记录在默认流上，
+     * 必须确保全部流的工作（含创建流上在途的异步拷贝/内核）真正落地后才
+     * 返回 success——否则 asyncAPI 式"query 忙等后读 host"会读到在途数据。 */
+    if (wcuda_event_is_default(event)) {
+        aclError dev_ret = aclrtSynchronizeDevice();
+        if (dev_ret != ACL_SUCCESS) {
+            WCUDA_RETURN(dev_ret);
+        }
+    }
     WCUDA_RETURN(ACL_SUCCESS);
 }
 
@@ -683,7 +710,14 @@ aclError wcudaEventElapsedTime(float *ms, aclrtEvent start, aclrtEvent end) {
     }
     aclError ret = aclrtEventElapsedTime(ms, start, end);
     /* simpleStreams 议题取证：跨流计时值是否可信（现场观察到 streamed 段
-     * elapsed≈0 且数据大部分未生效）。 */
+     * elapsed≈0 且数据大部分未生效）。默认流事件对 elapsed 时先同步设备，
+     * 保证读取瞬间所有相关工作已落地。 */
+    if (wcuda_event_is_default(start) || wcuda_event_is_default(end)) {
+        aclError sync_ret = aclrtSynchronizeDevice();
+        if (wcuda_dbg()) {
+            fprintf(stderr, "[wcuda] wcudaEventElapsedTime default-sync ret=%d\n", (int)sync_ret);
+        }
+    }
     if (wcuda_dbg()) {
         fprintf(stderr, "[wcuda] wcudaEventElapsedTime ret=%d ms=%.6f start=%p end=%p\n",
                 (int)ret, (double)*ms, (void *)start, (void *)end);
