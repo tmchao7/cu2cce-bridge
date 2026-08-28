@@ -12,7 +12,14 @@
  * Each variant runs ROUNDS rounds over ZERO-initialized memory and reports
  * the mismatch count plus first mismatch details. Mismatch count == 0 is
  * the healthy outcome; a count of exactly 1 per run reproduces the field
- * issue in minimal form. DIAGNOSTIC-ONLY.
+ * issue in minimal form.
+ *
+ * Platform fact learned on first compile (round-5): bisheng injects
+ * DEVICE-ONLY global malloc/free (__clang_dpp_runtime_wrapper.h:
+ * "__aicore__ void *malloc(uintptr_t)") into every .cu TU, so host code
+ * here allocates its verification buffer via cudaMallocHost/cudaFreeHost
+ * instead — plain malloc/free in .cu host code is a trap to document.
+ * DIAGNOSTIC-ONLY.
  */
 #include <cstdio>
 #include <cuda_runtime.h>
@@ -26,12 +33,12 @@ static float *g_buf = nullptr;
 static long long g_n = 0;
 
 // returns mismatch count; -1 on API failure
-static int verify_all(int expect) {
-    if (cudaStreamSynchronize(nullptr) != cudaSuccess) return -1;
-    float *h = (float *)malloc(sizeof(float) * (size_t)g_n);
-    if (h == nullptr) return -1;
+static int verify_all(int expect, cudaStream_t stream) {
+    if (cudaStreamSynchronize(stream) != cudaSuccess) return -1;
+    float *h = nullptr;
+    if (cudaMallocHost((void **)&h, sizeof(float) * (size_t)g_n) != cudaSuccess) return -1;
     if (cudaMemcpy(h, g_buf, sizeof(float) * (size_t)g_n, cudaMemcpyDeviceToHost) != cudaSuccess) {
-        free(h);
+        cudaFreeHost(h);
         return -1;
     }
     int bad = 0;
@@ -50,7 +57,7 @@ static int verify_all(int expect) {
         printf("    MISMATCH count=%d first_idx=%lld got=%f expect=%d\n", bad, first_bad, (double)got,
                expect);
     }
-    free(h);
+    cudaFreeHost(h);
     return bad;
 }
 
@@ -67,7 +74,7 @@ static int run_variant(const char *tag, int use_events, cudaStream_t stream, int
             cudaEventSynchronize(ev);
         }
     }
-    int bad = verify_all(rounds);
+    int bad = verify_all(rounds, stream);
     if (use_events && ev != nullptr) cudaEventDestroy(ev);
     printf("[async_repro] %s: mismatch=%d (expect 0)\n", tag, bad);
     return bad;
