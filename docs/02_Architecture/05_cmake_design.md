@@ -27,6 +27,11 @@
 
 ## 2. 用户视角：三条等价路径
 
+前置（真机实测必需）：每个新 shell 先
+`source /usr/local/Ascend/latest/bin/setenv.bash`，否则 ccec/ACL 库路径缺失，
+`cucc -c/-o` 与 `cmake_cce` 内部调用会报错（harness 脚本会自动 source，
+手动使用时必须自己执行）。
+
 ```bash
 # ① 推荐入口（自动布置 shim + override）
 bash tools/cmake_cce -S <工程根> -B build

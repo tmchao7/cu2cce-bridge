@@ -56,6 +56,10 @@ host C++ 对象 → 系统 g++；链接 → g++ + 桥运行时
 
 ### 1.3 用法（三段即可上手）
 
+前置（真机实测必需）：每个新 shell 先
+`source /usr/local/Ascend/latest/bin/setenv.bash`，否则 cucc/cmake_cce 调
+ccec 与 ACL 库会因路径缺失报错（harness 脚本内部自动 source，手动使用必须先执行）。
+
 ① 大项目直接构建（唯一入口包装器）：
 
 ```bash

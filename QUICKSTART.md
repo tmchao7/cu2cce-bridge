@@ -69,15 +69,21 @@ git pull --ff-only gitcode main
 
 ---
 
-## 3. 设置 CANN 环境
+## 3. 设置 CANN 环境（必需步骤）
 
-每个新的终端窗口都建议执行：
+**每个新终端窗口都必须先执行**（真机实测：不 source 就直接 `cucc -c/-o`
+会报一堆 ccec/ACL 库路径错误）：
 
 ```bash
-export ASCEND_TOOLKIT_HOME=/usr/local/Ascend/ascend-toolkit/latest
-export ASCEND_HOME_PATH=/usr/local/Ascend/latest
+source /usr/local/Ascend/latest/bin/setenv.bash
+```
+
+它提供 ccec 路径、`ASCEND_TOOLKIT_HOME/ASCEND_HOME_PATH/ASCEND_OPP_PATH`
+与 ACL 动态库路径。安装形态不同时的变体：
+
+```bash
+# 若上述文件不存在，尝试（部分版本命名不同）：
 source /usr/local/Ascend/latest/set_env.sh
-export ASCEND_OPP_PATH=/usr/local/Ascend/cann-9.2.0/opp
 ```
 
 确认 ccec 存在：
@@ -93,6 +99,10 @@ ccec is ready
 ```
 
 说明编译器路径基本正确。
+
+> 说明：`tools/real_test/server_cmd.txt` 与 `build_bridge.sh` **内部会自动
+> source**，走 harness 不需要手动做；但**手动使用 cucc/cmake_cce 时必须先
+> source**。建议把 source 行写进 `~/.bashrc` 免去每次输入。
 
 ---
 
@@ -276,6 +286,9 @@ export PATH=$CUCC_PATH/bin:$PATH
 ```
 
 ### 推荐：两步编译/链接
+
+前置：已完成 §3 的 `source /usr/local/Ascend/latest/bin/setenv.bash`（否则
+cucc 调 ccec/ACL 会报一堆路径错误）。
 
 第一步使用 `-c` 只编译 CUDA 源码，生成 `.o` 目标文件；第二步才链接生成可执行文件。
 
