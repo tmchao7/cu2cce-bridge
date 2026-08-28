@@ -96,15 +96,47 @@ int main(void) {
     int badB = run_variant("variantB event-per-round", 1, stream, 26);
     /* repeat the asyncAPI-style variant to expose drift across runs */
     int badB2 = run_variant("variantB event-per-round#2", 1, stream, 26);
+    /* variantC: EXACT asyncAPI cadence — non-blocking cudaEventQuery spin
+     * between launches instead of blocking cudaEventSynchronize. The two
+     * paths differ inside the bridge (aclrtQueryEventStatus polling vs
+     * aclrtSynchronizeEvent), and the field issue only ever appeared with
+     * the query-style sample. */
+    if (cudaMemset(g_buf, 0, sizeof(float) * (size_t)g_n) != cudaSuccess) return 1;
+    cudaEvent_t evC = nullptr;
+    if (cudaEventCreate(&evC) != cudaSuccess) return 1;
+    const int THREADS = 256;
+    unsigned blocks = (unsigned)((g_n + THREADS - 1) / THREADS);
+    long long total_spins = 0;
+    int query_fail = 0;
+    for (int r = 0; r < 26; ++r) {
+        inc_kernel<<<blocks, THREADS, 0, stream>>>(g_buf, g_n);
+        cudaEventRecord(evC, stream);
+        for (;;) {
+            cudaError_t q = cudaEventQuery(evC);
+            if (q == cudaSuccess) break;
+            if (q != cudaErrorNotReady) {
+                printf("    variantC eventQuery failed ret=%d at round %d\n", (int)q, r);
+                query_fail = 1;
+                break;
+            }
+            ++total_spins;
+        }
+        if (query_fail) break;
+    }
+    int badC = query_fail ? -1 : verify_all(26, stream);
+    cudaEventDestroy(evC);
+    printf("[async_repro] variantC query-spin: spins=%lld mismatch=%d (expect 0)\n", total_spins,
+           badC);
 
     cudaStreamDestroy(stream);
     cudaFree(g_buf);
     cudaDeviceReset();
-    if (badA == 0 && badB == 0 && badB2 == 0) {
-        printf("async_repro_diag OK (no element loss in either variant)\n");
+    if (badA == 0 && badB == 0 && badB2 == 0 && badC == 0) {
+        printf("async_repro_diag OK (no element loss in any variant)\n");
         return 0;
     }
-    printf("async_repro_diag MISMATCH (A=%d B=%d B#2=%d) — backend-semantics evidence\n", badA, badB,
-           badB2);
+    printf("async_repro_diag MISMATCH (A=%d B=%d B#2=%d C=%d spins=%lld) — "
+           "backend-semantics evidence\n",
+           badA, badB, badB2, badC, total_spins);
     return 1;
 }

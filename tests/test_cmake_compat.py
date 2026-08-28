@@ -274,6 +274,10 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         repro = (ROOT / "examples/puresimt/async_repro_diag.cu").read_text(encoding="utf-8")
         self.assertIn("MISMATCH count=", repro)
         self.assertIn("variantB event-per-round", repro)
+        # variantC replicates the exact asyncAPI cadence: query-spin between
+        # launches (the field issue only ever appeared on that path)
+        self.assertIn("variantC query-spin", repro)
+        self.assertIn("cudaEventQuery(evC)", repro)
         self.assertTrue((ROOT / "tools/real_test/inventory_simt_api.sh").is_file())
 
     def test_cuda_language_module_override_is_shipped_and_injected(self) -> None:
