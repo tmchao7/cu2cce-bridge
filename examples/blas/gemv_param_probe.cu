@@ -138,8 +138,8 @@ int main(void) {
     if (cudaMalloc((void **)&d16y, sizeof(h16x)) != cudaSuccess) return 1;
     if (cudaMemcpy(d16A, h16A, sizeof(h16A), cudaMemcpyHostToDevice) != cudaSuccess) return 1;
     if (cudaMemcpy(d16x, h16x, sizeof(h16x), cudaMemcpyHostToDevice) != cudaSuccess) return 1;
-    hret = aclblasHgemv(ACL_TRANS_N, M, N, &one16, d16A, -1, d16x, -1, &zero16, d16y, -1,
-                        ACL_COMPUTE_HIGH_PRECISION, (aclrtStream)g_stream);
+    aclError hret = aclblasHgemv(ACL_TRANS_N, M, N, &one16, d16A, -1, d16x, -1, &zero16, d16y, -1,
+                                 ACL_COMPUTE_HIGH_PRECISION, (aclrtStream)g_stream);
     report("Hgemv: host scalar + (-1,-1,-1) + N", hret);
     if (hret == ACL_SUCCESS) {
         /* fp16 identity A times fp16 x = fp16 x exactly for small integers */
