@@ -56,6 +56,14 @@ static void wcuda_mark(const char *label, aclError e) {
  * （真机日志 code=100000）。这里惰性创建一条桥内自有流作为 CUDA 三种默认流
  * 拼写的后端替身；用户显式创建的流原样透传。创建失败时持续返回同一错误，
  * 不做静默伪造。 */
+/* Bridge-owned stand-in for the CUDA default stream (set by the resolver). */
+static aclrtStream g_bridge_default_stream = nullptr;
+static bool g_bridge_default_stream_ready = false;
+
+static bool wcuda_is_bridge_default(aclrtStream s) {
+    return g_bridge_default_stream_ready && s != nullptr && s == g_bridge_default_stream;
+}
+
 static aclError wcuda_resolve_stream(aclrtStream request, aclrtStream *resolved) {
     if (resolved == nullptr) {
         return ACL_ERROR_INVALID_PARAM;
@@ -65,25 +73,25 @@ static aclError wcuda_resolve_stream(aclrtStream request, aclrtStream *resolved)
         return ACL_SUCCESS;
     }
     BRIDGE_INIT(); /* 默认流可能是进程内的首个 runtime API */
-    static aclrtStream default_stream = nullptr;
     static aclError create_status = ACL_SUCCESS;
     static std::once_flag once;
     std::call_once(once, []() {
         aclrtStream handle = nullptr;
         create_status = aclrtCreateStream(&handle);
         if (create_status != ACL_SUCCESS || handle == nullptr) {
-            default_stream = nullptr;
+            g_bridge_default_stream = nullptr;
             if (create_status == ACL_SUCCESS) {
                 create_status = ACL_ERROR_RT_INTERNAL_ERROR;
             }
         } else {
-            default_stream = handle;
+            g_bridge_default_stream = handle;
+            g_bridge_default_stream_ready = true;
         }
     });
-    if (default_stream == nullptr) {
+    if (g_bridge_default_stream == nullptr) {
         return create_status;
     }
-    *resolved = default_stream;
+    *resolved = g_bridge_default_stream;
     return ACL_SUCCESS;
 }
 
@@ -621,6 +629,17 @@ aclError wcudaEventRecord(aclrtEvent event, aclrtStream stream) {
     aclrtStream resolved = nullptr;
     if (wcuda_resolve_stream(stream, &resolved) != ACL_SUCCESS) {
         WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
+    }
+    /* Legacy 默认流语义（simpleStreams 议题定案，2026-08-28）：stream-0 上的
+     * 工作与所有阻塞流隐式同步。因此默认流上的事件记录必须先等待全部流的
+     * 历史工作完成——否则跨流计时（start/stop 记在 0 流、工作在创建流）测到
+     * ≈0，且"同步 0 流事件后直接读 host 缓冲"的模式会与在途拷贝竞态。 */
+    if (wcuda_is_bridge_default(resolved)) {
+        BRIDGE_INIT();
+        aclError sync_ret = aclrtSynchronizeDevice();
+        if (sync_ret != ACL_SUCCESS) {
+            WCUDA_RETURN(sync_ret);
+        }
     }
     WCUDA_RETURN(aclrtRecordEvent(event, resolved));
 }

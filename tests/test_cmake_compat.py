@@ -139,6 +139,14 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         server_cmd = (ROOT / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
 
         self.assertIn("wcuda_resolve_stream", cpp)
+        # Legacy default-stream semantics (simpleStreams root cause, fixed
+        # 2026-08-28): an event recorded on the bridge default stream must
+        # first wait for ALL streams' work, otherwise cross-stream elapsed
+        # timing reads ~0 and host reads race with in-flight async copies.
+        self.assertIn("wcuda_is_bridge_default", cpp)
+        self.assertIn("wcudaEventRecord", cpp)
+        record_block = cpp[cpp.index("aclError wcudaEventRecord"):cpp.index("aclError wcudaEventRecordWithFlags")]
+        self.assertIn("aclrtSynchronizeDevice()", record_block)
         for flag in ("cudaHostAllocDefault", "cudaHostAllocPortable",
                      "cudaHostAllocMapped", "cudaHostAllocWriteCombined"):
             self.assertIn(flag, adaptor)
