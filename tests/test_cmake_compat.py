@@ -373,7 +373,15 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         # -lcudart. Our cmake_cce/make_cce replicate both.
         cmake_cce = (ROOT / "tools/cmake_cce").read_text(encoding="utf-8")
         self.assertIn('cmake_cce: build phase: shim nvcc ->', cmake_cce)
-        self.assertIn('ln -sfn "$CUCC_PATH/bin/cucc" "$CU2CCE_CMAKE_SHIM_DIR/cuda/bin/nvcc"', cmake_cce)
+        self.assertIn('ln -sfn "$CUCC_PATH/bin/cucc" "$CUDA_DIR/bin/nvcc"', cmake_cce)
+        # Persistent shim default (their CUBRIDGE_HOME semantics) is what
+        # makes the build-phase re-point effective across processes.
+        self.assertIn('${CU2CCE_HOME:-${CUBRIDGE_HOME:-$HOME}}/cu2cce-bridge/cmake-shim', cmake_cce)
+        # configure re-points the shim nvcc back to the mock so repeated
+        # configure/build cycles on one shim are deterministic.
+        self.assertIn('ln -sfn "$CUCC_PATH/tools/nvcc_entry.sh" "$CUDA_DIR/bin/nvcc"', cmake_cce)
+        # Host compilers as toolkit-relative passthroughs (their pre_cmake).
+        self.assertIn("for _host_cc in c++ g++ gcc cc", cmake_cce)
         for lib in ("libcudart.so", "libcudart_static.a", "libcudadevrt.a",
                     "libcuda.so", "libcuda.so.1"):
             self.assertIn(lib, cmake_cce)
@@ -382,6 +390,10 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         # targets triple derived from uname, matching cmake_cce HOST_TRIPLE
         self.assertIn('HOST_TRIPLE="${HOST_ARCH}-${HOST_OS}"', make_cce)
         self.assertIn('"lib64/libcudart.so" -> runtime', make_cce)
+        # make.log sentinel is actually created (persistent fake toolkit).
+        self.assertIn('> "$DST_WCUDA/make.log"', make_cce)
+        self.assertIn('for _host_cc in c++ g++ gcc cc', make_cce)
+        self.assertIn('PATH="$DST_WCUDA/bin:$CUDA_DIR/bin:$PATH"', make_cce)
 
     def test_install_tree_provides_nvcc_symlink(self) -> None:
         # cu-bridge user manual FAQ Q2 workaround, automated: the install tree

@@ -71,7 +71,9 @@ configure 脚本用 `pre_makefile` 包裹；Python 库安装不管（FAQ Q7）�
 | 规则固化 | 无语言钩子（patched 模块未接线）；USE_CMAKE_MACA 二进制替换 hack | `CMAKE_USER_MAKE_RULES_OVERRIDE`（CMake 官方扩展点）+ `CU2CCE_CMAKE_NO_OVERRIDE` 回退（≈其 cmake_assist） | 有意分歧：官方钩子可维护性远优于二进制替换 |
 | 假工具包 lib 软链族 | link.json/stub_link.json（50+ 条） | **lib64 软链族已补**：libcudart.so/libcudart_static.a/libcudadevrt.a/libcuda.so(.1) → 桥运行时（cmake shim 与 make_cce 双侧） | 已对齐（本桥不映射 cublas 名——实验线诚实边界） |
 | 宿主编译器劫持 | bin/gnu 包装器（链接走 mxcc） | 不劫持：宿主编译/链接用系统 g++（桥运行时是 .so，配合 lib64 软链即可） | 有意分歧：链接器保持标准 g++，语义由桥运行时承接 |
-| Make 入口 | make_maca（假目录+PATH+make；make.log 哨兵） | make_cce（同构：make.log 哨兵/容错清理/CUDA_DIR 布局/targets 三元组派生） | 已对齐 |
+| Make 入口 | make_maca（假目录+PATH+make；make.log 哨兵） | make_cce（同构：make.log 哨兵**已创建**/容错清理/CUDA_DIR 布局/targets 三元组派生/宿主编译器 passthrough） | 已对齐 |
+| 假工具包默认持久化 | CUBRIDGE_HOME=$HOME（持久，configure/build 共享） | **默认持久**：`${CU2CCE_HOME:-${CUBRIDGE_HOME:-$HOME}}/cu2cce-bridge/cmake-shim`（CU2CCE_CMAKE_SHIM_DIR 显式覆盖） | 已对齐（2026-08-28 静态补齐：双阶段的 build 切换依赖持久 shim） |
+| 宿主编译器 passthrough 软链 | pre_cmake 段：bin/{c++,g++,gcc,cc} → /usr/bin/* | cmake shim 与 make_cce 均提供同款 passthrough（仅当 /usr/bin 存在） | 已对齐（2026-08-28 静态补齐） |
 | configure 包裹器 | pre_makefile | 未实现（后续项） | 差距（低频场景） |
 | nvcc 兼容软链 | FAQ Q2 手工软链 workaround | **安装树自动提供 `bin/nvcc → cucc`**（install CODE） | 已对齐+自动化 |
 | CUDA Toolkit 发现 | 无 FindCUDAToolkit（文档教用户绕开 CUDA 语言） | FindCUDAToolkit + CUDA::cudart/toolkit 别名族（真机验证） | **本桥领先** |
@@ -86,7 +88,7 @@ configure 脚本用 `pre_makefile` 包裹；Python 库安装不管（FAQ Q7）�
 | | cu-bridge | 本桥 |
 |---|---|---|
 | 用户工程内 | 标准 `.o`/目标产物，无中间件 | 同 |
-| 桥临时物 | `$CUBRIDGE_HOME/_nvcc/`（命令脚本）、`~/cu-bridge`（假工具包） | shim 目录（`/tmp/cu2cce-cmake-shim-*` 或 `CU2CCE_CMAKE_SHIM_DIR`）、`$CU2CCE_HOME/cu2cce-bridge/`（make 假工具包） |
+| 桥临时物 | `$CUBRIDGE_HOME/_nvcc/`（命令脚本）、`~/cu-bridge`（假工具包） | shim 目录（默认 `~/cu2cce-bridge/cmake-shim`，持久；或 `CU2CCE_CMAKE_SHIM_DIR`）、`$CU2CCE_HOME/cu2cce-bridge/`（make 假工具包） |
 | 链接执行者 | mxcc | g++（+ 桥运行时 .so） |
 | 安装树 | bin/include/extras/cmake_module/tools + 库装进 `$MACA_PATH/lib` | bin/include/lib/config/cmake_modules/tools（自包含前缀）+ `bin/nvcc` 软链 |
 

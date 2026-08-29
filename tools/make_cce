@@ -41,6 +41,9 @@ if [ ! -f "$DST_WCUDA/make.log" ]; then
     rm -rf "$DST_WCUDA"
 fi
 mkdir -p "$DST_WCUDA"
+# make.log 哨兵：cu-bridge 用它表示"假工具包已就绪、可跨次复用"。
+# 本桥每次运行都会无条件重建软链（更稳），哨兵只保留持久化语义。
+echo 1 > "$DST_WCUDA/make.log"
 
 # ---------------- 建伪 CUDA 目录 ----------------
 # CUDA_PATH 指向伪目录（其 bin/nvcc → cucc）
@@ -61,6 +64,17 @@ mkdir -p "$CUDA_DIR/targets/$HOST_TRIPLE"
 # bin/nvcc → cucc
 ln -sf "${CUCC_PATH}/bin/cucc" "$CUDA_DIR/bin/nvcc"
 ln -sf "${CUCC_PATH}/bin/cucc" "$CUDA_DIR/bin/cucc"
+
+# 宿主编译器 passthrough（对齐 cu-bridge link.json 的 pre_cmake/pre_make 段
+# 的 ../bin/{c++,g++,gcc,cc}）：放在 $DST_WCUDA/bin（PATH 最前），身份与系统
+# 编译器完全一致，仅让 $CUDA_PATH/bin/g++ 形式的引用可用。
+mkdir -p "$DST_WCUDA/bin"
+for _host_cc in c++ g++ gcc cc; do
+    if [ -e "/usr/bin/$_host_cc" ]; then
+        ln -sfn "/usr/bin/$_host_cc" "$DST_WCUDA/bin/$_host_cc"
+    fi
+done
+unset _host_cc
 
 # include：软链 cu2cce 的整个 include（含 cuda_runtime.h 等 + bridge/）
 ln -sfn "${CUCC_PATH}/include" "$CUDA_DIR/include" 2>/dev/null || true
@@ -87,7 +101,7 @@ unset _cuda_lib
 
 # ---------------- 设环境并调 make ----------------
 export CUDA_PATH="$CUDA_DIR"
-export PATH="$CUDA_DIR/bin:$PATH"
+export PATH="$DST_WCUDA/bin:$CUDA_DIR/bin:$PATH"
 # 让 bisheng 能找到 ACL 头/库
 export ASCEND_TOOLKIT_HOME
 export CANN_BASE="${CANN_BASE:-/usr/local/Ascend/latest}"

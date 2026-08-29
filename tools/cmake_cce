@@ -33,26 +33,35 @@ for arg in "$@"; do
     esac
 done
 
-# Two-phase design (mirrors cu-bridge's cmake_maca/cmake_mock/make_maca
-# protocol): CONFIGURE runs the shim nvcc through the probe-answering mock;
-# BUILD (`cmake_cce --build ...`) re-points the shim nvcc at the real cucc so
-# actual compilation bypasses the mock — configure answers, build compiles.
-if [ "${1:-}" = "--build" ] || [ "${1:-}" = "--install" ]; then
-    if [ -n "${CU2CCE_CMAKE_SHIM_DIR:-}" ] && [ -e "$CU2CCE_CMAKE_SHIM_DIR/cuda/bin/nvcc" ]; then
-        ln -sfn "$CUCC_PATH/bin/cucc" "$CU2CCE_CMAKE_SHIM_DIR/cuda/bin/nvcc"
-        printf 'cmake_cce: build phase: shim nvcc -> %s/bin/cucc\n' "$CUCC_PATH" >&2
-    fi
-    exec cmake "$@"
-fi
-
-# A persistent directory can be selected by the caller. Otherwise retain the
-# old per-process /tmp behavior so ordinary users do not pollute source trees.
+# Shim directory resolution + two-phase protocol. The DEFAULT shim root is
+# persistent under the user's home — same semantics as cu-bridge's
+# CUBRIDGE_HOME ($HOME/cu-bridge): the two-phase protocol (configure via
+# mock, build via real cucc) requires configure and build to share one shim,
+# and build.make records the configured compiler path.
 if [ -n "${CU2CCE_CMAKE_SHIM_DIR:-}" ]; then
     SHIM_ROOT="$CU2CCE_CMAKE_SHIM_DIR"
 else
-    SHIM_ROOT="${TMPDIR:-/tmp}/cu2cce-cmake-shim-$$"
+    SHIM_ROOT="${CU2CCE_HOME:-${CUBRIDGE_HOME:-$HOME}}/cu2cce-bridge/cmake-shim"
 fi
 CUDA_DIR="$SHIM_ROOT/cuda"
+
+# Build/install phase: re-point the shim nvcc at the real cucc (cu-bridge's
+# make_maca rebuilds CUDA_DIR the same way), then hand over to cmake.
+build_phase=0
+for arg in "$@"; do
+    case "$arg" in
+        --build|--install) build_phase=1 ;;
+    esac
+done
+if [ "$build_phase" -eq 1 ]; then
+    if [ -e "$CUDA_DIR/bin/nvcc" ]; then
+        ln -sfn "$CUCC_PATH/bin/cucc" "$CUDA_DIR/bin/nvcc"
+        printf 'cmake_cce: build phase: shim nvcc -> %s/bin/cucc\n' "$CUCC_PATH" >&2
+    else
+        printf 'cmake_cce: build phase: no shim from a configure run at %s; continuing\n' "$CUDA_DIR" >&2
+    fi
+    exec cmake "$@"
+fi
 
 HOST_ARCH="$(uname -m 2>/dev/null || echo x86_64)"
 case "$HOST_ARCH" in
@@ -78,7 +87,19 @@ mkdir -p \
 # paths. Do not copy or rewrite user source files.
 rm -rf "$CUDA_DIR/include"
 ln -s "$CUCC_PATH/include" "$CUDA_DIR/include"
+# Configure phase: the shim nvcc goes through the probe-answering mock.
+# Re-pointing here makes repeated configure/build cycles on one persistent
+# shim deterministic (build phase re-points it to real cucc, see above).
 ln -sfn "$CUCC_PATH/tools/nvcc_entry.sh" "$CUDA_DIR/bin/nvcc"
+# Host compilers as toolkit-relative passthroughs (mirrors cu-bridge's
+# link.json pre_cmake section): projects that set
+# CMAKE_CXX_COMPILER="$ENV{CUDA_PATH}/bin/g++" keep working unchanged.
+for _host_cc in c++ g++ gcc cc; do
+    if [ -e "/usr/bin/$_host_cc" ]; then
+        ln -sfn "/usr/bin/$_host_cc" "$CUDA_DIR/bin/$_host_cc"
+    fi
+done
+unset _host_cc
 ln -sfn "$CUDA_DIR/include" "$CUDA_DIR/targets/$HOST_TRIPLE/include"
 ln -sfn "$CUDA_DIR/lib64" "$CUDA_DIR/targets/$HOST_TRIPLE/lib"
 
