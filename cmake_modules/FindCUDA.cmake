@@ -2,13 +2,14 @@
 #
 # Supported legacy surface:
 #   find_package(CUDA)
-#   cuda_add_executable()
-#   cuda_add_library()
+#   cuda_add_executable() / cuda_add_library() / cuda_compile() /
+#   cuda_wrap_srcs() / cuda_include_directories() /
+#   cuda_select_nvcc_arch_flags() / CUDA_NVCC_FLAGS
 #   CUDA_INCLUDE_DIRS / CUDA_LIBRARIES / CUDA_NVCC_EXECUTABLE
 #
 # The implementation delegates to normal CMake targets. It never generates
-# .cce files or performs kernel source conversion. PTX/CUBIN/FATBIN helpers are
-# intentionally not implemented because puresimt compiles CUDA directly with
+# .cce files or performs kernel source conversion. PTX/CUBIN/FATBIN helpers
+# fail with an explicit message because puresimt compiles CUDA directly with
 # ccec on Ascend.
 
 include(CMakeParseArguments)
@@ -34,7 +35,7 @@ set(CUDA_TOOLKIT_LIBRARY_ROOT "${_CU2CCE_PREFIX}")
 function(_cu2cce_legacy_parse target out_sources out_options out_compile_options)
   set(_sources)
   set(_cmake_options)
-  set(_nvcc_options)
+  set(_nvcc_options ${CUDA_NVCC_FLAGS})
   set(_in_options FALSE)
   foreach(_arg IN LISTS ARGN)
     if(_arg STREQUAL "OPTIONS")
@@ -104,20 +105,49 @@ function(cuda_include_directories)
   include_directories(${ARGN})
 endfunction()
 
-function(cuda_compile out_var)
-  message(FATAL_ERROR
-    "cu2cce: CUDA PTX/CUBIN/FATBIN helper cuda_compile is unsupported; "
-    "use cuda_add_executable or cuda_add_library for puresimt")
-endfunction()
+macro(cuda_compile out_var)
+  # Legacy `cuda_compile(objs foo.cu ...)`: generate CUDA objects for the
+  # listed sources. Implemented as a LANGUAGE-CUDA passthrough — the sources
+  # are compiled by the CUDA rules recorded from the shim (nvcc -> cucc), and
+  # the returned list doubles as the source list for add_executable/
+  # add_library, matching how legacy projects consume the variable.
+  get_property(_cu2cce_enabled_langs GLOBAL PROPERTY ENABLED_LANGUAGES)
+  if(NOT "CUDA" IN_LIST _cu2cce_enabled_langs)
+    enable_language(CUDA)
+  endif()
+  set(${out_var})
+  foreach(_src ${ARGN})
+    if(_src MATCHES "\\.cu$")
+      set_source_files_properties("${_src}" PROPERTIES LANGUAGE CUDA)
+    endif()
+    list(APPEND ${out_var} "${_src}")
+  endforeach()
+endmacro()
 
-function(cuda_compile_ptx out_var)
+macro(cuda_wrap_srcs cuda_target format generated_files)
+  # Legacy CUDA_WRAP_SRCS parity: filter the CUDA sources out of ARGN, mark
+  # them for the CUDA compiler, and return them via ${generated_files}.
+  get_property(_cu2cce_enabled_langs GLOBAL PROPERTY ENABLED_LANGUAGES)
+  if(NOT "CUDA" IN_LIST _cu2cce_enabled_langs)
+    enable_language(CUDA)
+  endif()
+  set(${generated_files})
+  foreach(_src ${ARGN})
+    if(_src MATCHES "\\.cu$")
+      set_source_files_properties("${_src}" PROPERTIES LANGUAGE CUDA)
+      list(APPEND ${generated_files} "${_src}")
+    endif()
+  endforeach()
+endmacro()
+
+macro(cuda_compile_ptx out_var)
   message(FATAL_ERROR "cu2cce: CUDA PTX generation is unsupported on Ascend puresimt")
-endfunction()
-function(cuda_compile_fatbin out_var)
+endmacro()
+macro(cuda_compile_fatbin out_var)
   message(FATAL_ERROR "cu2cce: CUDA FATBIN generation is unsupported on Ascend puresimt")
-endfunction()
-function(cuda_compile_cubin out_var)
+endmacro()
+macro(cuda_compile_cubin out_var)
   message(FATAL_ERROR "cu2cce: CUDA CUBIN generation is unsupported on Ascend puresimt")
-endfunction()
+endmacro()
 
 message(STATUS "Found cu2cce legacy CUDA compatibility: ${CUDA_NVCC_EXECUTABLE}")

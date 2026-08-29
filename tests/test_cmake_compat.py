@@ -438,6 +438,34 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
             self.assertIn(section, doc)
         self.assertIn("docs/02_Architecture/06_cmake_principle_flow.md", doc)
 
+    def test_findcuda_legacy_macros_and_ninja_two_phase(self) -> None:
+        # Fourth alignment batch: legacy FindCUDA macro surface (cuda_compile
+        # as a LANGUAGE-CUDA passthrough — real FindCUDA produces objects,
+        # so the earlier FATAL_ERROR was over-restrictive), CUDA_NVCC_FLAGS
+        # consumption, honest PTX/CUBIN/FATBIN errors, and ninja_cce joining
+        # the two-phase protocol (ninja_maca parity).
+        findcuda = (ROOT / "cmake_modules/FindCUDA.cmake").read_text(encoding="utf-8")
+        self.assertIn("macro(cuda_compile out_var)", findcuda)
+        self.assertIn("macro(cuda_wrap_srcs cuda_target format generated_files)", findcuda)
+        self.assertIn("set(_nvcc_options ${CUDA_NVCC_FLAGS})", findcuda)
+        self.assertIn("enable_language(CUDA)", findcuda)
+        for honest in ("macro(cuda_compile_ptx out_var)", "macro(cuda_compile_fatbin out_var)",
+                       "macro(cuda_compile_cubin out_var)"):
+            self.assertIn(honest, findcuda)
+
+        ninja = (ROOT / "tools/ninja_cce").read_text(encoding="utf-8")
+        self.assertIn('SHIM_ROOT="${CU2CCE_CMAKE_SHIM_DIR:-${CU2CCE_HOME:-${CUBRIDGE_HOME:-$HOME}}/cu2cce-bridge/cmake-shim}"', ninja)
+        self.assertIn("ninja_cce: build phase: shim nvcc ->", ninja)
+        self.assertIn('ln -sfn "$CUCC_PATH/bin/cucc" "$CUDA_DIR/bin/nvcc"', ninja)
+
+        # plain-g++ link carrier: proves the lib64 symlink family end-to-end
+        gxx_dir = ROOT / "examples/build_compat/make_gxx_link"
+        self.assertTrue((gxx_dir / "Makefile").is_file())
+        makefile = (gxx_dir / "Makefile").read_text(encoding="utf-8")
+        self.assertIn("-L$(CUDA_PATH)/lib64 -lcudart", makefile)
+        server_cmd = (ROOT / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
+        self.assertIn("make_gxx_link: plain-g++ link with -lcudart -> bridge runtime", server_cmd)
+
     def test_cubridge_parity_tools_are_shipped(self) -> None:
         # Third alignment batch: multi_target/get_device_arch -> device_arch,
         # pre_makefile -> pre_cce, bin/gnu -> hostcc_cce, CUPTI layout.

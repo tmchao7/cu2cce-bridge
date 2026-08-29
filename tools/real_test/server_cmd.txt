@@ -611,6 +611,25 @@ if [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$MAKE_CCE" ]; then
         tail -n 100 "$MAKE_COMPAT_LOG" 2>/dev/null
         BUILD_COMPAT_PASS=0
     fi
+    # g++-link carrier: the final link uses the PLAIN host compiler with
+    # -lcudart, proving the CUDA-named lib64 symlink family (plain-g++
+    # Make projects are a common large-project shape).
+    rm -rf examples/build_compat/make_gxx_link/build
+    if CUCC_PATH="$PWD/build/real_test/install" CUBRIDGE_HOME="$OUT/make-home" \
+        "$MAKE_CCE" -C examples/build_compat/make_gxx_link >"$OUT/make_gxx_link.log" 2>&1; then
+        if examples/build_compat/make_gxx_link/build/app >"$OUT/make_gxx_link.run.log" 2>&1 && \
+           grep -Fq 'make_gxx_link OK' "$OUT/make_gxx_link.run.log"; then
+            echo '[PASS] make_gxx_link: plain-g++ link with -lcudart -> bridge runtime'
+        else
+            echo '[FAIL] make_gxx_link run'
+            cat "$OUT/make_gxx_link.run.log" 2>/dev/null
+            BUILD_COMPAT_PASS=0
+        fi
+    else
+        echo '[FAIL] make_gxx_link build (log tail:)'
+        tail -n 60 "$OUT/make_gxx_link.log" 2>/dev/null || true
+        BUILD_COMPAT_PASS=0
+    fi
 else
     echo '[FAIL] make_cce smoke unavailable'
     BUILD_COMPAT_PASS=0

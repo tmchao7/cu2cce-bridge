@@ -1,7 +1,11 @@
 #!/bin/bash
 # ninja_cce —— run Ninja for a cu2cce-generated build tree.
-# CMake has already recorded the CUDA shim/compiler in the build directory;
-# this wrapper only validates the bridge environment and forwards arguments.
+#
+# Two-phase protocol (cu-bridge ninja_maca parity): when the build tree was
+# configured through cmake_cce with a persistent shim, the shim nvcc is
+# re-pointed at the real cucc for the build phase — configure answers via
+# mock, build compiles via cucc. Direct `ninja` stays compatible: the mock
+# keeps its configure-phase real-compile fallback.
 set -euo pipefail
 
 CUCC_PATH="${CUCC_PATH:-}"
@@ -13,5 +17,13 @@ if ! command -v ninja >/dev/null 2>&1; then
     echo "ninja_cce: ninja executable not found" >&2
     exit 1
 fi
+
+SHIM_ROOT="${CU2CCE_CMAKE_SHIM_DIR:-${CU2CCE_HOME:-${CUBRIDGE_HOME:-$HOME}}/cu2cce-bridge/cmake-shim}"
+CUDA_DIR="$SHIM_ROOT/cuda"
+if [ -e "$CUDA_DIR/bin/nvcc" ]; then
+    ln -sfn "$CUCC_PATH/bin/cucc" "$CUDA_DIR/bin/nvcc"
+    echo "ninja_cce: build phase: shim nvcc -> $CUCC_PATH/bin/cucc" >&2
+fi
+
 export PATH="$CUCC_PATH/bin:$PATH"
 exec ninja "$@"
