@@ -23,6 +23,9 @@ typedef uint16_t aclFloat16;
 #define ACL_ERROR_RT_AICORE_EXCEPTION 507015
 #define ACL_ERROR_FAILURE 500001
 #define ACL_ERROR_API_NOT_SUPPORT 200001
+/* real CANN acl_base.h values (verified against Ascend headers) */
+#define ACL_ERROR_BAD_ALLOC 200000
+#define ACL_ERROR_FEATURE_UNSUPPORTED 9000
 typedef enum { ACL_MEMCPY_HOST_TO_HOST=0, ACL_MEMCPY_HOST_TO_DEVICE=1, ACL_MEMCPY_DEVICE_TO_HOST=2, ACL_MEMCPY_DEVICE_TO_DEVICE=3 } aclrtMemcpyKind;
 typedef enum { ACL_MEM_MALLOC_HUGE_FIRST=0, ACL_MEM_MALLOC_HUGE_ONLY=1, ACL_MEM_MALLOC_NORMAL_ONLY=2 } aclrtMemMallocPolicy;
 typedef enum { ACL_HBM_MEM=1 } aclrtMemAttr;

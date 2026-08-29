@@ -467,6 +467,165 @@
       {
         "pattern": "-dlink",
         "reason": "CUDA device-link is disabled; the cucc CMake layer forces CUDA_SEPARABLE_COMPILATION OFF"
+      },
+      {
+        "pattern": "-link",
+        "reason": "nvcc -link is not a library reference; ccec links host objects directly"
+      },
+      {
+        "pattern": "-l:libcudart*",
+        "reason": "CUDA runtime libraries are replaced by the bridge runtime at link"
+      },
+      {
+        "pattern": "-l:libcuda.so*",
+        "reason": "CUDA driver library references are replaced by the bridge runtime at link"
+      },
+      {
+        "pattern": "-l:libOpenCL*",
+        "reason": "OpenCL device libraries do not exist on the Ascend puresimt path"
+      },
+      {
+        "pattern": "-lculibos",
+        "reason": "CUDA utility library does not exist on Ascend"
+      },
+      {
+        "pattern": "--Wno-deprecated-gpu-targets",
+        "reason": "NVIDIA GPU-target deprecation warnings do not apply to Ascend"
+      },
+      {
+        "pattern": "-expt-relaxed-constexpr",
+        "reason": "ccec/clang15 enables relaxed constexpr handling natively"
+      },
+      {
+        "pattern": "--expt-extended-lambda",
+        "reason": "ccec/clang15 handles extended lambdas natively"
+      },
+      {
+        "pattern": "-expt-extended-lambda",
+        "reason": "ccec/clang15 handles extended lambdas natively"
+      },
+      {
+        "pattern": "--extended-lambda",
+        "reason": "ccec/clang15 handles extended lambdas natively"
+      },
+      {
+        "pattern": "-extended-lambda",
+        "reason": "ccec/clang15 handles extended lambdas natively"
+      },
+      {
+        "pattern": "-flto",
+        "reason": "LTO is not validated on the ccec puresimt path"
+      },
+      {
+        "pattern": "-flto=*",
+        "reason": "LTO is not validated on the ccec puresimt path"
+      },
+      {
+        "pattern": "-compress-all",
+        "reason": "fatbin compression is an NVIDIA-specific artifact option"
+      },
+      {
+        "pattern": "-extra-device-vectorization",
+        "reason": "NVIDIA optimizer knob has no ccec equivalent"
+      },
+      {
+        "pattern": "--extra-device-vectorization",
+        "reason": "NVIDIA optimizer knob has no ccec equivalent"
+      },
+      {
+        "pattern": "-allow-unsupported-compiler",
+        "reason": "ccec has no host-compiler version gate"
+      },
+      {
+        "pattern": "--allow-unsupported-compiler",
+        "reason": "ccec has no host-compiler version gate"
+      },
+      {
+        "pattern": "--diag_suppress=*",
+        "reason": "nvcc diagnostic suppression spelling is not accepted by ccec"
+      },
+      {
+        "pattern": "--diag-suppress=*",
+        "reason": "nvcc diagnostic suppression spelling is not accepted by ccec"
+      },
+      {
+        "pattern": "-restrict",
+        "reason": "nvcc restrict spelling; use __restrict__ in source"
+      },
+      {
+        "pattern": "--restrict",
+        "reason": "nvcc restrict spelling; use __restrict__ in source"
+      },
+      {
+        "pattern": "-cuda",
+        "reason": "nvcc source-language token is not applicable; language is selected by cu2cce"
+      },
+      {
+        "pattern": "-no-canonical-prefixes",
+        "reason": "nvcc toolchain-root option is not applicable to ccec"
+      },
+      {
+        "pattern": "--source-in-ptx",
+        "reason": "PTX embedding is not part of the puresimt path"
+      },
+      {
+        "pattern": "--linker-options",
+        "takes_value": true,
+        "reason": "nvcc linker-forwarding channel has no ccec equivalent; use -Wl, directly"
+      },
+      {
+        "pattern": "--libdevice-directory",
+        "takes_value": true,
+        "reason": "libdevice does not exist on the puresimt path; bridge headers supply intrinsics"
+      },
+      {
+        "pattern": "-Wdefault-stream-launch",
+        "reason": "nvcc-specific warning name is not accepted by ccec"
+      },
+      {
+        "pattern": "-Wmissing-launch-bounds",
+        "reason": "nvcc-specific warning name is not accepted by ccec"
+      },
+      {
+        "pattern": "-Wext-lambda-captures-this",
+        "reason": "nvcc-specific warning name is not accepted by ccec"
+      },
+      {
+        "pattern": "--Werror=implicit-fallthrough*",
+        "reason": "clang rejects the =N suffix spelling; use -Werror=implicit-fallthrough"
+      },
+      {
+        "pattern": "--offload-arch=*",
+        "reason": "offload architecture is selected by cu2cce via CU2CCE_NPU_ARCH"
+      },
+      {
+        "pattern": "--offload-arch",
+        "takes_value": true,
+        "reason": "offload architecture is selected by cu2cce via CU2CCE_NPU_ARCH"
+      },
+      {
+        "pattern": "-threads=*",
+        "reason": "nvcc host-compile parallelism is meaningless for a single ccec invocation"
+      },
+      {
+        "pattern": "-t=*",
+        "reason": "nvcc host-compile parallelism is meaningless for a single ccec invocation"
+      },
+      {
+        "pattern": "--default-stream*",
+        "reason": "legacy/per-thread default stream spellings are represented by the bridge default stream"
+      },
+      {
+        "pattern": "-default-stream*",
+        "reason": "legacy/per-thread default stream spellings are represented by the bridge default stream"
+      },
+      {
+        "pattern": "--disable-warnings",
+        "reason": "nvcc warning-control spelling; use -w (clang spelling) instead"
+      },
+      {
+        "pattern": "-x=*",
+        "reason": "single-token language selector is normalized; cu2cce selects asc for CUDA sources"
       }
     ],
     "replace": [
@@ -541,6 +700,39 @@
     ]
   },
   "compile": {
+    "reject": [
+      {
+        "pattern": "-dc",
+        "reason": "RDC/separable compilation object (-dc) is unsupported on the puresimt path; force CUDA_SEPARABLE_COMPILATION OFF"
+      },
+      {
+        "pattern": "--device-c",
+        "reason": "RDC/separable compilation object (--device-c) is unsupported on the puresimt path; force CUDA_SEPARABLE_COMPILATION OFF"
+      }
+    ],
+    "replace": [
+      {
+        "pattern": "-dw",
+        "reason": "whole-program compilation is the only device mode; -dw is normalized to plain -c",
+        "to": [
+          "-c"
+        ]
+      },
+      {
+        "pattern": "--device-w",
+        "reason": "whole-program compilation is the only device mode; --device-w is normalized to plain -c",
+        "to": [
+          "-c"
+        ]
+      },
+      {
+        "pattern": "--compile",
+        "reason": "nvcc long spelling of -c",
+        "to": [
+          "-c"
+        ]
+      }
+    ],
     "inject": [
       {
         "tokens": [

@@ -403,6 +403,33 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         self.assertIn("file(CREATE_LINK cucc", top)
         self.assertIn("bin/nvcc SYMBOLIC", top)
 
+    def test_runtime_parity_surface_round2(self) -> None:
+        # Second full-surface audit runtime additions: error-name table,
+        # GetDeviceFlags, NVTX no-op shim, math_constants.h.
+        cpp = (ROOT / "src/bridge/runtime/src/cuda_runtime_wrapper.cpp").read_text(encoding="utf-8")
+        header = (ROOT / "include/bridge/runtime/cuda_runtime_wrapper.h").read_text(encoding="utf-8")
+        self.assertIn('return entry.name;', cpp)  # stateless per-code name table
+        self.assertIn('"cudaErrorNotSupported"', cpp)
+        self.assertIn("wcudaGetDeviceFlags(unsigned int *flags)", header)
+        self.assertIn("*flags = 0;", cpp)
+        for f in ("include/nvtx3/nvToolsExt.h", "include/nvToolsExt.h",
+                  "include/bridge/tools_ext/nvtx_stub.h", "include/math_constants.h"):
+            self.assertTrue((ROOT / f).is_file(), f)
+        nvtx = (ROOT / "include/bridge/tools_ext/nvtx_stub.h").read_text(encoding="utf-8")
+        for macro in ("nvtxRangePushA", "nvtxRangePop", "nvtxMarkA",
+                      "nvtxRangeStartA", "nvtxRangeEnd"):
+            self.assertIn(f"#define {macro}", nvtx)
+        self.assertIn("no-op", nvtx)  # honest contract: no fabricated profiling data
+        mc = (ROOT / "include/math_constants.h").read_text(encoding="utf-8")
+        self.assertIn("M_PIf", mc)
+        self.assertIn("CUDART_INF_F", mc)
+        self.assertIn("host-only", mc)  # double constants carry the FP64 warning
+        # parity audit document exists and records the three comparison tables
+        audit = (ROOT / "docs/03_Comparison/PARITY_AUDIT_2026-08-28.md").read_text(encoding="utf-8")
+        self.assertIn("-dc", audit)
+        self.assertIn("libsymbol_cu", audit)
+        self.assertIn("thrust", audit)
+
     def test_alignment_doc_records_cubridge_mechanism_and_reading_map(self) -> None:
         doc = (ROOT / "docs/03_Comparison/CMAKE_MAKE_ALIGNMENT_WITH_CUBRIDGE.md").read_text(encoding="utf-8")
         for section in ("cmake_maca", "cmake_mock", "cmake_assist", "link.json",

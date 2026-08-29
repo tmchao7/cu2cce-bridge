@@ -692,6 +692,31 @@ class RuleDriver:
                 i += 1
                 continue
 
+            if argument == "--Werror":
+                # nvcc's double-dash --Werror consumes a warning NAME as the
+                # next token; ccec/clang has no such spelling and the bare
+                # name would leak into ccec as a stray input (cu-bridge
+                # bin/cucc:84-116 implements the same pair logic).
+                consumed = 1
+                if i + 1 < len(expanded) and not expanded[i + 1].startswith("-"):
+                    consumed = 2
+                self._warn(
+                    f"ignored {argument}: nvcc double-dash warning-control is not "
+                    "accepted by ccec; use -Werror=<name> (single dash)"
+                )
+                self._record(argument, "drop", "nvcc --Werror spelling with warning name")
+                i += consumed
+                continue
+
+            if argument.startswith("-I/usr/local/cuda"):
+                # Stale CUDA toolkit include paths: no CUDA toolkit exists on
+                # this machine and bridge headers are force-prepended anyway
+                # (mirrors the -L shim-path drop above and cu-bridge
+                # conf.json's "-I/usr/local/cuda*" filter).
+                self._record(argument, "drop", "stale CUDA toolkit include path")
+                i += 1
+                continue
+
             if self._handle_library_policy(argument):
                 result.append(argument)
                 i += 1

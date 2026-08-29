@@ -251,6 +251,18 @@ aclError wcudaSetDeviceFlags(unsigned int flags) {
     WCUDA_RETURN(ACL_SUCCESS);
 }
 
+aclError wcudaGetDeviceFlags(unsigned int *flags) {
+    if (flags == nullptr) {
+        WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
+    }
+    /* Ascend has no scheduling-flag state; report the default (spin/yield
+     * autonomous scheduling, no map-host), consistent with SetDeviceFlags
+     * being a compatibility no-op and canMapHostMemory reporting 0. */
+    BRIDGE_INIT();
+    *flags = 0;
+    WCUDA_RETURN(ACL_SUCCESS);
+}
+
 aclError wcudaDeviceReset(void) {
     /* 释放当前 device 资源（对应 cudaDeviceReset）。
      * 昇腾官方 ACL GEMM sample 的进程收尾顺序是 aclrtResetDevice -> aclFinalize。
@@ -1377,10 +1389,36 @@ const char *wcudaGetErrorString(aclError error) {
 }
 
 const char *wcudaGetErrorName(aclError error) {
-    /* 昇腾无直接的错误名查询接口；先返回占位，真机核对后可用
-     * aclrtGetErrorInfo 的字符串字段或自建 错误码->名字 表。 */
+    /* CUDA 契约：无状态、按错误码返回 cudaErrorXxx 风格名字（与
+     * GetErrorString 的"最近一次错误文本"语义不同）。本表覆盖桥内会产生
+     * 的全部 ACL 错误码；未列出的码回落 "unknown"。 */
+    static const struct {
+        aclError code;
+        const char *name;
+    } k_names[] = {
+        {ACL_SUCCESS, "cudaSuccess"},
+        {ACL_ERROR_INVALID_PARAM, "cudaErrorInvalidValue"},
+        {ACL_ERROR_RT_PARAM_INVALID, "cudaErrorInvalidValue"},
+        {ACL_ERROR_UNINITIALIZE, "cudaErrorInitializationError"},
+        {ACL_ERROR_RT_MEMORY_ALLOCATION, "cudaErrorMemoryAllocation"},
+        {ACL_ERROR_BAD_ALLOC, "cudaErrorMemoryAllocation"},
+        {ACL_ERROR_RT_INTERNAL_ERROR, "cudaErrorUnknown"},
+        {ACL_ERROR_FAILURE, "cudaErrorUnknown"},
+        {ACL_ERROR_RT_EVENT_NOT_COMPLETE, "cudaErrorNotReady"},
+        {ACL_ERROR_RT_STREAM_NOT_COMPLETE, "cudaErrorNotReady"},
+        {ACL_ERROR_API_NOT_SUPPORT, "cudaErrorNotSupported"},
+        {ACL_ERROR_FEATURE_UNSUPPORTED, "cudaErrorNotSupported"},
+        {ACL_ERROR_INVALID_DEVICE, "cudaErrorInvalidDevice"},
+        {ACL_ERROR_RT_NO_DEVICE, "cudaErrorNoDevice"},
+        {ACL_ERROR_RT_NO_STREAM_RESOURCE, "cudaErrorStreamCreationFailed"},
+        {ACL_ERROR_RT_AICORE_EXCEPTION, "cudaErrorKernelExecutionFailed"},
+    };
+    for (const auto &entry : k_names) {
+        if (entry.code == error) {
+            return entry.name;
+        }
+    }
     static const char *unknown = "unknown";
-    (void)error;
     return unknown;
 }
 

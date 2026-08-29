@@ -231,6 +231,57 @@ class CuccRuleDriverTest(unittest.TestCase):
         with self.assertRaises(DriverError):
             self.driver(CU2CCE_STRICT_FLAGS="1").prepare(["main.o", "-lcufft", "-o", "app"])
 
+    def test_cubridge_parity_flags_round2(self) -> None:
+        # Second full-surface audit vs cu-bridge bin/cucc + conf.json:
+        # separable-compilation spellings, -link/-l: forms, nvcc-specific
+        # warning/diagnostic/opt spellings, stale CUDA include paths.
+        src = "t.cu"
+        (Path(self.tmp.name) / src).write_text("", encoding="utf-8")
+
+        # -dc/--device-c (emitted by CMake CUDA_SEPARABLE_COMPILATION=ON) must
+        # be rejected like -rdc=true, never forwarded to ccec.
+        for flag in ("-dc", "--device-c"):
+            with self.assertRaises(DriverError, msg=flag):
+                self.driver().prepare(["-c", src, flag, "-o", "t.o"])
+
+        # -dw/--device-w/--compile normalize to plain -c.
+        for flag in ("-dw", "--device-w", "--compile"):
+            prepared = self.driver().prepare(["-c", src, flag, "-o", "t.o"])
+            acts = [a.action for a in prepared.actions if a.argument == flag]
+            self.assertEqual(acts, ["replace"], flag)
+
+        def dropped(flag: str) -> None:
+            prepared = self.driver().prepare(["-c", src, flag, "-o", "t.o"])
+            acts = [a.action for a in prepared.actions if a.argument == flag]
+            self.assertEqual(acts, ["drop"], flag)
+
+        # -link must be dropped before the -l* forward rule treats it as a
+        # library reference.
+        dropped("-link")
+        for flag in ("-x=cu", "-l:libcudart.so", "-l:libcuda.so",
+                     "--Wno-deprecated-gpu-targets", "--offload-arch=sm_80",
+                     "-flto=thin", "--diag_suppress=xyz", "--restrict",
+                     "--source-in-ptx", "--disable-warnings"):
+            dropped(flag)
+
+        # stale CUDA toolkit include paths are dropped like -L shim paths
+        prepared = self.driver().prepare(
+            ["-c", src, "-I/usr/local/cuda/include", "-o", "t.o"])
+        acts = [a.action for a in prepared.actions
+                if a.argument == "-I/usr/local/cuda/include"]
+        self.assertEqual(acts, ["drop"])
+
+    def test_double_dash_werror_consumes_warning_name(self) -> None:
+        # cu-bridge bin/cucc:84-116 pair logic: nvcc's --Werror takes a
+        # warning NAME as the next token; that name must not leak into ccec
+        # as a stray input.
+        src = "t.cu"
+        (Path(self.tmp.name) / src).write_text("", encoding="utf-8")
+        prepared = self.driver().prepare(
+            ["-c", src, "--Werror", "cross-execution-space-call", "-o", "t.o"])
+        args = " ".join(prepared.args)
+        self.assertNotIn("cross-execution-space-call", args)
+
     def test_custom_rules_file_overrides_default(self) -> None:
         rules = Path(self.tmp.name) / "custom.json"
         rules.write_text(json.dumps({
