@@ -111,5 +111,10 @@ policy（不静默映射）、`-S/--fatbin/--maxrregcount` 等大量带值双 to
   运行时 GetErrorName 真名表 + GetDeviceFlags + NVTX shim + math_constants.h。
 - **周一真机验证项**：新增 flag 规则在真实 ccec 下不破坏必需门禁；
   `-dc` reject 不影响（CMake 层已强制 separable OFF）。
-- **后续大项**（需独立立项）：头文件生态的 thrust/cccl 评估、驱动 API cu*
-  两层设计、graph 族 aclrt 验证、逐库 BLAS 扩展。
+- **后续大项更新（2026-08-28 联网调研后）**：驱动 API cu* 的 CANN module
+  故事**已确认**（aclrtBinaryLoadFromMem/Data/File → aclrtBinaryGetFunction
+  → funcHandle，Atlas A2/A3 起支持）；库映射路线已入册（NCCL→HCCL、
+  cuFFT→SiP FFT/aclRfft1D、cublasLt→ATB、CUTLASS→CATLASS），详见
+  `docs/01_Design/ASCEND_LIBRARY_MAPPING.md`；thrust/libcu++ 确认无官方
+  昇腾移植（生态答案为 CATLASS + CANN Next SIMT），维持 SDK 级依赖定性；
+  capabilities 表已升级为 map_to 驱动（-lnccl 等警告自带映射路线）。

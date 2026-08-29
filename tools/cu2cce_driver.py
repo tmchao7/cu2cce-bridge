@@ -565,14 +565,26 @@ class RuleDriver:
         if not argument.startswith("-l"):
             return False
         name = argument[2:]
+        capabilities = self.rules.get("capabilities", {})
         capability = None
-        for key in ("cublas", "cublasLt", "cufft", "cusparse", "curand", "cudnn"):
+        for key, entry in capabilities.items():
+            # cudart has its own bridge-inject path (dropped at link by the
+            # rules file); only advisory library entries are handled here.
+            if entry.get("action") == "bridge_inject":
+                continue
             if name == key or name.startswith(key + "_") or name.startswith(key):
                 capability = key
                 break
         if capability is None:
             return False
+        entry = capabilities.get(capability, {})
+        map_to = entry.get("map_to", "")
         message = f"CUDA library {argument} has no automatic Ascend mapping; preserving it"
+        if map_to:
+            message = (
+                f"CUDA library {argument}: Ascend mapping route documented -> {map_to}; "
+                "the shim is not implemented, so the reference is preserved as-is"
+            )
         if self.strict:
             raise DriverError(message)
         self._warn(message)

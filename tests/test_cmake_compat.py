@@ -423,7 +423,7 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         mc = (ROOT / "include/math_constants.h").read_text(encoding="utf-8")
         self.assertIn("M_PIf", mc)
         self.assertIn("CUDART_INF_F", mc)
-        self.assertIn("host-only", mc)  # double constants carry the FP64 warning
+        self.assertIn("HOST-side use", mc)  # double constants carry the FP64 warning
         # parity audit document exists and records the three comparison tables
         audit = (ROOT / "docs/03_Comparison/PARITY_AUDIT_2026-08-28.md").read_text(encoding="utf-8")
         self.assertIn("-dc", audit)

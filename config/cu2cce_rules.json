@@ -941,15 +941,33 @@
     },
     "cusparse": {
       "status": "unsupported",
-      "action": "warn_no_automatic_replacement"
+      "action": "warn_no_automatic_replacement",
+      "map_to": "CANN sparse operators; no 1:1 shim yet"
     },
     "curand": {
       "status": "unsupported",
-      "action": "warn_no_automatic_replacement"
+      "action": "warn_no_automatic_replacement",
+      "map_to": "Ascend C random operators; no device-side curand_kernel.h equivalent yet"
     },
     "cudnn": {
       "status": "unsupported",
-      "action": "warn_no_automatic_replacement"
+      "action": "warn_no_automatic_replacement",
+      "map_to": "ATB / CANN operator library; no 1:1 shim yet"
+    },
+    "cusolver": {
+      "status": "unsupported",
+      "action": "warn_no_automatic_replacement",
+      "map_to": "CANN ops-math (aol) dense-solver operators; no 1:1 shim yet"
+    },
+    "cublasLt": {
+      "status": "experimental",
+      "action": "warn_no_automatic_replacement",
+      "map_to": "ATB (Ascend Transformer Boost) / aclblas GEMM family"
+    },
+    "nccl": {
+      "status": "map_available",
+      "action": "warn_no_automatic_replacement",
+      "map_to": "HCCL (hccl.h: HcclCommInitRootInfo/HcclCommInitClusterInfo, HcclAllReduce/Broadcast/Send/Recv, HcclGetRankSize/RankId)"
     }
   },
   "diagnostics": {
