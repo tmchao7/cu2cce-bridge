@@ -27,6 +27,10 @@ CUCC_PATH=${CUCC_PATH:-}
 # Keep the old CUBRIDGE_HOME name as a compatibility alias, but use the
 # cu2cce-specific name for new projects.
 CU2CCE_HOME=${CU2CCE_HOME:-${CUBRIDGE_HOME:-$HOME}}
+# Device architecture resolution (cu-bridge multi_target.sh parity).
+if [ -z "${CU2CCE_NPU_ARCH:-}" ] && [ -z "${CUCC_NPU_ARCH:-}" ]; then
+    CU2CCE_NPU_ARCH="$(bash "${CUCC_PATH}/tools/device_arch.sh" 2>/dev/null || echo dav-c310-vec)"
+fi
 
 if [ -z "${CUCC_PATH}" ]; then
     echo "make_cce: CUCC_PATH not set (point to cu2cce-bridge install dir)" >&2
@@ -51,6 +55,7 @@ CUDA_DIR="$DST_WCUDA/CUDA_DIR"
 mkdir -p "$CUDA_DIR/bin"
 mkdir -p "$CUDA_DIR/include"
 mkdir -p "$CUDA_DIR/lib64/stubs"
+mkdir -p "$CUDA_DIR/extras/CUPTI/include" "$CUDA_DIR/extras/CUPTI/lib64"
 
 # targets 三元组按宿主派生（与 cmake_cce 的 HOST_TRIPLE 规则一致，
 # 对应 make_maca 的 targets/$(uname -m)-$(uname -s | tr A-Z a-z) 布局）
@@ -69,11 +74,19 @@ ln -sf "${CUCC_PATH}/bin/cucc" "$CUDA_DIR/bin/cucc"
 # 的 ../bin/{c++,g++,gcc,cc}）：放在 $DST_WCUDA/bin（PATH 最前），身份与系统
 # 编译器完全一致，仅让 $CUDA_PATH/bin/g++ 形式的引用可用。
 mkdir -p "$DST_WCUDA/bin"
-for _host_cc in c++ g++ gcc cc; do
-    if [ -e "/usr/bin/$_host_cc" ]; then
-        ln -sfn "/usr/bin/$_host_cc" "$DST_WCUDA/bin/$_host_cc"
-    fi
-done
+# 宿主编译器条目（cu-bridge bin/gnu 对齐）：优先 hostcc 包装器（链接自动补
+# 桥运行时、纯编译透传），包装器缺失时退化为 /usr/bin 身份软链。
+if [ -x "${CUCC_PATH}/tools/hostcc_cce" ]; then
+    for _host_cc in c++ g++ gcc cc; do
+        ln -sfn "${CUCC_PATH}/tools/hostcc_cce" "$DST_WCUDA/bin/$_host_cc"
+    done
+else
+    for _host_cc in c++ g++ gcc cc; do
+        if [ -e "/usr/bin/$_host_cc" ]; then
+            ln -sfn "/usr/bin/$_host_cc" "$DST_WCUDA/bin/$_host_cc"
+        fi
+    done
+fi
 unset _host_cc
 
 # include：软链 cu2cce 的整个 include（含 cuda_runtime.h 等 + bridge/）

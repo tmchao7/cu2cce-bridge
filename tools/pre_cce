@@ -1,0 +1,93 @@
+#!/bin/bash
+# ============================================================
+# pre_cce —— generic command wrapper (cu-bridge pre_makefile/pre_make parity).
+#
+# cu-bridge's documented use (FAQ Q5): autoconf-style `configure xxx`
+# becomes `pre_makefile configure xxx`. pre_cce does the same for NPU:
+# it prepares the fake CUDA toolkit environment (bin/nvcc -> cucc,
+# CUDA-named lib64 links, host compiler passthroughs) and then evals the
+# wrapped command, so scripts that probe for nvcc/gcc during configuration
+# see a complete toolchain.
+#
+# Usage:
+#   pre_cce ./configure --prefix=/opt/app
+#   pre_cce make -j8
+#   pre_cce cmake -S . -B build      # for scripts that invoke cmake internally
+# ============================================================
+set -u
+
+setup_debug_propagation() {
+    [[ $- == *x* ]] && export BASH_XTRACE=1
+    [[ $- == *v* ]] && export BASH_VERBOSE=1
+    [[ $- == *e* ]] && export BASH_ERREXIT=1
+}
+setup_debug_propagation
+
+ASCEND_TOOLKIT_HOME=${ASCEND_TOOLKIT_HOME:-/usr/local/Ascend/ascend-toolkit/latest}
+CUCC_PATH=${CUCC_PATH:-}
+CU2CCE_HOME=${CU2CCE_HOME:-${CUBRIDGE_HOME:-$HOME}}
+
+if [ -z "${CUCC_PATH}" ]; then
+    echo "pre_cce: CUCC_PATH not set (point to cu2cce-bridge install dir)" >&2
+    exit 1
+fi
+if [ "$#" -eq 0 ]; then
+    echo "pre_cce: no command to wrap (usage: pre_cce <command> [args...])" >&2
+    exit 1
+fi
+
+TEMP_DIR_NAME="cu2cce-bridge"
+DST_WCUDA="$CU2CCE_HOME/${TEMP_DIR_NAME}"
+if [ ! -f "$DST_WCUDA/make.log" ]; then
+    rm -rf "$DST_WCUDA"
+fi
+mkdir -p "$DST_WCUDA"
+echo 1 > "$DST_WCUDA/make.log"
+
+CUDA_DIR="$DST_WCUDA/CUDA_DIR"
+mkdir -p "$CUDA_DIR/bin" "$CUDA_DIR/include" "$CUDA_DIR/lib64/stubs"
+
+HOST_ARCH="$(uname -m 2>/dev/null || echo x86_64)"
+case "$HOST_ARCH" in amd64) HOST_ARCH=x86_64 ;; arm64) HOST_ARCH=aarch64 ;; esac
+HOST_OS="$(uname -s 2>/dev/null | tr '[:upper:]' '[:lower:]' || echo linux)"
+HOST_TRIPLE="${HOST_ARCH}-${HOST_OS}"
+mkdir -p "$CUDA_DIR/targets/$HOST_TRIPLE"
+
+ln -sf "${CUCC_PATH}/bin/cucc" "$CUDA_DIR/bin/nvcc"
+ln -sf "${CUCC_PATH}/bin/cucc" "$CUDA_DIR/bin/cucc"
+ln -sfn "${CUCC_PATH}/include" "$CUDA_DIR/include" 2>/dev/null || true
+ln -sfn "$CUDA_DIR/include" "$CUDA_DIR/targets/$HOST_TRIPLE/include"
+ln -sfn "$CUDA_DIR/lib64" "$CUDA_DIR/targets/$HOST_TRIPLE/lib"
+if [ ! -e "$CUDA_DIR/include/cuda_runtime.h" ]; then
+    for f in "${CUCC_PATH}/include"/*; do
+        ln -sfn "$f" "$CUDA_DIR/include/$(basename "$f")"
+    done
+fi
+
+for _cuda_lib in libcudart.so libcudart_static.a libcudadevrt.a libcuda.so libcuda.so.1; do
+    ln -sfn "${CUCC_PATH}/lib/libcce_bridge_runtime.so" "$CUDA_DIR/lib64/$_cuda_lib"
+    ln -sfn "${CUCC_PATH}/lib/libcce_bridge_runtime.so" "$CUDA_DIR/lib64/stubs/$_cuda_lib"
+done
+unset _cuda_lib
+
+mkdir -p "$DST_WCUDA/bin"
+for _host_cc in c++ g++ gcc cc; do
+    if [ -e "/usr/bin/$_host_cc" ]; then
+        ln -sfn "/usr/bin/$_host_cc" "$DST_WCUDA/bin/$_host_cc"
+    fi
+done
+unset _host_cc
+
+export CUDA_PATH="$CUDA_DIR"
+export PATH="$DST_WCUDA/bin:$CUDA_DIR/bin:$PATH"
+export ASCEND_TOOLKIT_HOME
+export CANN_BASE="${CANN_BASE:-/usr/local/Ascend/latest}"
+export CU2CCE_NPU_ARCH="${CU2CCE_NPU_ARCH:-$(bash "${CUCC_PATH}/tools/device_arch.sh" 2>/dev/null || echo dav-c310-vec)}"
+export LD_LIBRARY_PATH="${CUCC_PATH}/lib:${CANN_BASE}/lib64:${LD_LIBRARY_PATH:-}"
+
+if [[ "$*" == *"clean"* ]]; then
+    rm -rf "$DST_WCUDA"
+fi
+
+# quote-safe eval of the wrapped command (mirrors pre_makefile's escaping)
+eval "$*"

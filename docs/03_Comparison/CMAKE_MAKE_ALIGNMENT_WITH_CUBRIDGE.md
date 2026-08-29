@@ -74,7 +74,10 @@ configure 脚本用 `pre_makefile` 包裹；Python 库安装不管（FAQ Q7）�
 | Make 入口 | make_maca（假目录+PATH+make；make.log 哨兵） | make_cce（同构：make.log 哨兵**已创建**/容错清理/CUDA_DIR 布局/targets 三元组派生/宿主编译器 passthrough） | 已对齐 |
 | 假工具包默认持久化 | CUBRIDGE_HOME=$HOME（持久，configure/build 共享） | **默认持久**：`${CU2CCE_HOME:-${CUBRIDGE_HOME:-$HOME}}/cu2cce-bridge/cmake-shim`（CU2CCE_CMAKE_SHIM_DIR 显式覆盖） | 已对齐（2026-08-28 静态补齐：双阶段的 build 切换依赖持久 shim） |
 | 宿主编译器 passthrough 软链 | pre_cmake 段：bin/{c++,g++,gcc,cc} → /usr/bin/* | cmake shim 与 make_cce 均提供同款 passthrough（仅当 /usr/bin 存在） | 已对齐（2026-08-28 静态补齐） |
-| configure 包裹器 | pre_makefile | 未实现（后续项） | 差距（低频场景） |
+| configure 包裹器 | pre_makefile（configure 脚本包裹，FAQ Q5） | **pre_cce**（同构：假工具包环境 + eval 包裹命令） | 已对齐（2026-08-28） |
+| 设备架构探测助手 | multi_target.sh + get_device_arch.sh（CUCC_TARGETS → mx-smi → 提示） | **tools/device_arch.sh**（CU2CCE_NPU_ARCH → npu-smi 表映射 → cache → default + tip），cmake_cce/make_cce 接线 | 已对齐（2026-08-28，NPU 特性适配） |
+| 宿主编译器包装器 | bin/gnu（纯编译透传真 gcc、链接走 mxcc 并强制 MACA 库） | **tools/hostcc_cce**：纯编译透传真 gcc；链接追加桥运行时 + libascendcl（NPU 适配：链接器仍是 g++，语义由桥 .so 承接）；.cu 拒绝并指引 cucc | 已对齐（2026-08-28，有意保留 g++ 链接器的 NPU 适配） |
+| CUPTI 路径布局 | 虚拟目录含 extras/CUPTI/{include,lib64} | cmake shim 与 make_cce 同款空目录布局（路径探测兼容） | 已对齐（2026-08-28） |
 | nvcc 兼容软链 | FAQ Q2 手工软链 workaround | **安装树自动提供 `bin/nvcc → cucc`**（install CODE） | 已对齐+自动化 |
 | CUDA Toolkit 发现 | 无 FindCUDAToolkit（文档教用户绕开 CUDA 语言） | FindCUDAToolkit + CUDA::cudart/toolkit 别名族（真机验证） | **本桥领先** |
 | 参数适配 | conf.json（replacer/adder/filter）+ gomxccbin 正则 | cu2cce_rules.json（153 条，五动作）单一 in-process 驱动 | 机制不同目标相同；无 Go 工具依赖 |
@@ -120,14 +123,18 @@ configure 脚本用 `pre_makefile` 包裹；Python 库安装不管（FAQ Q7）�
 7. **行为锁**：`tests/test_cucc_rules.py`（驱动 30 项）+
    `tests/test_cmake_compat.py`（表面 18 项）+ `tests/test_blas_surface.py`。
 
-## 5. 剩余差距（后续项，均低频）
+## 5. 剩余差距（后续项）
 
-1. `pre_makefile` 等价的 configure 脚本包裹器（cu-bridge 用于 configure 类
-   自动脚本的场景）；
-2. `bin/gnu` 宿主编译器包装器（我们评估为非必需：桥运行时 .so + lib64 软链
-   已覆盖纯 g++ 链接场景）；
-3. Bazel/TF 构建配置（conf_bazel.json 等价物）；
-4. FindCUDA legacy 宏面（我们有基础 FindCUDA.cmake，宏集合少于其版本）；
+1. Bazel/TF 构建配置（conf_bazel.json / WCUDA_BAZEL_TF_BUILD 等价物）；
+2. FindCUDA legacy 宏全集（CUDA_ADD_EXECUTABLE/CUDA_ADD_LIBRARY/
+   CUDA_COMPILE/CUDA_WRAP_SRCS 等；现有 FindCUDA.cmake 为诚实基础面，
+   ptx/cubin 宏明确不支持）；
+3. mock 的 CompilerId 预编译 ELF 技巧（我们刻意不用：不携带平台二进制工件）；
+4. gfortran/MPI 包装器（低频；cu-bridge 有 conf_gfortran.json 与 ompi 分派）。
+
+> 已关闭的历史差距：pre_makefile（→pre_cce）、bin/gnu（→hostcc_cce）、
+> multi_target/get_device_arch（→device_arch.sh）、持久 shim、lib64 软链族、
+> 安装树 nvcc 软链——均为 2026-08-28 对齐批次落地。
 5. mock 的 CompilerId 预编译 ELF 技巧（我们刻意不用：不携带平台二进制）。
 
 ## 6. 维护规则

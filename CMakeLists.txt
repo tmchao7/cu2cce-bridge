@@ -88,6 +88,8 @@ install(PROGRAMS tools/make_cce tools/cmake_cce tools/ninja_cce
         DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
 install(PROGRAMS tools/nvcc_entry.sh tools/cu2cce_driver.py tools/validate_cucc_rules.py
         DESTINATION ${CMAKE_INSTALL_PREFIX}/tools)
+install(PROGRAMS tools/device_arch.sh tools/pre_cce tools/hostcc_cce
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/tools)
 install(DIRECTORY tools/mock DESTINATION ${CMAKE_INSTALL_PREFIX}/tools)
 install(PROGRAMS tools/real_test/fetch_external_cuda_samples.sh
         DESTINATION ${CMAKE_INSTALL_PREFIX}/tools/real_test)

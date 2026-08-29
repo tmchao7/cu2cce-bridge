@@ -15,7 +15,13 @@ set -euo pipefail
 CUCC_PATH="${CUCC_PATH:-}"
 CANN_BASE="${CANN_BASE:-/usr/local/Ascend/latest}"
 ASCEND_TOOLKIT_HOME="${ASCEND_TOOLKIT_HOME:-/usr/local/Ascend/ascend-toolkit/latest}"
-CU2CCE_NPU_ARCH="${CU2CCE_NPU_ARCH:-${CUCC_NPU_ARCH:-dav-c310-vec}}"
+# Device architecture resolution (cu-bridge multi_target.sh parity):
+# env -> device query/cache -> default; see tools/device_arch.sh.
+if [ -z "${CU2CCE_NPU_ARCH:-}" ] && [ -z "${CUCC_NPU_ARCH:-}" ]; then
+    CU2CCE_NPU_ARCH="$(bash "${CUCC_PATH}/tools/device_arch.sh" 2>/dev/null || echo dav-c310-vec)"
+else
+    CU2CCE_NPU_ARCH="${CU2CCE_NPU_ARCH:-${CUCC_NPU_ARCH:-dav-c310-vec}}"
+fi
 
 if [ -z "$CUCC_PATH" ] || [ ! -x "$CUCC_PATH/bin/cucc" ]; then
     echo "cmake_cce: CUCC_PATH must point to an installed cu2cce-bridge directory" >&2
@@ -80,7 +86,9 @@ mkdir -p \
     "$CUDA_DIR/lib64/stubs" \
     "$CUDA_DIR/nvvm/libdevice" \
     "$CUDA_DIR/lib64/cmake/CUDAToolkit" \
-    "$CUDA_DIR/targets/$HOST_TRIPLE"
+    "$CUDA_DIR/targets/$HOST_TRIPLE" \
+    "$CUDA_DIR/extras/CUPTI/include" \
+    "$CUDA_DIR/extras/CUPTI/lib64"
 
 # Recreate the include link as a single directory link so all installed CUDA
 # compatibility headers are visible to projects that use toolkit-relative
@@ -91,11 +99,14 @@ ln -s "$CUCC_PATH/include" "$CUDA_DIR/include"
 # Re-pointing here makes repeated configure/build cycles on one persistent
 # shim deterministic (build phase re-points it to real cucc, see above).
 ln -sfn "$CUCC_PATH/tools/nvcc_entry.sh" "$CUDA_DIR/bin/nvcc"
-# Host compilers as toolkit-relative passthroughs (mirrors cu-bridge's
-# link.json pre_cmake section): projects that set
-# CMAKE_CXX_COMPILER="$ENV{CUDA_PATH}/bin/g++" keep working unchanged.
+# Host compilers as toolkit-relative entries (mirrors cu-bridge's
+# link.json pre_cmake section): prefer the hostcc wrapper (adds the bridge
+# runtime on links, passthrough on compiles — bin/gnu parity), falling back
+# to identity symlinks when the wrapper is unavailable.
 for _host_cc in c++ g++ gcc cc; do
-    if [ -e "/usr/bin/$_host_cc" ]; then
+    if [ -x "$CUCC_PATH/tools/hostcc_cce" ]; then
+        ln -sfn "$CUCC_PATH/tools/hostcc_cce" "$CUDA_DIR/bin/$_host_cc"
+    elif [ -e "/usr/bin/$_host_cc" ]; then
         ln -sfn "/usr/bin/$_host_cc" "$CUDA_DIR/bin/$_host_cc"
     fi
 done

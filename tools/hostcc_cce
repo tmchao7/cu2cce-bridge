@@ -1,0 +1,75 @@
+#!/bin/bash
+# ============================================================
+# hostcc_cce —— host C/C++ compiler wrapper (cu-bridge bin/gnu parity).
+#
+# The fake toolkit binds bin/{c++,g++,gcc,cc} to THIS script. Behavior is
+# cu-bridge's bin/gnu adapted to the NPU backend:
+#   - pure compile (-c): exec the real system compiler unchanged;
+#   - link / compile_and_link: exec the real compiler and append the bridge
+#     runtime + CANN libs, so Makefiles that link host objects with the
+#     toolchain compiler get the wcuda runtime automatically (cu-bridge
+#     forces -lruntime_cu/-lToolsExt_cu on every link);
+#   - everything else (preprocess, --version, --dumpversion): passthrough.
+#
+# Device sources (.cu) must go through cucc — this wrapper refuses them
+# explicitly instead of letting the host compiler choke on CUDA syntax.
+# ============================================================
+set -u
+
+name="$(basename "$0")"
+
+CUCC_PATH="${CUCC_PATH:-}"
+if [ -z "$CUCC_PATH" ] || [ ! -f "$CUCC_PATH/lib/libcce_bridge_runtime.so" ]; then
+    # Without a usable bridge, degrade to the plain system compiler.
+    exec "/usr/bin/$name" "$@"
+fi
+
+CANN_BASE="${CANN_BASE:-/usr/local/Ascend/latest}"
+
+# refuse device sources honestly
+for a in "$@"; do
+    case "$a" in
+        *.cu)
+            echo "hostcc_cce: '$a' is a CUDA source; compile it with cucc (device code never goes through the host compiler)" >&2
+            exit 2
+            ;;
+    esac
+done
+
+phase=other
+have_out=0
+for a in "$@"; do
+    case "$a" in
+        -c) phase=compile ;;
+        -E) phase=preprocess ;;
+        -o) have_out=1 ;;
+        --version|-dumpversion|-v) phase=query ;;
+    esac
+done
+case " $* " in
+    *" -c "*) : ;; # already classified
+esac
+if [ "$phase" = other ] && [ "$have_out" -eq 1 ]; then
+    phase=link
+fi
+
+case "$phase" in
+    compile|preprocess|query)
+        exec "/usr/bin/$name" "$@"
+        ;;
+    link)
+        # cu-bridge parity: links through the toolchain wrapper carry the
+        # bridge runtime. Keep the real linker (g++), which is able to link
+        # libcce_bridge_runtime.so plus CANN's acl libraries.
+        exec "/usr/bin/$name" "$@" \
+            "-L$CUCC_PATH/lib" \
+            "-Wl,-rpath,$CUCC_PATH/lib" \
+            "-lcce_bridge_runtime" \
+            "-L$CANN_BASE/lib64" \
+            "-Wl,-rpath,$CANN_BASE/lib64" \
+            "-lascendcl"
+        ;;
+    *)
+        exec "/usr/bin/$name" "$@"
+        ;;
+esac

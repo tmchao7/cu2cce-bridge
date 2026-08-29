@@ -411,6 +411,41 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
             self.assertIn(section, doc)
         self.assertIn("docs/02_Architecture/06_cmake_principle_flow.md", doc)
 
+    def test_cubridge_parity_tools_are_shipped(self) -> None:
+        # Third alignment batch: multi_target/get_device_arch -> device_arch,
+        # pre_makefile -> pre_cce, bin/gnu -> hostcc_cce, CUPTI layout.
+        for f in ("tools/device_arch.sh", "tools/pre_cce", "tools/hostcc_cce"):
+            self.assertTrue((ROOT / f).is_file(), f)
+        top = (ROOT / "CMakeLists.txt").read_text(encoding="utf-8")
+        self.assertIn("install(PROGRAMS tools/device_arch.sh tools/pre_cce tools/hostcc_cce", top)
+
+        device_arch = (ROOT / "tools/device_arch.sh").read_text(encoding="utf-8")
+        # env-first, then npu-smi device query, then cache, then default —
+        # mirroring cu-bridge multi_target.sh semantics.
+        self.assertIn('CU2CCE_NPU_ARCH', device_arch)
+        self.assertIn("npu-smi info", device_arch)
+        self.assertIn("dav-c310-vec", device_arch)
+
+        pre_cce = (ROOT / "tools/pre_cce").read_text(encoding="utf-8")
+        self.assertIn('echo 1 > "$DST_WCUDA/make.log"', pre_cce)
+        self.assertIn('eval "$*"', pre_cce)
+        self.assertIn("ln -sf \"${CUCC_PATH}/bin/cucc\" \"$CUDA_DIR/bin/nvcc\"", pre_cce)
+
+        hostcc = (ROOT / "tools/hostcc_cce").read_text(encoding="utf-8")
+        # bin/gnu parity, NPU-adapted: real compiler for compiles, bridge
+        # runtime appended on links, .cu refused with cucc guidance.
+        self.assertIn('exec "/usr/bin/$name" "$@"', hostcc)
+        self.assertIn('"-lcce_bridge_runtime"', hostcc)
+        self.assertIn("compile it with cucc", hostcc)
+
+        for wrapper in ("tools/cmake_cce", "tools/make_cce"):
+            text = (ROOT / wrapper).read_text(encoding="utf-8")
+            self.assertIn("tools/hostcc_cce", text)
+            self.assertIn("tools/device_arch.sh", text)
+            self.assertIn("extras/CUPTI/include", text)
+        # the driver already accepts --options-file (cu-bridge conf.json parity)
+        self.assertIn('"--options-file"', (ROOT / "tools/cu2cce_driver.py").read_text(encoding="utf-8"))
+
     def test_mock_nvcc_short_circuits_preprocess_and_deps(self) -> None:
         mock = (ROOT / "tools/mock/mock_nvcc.py").read_text(encoding="utf-8")
         driver = (ROOT / "tools/cu2cce_driver.py").read_text(encoding="utf-8")
