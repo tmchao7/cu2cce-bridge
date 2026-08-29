@@ -48,7 +48,15 @@ CUDA_DIR="$DST_WCUDA/CUDA_DIR"
 mkdir -p "$CUDA_DIR/bin"
 mkdir -p "$CUDA_DIR/include"
 mkdir -p "$CUDA_DIR/lib64/stubs"
-mkdir -p "$CUDA_DIR/targets/x86_64-linux"
+
+# targets 三元组按宿主派生（与 cmake_cce 的 HOST_TRIPLE 规则一致，
+# 对应 make_maca 的 targets/$(uname -m)-$(uname -s | tr A-Z a-z) 布局）
+HOST_ARCH="$(uname -m 2>/dev/null || echo x86_64)"
+case "$HOST_ARCH" in amd64) HOST_ARCH=x86_64 ;; arm64) HOST_ARCH=aarch64 ;; esac
+HOST_OS="$(uname -s 2>/dev/null | tr '[:upper:]' '[:lower:]' || echo linux)"
+case "$HOST_OS" in darwin) HOST_OS=darwin ;; linux) HOST_OS=linux ;; esac
+HOST_TRIPLE="${HOST_ARCH}-${HOST_OS}"
+mkdir -p "$CUDA_DIR/targets/$HOST_TRIPLE"
 
 # bin/nvcc → cucc
 ln -sf "${CUCC_PATH}/bin/cucc" "$CUDA_DIR/bin/nvcc"
@@ -57,8 +65,8 @@ ln -sf "${CUCC_PATH}/bin/cucc" "$CUDA_DIR/bin/cucc"
 # include：软链 cu2cce 的整个 include（含 cuda_runtime.h 等 + bridge/）
 ln -sfn "${CUCC_PATH}/include" "$CUDA_DIR/include" 2>/dev/null || true
 # 若上面整目录软链不生效（如跨文件系统），退化为逐项软链
-ln -sfn "$CUDA_DIR/include" "$CUDA_DIR/targets/x86_64-linux/include"
-ln -sfn "$CUDA_DIR/lib64" "$CUDA_DIR/targets/x86_64-linux/lib"
+ln -sfn "$CUDA_DIR/include" "$CUDA_DIR/targets/$HOST_TRIPLE/include"
+ln -sfn "$CUDA_DIR/lib64" "$CUDA_DIR/targets/$HOST_TRIPLE/lib"
 if [ ! -e "$CUDA_DIR/include/cuda_runtime.h" ]; then
     for f in "${CUCC_PATH}/include"/*; do
         ln -sfn "$f" "$CUDA_DIR/include/$(basename "$f")"
@@ -67,6 +75,15 @@ fi
 
 # 若 make 里用了 lib64（昇腾一般用 ASCEND_TOOLKIT_HOME/lib64），补一个
 mkdir -p "$CUDA_DIR/lib64"
+
+# CUDA 命名的运行时库软链（对齐 cu-bridge tools/link.json 的 pre_make 段：
+# "lib64/libcudart.so" -> runtime 库）。经 cucc 编译的对象只含 wcuda* 符号，
+# 纯 g++ 链接 Make 工程的 -lcudart/-lcuda 在此解析到桥运行时即可。
+for _cuda_lib in libcudart.so libcudart_static.a libcudadevrt.a libcuda.so libcuda.so.1; do
+    ln -sfn "${CUCC_PATH}/lib/libcce_bridge_runtime.so" "$CUDA_DIR/lib64/$_cuda_lib"
+    ln -sfn "${CUCC_PATH}/lib/libcce_bridge_runtime.so" "$CUDA_DIR/lib64/stubs/$_cuda_lib"
+done
+unset _cuda_lib
 
 # ---------------- 设环境并调 make ----------------
 export CUDA_PATH="$CUDA_DIR"

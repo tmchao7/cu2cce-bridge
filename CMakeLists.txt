@@ -77,6 +77,12 @@ install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_PREFIX}/include)
 # 安装 cucc 驱动（CUCC_PATH/bin）
 install(PROGRAMS bin/cucc DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
 
+# nvcc compatibility symlink in the install tree (mirrors cu-bridge user
+# manual FAQ Q2's `ln -s cucc nvcc` workaround): Makefiles that hard-code
+# `nvcc` work when PATH contains only $CUCC_PATH/bin.
+install(CODE "file(CREATE_LINK cucc
+  \$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/bin/nvcc SYMBOLIC)")
+
 # 安装用户可直接调用的构建入口到 bin；nvcc_entry/mock 是内部 shim。
 install(PROGRAMS tools/make_cce tools/cmake_cce tools/ninja_cce
         DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)

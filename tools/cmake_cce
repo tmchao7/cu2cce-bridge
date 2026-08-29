@@ -33,6 +33,18 @@ for arg in "$@"; do
     esac
 done
 
+# Two-phase design (mirrors cu-bridge's cmake_maca/cmake_mock/make_maca
+# protocol): CONFIGURE runs the shim nvcc through the probe-answering mock;
+# BUILD (`cmake_cce --build ...`) re-points the shim nvcc at the real cucc so
+# actual compilation bypasses the mock — configure answers, build compiles.
+if [ "${1:-}" = "--build" ] || [ "${1:-}" = "--install" ]; then
+    if [ -n "${CU2CCE_CMAKE_SHIM_DIR:-}" ] && [ -e "$CU2CCE_CMAKE_SHIM_DIR/cuda/bin/nvcc" ]; then
+        ln -sfn "$CUCC_PATH/bin/cucc" "$CU2CCE_CMAKE_SHIM_DIR/cuda/bin/nvcc"
+        printf 'cmake_cce: build phase: shim nvcc -> %s/bin/cucc\n' "$CUCC_PATH" >&2
+    fi
+    exec cmake "$@"
+fi
+
 # A persistent directory can be selected by the caller. Otherwise retain the
 # old per-process /tmp behavior so ordinary users do not pollute source trees.
 if [ -n "${CU2CCE_CMAKE_SHIM_DIR:-}" ]; then
@@ -71,6 +83,17 @@ ln -sfn "$CUDA_DIR/include" "$CUDA_DIR/targets/$HOST_TRIPLE/include"
 ln -sfn "$CUDA_DIR/lib64" "$CUDA_DIR/targets/$HOST_TRIPLE/lib"
 
 printf 'CUDA Version 11.6.0\n' > "$CUDA_DIR/version.txt"
+
+# CUDA-named runtime library symlinks (mirrors cu-bridge's link.json
+# pre_make/virtual_cmake sections: "lib64/libcudart.so" -> its runtime).
+# Projects linked by a plain host compiler with -lcudart/-lcuda resolve these
+# to the bridge runtime; objects compiled through cucc carry wcuda* symbols
+# only, so the mapping is exact rather than an ABI guess.
+for _cuda_lib in libcudart.so libcudart_static.a libcudadevrt.a libcuda.so libcuda.so.1; do
+    ln -sfn "$CUCC_PATH/lib/libcce_bridge_runtime.so" "$CUDA_DIR/lib64/$_cuda_lib"
+    ln -sfn "$CUCC_PATH/lib/libcce_bridge_runtime.so" "$CUDA_DIR/lib64/stubs/$_cuda_lib"
+done
+unset _cuda_lib
 
 # CMake's built-in toolkit probes inspect these paths even when the actual
 # compiler is the nvcc shim. Keep them present without inventing NVIDIA libs.

@@ -461,6 +461,13 @@ CMake 的 CUDA compiler detection 会经过：
 cmake_cce → CMake CUDA shim → nvcc_entry → mock_nvcc → cucc → ccec
 ```
 
+**双阶段协议（与 cu-bridge 的 cmake_mock/make_maca 同构）**：configure 阶段
+shim nvcc 走 mock（应答探测 + 编译器自检真编译回退）；用
+`cmake_cce --build build` 触发 build 时，shim nvcc 自动切换为真 cucc
+（绕过 mock）。经 `cmake --build` 直接构建也兼容（mock 保留真编译回退）。
+shim 的 `lib64/` 提供 libcudart/libcuda → 桥运行时软链，纯 g++ 链接的
+Make 工程也能解析 `-lcudart`。
+
 **能力现状（详见 `docs/02_Architecture/05_cmake_design.md` 与构建矩阵）**：
 真机验证覆盖 `project(... LANGUAGES CUDA)`、多目录 `add_subdirectory`、
 多个 `.cu`、静态/动态 CUDA library、host+CUDA 混合、

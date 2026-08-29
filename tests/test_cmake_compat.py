@@ -364,6 +364,41 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
             (ROOT / "tools/real_test/fetch_external_cuda_samples.sh").read_text(
                 encoding="utf-8").count("require_public_https_url"), 2)
 
+    def test_cmake_build_phase_and_lib_symlinks_align_with_cubridge(self) -> None:
+        # cu-bridge alignment (2026-08-28): two-phase protocol and the CUDA-
+        # named lib64 symlink family. Their cmake_maca answers configure
+        # probes via mock_nvcc and repoints CUDA_DIR/bin/nvcc -> cucc for the
+        # build phase; their link.json pre_make section creates lib64/libcudart
+        # -> runtime symlinks so plain-g++ linked Make projects resolve
+        # -lcudart. Our cmake_cce/make_cce replicate both.
+        cmake_cce = (ROOT / "tools/cmake_cce").read_text(encoding="utf-8")
+        self.assertIn('cmake_cce: build phase: shim nvcc ->', cmake_cce)
+        self.assertIn('ln -sfn "$CUCC_PATH/bin/cucc" "$CU2CCE_CMAKE_SHIM_DIR/cuda/bin/nvcc"', cmake_cce)
+        for lib in ("libcudart.so", "libcudart_static.a", "libcudadevrt.a",
+                    "libcuda.so", "libcuda.so.1"):
+            self.assertIn(lib, cmake_cce)
+            self.assertIn(lib, (ROOT / "tools/make_cce").read_text(encoding="utf-8"))
+        make_cce = (ROOT / "tools/make_cce").read_text(encoding="utf-8")
+        # targets triple derived from uname, matching cmake_cce HOST_TRIPLE
+        self.assertIn('HOST_TRIPLE="${HOST_ARCH}-${HOST_OS}"', make_cce)
+        self.assertIn('"lib64/libcudart.so" -> runtime', make_cce)
+
+    def test_install_tree_provides_nvcc_symlink(self) -> None:
+        # cu-bridge user manual FAQ Q2 workaround, automated: the install tree
+        # carries bin/nvcc -> bin/cucc so Makefiles hard-coding `nvcc` work
+        # with only $CUCC_PATH/bin on PATH.
+        top = (ROOT / "CMakeLists.txt").read_text(encoding="utf-8")
+        self.assertIn("file(CREATE_LINK cucc", top)
+        self.assertIn("bin/nvcc SYMBOLIC", top)
+
+    def test_alignment_doc_records_cubridge_mechanism_and_reading_map(self) -> None:
+        doc = (ROOT / "docs/03_Comparison/CMAKE_MAKE_ALIGNMENT_WITH_CUBRIDGE.md").read_text(encoding="utf-8")
+        for section in ("cmake_maca", "cmake_mock", "cmake_assist", "link.json",
+                        "USE_CMAKE_MACA", "预编译真 ELF", "双阶段协议",
+                        "逐项对齐表", "代码导读", "剩余差距"):
+            self.assertIn(section, doc)
+        self.assertIn("docs/02_Architecture/06_cmake_principle_flow.md", doc)
+
     def test_mock_nvcc_short_circuits_preprocess_and_deps(self) -> None:
         mock = (ROOT / "tools/mock/mock_nvcc.py").read_text(encoding="utf-8")
         driver = (ROOT / "tools/cu2cce_driver.py").read_text(encoding="utf-8")
