@@ -381,12 +381,14 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         # makes the build-phase re-point effective across processes.
         self.assertIn('${CU2CCE_HOME:-${CUBRIDGE_HOME:-$HOME}}/cu2cce-bridge/cmake-shim', cmake_cce)
         # Configure phase binds the shim nvcc to the mock through the shared
-        # builder (re-pointing here makes repeated configure/build cycles on
-        # one persistent shim deterministic).
-        self.assertIn('--nvcc-target "$CUCC_PATH/tools/nvcc_entry.sh"', cmake_cce)
-        # Host compilers as toolkit-relative entries (their pre_cmake) come
-        # from the builder's hostcc modes now.
-        self.assertIn('--hostcc-mode wrapper', cmake_cce)
+        # helper (re-pointing here makes repeated configure/build cycles on
+        # one persistent shim deterministic). Since the seventh batch the
+        # sentinel/builder logic lives in tools/fake_toolkit_env.sh.
+        self.assertIn('cu2cce_prepare_fake_toolkit "$SHIM_ROOT" "$CUCC_PATH/tools/nvcc_entry.sh"',
+                      cmake_cce)
+        helper = (ROOT / "tools/fake_toolkit_env.sh").read_text(encoding="utf-8")
+        self.assertIn('--hostcc-mode "$hostcc_mode"', helper)
+        self.assertIn('echo 1 > "$dst/make.log"', helper)
         # The CUDA-named runtime alias family lives in the shared manifest.
         layout = (ROOT / "config/shim_layout.json").read_text(encoding="utf-8")
         for lib in ("libcudart.so", "libcudart_static.a", "libcudadevrt.a",
@@ -394,31 +396,35 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
                     "libcublas.so.1", "libnvToolsExt.so"):
             self.assertIn(lib, layout)
         make_cce = (ROOT / "tools/make_cce").read_text(encoding="utf-8")
-        # targets triple derivation moved into build_shim_tree.py
-        # (uname machine/system, amd64/arm64 normalization).
-        builder = (ROOT / "tools/build_shim_tree.py").read_text(encoding="utf-8")
-        self.assertIn("amd64", builder)
-        self.assertIn("aarch64", builder)
+        # targets triple derivation lives in the helper (uname machine/system,
+        # amd64/arm64 normalization).
+        self.assertIn("amd64", helper)
+        self.assertIn("aarch64", helper)
         self.assertIn('"libcudart.so"', layout)
         self.assertIn('lib64/cmake/CUDAToolkit', layout)
-        # make.log sentinel is actually created (persistent fake toolkit).
-        self.assertIn('> "$DST_WCUDA/make.log"', make_cce)
+        # make.log sentinel is created by the helper (persistent fake toolkit);
+        # make_cce sources it and binds the shim nvcc to the real cucc.
+        self.assertIn('. "${CUCC_PATH}/tools/fake_toolkit_env.sh"', make_cce)
+        self.assertIn('cu2cce_prepare_fake_toolkit "$DST_WCUDA" "$CUCC_PATH/bin/cucc"', make_cce)
         self.assertIn('PATH="$DST_WCUDA/bin:$CUDA_DIR/bin:$PATH"', make_cce)
-        # make_cce binds the shim nvcc to the real cucc through the builder.
-        self.assertIn('--nvcc-target "$CUCC_PATH/bin/cucc"', make_cce)
 
     def test_shim_layout_manifest_is_single_source_for_three_entries(self) -> None:
         # Fifth parity batch: cmake_cce/make_cce/pre_cce used to carry three
         # hand-written copies of the mkdir/ln sequences (cu-bridge keeps ONE
         # manifest: tools/link.json + tools/mock/stub_link.json). All three
-        # entries must now consume config/shim_layout.json via
-        # tools/build_shim_tree.py.
+        # entries must consume config/shim_layout.json — since the seventh
+        # batch indirectly, through the sourced helper
+        # tools/fake_toolkit_env.sh (sentinel + builder invocation).
         builder = ROOT / "tools/build_shim_tree.py"
+        helper = ROOT / "tools/fake_toolkit_env.sh"
         self.assertTrue(builder.is_file())
+        self.assertTrue(helper.is_file())
+        helper_text = helper.read_text(encoding="utf-8")
+        self.assertIn("tools/build_shim_tree.py", helper_text)
         for entry in ("tools/cmake_cce", "tools/make_cce", "tools/pre_cce"):
             text = (ROOT / entry).read_text(encoding="utf-8")
-            self.assertIn("tools/build_shim_tree.py", text, entry)
-            self.assertIn("config/shim_layout.json", builder.read_text(encoding="utf-8"))
+            self.assertIn("tools/fake_toolkit_env.sh", text, entry)
+            self.assertIn("cu2cce_prepare_fake_toolkit", text, entry)
         for section in ("dirs", "dir_links", "file_links", "hostcc_names",
                         "cuda_lib_aliases", "alias_dirs", "alias_target", "files"):
             self.assertIn(f'"{section}"', (ROOT / "config/shim_layout.json").read_text(encoding="utf-8"))
@@ -652,13 +658,14 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         self.assertIn("dav-c310-vec", device_arch)
 
         pre_cce = (ROOT / "tools/pre_cce").read_text(encoding="utf-8")
-        self.assertIn('echo 1 > "$DST_WCUDA/make.log"', pre_cce)
-        self.assertIn('eval "$*"', pre_cce)
         # Fifth parity batch: the fake toolkit comes from the shared builder;
-        # pre_cce binds the shim nvcc to the real cucc like make_cce, and its
-        # host compiler entries go through hostcc_cce (was: identity links).
-        self.assertIn('--nvcc-target "$CUCC_PATH/bin/cucc"', pre_cce)
-        self.assertIn('--hostcc-mode wrapper', pre_cce)
+        # seventh batch: sentinel/builder calls moved into the sourced helper
+        # tools/fake_toolkit_env.sh (pre_cce binds the shim nvcc to the real
+        # cucc like make_cce, and its host compiler entries go through
+        # hostcc_cce).
+        self.assertIn('. "${CUCC_PATH}/tools/fake_toolkit_env.sh"', pre_cce)
+        self.assertIn('cu2cce_prepare_fake_toolkit "$DST_WCUDA" "$CUCC_PATH/bin/cucc"', pre_cce)
+        self.assertIn('eval "$*"', pre_cce)
 
         hostcc = (ROOT / "tools/hostcc_cce").read_text(encoding="utf-8")
         # bin/gnu parity, NPU-adapted: real compiler for compiles, and the
@@ -675,10 +682,12 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
 
         for wrapper in ("tools/cmake_cce", "tools/make_cce"):
             text = (ROOT / wrapper).read_text(encoding="utf-8")
-            self.assertIn("tools/build_shim_tree.py", text)
+            self.assertIn("tools/fake_toolkit_env.sh", text)
             self.assertIn("tools/device_arch.sh", text)
-        builder_text = (ROOT / "tools/build_shim_tree.py").read_text(encoding="utf-8")
-        self.assertIn("hostcc_cce", builder_text)
+        helper_text = (ROOT / "tools/fake_toolkit_env.sh").read_text(encoding="utf-8")
+        self.assertIn("tools/build_shim_tree.py", helper_text)
+        self.assertIn("hostcc_cce",
+                      (ROOT / "tools/build_shim_tree.py").read_text(encoding="utf-8"))
         layout_text = (ROOT / "config/shim_layout.json").read_text(encoding="utf-8")
         self.assertIn("extras/CUPTI/include", layout_text)
         # the driver already accepts --options-file (cu-bridge conf.json parity)

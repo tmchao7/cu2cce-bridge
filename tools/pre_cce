@@ -7,8 +7,8 @@
 # it prepares the fake CUDA toolkit environment (bin/nvcc -> cucc,
 # CUDA-named lib64 links, host compiler entries) and then evals the
 # wrapped command, so scripts that probe for nvcc/gcc during configuration
-# see a complete toolchain. The layout comes from the shared manifest
-# config/shim_layout.json via tools/build_shim_tree.py.
+# see a complete toolchain. The sentinel/build logic lives in the shared
+# helper tools/fake_toolkit_env.sh (config/shim_layout.json manifest).
 #
 # Host compiler entries use the hostcc_cce wrapper (same as make_cce /
 # cmake_cce — links automatically carry the bridge runtime + CANN libs);
@@ -42,6 +42,11 @@ if [ "$#" -eq 0 ]; then
     echo "pre_cce: no command to wrap (usage: pre_cce <command> [args...])" >&2
     exit 1
 fi
+if [ ! -f "${CUCC_PATH}/tools/fake_toolkit_env.sh" ]; then
+    echo "pre_cce: shared helper missing: ${CUCC_PATH}/tools/fake_toolkit_env.sh" >&2
+    exit 1
+fi
+. "${CUCC_PATH}/tools/fake_toolkit_env.sh"
 
 TEMP_DIR_NAME="cu2cce-bridge"
 DST_WCUDA="$CU2CCE_HOME/${TEMP_DIR_NAME}"
@@ -49,26 +54,8 @@ DST_WCUDA="$CU2CCE_HOME/${TEMP_DIR_NAME}"
 if [ "${CU2CCE_SHIM_ISOLATE:-0}" = "1" ]; then
     DST_WCUDA="${DST_WCUDA}-${PPID}"
 fi
-if [ ! -f "$DST_WCUDA/make.log" ]; then
-    rm -rf "$DST_WCUDA"
-fi
-mkdir -p "$DST_WCUDA"
-echo 1 > "$DST_WCUDA/make.log"
 
-CUDA_DIR="$DST_WCUDA/CUDA_DIR"
-mkdir -p "$DST_WCUDA/bin"
-python3 "$CUCC_PATH/tools/build_shim_tree.py" \
-    --cuda-dir "$CUDA_DIR" \
-    --cucc-path "$CUCC_PATH" \
-    --nvcc-target "$CUCC_PATH/bin/cucc" \
-    --hostcc-bin-dir "$DST_WCUDA/bin" \
-    --hostcc-mode wrapper \
-    --cann-base "${CANN_BASE:-/usr/local/Ascend/latest}" \
-    --quiet
-if [ ! -e "$CUDA_DIR/bin/nvcc" ]; then
-    echo "pre_cce: fake toolkit build failed (see build_shim_tree output)" >&2
-    exit 1
-fi
+CUDA_DIR="$(cu2cce_prepare_fake_toolkit "$DST_WCUDA" "$CUCC_PATH/bin/cucc" "$DST_WCUDA/bin" wrapper)" || exit 1
 
 export CUDA_PATH="$CUDA_DIR"
 export PATH="$DST_WCUDA/bin:$CUDA_DIR/bin:$PATH"

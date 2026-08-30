@@ -169,6 +169,10 @@ build 期按 `build.make` 里**记录的绝对编译器路径**逐条发起真�
 | 22 | `-Werror` 族清洗（conf_regex.yaml C500S-11780） | 只从 `-Xcompiler` 段剔除裸 `-Werror`（`-Wno-error=cpp` 等合法拼写保留） | **对齐**：`-Xcompiler` 值中的 `-Werror`/`-Werror=<名>` 丢弃；`-Werror=implicit-fallthrough*` 重写为 clang 兼容 `-Werror=implicit-fallthrough`（cucc:250-280 对齐，原 drop 改 replace） | `_handle_host_flag`、rules replace |
 | 23 | `add_gcc_toolchain`（cucc:1055-1066） | PATH 上真 gcc 非 /usr/bin/gcc 时追加 `--gcc-toolchain=<prefix>/` | **对齐（休眠机制）**：`_locate_real_gcc` 跳过 cu2cce shim PATH 项；非标准布局追加旗标，真机 /usr/bin/gcc 存在即 no-op；`CU2CCE_GCC_TOOLCHAIN=off` 可关 | driver |
 | 24 | 调试状态传递（make_maca↔cucc 的 BASH_XTRACE/VERBOSE/ERREXIT） | shell set -x 状态跨脚本传递 | **对齐**：bin/cucc 将三个 shell 调试变量映射为 `CU2CCE_DEBUG`（make_cce/pre_cce 已导出） | bin/cucc |
+| 25 | 库名/链接面过滤补齐（conf.json filter） | `-lnvrtc`、`-lOpenCL` 直接 filter（不等到链接期才炸）；`--share → -shared`；`-Xlinker <arg>` 直通 mxcc | **对齐 + 修丢失**：`-lnvrtc/-l:libnvrtc*/-lOpenCL` 从静默 forward 改为带警告 drop；`--share` replace 为 `-shared`；`-Xlinker` 对由 drop 改为**成对透传 ccec**（clang 原生，原 drop 丢失用户 rpath/链接脚本） | rules、driver |
+| 26 | `__CUDACC__` 宏族（`-imacros __macro_mxcc.h`，conf.json all.adder） | mxcc 的 `__MACACC__` 翻译为 `__CUDACC__` + 版本宏 | **对齐（机制级）**：compile 注入 `-D__CUDACC__` + `__CUDACC_VER_MAJOR/MINOR/BUILD/VER`（值由 `CUCC_CUDA_VERSION` 推导，nvcc 编码 MMmmB）；仅 `.cu` TU（nvcc 语义）；mock `--cmake-identity` 前缀退役为 no-op——宏只剩规则文件一个定义点（simplifier） | rules compile.inject、driver |
+| 27 | gcc-only 旗标过滤（conf.json filter 的 var-tracking 族） | `-fno/var-tracking(-assignments)` 静默过滤 | **对齐**：regex_cleanup 种子 `^-f(no-)?var-tracking(-assignments)?$`（clang 报 unknown argument）；同时从宿主旗标白名单移除（白名单此前误放行） | rules regex_cleanup、driver |
+| 28 | 代码简化（code review 产出） | link.json 单一实现被三个包装器复用 | **对齐同款思想**：`tools/fake_toolkit_env.sh` 共享库（哨兵 + builder 调用 + host triple），cmake_cce/make_cce/pre_cce 三处 ~40 行重复收敛为一次 source；规则文件去掉 `--expt-extended-lambda`/`--generate-code=*` 重复项；`-lcublasLt` 库匹配改两段式（精确名优先于宽前缀，提示不再错位） | tools/fake_toolkit_env.sh、三入口、rules、driver |
 
 ## 三、本批次后的机制拓扑（终态）
 
@@ -200,8 +204,10 @@ hostcc_cce ──> cu2cce_driver.py --hostcc-mode ──[hostcc.link.inject]─�
 | multi_target / get_device_arch | 已收口（device_arch.sh；NPU 单 arch 无多目标列表） |
 | skipstring 查询直通 | 已收口（rules queries 段） |
 | conf.json 五动作 + condition + not_found | 已收口（五动作 + when 条件；not_found 兜底由 arch_macro/queries 承接对应子集） |
-| gomxccbin + conf_regex.yaml 清洗层 | 已收口（regex_cleanup + 逐 flag 宿主旗标清洗，本批次） |
-| add_gcc_toolchain | 已收口（休眠机制，本批次） |
+| gomxccbin + conf_regex.yaml 清洗层 | 已收口（regex_cleanup + 逐 flag 宿主旗标清洗，第六批次） |
+| add_gcc_toolchain | 已收口（休眠机制，第六批次） |
+| conf.json filter 库名面（-lnvrtc/-lOpenCL/--share/-Xlinker） | 已收口（第七批次：drop 带警告、replace 规范化、成对透传） |
+| `-imacros __CUDACC__` 宏族 | 已收口（第七批次：compile 注入，CUCC_CUDA_VERSION 推导，单一定义点） |
 | `-D` 引号转义重排 / 哨兵响应文件 | 等价实现（无 eval 的 argv 列表 + shlex） |
 | conda LDFLAGS / CUCC_CUDA_VERSION / WCUDA_DEBUG | 已对齐（同名或同语义） |
 | 多架构去重（choose_arch_nvcc） | 等价（单 arch，取 max） |
@@ -238,3 +244,6 @@ hostcc_cce ──> cu2cce_driver.py --hostcc-mode ──[hostcc.link.inject]─�
 | regex_cleanup 层 | 直达 `-fno-canonical-system-headers` / 逗号列表中的 gcc-only 旗标 | 丢弃且 trace 有 `regex_drop` 记录 |
 | add_gcc_toolchain | 真机 `/usr/bin/gcc` 存在 | no-op（休眠）；`sh -c 'command -v gcc'` 非标准布局时确认 `--gcc-toolchain` 出现在 ccec 命令行 |
 | `-forward-unknown-to-compiler` 探针 | 真机 `cucc -c t.cu -forward-unknown-to-compiler -o t.o`（CCEC_PATH 指向真 ccec） | 若 ccec 接受则考虑从 drop 改透传（同构前端前提下合理）；拒绝则维持 drop |
+| `__CUDACC__` 宏族 | 带 `#ifdef __CUDACC__` 的用户 kernel 编译 + `ccec` 内建宏行为观察 | 注入值与 ccec 自身定义（若有）一致无 redefinition 告警；`.cpp` TU 不出现 |
+| `-Xlinker` 透传 | 带 `-Xlinker -rpath=...` 的链接 | ccec 侧 rpath 生效；compile 阶段仅 unused-argument 告警 |
+| 库名 drop 提示 | `-lnvrtc` 参与 | 立即警告（非链接期失败），strict 模式报错 |

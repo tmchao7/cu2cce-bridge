@@ -204,13 +204,8 @@
         "reason": "fatbinary is not part of the Ascend toolchain"
       },
       {
-        "pattern": "-Xlinker",
-        "takes_value": true,
-        "reason": "nvcc linker forwarding is not needed"
-      },
-      {
         "pattern": "-Xlinker=*",
-        "reason": "nvcc linker forwarding is not needed"
+        "reason": "no such nvcc spelling; use -Xlinker <arg> (forwarded) or -Wl,<arg>"
       },
       {
         "pattern": "--keep-dir",
@@ -244,10 +239,6 @@
       {
         "pattern": "-nocudainc",
         "reason": "cu2cce supplies CUDA compatibility headers"
-      },
-      {
-        "pattern": "--expt-extended-lambda",
-        "reason": "not needed by ccec"
       },
       {
         "pattern": "--expt-relaxed-constexpr",
@@ -421,11 +412,6 @@
         "reason": "NVIDIA device-debug mode is not part of the ccec policy"
       },
       {
-        "pattern": "--generate-code=*",
-        "reason": "NVIDIA GPU code generation is not used by Ascend ccec",
-        "when": "always"
-      },
-      {
         "pattern": "--resource-usage",
         "reason": "NVIDIA resource-usage report is not part of the ccec toolchain"
       },
@@ -529,6 +515,18 @@
       {
         "pattern": "-l:libOpenCL*",
         "reason": "OpenCL device libraries do not exist on the Ascend puresimt path"
+      },
+      {
+        "pattern": "-lOpenCL",
+        "reason": "OpenCL device libraries do not exist on the Ascend puresimt path (cu-bridge conf.json drops it too)"
+      },
+      {
+        "pattern": "-lnvrtc",
+        "reason": "NVRTC is not part of the puresimt toolchain; drop instead of a late link error (cu-bridge conf.json parity)"
+      },
+      {
+        "pattern": "-l:libnvrtc*",
+        "reason": "NVRTC is not part of the puresimt toolchain; drop instead of a late link error (cu-bridge conf.json parity)"
       },
       {
         "pattern": "-lculibos",
@@ -692,6 +690,13 @@
         "pattern": "--compiler-options=*",
         "split_value": true,
         "reason": "forward host compiler options"
+      },
+      {
+        "pattern": "--share",
+        "reason": "nvcc-compat spelling of -shared (cu-bridge conf.json parity)",
+        "to": [
+          "-shared"
+        ]
       },
       {
         "pattern": "-Werror=implicit-fallthrough",
@@ -881,6 +886,17 @@
         ],
         "when": "system_libc",
         "reason": "use system C/C++ headers for large host projects"
+      },
+      {
+        "tokens": [
+          "-D__CUDACC__",
+          "-D__CUDACC_VER_MAJOR__=${CUCC_CUDA_VER_MAJOR}",
+          "-D__CUDACC_VER_MINOR__=${CUCC_CUDA_VER_MINOR}",
+          "-D__CUDACC_VER_BUILD__=${CUCC_CUDA_VER_BUILD}",
+          "-D__CUDACC_VER__=${CUCC_CUDA_VER_LEGACY}"
+        ],
+        "when": "source_is_cuda",
+        "reason": "nvcc defines the __CUDACC__/__CUDACC_VER_* family for every .cu translation unit (cu-bridge -imacros __macro_mxcc.h parity); values derive from CUCC_CUDA_VERSION so user overrides propagate"
       },
       {
         "tokens": [
@@ -1101,6 +1117,10 @@
     {
       "pattern": "^-Wno-nonnull-compare$",
       "reason": "gcc-only warning spelling with no ccec counterpart; dropped (cu-bridge bin/cucc:55-83 inline parity, gomxccbin layer equivalent)"
+    },
+    {
+      "pattern": "^-f(no-)?var-tracking(-assignments)?$",
+      "reason": "gcc-only debug-info flags rejected by clang as unknown arguments; dropped (cu-bridge conf.json filter parity)"
     }
   ],
   "diagnostics": {

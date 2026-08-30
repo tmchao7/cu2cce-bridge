@@ -663,6 +663,68 @@ class CuccRuleDriverTest(unittest.TestCase):
         errors = validate_cucc_rules.validate(rules)
         self.assertTrue(any("invalid regex" in error for error in errors))
 
+    def test_cudacc_macros_are_injected_for_cuda_translation_units(self) -> None:
+        # cu-bridge -imacros __macro_mxcc.h parity: nvcc defines
+        # __CUDACC__/__CUDACC_VER_* for every .cu TU. The values derive from
+        # CUCC_CUDA_VERSION so user overrides propagate, the macros never
+        # leak into host-only TUs, and the mock identity path no longer
+        # duplicates them (single definition site).
+        prepared = self.driver().prepare(["-c", "main.cu", "-o", "main.o"])
+        args = " ".join(prepared.args)
+        self.assertIn("-D__CUDACC__", prepared.args)
+        self.assertIn("-D__CUDACC_VER_MAJOR__=11", args)
+        self.assertIn("-D__CUDACC_VER_MINOR__=6", args)
+        self.assertIn("-D__CUDACC_VER_BUILD__=0", args)
+        self.assertIn("-D__CUDACC_VER__=110600", args)
+        host_tu = self.driver().prepare(["-c", "main.cpp", "-o", "main.o"])
+        self.assertNotIn("-D__CUDACC__", host_tu.args)
+        overridden = self.driver(CUCC_CUDA_VERSION="12090").prepare(
+            ["-c", "main.cu", "-o", "main.o"])
+        oargs = " ".join(overridden.args)
+        self.assertIn("-D__CUDACC_VER_MAJOR__=12", oargs)
+        self.assertIn("-D__CUDACC_VER_MINOR__=9", oargs)
+        self.assertIn("-D__CUDACC_VER__=120900", oargs)
+        identity = RuleDriver(env=self.env, cmake_identity=True).prepare(
+            ["-c", "main.cu", "-o", "main.o"])
+        self.assertEqual(identity.args.count("-D__CUDACC__"), 1)
+
+    def test_nvrtc_and_opencl_libraries_are_dropped_not_forwarded(self) -> None:
+        # cu-bridge conf.json parity: -lnvrtc/-lOpenCL were silently
+        # forwarded by the -l* rule and only exploded at link time; they are
+        # dropped with a warning now.
+        for flag in ("-lnvrtc", "-l:libnvrtc.so", "-lOpenCL"):
+            with self.subTest(flag=flag):
+                prepared = self.driver().prepare(["main.o", flag, "-o", "app"])
+                self.assertNotIn(flag, prepared.args)
+                actions = [action for action in prepared.actions if action.argument == flag]
+                self.assertEqual(actions[0].action, "drop")
+
+    def test_share_spelling_is_normalized_to_shared(self) -> None:
+        # cu-bridge conf.json:216 --share -> -shared.
+        prepared = self.driver().prepare(["--share", "main.cu", "-o", "libmain.so"])
+        self.assertIn("-shared", prepared.args)
+        self.assertNotIn("--share", prepared.args)
+
+    def test_xlinker_pair_is_forwarded_to_ccec(self) -> None:
+        # cu-bridge forwards -Xlinker to the clang-based backend; dropping
+        # the pair silently lost user link options (rpath, version scripts).
+        prepared = self.driver().prepare([
+            "main.o", "-Xlinker", "-rpath=/opt/x", "-o", "app"])
+        self.assertIn("-Xlinker", prepared.args)
+        self.assertIn("-rpath=/opt/x", prepared.args)
+        self.assertLess(prepared.args.index("-Xlinker"),
+                        prepared.args.index("-rpath=/opt/x"))
+
+    def test_var_tracking_family_is_cleaned_by_regex_layer(self) -> None:
+        # gcc-only debug flags: clang rejects them as unknown arguments;
+        # cu-bridge's conf.json filter drops them.
+        direct = self.driver().prepare([
+            "-c", "main.cu", "-fvar-tracking-assignments", "-o", "main.o"])
+        self.assertNotIn("-fvar-tracking-assignments", direct.args)
+        via_xcompiler = self.driver().prepare([
+            "-c", "main.cu", "-Xcompiler", "-fno-var-tracking", "-o", "main.o"])
+        self.assertNotIn("-fno-var-tracking", via_xcompiler.args)
+
 
 if __name__ == "__main__":
     unittest.main()

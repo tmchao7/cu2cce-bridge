@@ -35,6 +35,11 @@ if [ ! -x "$CANN_BASE/bin/ccec" ]; then
     echo "cmake_cce: ccec not found at $CANN_BASE/bin/ccec" >&2
     exit 1
 fi
+if [ ! -f "${CUCC_PATH}/tools/fake_toolkit_env.sh" ]; then
+    echo "cmake_cce: shared helper missing: ${CUCC_PATH}/tools/fake_toolkit_env.sh" >&2
+    exit 1
+fi
+. "${CUCC_PATH}/tools/fake_toolkit_env.sh"
 
 for arg in "$@"; do
     case "$arg" in
@@ -126,6 +131,10 @@ if [ "$build_phase" -eq 1 ]; then
         index=$((index + 1))
     done
     if [ -n "$build_dir" ]; then
+        if [ ! -d "$build_dir" ]; then
+            echo "cmake_cce: build directory not found: $build_dir" >&2
+            exit 1
+        fi
         if [ -f "$build_dir/build.ninja" ]; then
             generator_tool="ninja_cce"
         else
@@ -146,22 +155,13 @@ if [ "$build_phase" -eq 1 ]; then
     exec cmake "$@"
 fi
 
-HOST_ARCH="$(uname -m 2>/dev/null || echo x86_64)"
-case "$HOST_ARCH" in amd64) HOST_ARCH=x86_64 ;; arm64) HOST_ARCH=aarch64 ;; esac
-HOST_OS="$(uname -s 2>/dev/null | tr '[:upper:]' '[:lower:]' || echo linux)"
-case "$HOST_OS" in darwin) HOST_OS=darwin ;; linux) HOST_OS=linux ;; esac
-HOST_TRIPLE="${HOST_ARCH}-${HOST_OS}"
+HOST_TRIPLE="$(cu2cce_host_triple)"
 
-# Build the toolkit-shaped shim from the shared layout manifest
-# (cu-bridge stub_link.json parity). Configure phase binds the shim nvcc to
-# the mock; the build phase re-points it to cucc above.
-python3 "$CUCC_PATH/tools/build_shim_tree.py" \
-    --cuda-dir "$CUDA_DIR" \
-    --cucc-path "$CUCC_PATH" \
-    --nvcc-target "$CUCC_PATH/tools/nvcc_entry.sh" \
-    --hostcc-bin-dir "$CUDA_DIR/bin" \
-    --hostcc-mode wrapper \
-    --cann-base "$CANN_BASE"
+# Build the toolkit-shaped shim through the shared helper (sentinel +
+# build_shim_tree.py over config/shim_layout.json — cu-bridge
+# stub_link.json parity). Configure phase binds the shim nvcc to the mock;
+# the build phase re-points it to cucc above.
+CUDA_DIR="$(cu2cce_prepare_fake_toolkit "$SHIM_ROOT" "$CUCC_PATH/tools/nvcc_entry.sh" "$CUDA_DIR/bin" wrapper)" || exit 1
 
 printf 'cmake_cce: CUDA shim: %s\n' "$CUDA_DIR" >&2
 printf 'cmake_cce: host toolkit layout: %s\n' "$HOST_TRIPLE" >&2

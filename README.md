@@ -262,7 +262,7 @@ CUDA cuBLAS to CANN ACL CBLAS development is maintained separately on
 - `src/bridge/blas/`：experimental cublas→aclblas，独立于 puresimt 验收。
 - `bin/cucc`：规则驱动的 nvcc 兼容入口；`.cu` 直接传给 ccec，不做 Python lowering。
 - `tools/cu2cce_driver.py`：cucc 与 CMake mock 共用的参数规则驱动（含 `--hostcc-mode`）。
-- `config/cu2cce_rules.json`：CUDA 参数 filter/replacer/inject/reject + queries/hostcc 规则。
+- `config/cu2cce_rules.json`：CUDA 参数 filter/replacer/inject/reject + queries/hostcc/regex_cleanup 规则。
 - `tools/cmake_cce`（安装树 `bin/cmake_cce`）：CMake CUDA 工程入口；配置用
   `cmake_cce -S . -B build`，构建用 `cmake_cce --build build`（按 build.ninja 分发 make/ninja）。
 - `tools/make_cce` / `tools/ninja_cce`（安装树 `bin/` 同名）：Makefile/Ninja 构建入口。

@@ -46,6 +46,8 @@
 | `-Werror=implicit-fallthrough=N` | 重写为 clang 兼容拼写（bin/cucc:250-280） | **第六批次改 drop→replace**：统一重写 `-Werror=implicit-fallthrough`（直达 + `-Xcompiler` 两路） | 已对齐 |
 | `-Xcompiler` 段剔除 `-Werror` | conf_regex.yaml C500S-11780（gomxccbin 命令串正则） | **第六批次补齐**：宿主旗标逐 flag 过滤中丢弃裸 `-Werror`（`-Wno-error=cpp` 等合法拼写保留）；等价机制为 rules `regex_cleanup` 段（PCRE + trace），无 Go 工具依赖 | 已对齐 |
 | `add_gcc_toolchain` | 真 gcc 非 /usr/bin/gcc 时追加 `--gcc-toolchain=<prefix>/`（cucc:1055-1066） | **第六批次补齐**：`_locate_real_gcc` 跳过 shim PATH 项；真机标准布局 no-op；`CU2CCE_GCC_TOOLCHAIN=off` 关闭 | 已对齐（休眠机制） |
+| `-lnvrtc` / `-lOpenCL` / `--share` / `-Xlinker` | conf.json：nvrtc/OpenCL filter；`--share→-shared`；`-Xlinker` 直通 | **第七批次补齐**：库 drop 带警告（原静默 forward，链接期才炸）；`--share` replace；`-Xlinker` 成对透传（原 drop 丢失用户链接选项） | 已对齐 |
+| `-imacros __CUDACC__` 宏族 | all.adder：mxcc `__MACACC__` → `__CUDACC__` + 版本宏 | **第七批次补齐**：compile 注入 `__CUDACC__/__CUDACC_VER_*`（CUCC_CUDA_VERSION 推导，仅 `.cu`）；mock identity 前缀退役——宏单点定义 | 已对齐（真机观察 ccec 内建宏一致性） |
 
 ### 1.3 我们有、cu-bridge 没有（优势面，保持）
 

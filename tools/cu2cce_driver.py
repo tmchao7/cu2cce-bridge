@@ -57,6 +57,20 @@ def _cuda_arch_macro_value(digits: str) -> int:
     return int(major) * 100 + int(minor) * 10
 
 
+def _cuda_version_parts(version: str) -> Tuple[str, str, str, str]:
+    """__CUDACC_VER_* components derived from the compat CUDA version.
+
+    CUCC_CUDA_VERSION is encoded MMmmB (11060 = 11.6.0); the legacy
+    __CUDACC_VER__ spelling is major*10000 + minor*100 + build (110600),
+    matching the value nvcc 11.6 defines and the mock identity used."""
+    try:
+        value = int(version)
+    except ValueError:
+        return "", "", "", ""
+    major, minor, build = value // 1000, (value // 10) % 100, value % 10
+    return str(major), str(minor), str(build), str(major * 10000 + minor * 100 + build)
+
+
 def extract_cuda_arch(args: Sequence[str]) -> Optional[int]:
     """Highest GPU architecture requested on the command line, or None.
 
@@ -593,11 +607,19 @@ class RuleDriver:
     def _variables(self) -> Dict[str, str]:
         self._resolve_simt_root()
         simt_root = self.env.get("SIMT_API_ROOT", "")
+        ver_major, ver_minor, ver_build, ver_legacy = _cuda_version_parts(self.cucc_cuda_version)
         return {
             "CUCC_PATH": str(self.cucc_path),
             "ASCEND_TOOLKIT_HOME": self.ascend_toolkit_home,
             "CANN_BASE": self.cann_base,
             "CUCC_CUDA_VERSION": self.cucc_cuda_version,
+            # nvcc defines the __CUDACC_VER_* family for .cu translation
+            # units; derived from the compat version so CUCC_CUDA_VERSION
+            # overrides propagate (empty parts disable the inject rule).
+            "CUCC_CUDA_VER_MAJOR": ver_major,
+            "CUCC_CUDA_VER_MINOR": ver_minor,
+            "CUCC_CUDA_VER_BUILD": ver_build,
+            "CUCC_CUDA_VER_LEGACY": ver_legacy,
             "CU2CCE_NPU_ARCH": self.npu_arch,
             "CU2CCE_CUDA_ARCH": self.env.get("CU2CCE_CUDA_ARCH", "").strip(),
             # Derived from the dropped -gencode/-arch flags; empty unless
@@ -651,23 +673,29 @@ class RuleDriver:
             return False
         name = argument[2:]
         capabilities = self.rules.get("capabilities", {})
+        # Two passes so an exact capability key (cublasLt) wins over an
+        # earlier key's loose prefix (cublas) — the message must name the
+        # capability actually matched.
         capability = None
         loose = False
         for key, entry in capabilities.items():
-            # cudart has its own bridge-inject path (dropped at link by the
-            # rules file); only advisory library entries are handled here.
             if entry.get("action") == "bridge_inject":
                 continue
             if name == key or name.startswith(key + "_"):
                 capability = key
                 break
-            # Prefix match kept as a fallback so unknown variants
-            # (-lcufftw, -lcublasLtCore, ...) still get an advisory warning
-            # instead of silently forwarding, but the message is honest
-            # about being heuristic rather than an exact capability hit.
-            if capability is None and name.startswith(key):
-                capability = key
-                loose = True
+        if capability is None:
+            for key, entry in capabilities.items():
+                if entry.get("action") == "bridge_inject":
+                    continue
+                # Prefix match kept as a fallback so unknown variants
+                # (-lcufftw, -lcublasLtCore, ...) still get an advisory
+                # warning instead of silently forwarding, but the message
+                # is honest about being heuristic.
+                if name.startswith(key):
+                    capability = key
+                    loose = True
+                    break
         if capability is None:
             return False
         entry = capabilities.get(capability, {})
@@ -706,9 +734,8 @@ class RuleDriver:
         "-fno-inline", "-fno-inline-functions",
         "-fno-builtin", "-fno-builtin-memcpy",
         "-funwind-tables", "-fno-sanitize=all", "-fno-ident",
-        "-fno-asynchronous-unwind-tables", "-fno-var-tracking",
-        "-fvar-tracking", "-fvar-tracking-assignments",
-        "-fno-var-tracking-assignments",
+        # Note: the gcc-only var-tracking family is NOT here — it is dropped
+        # by the regex_cleanup rules (clang rejects it as unknown argument).
     })
 
     _HOST_FLAG_DROPPED = frozenset({
@@ -914,15 +941,12 @@ class RuleDriver:
 
     def prepare(self, argv: Sequence[str]) -> PreparedCommand:
         expanded = self._expand_response_files(list(argv))
-        if self.cmake_identity:
-            expanded = [
-                "-D__CUDACC__",
-                "-D__CUDACC_VER_MAJOR__=11",
-                "-D__CUDACC_VER_MINOR__=6",
-                "-D__CUDACC_VER_BUILD__=0",
-                "-D__CUDACC_VER__=110600",
-                *expanded,
-            ]
+        # --cmake-identity is accepted for compatibility but is now a no-op:
+        # the __CUDACC__/__CUDACC_VER_* macro set moved into the rules-file
+        # inject section (source_is_cuda, values derived from
+        # CUCC_CUDA_VERSION), which covers the mock probe path and real
+        # Makefile-driven cucc compiles alike — one definition site instead
+        # of two (simplifier pass, seventh batch).
         query_rule = self._find_query_rule(expanded)
         if query_rule is not None:
             return self._prepare_query_passthrough(expanded, query_rule)
@@ -973,6 +997,19 @@ class RuleDriver:
                 )
                 self._record(argument, "drop", "nvcc --Werror spelling with warning name")
                 i += consumed
+                continue
+
+            if argument == "-Xlinker" and i + 1 < len(expanded):
+                # clang-native linker option; cu-bridge forwards it to mxcc
+                # unchanged. Dropping the pair silently lost user link
+                # options (rpath, scripts, ...), so keep it intact.
+                self._record(
+                    f"{argument} {expanded[i + 1]}", "forward",
+                    "clang-native linker option passthrough (cu-bridge parity)",
+                )
+                result.append(argument)
+                result.append(expanded[i + 1])
+                i += 2
                 continue
 
             if argument.startswith("-I/usr/local/cuda"):
