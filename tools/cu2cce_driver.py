@@ -295,6 +295,12 @@ class RuleDriver:
         if arch_macro not in {"off", "auto"}:
             raise DriverError("CU2CCE_ARCH_MACRO must be off or auto")
         self.arch_macro_mode = arch_macro
+        gcc_toolchain = self.env.get("CU2CCE_GCC_TOOLCHAIN", "auto").strip().lower()
+        if gcc_toolchain in ("on", "1", "true"):
+            gcc_toolchain = "auto"
+        if gcc_toolchain not in {"", "auto", "off", "0", "false", "none"}:
+            raise DriverError("CU2CCE_GCC_TOOLCHAIN must be auto or off")
+        self.gcc_toolchain_mode = gcc_toolchain
         self.cuda_arch_value: Optional[int] = None
         self.cmake_identity = cmake_identity
         self.rules_path = self._select_rules_file(rules_file)
@@ -743,26 +749,57 @@ class RuleDriver:
             return ldflags.split()
 
     def _handle_host_flag(self, argument: str, values: Sequence[str]) -> Tuple[bool, List[str]]:
-        """Decide what to do with a -Xcompiler-propagated host flag.
+        """Filter -Xcompiler-propagated host flags one by one.
 
-        Returns (handled, replacement-args). handled=True means the flag is
-        either dropped (with a diagnostic) or rewritten; handled=False means
-        it should fall through to the ordinary rule pipeline.
+        cu-bridge filters per argument (bin/cucc inline -Xcompiler handling
+        plus the conf_regex.yaml cleanup); a whole-group decision would leak
+        machine-specific flags that share the group with safe ones
+        (-Xcompiler -fPIC -march=native). Returns (handled, kept-flags):
+        handled is always True — every flag is classified here so nothing
+        falls through to the generic rule pipeline unfiltered.
         """
+        kept: List[str] = []
         for flag in values:
             base, _ = self._split_host_flag(flag)
-            # Drop host ABI/machine-specific flags (-march/-mtune/-m64...
-            # and the explicit DROPPED set). -fno-* and other safe flags are
-            # forwarded when present in the ALLOWED set, otherwise handled
-            # below by the ordinary rule pipeline.
             if base in self._HOST_FLAG_DROPPED or base.startswith("-m"):
-                self._warn(f"dropping host-specific flag {flag}: host ABI/machine flags are not applied to the Ascend device compile")
-                self._record(argument, "drop", f"host-specific flag {flag} is not applied to ccec")
-                return True, []
-            if base in self._HOST_FLAG_ALLOWED:
-                self._record(argument, "forward", f"host flag {flag} is safe for ccec")
-                return True, list(values)
-        return False, []
+                self._warn(
+                    f"dropping host-specific flag {flag}: host ABI/machine "
+                    "flags are not applied to the Ascend device compile"
+                )
+                self._record(flag, "drop", f"host-specific flag {flag} is not applied to ccec")
+                continue
+            if base == "-Werror" or base.startswith("-Werror="):
+                if base.startswith("-Werror=implicit-fallthrough"):
+                    # cu-bridge bin/cucc:250-280: the nvcc =N level spelling
+                    # is rewritten to the clang-compatible form.
+                    kept.append("-Werror=implicit-fallthrough")
+                    self._record(
+                        flag, "replace",
+                        "implicit-fallthrough normalized to the clang spelling "
+                        "(cu-bridge bin/cucc parity)",
+                        ["-Werror=implicit-fallthrough"],
+                    )
+                    continue
+                # conf_regex.yaml C500S-11780 parity: -Werror and nvcc
+                # warning names carried inside -Xcompiler are noise for the
+                # clang-based backend; drop instead of forwarding.
+                self._record(
+                    flag, "drop",
+                    "-Werror in -Xcompiler values is removed (cu-bridge "
+                    "conf_regex.yaml parity)",
+                )
+                continue
+            if base in ("-Wno-nonnull-compare", "-fno-canonical-system-headers"):
+                # gcc-only spellings cu-bridge strips from -Xcompiler inline
+                # (bin/cucc:55-83); ccec/clang rejects or warns on them.
+                self._record(
+                    flag, "drop",
+                    f"{base} is a gcc-only spelling; filtered (cu-bridge bin/cucc:55-83 parity)",
+                )
+                continue
+            self._record(flag, "forward", f"host flag {flag} forwarded to ccec")
+            kept.append(flag)
+        return True, kept
 
     def _find_query_rule(self, args: Sequence[str]) -> Optional[Dict[str, Any]]:
         for rule in self.rules.get("queries", []):
@@ -795,6 +832,85 @@ class RuleDriver:
         )
         self._write_trace(prepared)
         return prepared
+
+    def _apply_regex_cleanup(self, args: List[str]) -> List[str]:
+        """Final-command cleanup pass (gomxccbin + conf_regex.yaml parity).
+
+        cu-bridge post-processes the assembled command string with regex
+        rules (bug-fix layer, e.g. C500S-11780) right before execution. The
+        single-process equivalent: data-driven PCRE rules from the rules
+        file applied to the final argument list. Patterns are anchored
+        seeds; a rule without "replace" drops the argument, one with
+        "replace" rewrites it in place. Query passthroughs skip this pass.
+        """
+        rules = self.rules.get("regex_cleanup") or []
+        if not rules:
+            return args
+        cleaned: List[str] = []
+        for arg in args:
+            current = arg
+            dropped = False
+            for rule in rules:
+                pattern = str(rule.get("pattern", ""))
+                try:
+                    matched = re.search(pattern, current)
+                except re.error:
+                    continue  # validator rejects broken patterns
+                if not matched:
+                    continue
+                if "replace" in rule:
+                    try:
+                        rewritten = re.sub(pattern, str(rule["replace"]), current)
+                    except re.error:
+                        continue
+                    if rewritten != current:
+                        self._record(current, "regex_replace", rule.get("reason", ""), [rewritten])
+                        current = rewritten
+                else:
+                    self._record(current, "regex_drop", rule.get("reason", ""))
+                    dropped = True
+                    break
+            if not dropped:
+                cleaned.append(current)
+        return cleaned
+
+    def _locate_real_gcc(self) -> Optional[str]:
+        """Path of the real host gcc, skipping cu2cce shim PATH entries."""
+        if Path("/usr/bin/gcc").is_file():
+            return "/usr/bin/gcc"
+        for entry in self.env.get("PATH", "").split(os.pathsep):
+            if not entry:
+                continue
+            lowered = entry.lower()
+            if "cu2cce" in lowered:
+                continue
+            if self.cucc_path and entry.rstrip("/") in {
+                str(self.cucc_path), str(self.cucc_path / "bin"),
+            }:
+                continue
+            candidate = Path(entry) / "gcc"
+            if candidate.is_file():
+                return str(candidate)
+        return None
+
+    def _gcc_toolchain_flags(self) -> List[str]:
+        """cu-bridge bin/cucc add_gcc_toolchain parity (cucc:1055-1066).
+
+        When the gcc visible behind the shim is not the standard /usr/bin/gcc
+        (shim wrapper in front, or devtoolset-only machines), append
+        --gcc-toolchain=<real gcc prefix>/ so the clang-based backend's host
+        pass finds libgcc/std headers. No-op on the standard layout;
+        CU2CCE_GCC_TOOLCHAIN=off disables (knob validated in __init__)."""
+        if self.gcc_toolchain_mode in ("off", "0", "false", "none"):
+            return []
+        real_gcc = self._locate_real_gcc()
+        if not real_gcc or real_gcc == "/usr/bin/gcc":
+            return []
+        prefix = Path(real_gcc).parent.parent
+        flag = f"--gcc-toolchain={prefix}/"
+        self._record(flag, "inject", "real gcc prefix located behind the shim "
+                                     "(cu-bridge add_gcc_toolchain parity)")
+        return [flag]
 
     def prepare(self, argv: Sequence[str]) -> PreparedCommand:
         expanded = self._expand_response_files(list(argv))
@@ -897,8 +1013,11 @@ class RuleDriver:
                     values = [str(raw)] if not isinstance(raw, list) else [str(x) for x in raw]
                 # -Xcompiler/--compiler-options carry host flags (CMake
                 # CUDA_PROPAGATE_HOST_FLAGS). Drop machine-specific ones that
-                # would break the Ascend device compile, keep safe ones.
-                if argument in ("-Xcompiler", "-Xcompiler=*", "--compiler-options", "--compiler-options=*"):
+                # would break the Ascend device compile, keep safe ones. Both
+                # the two-token form (-Xcompiler value) and the attached form
+                # (-Xcompiler=values) must go through the per-flag filter.
+                if argument in ("-Xcompiler", "--compiler-options") or \
+                        argument.startswith(("-Xcompiler=", "--compiler-options=")):
                     handled, filtered = self._handle_host_flag(argument, values)
                     if handled:
                         self._record(argument, "replace", reason, filtered)
@@ -977,6 +1096,11 @@ class RuleDriver:
             # defer to the caller's environment when no explicit LDFLAGS given.
             self._record("LDFLAGS", "forward", "conda LDFLAGS appended to link")
             result.extend(conda_ldflags)
+        # Final-command passes (cu-bridge runs them right before executing
+        # the backend): gcc-toolchain injection, then the data-driven
+        # regex cleanup layer over the assembled command.
+        result.extend(self._gcc_toolchain_flags())
+        result = self._apply_regex_cleanup(result)
         prepared = PreparedCommand(
             phase=phase,
             mode=mode,

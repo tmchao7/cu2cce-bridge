@@ -88,7 +88,7 @@ configure 脚本用 `pre_makefile` 包裹；Python 库安装不管（FAQ Q7）�
 | CUPTI 路径布局 | 虚拟目录含 extras/CUPTI/{include,lib64} | shim_layout.json 同款空目录布局（路径探测兼容） | 已对齐（2026-08-28） |
 | nvcc 兼容软链 | FAQ Q2 手工软链 workaround | **安装树自动提供 `bin/nvcc → cucc`**（install CODE） | 已对齐+自动化 |
 | CUDA Toolkit 发现 | 无 FindCUDAToolkit（文档教用户绕开 CUDA 语言） | FindCUDAToolkit + CUDA::cudart/toolkit 别名族（真机验证） | **本桥领先** |
-| 参数适配 | conf.json（replacer/adder/filter/skipstring）+ gomxccbin 正则 | cu2cce_rules.json（五动作 + queries + hostcc 段）单一 in-process 驱动 | 机制不同目标相同；无 Go 工具依赖 |
+| 参数适配 | conf.json（replacer/adder/filter/skipstring）+ gomxccbin 正则 | cu2cce_rules.json（五动作 + queries + hostcc + regex_cleanup 段）单一 in-process 驱动 | 机制不同目标相同；无 Go 工具依赖 |
 | 库名重写 | 40+ 条 -lcudart→-lmcruntime 等 | -lcudart 丢弃 + 桥运行时注入；shim lib64 另备 libcublas/libnvToolsExt 名（EXPERIMENTAL，走桥内实验面） | 语义等价（后端库面不同） |
 | 设备架构 | CUCC_TARGETS / mx-smi | CU2CCE_NPU_ARCH / probe 自动探测 | 已对齐 |
 | CUDA 版本仿真 | CUCC_CUDA_VERSION → -DCUDA_VERSION | 同名开关 CUCC_CUDA_VERSION | 已对齐（同名） |
@@ -145,6 +145,17 @@ configure 脚本用 `pre_makefile` 包裹；Python 库安装不管（FAQ Q7）�
 > build_shim_tree.py）、lib64 别名扩展（libcublas/libnvToolsExt，EXPERIMENTAL）、
 > pre_cce hostcc 统一、clean 词元匹配、CU2CCE_SHIM_ISOLATE 并行隔离、
 > mock ABI 现编替身——决策细节见分析文档 §二。
+>
+> 第六批次（2026-08-30，同日第二批）收口 cucc 运行时机制：宿主旗标逐 flag
+> 过滤（修 `-Xcompiler=...` 等号形式绕过与 mixed 泄漏两个 bug）、`-Werror`
+> 族清洗（conf_regex.yaml C500S-11780 对齐）与 `-Werror=implicit-fallthrough`
+> 规范化重写（bin/cucc:250-280 对齐）、`regex_cleanup` 数据驱动清洗层
+> （gomxccbin 等价，种子规则：-fno-canonical-system-headers /
+> -Wno-nonnull-compare）、`add_gcc_toolchain` 休眠对齐（cucc:1055-1066，
+> `CU2CCE_GCC_TOOLCHAIN=off` 可关）、bin/cucc 的 BASH_XTRACE→CU2CCE_DEBUG
+> 传递；并按项目作者确认在分析文档落档前提纠正——**puresimt 前端
+> （ccec -x asc --enable-simt）与 mxcc 同为原生认识 CUDA 语法的前端**，
+> 差异只是小改动。机制面至此全部收口（分析文档 §4.0）。
 
 1. Bazel/TF 构建配置（conf_bazel.json / WCUDA_BAZEL_TF_BUILD 等价物）；
 2. FindCUDA legacy 宏全集的 ptx/cubin/fatbin 族（明确不支持，诚实 FATAL_ERROR）；

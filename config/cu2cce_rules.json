@@ -625,7 +625,7 @@
         "reason": "libdevice does not exist on the puresimt path; bridge headers supply intrinsics"
       },
       {
-        "pattern": "-Wdefault-stream-launch",
+        "pattern": "--Wdefault-stream-launch",
         "reason": "nvcc-specific warning name is not accepted by ccec"
       },
       {
@@ -635,10 +635,6 @@
       {
         "pattern": "-Wext-lambda-captures-this",
         "reason": "nvcc-specific warning name is not accepted by ccec"
-      },
-      {
-        "pattern": "--Werror=implicit-fallthrough*",
-        "reason": "clang rejects the =N suffix spelling; use -Werror=implicit-fallthrough"
       },
       {
         "pattern": "--offload-arch=*",
@@ -696,6 +692,27 @@
         "pattern": "--compiler-options=*",
         "split_value": true,
         "reason": "forward host compiler options"
+      },
+      {
+        "pattern": "-Werror=implicit-fallthrough",
+        "reason": "already clang-compatible; normalized by the replace rule for trace visibility (cu-bridge bin/cucc:250-280 parity)",
+        "to": [
+          "-Werror=implicit-fallthrough"
+        ]
+      },
+      {
+        "pattern": "-Werror=implicit-fallthrough=*",
+        "reason": "nvcc/gcc =N level spelling is not accepted by clang; normalized to the clang-compatible form (cu-bridge bin/cucc:250-280 parity)",
+        "to": [
+          "-Werror=implicit-fallthrough"
+        ]
+      },
+      {
+        "pattern": "--Werror=implicit-fallthrough=*",
+        "reason": "nvcc/gcc =N level spelling is not accepted by clang; normalized to the clang-compatible form (cu-bridge bin/cucc:250-280 parity)",
+        "to": [
+          "-Werror=implicit-fallthrough"
+        ]
       }
     ],
     "reject": [
@@ -1076,6 +1093,16 @@
       "map_to": "HCCL (hccl.h: HcclCommInitRootInfo/HcclCommInitClusterInfo, HcclAllReduce/Broadcast/Send/Recv, HcclGetRankSize/RankId)"
     }
   },
+  "regex_cleanup": [
+    {
+      "pattern": "^-fno-canonical-system-headers$",
+      "reason": "gcc-only spelling rejected by ccec/clang; dropped (cu-bridge bin/cucc:55-83 inline parity, gomxccbin layer equivalent)"
+    },
+    {
+      "pattern": "^-Wno-nonnull-compare$",
+      "reason": "gcc-only warning spelling with no ccec counterpart; dropped (cu-bridge bin/cucc:55-83 inline parity, gomxccbin layer equivalent)"
+    }
+  ],
   "diagnostics": {
     "default_unknown": "warn_forward",
     "strict_env": "CU2CCE_STRICT_FLAGS",

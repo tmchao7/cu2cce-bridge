@@ -87,6 +87,30 @@ def validate(path: Path) -> List[str]:
                     continue
                 if not isinstance(rule.get("reason", ""), str):
                     fail(errors, f"queries[{index}]: reason must be a string")
+    # Optional final-command cleanup layer (gomxccbin/conf_regex.yaml
+    # parity): PCRE rules applied to the assembled command arguments.
+    if "regex_cleanup" in data:
+        import re  # noqa: PLC0415
+        cleanup = data["regex_cleanup"]
+        if not isinstance(cleanup, list):
+            fail(errors, "regex_cleanup: must be a list")
+        else:
+            for index, rule in enumerate(cleanup):
+                if not isinstance(rule, dict):
+                    fail(errors, f"regex_cleanup[{index}]: must be an object")
+                    continue
+                pattern = rule.get("pattern")
+                if not isinstance(pattern, str) or not pattern:
+                    fail(errors, f"regex_cleanup[{index}]: requires a string pattern")
+                    continue
+                try:
+                    re.compile(pattern)
+                except re.error as exc:
+                    fail(errors, f"regex_cleanup[{index}]: invalid regex: {exc}")
+                if not isinstance(rule.get("reason", ""), str):
+                    fail(errors, f"regex_cleanup[{index}]: reason must be a string")
+                if "replace" in rule and not isinstance(rule["replace"], str):
+                    fail(errors, f"regex_cleanup[{index}]: replace must be a string")
     # Optional host compiler wrapper section (bin/gnu parity): phase-scoped
     # actions with the same rule shapes as the main pipeline.
     if "hostcc" in data:

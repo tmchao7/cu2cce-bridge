@@ -12,8 +12,17 @@
 
 ### 1.0 设计前提：双层转换决定了构建桥的边界
 
-cu-bridge 的目标编译器 mxcc（clang 系）**原生认识 CUDA kernel 语法**
-（`__global__`/`<<<>>>`），因此"构建系统适配"的全部任务收敛为一句话：
+> **术语纠正（2026-08-30，项目作者确认）**：cu-bridge 文档里"若移植到编译器
+> 不认 CUDA 语法的平台，需增加第 4 层 kernel 语法转换"的提示**不适用于本项目**。
+> cu2cce 的 puresimt 路线前端（`ccec -x asc --enable-simt`）**同样原生认识
+> CUDA kernel 语法**（`__global__`/`threadIdx`/`<<<>>>` 直通），与 mxcc 是
+> **同构关系**，差异只是很小的改动：`-x asc` 语言选择、`--enable-simt` 开关、
+> `simt_adaptor.h` 原语别名（`__shared__→__ubuf__` 等）、FP64/架构宏边界。
+> 因此 cu-bridge 的核心论证对本桥同样成立，且"能透传就透传"的参数策略对
+> ccec 与对 mxcc 一视同仁。
+
+cu-bridge 的目标编译器 mxcc（clang 系）原生认识 CUDA kernel 语法，因此"构建
+系统适配"的全部任务收敛为一句话：
 
 > **把一切 nvcc 调用变成 mxcc 调用，并把 include/lib 指向 cu-bridge/MACA。**
 
@@ -128,10 +137,10 @@ build 期按 `build.make` 里**记录的绝对编译器路径**逐条发起真�
 
 ## 二、cu2cce-bridge 借鉴决策表（本批次收口的差异）
 
-> NPU 后端（CANN 9.2 / ccec clang15 / `--enable-simt` puresimt 单遍直通）与
-> mxcc 的两个根本差异决定了所有取舍：
-> **(a) ccec 不认 CUDA 宏体系/架word 体系之外的 NVIDIA 工具链**（无 ptxas/nvlink/
-> fatbin，无 `-Xdevice` 式 device-pass 限定的公开对应物）；
+> NPU 后端（CANN 9.2 / ccec clang15 / `--enable-simt` puresimt）与 mxcc 的
+> 关系是**同构前端 + 小改动**（见 §1.0 纠正），真正的取舍来自两点：
+> **(a) ccec 不带 NVIDIA 工具链二进制**（无 ptxas/nvlink/fatbin，无公开的
+> `-Xdevice` 式 device-pass 限定对应物）；
 > **(b) 单遍编译**——`__CUDA_ARCH__` 无法按 nvcc 语义"只在 device pass 定义"。
 
 | # | 差异点（命令/功能/参数/产物） | cu-bridge 做法 | 本批次决策 | 落点 |
@@ -151,11 +160,15 @@ build 期按 `build.make` 里**记录的绝对编译器路径**逐条发起真�
 | 13 | pre_cce 宿主编译器是身份软链 | gnu 包装器 | **统一**：pre_cce 改用 hostcc_cce（autotools 纯 g++ 链接也能拿到桥运行时注入） | pre_cce |
 | 14 | 预编译 CompilerId a.out / 0 字节 CMakeTestCUDACompiler patch | 预编译 ELF 技巧 | **有意不做**：不携带平台二进制工件；CompilerId 走 vendor 正则 + REQUIRE_SUCCESS + mock 真编译回退，真机已验证（对齐文档既有结论维持） | — |
 | 15 | RDC/`-dlink` → 设备链接折叠 | `.o` 链接时追加设备链接旗标 | **有意不做**：ccec puresimt 无可分离设备码，维持 reject/drop + CMake 层 `CUDA_SEPARABLE_COMPILATION OFF` | — |
-| 16 | 未知 flag `-forward-unknown-to-compiler` | 借该旗标下沉给编译器 | **维持现状**：`warn_forward`（ccec 对未知 flag 的容忍度未知，宁可显式警告；strict 可升级为错误） | — |
+| 16 | 未知 flag `-forward-unknown-to-compiler` | 借该旗标下沉给编译器 | **维持现状 + 真机观察项**：drop（ccec 对该 nvcc 兼容旗标的接受度未知，宁可显式警告；strict 可升级为错误）。同构前端前提下，若真机验证 ccec 接受，可改为透传（§五） | — |
 | 17 | 响应文件哨兵 token | `nvccsign_*` 哨兵保引号 | **维持现状**：shlex posix 解析已覆盖同一语义（契约测试锁定） | — |
-| 18 | gomxccbin + conf_regex.yaml 正则清洗层 | 踩坑固化的命令串清洗 | **有意不做**：单进程 python 驱动内完成等价清洗（`--Werror` 配对、陈旧 `-I/usr/local/cuda*` 丢弃等已在 driver 内落位） | — |
+| 18 | gomxccbin + conf_regex.yaml 正则清洗层 | 踩坑固化的命令串清洗 | **机制已借鉴（第六批次）**：`regex_cleanup` 数据驱动 PCRE 清洗段 + 宿主旗标逐 flag 清洗（见决策 21-23），单进程实现、动作进 trace；后续踩坑只加规则不改代码 | rules `regex_cleanup`、driver |
 | 19 | Bazel（conf_bazel.json）/ gfortran（conf_gfortran.json）/ MPI | 场景化 conf + 包装器 | **维持已知差距**（NPU 场景暂无需求，记录于 §四） | — |
 | 20 | `USE_CMAKE_MACA=1` 系统 cmake 二进制替换 | 备份/软链/恢复系统 cmake | **有意不做**：官方 `CMAKE_USER_MAKE_RULES_OVERRIDE` 钩子可维护性更优（对齐文档既有结论维持） | — |
+| 21 | `-Xcompiler` 宿主旗标清洗粒度 | 逐参数清洗（cucc:55-83 内联 + gomxccbin） | **对齐 + 修 bug**：本桥原"首个决定性 flag 决定整组"会泄漏（`-Xcompiler -fPIC,-march=native` 把 -march 放行），且 `-Xcompiler=...` 等号形式完全绕过过滤——均改为逐 flag 处理 | `_handle_host_flag` |
+| 22 | `-Werror` 族清洗（conf_regex.yaml C500S-11780） | 只从 `-Xcompiler` 段剔除裸 `-Werror`（`-Wno-error=cpp` 等合法拼写保留） | **对齐**：`-Xcompiler` 值中的 `-Werror`/`-Werror=<名>` 丢弃；`-Werror=implicit-fallthrough*` 重写为 clang 兼容 `-Werror=implicit-fallthrough`（cucc:250-280 对齐，原 drop 改 replace） | `_handle_host_flag`、rules replace |
+| 23 | `add_gcc_toolchain`（cucc:1055-1066） | PATH 上真 gcc 非 /usr/bin/gcc 时追加 `--gcc-toolchain=<prefix>/` | **对齐（休眠机制）**：`_locate_real_gcc` 跳过 cu2cce shim PATH 项；非标准布局追加旗标，真机 /usr/bin/gcc 存在即 no-op；`CU2CCE_GCC_TOOLCHAIN=off` 可关 | driver |
+| 24 | 调试状态传递（make_maca↔cucc 的 BASH_XTRACE/VERBOSE/ERREXIT） | shell set -x 状态跨脚本传递 | **对齐**：bin/cucc 将三个 shell 调试变量映射为 `CU2CCE_DEBUG`（make_cce/pre_cce 已导出） | bin/cucc |
 
 ## 三、本批次后的机制拓扑（终态）
 
@@ -169,6 +182,37 @@ hostcc_cce ──> cu2cce_driver.py --hostcc-mode ──[hostcc.link.inject]─�
 ```
 
 ## 四、剩余已知差距（有意保留，待需求驱动）
+
+### 4.0 cmake/make 收口状态复核（第六批次）
+
+对 cu-bridge CMake/Make 清单做最后一轮逐项核对，本桥现状：
+
+| cu-bridge 项 | 状态 |
+|---|---|
+| cmake_maca 查询透传 / CUCC_CMAKE_ENTRY 双模式 | 已收口（cmake_cce 查询透传；`CU2CCE_CMAKE_NO_OVERRIDE` ≈ cmake_assist 回退） |
+| 双阶段（configure=mock / build=真驱动） | 已收口（持久 shim + 两阶段重指向） |
+| deal_build_param（--build → make/ninja 包装器） | 已收口（第六批次前一批落地） |
+| mock 探测四分支 + ABI 现编替身 | 已收口（多 `--simple-preprocess` 分支；ABI 走 shipped 源码现编） |
+| link.json / stub_link.json 清单化假 SDK | 已收口（shim_layout.json + build_shim_tree.py，三入口共用） |
+| make_maka 幂等哨兵 / clean / 并行隔离 | 已收口（make.log 哨兵；clean 词元匹配；CU2CCE_SHIM_ISOLATE） |
+| pre_make / pre_makefile | 已收口（pre_cce，hostcc 统一） |
+| bin/gnu 包装器 + conf_gnu.json | 已收口（hostcc_cce + rules hostcc 段；链接器有意保留 g++） |
+| multi_target / get_device_arch | 已收口（device_arch.sh；NPU 单 arch 无多目标列表） |
+| skipstring 查询直通 | 已收口（rules queries 段） |
+| conf.json 五动作 + condition + not_found | 已收口（五动作 + when 条件；not_found 兜底由 arch_macro/queries 承接对应子集） |
+| gomxccbin + conf_regex.yaml 清洗层 | 已收口（regex_cleanup + 逐 flag 宿主旗标清洗，本批次） |
+| add_gcc_toolchain | 已收口（休眠机制，本批次） |
+| `-D` 引号转义重排 / 哨兵响应文件 | 等价实现（无 eval 的 argv 列表 + shlex） |
+| conda LDFLAGS / CUCC_CUDA_VERSION / WCUDA_DEBUG | 已对齐（同名或同语义） |
+| 多架构去重（choose_arch_nvcc） | 等价（单 arch，取 max） |
+| CCCL 版本门控 include | 不适用（NPU 无 cccl） |
+| conf_bazel / conf_gfortran / MPI / USE_CMAKE_MACA / 预编译 a.out | 维持有意不做/已知差距（见 §四 1-5） |
+
+**结论：cu-bridge 的 CMake/Make 与 cucc 运行时机制面已全部收口**——除 NPU 明确
+不适用项与维持"有意不做"的四项外，无遗留机制差距；后续差异只会来自真机踩坑
+（增补 rules 规则即可，无需改驱动代码）。
+
+### 4.1 差距清单
 
 1. **Bazel/TF 场景**（conf_bazel.json / `WCUDA_BAZEL_TF_BUILD` 等价物）；
 2. **gfortran/MPI 包装器**（conf_gfortran.json + ompi 分派；NPU 场景 Fortran 需求未出现）；
@@ -189,3 +233,8 @@ hostcc_cce ──> cu2cce_driver.py --hostcc-mode ──[hostcc.link.inject]─�
 | hostcc 规则化 | `make_gxx_link` 载体 + 任何纯 g++ 链接例子 | 链接命令尾部含 `-lcce_bridge_runtime -lascendcl` |
 | lib64 别名扩展 | `make_gxx_link` 加 `-lcublas` 变体（EXPERIMENTAL） | 链接解析到桥运行时，运行期 cublas 三用例语义不变 |
 | 清理/隔离 | `make_cce clean` / `make_cce cleanpack` / `CU2CCE_SHIM_ISOLATE=1` 并行两作业 | 前者删假目录、后者不删、隔离各自生效 |
+| `-Werror` 族清洗 | `-Xcompiler=-fPIC,-Werror,-Wno-error=cpp` 场景（CMake 传播） | 裸 `-Werror` 丢弃、`-Wno-error=cpp` 保留、无回归 |
+| implicit-fallthrough 重写 | 带 `-Werror=implicit-fallthrough=2` 的工程 | ccec 收到 `-Werror=implicit-fallthrough`（非 =N） |
+| regex_cleanup 层 | 直达 `-fno-canonical-system-headers` / 逗号列表中的 gcc-only 旗标 | 丢弃且 trace 有 `regex_drop` 记录 |
+| add_gcc_toolchain | 真机 `/usr/bin/gcc` 存在 | no-op（休眠）；`sh -c 'command -v gcc'` 非标准布局时确认 `--gcc-toolchain` 出现在 ccec 命令行 |
+| `-forward-unknown-to-compiler` 探针 | 真机 `cucc -c t.cu -forward-unknown-to-compiler -o t.o`（CCEC_PATH 指向真 ccec） | 若 ccec 接受则考虑从 drop 改透传（同构前端前提下合理）；拒绝则维持 drop |

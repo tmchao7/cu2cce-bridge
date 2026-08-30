@@ -21,4 +21,12 @@ if [ ! -f "$DRIVER" ]; then
 fi
 
 export CUCC_PATH
+
+# Debug-state propagation (cu-bridge make_maca <-> cucc parity): make_cce/
+# pre_cce export BASH_XTRACE/BASH_VERBOSE/BASH_ERREXIT to mirror their own
+# shell flags; the driver is python, so surface that state as CU2CCE_DEBUG.
+if [ "${BASH_XTRACE:-0}" = "1" ] || [ "${BASH_VERBOSE:-0}" = "1" ] || [ "${BASH_ERREXIT:-0}" = "1" ]; then
+    export CU2CCE_DEBUG="${CU2CCE_DEBUG:-1}"
+fi
+
 exec python3 "$DRIVER" "$@"

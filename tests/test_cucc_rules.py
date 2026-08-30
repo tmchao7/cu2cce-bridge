@@ -545,6 +545,124 @@ class CuccRuleDriverTest(unittest.TestCase):
         self.assertEqual(actions[0].action, "forward")
         self.assertIn("prefix match", actions[0].reason)
 
+    def test_host_flags_are_filtered_per_flag_in_one_group(self) -> None:
+        # cu-bridge cleans per argument; a whole-group decision leaked
+        # machine-specific flags sharing the comma list with safe ones.
+        # CMake emits -Xcompiler values comma-joined (-fPIC,-march=native).
+        prepared = self.driver().prepare([
+            "-c", "main.cu", "-Xcompiler", "-fPIC,-march=native,-Wall", "-o", "main.o",
+        ])
+        self.assertIn("-fPIC", prepared.args)
+        self.assertIn("-Wall", prepared.args)
+        self.assertNotIn("-march=native", prepared.args)
+
+    def test_xcompiler_attached_form_goes_through_the_host_filter(self) -> None:
+        # Regression: the -Xcompiler=... attached spelling used to bypass the
+        # host-flag filter entirely (the filter matched the literal pattern
+        # instead of the concrete argument).
+        prepared = self.driver().prepare([
+            "-c", "main.cu", "-Xcompiler=-fPIC,-Werror=all-warnings", "-o", "main.o",
+        ])
+        self.assertIn("-fPIC", prepared.args)
+        self.assertNotIn("-Werror=all-warnings", prepared.args)
+
+    def test_xcompiler_werror_group_is_removed(self) -> None:
+        # conf_regex.yaml C500S-11780 parity: only the bare -Werror token is
+        # removed from -Xcompiler values; clang-valid spellings such as
+        # -Wno-error=cpp stay (the yaml's own example list keeps it).
+        prepared = self.driver().prepare([
+            "-c", "main.cu", "-Xcompiler", "-Wall,-Werror,-Wno-error=cpp", "-o", "main.o",
+        ])
+        self.assertIn("-Wall", prepared.args)
+        self.assertIn("-Wno-error=cpp", prepared.args)
+        self.assertNotIn("-Werror", prepared.args)
+
+    def test_implicit_fallthrough_is_normalized_to_clang_spelling(self) -> None:
+        # cu-bridge bin/cucc:250-280: the nvcc/gcc =N level spelling is
+        # rewritten to the clang-compatible form instead of being dropped.
+        for flag in ("--Werror=implicit-fallthrough=5", "-Werror=implicit-fallthrough=3"):
+            with self.subTest(flag=flag):
+                prepared = self.driver().prepare(["-c", "main.cu", flag, "-o", "main.o"])
+                self.assertIn("-Werror=implicit-fallthrough", prepared.args)
+                self.assertNotIn(flag, prepared.args)
+        via_xcompiler = self.driver().prepare([
+            "-c", "main.cu", "-Xcompiler", "-Werror=implicit-fallthrough=2,-fPIC", "-o", "main.o",
+        ])
+        self.assertIn("-Werror=implicit-fallthrough", via_xcompiler.args)
+        self.assertIn("-fPIC", via_xcompiler.args)
+
+    def test_regex_cleanup_layer_drops_gcc_only_flags(self) -> None:
+        # gomxccbin/conf_regex.yaml parity: a data-driven final-command
+        # cleanup pass. Seeds remove gcc-only spellings wherever they arrive
+        # (direct nvcc argument or via -Xcompiler splitting).
+        direct = self.driver().prepare([
+            "-c", "main.cu", "-fno-canonical-system-headers", "-o", "main.o"])
+        self.assertNotIn("-fno-canonical-system-headers", direct.args)
+        via_xcompiler = self.driver().prepare([
+            "-c", "main.cu", "-Xcompiler", "-Wno-nonnull-compare", "-o", "main.o"])
+        self.assertNotIn("-Wno-nonnull-compare", via_xcompiler.args)
+        # The cleanup decision is visible in the trace.
+        trace = Path(self.tmp.name) / "cleanup-trace.json"
+        traced = self.driver(CU2CCE_TRACE_FILE=str(trace)).prepare([
+            "-c", "main.cu", "-fno-canonical-system-headers", "-o", "main.o"])
+        payload = json.loads(trace.read_text(encoding="utf-8"))
+        self.assertTrue(any(item["action"] == "regex_drop" for item in payload["actions"]))
+        self.assertNotIn("-fno-canonical-system-headers", traced.args)
+
+    def test_gcc_toolchain_injection_follows_the_reference_condition(self) -> None:
+        # add_gcc_toolchain parity (bin/cucc:1055-1066): only when the real
+        # gcc is NOT /usr/bin/gcc; CU2CCE_GCC_TOOLCHAIN=off disables.
+        driver = self.driver()
+        driver._locate_real_gcc = lambda: "/usr/bin/gcc"  # type: ignore[method-assign]
+        self.assertEqual(driver._gcc_toolchain_flags(), [])
+        driver2 = self.driver()
+        driver2._locate_real_gcc = lambda: "/opt/rh/gcc-toolset-12/root/usr/bin/gcc"  # type: ignore[method-assign]
+        self.assertEqual(driver2._gcc_toolchain_flags(),
+                         ["--gcc-toolchain=/opt/rh/gcc-toolset-12/root/usr/"])
+        off = self.driver(CU2CCE_GCC_TOOLCHAIN="off")
+        off._locate_real_gcc = lambda: "/opt/rh/gcc-toolset-12/root/usr/bin/gcc"  # type: ignore[method-assign]
+        self.assertEqual(off._gcc_toolchain_flags(), [])
+        with self.assertRaises(DriverError):
+            self.driver(CU2CCE_GCC_TOOLCHAIN="sometimes")
+
+    def test_cucc_entrypoint_propagates_bash_debug_state(self) -> None:
+        # make_maca <-> cucc parity: the shell debug flags exported by
+        # make_cce/pre_cce surface as CU2CCE_DEBUG in the python driver.
+        driver = Path(__file__).resolve().parents[1] / "bin/cucc"
+        env = dict(os.environ)
+        env.update(self.env)
+        env["BASH_XTRACE"] = "1"
+        env.pop("CU2CCE_DEBUG", None)
+        env.pop("WCUDA_DEBUG", None)
+        traced = subprocess.run(
+            [str(driver), "--proxy-mode", "-c", "main.cu", "-o", "main.o"],
+            env=env, capture_output=True, text=True)
+        self.assertEqual(traced.returncode, 0, traced.stderr)
+        self.assertIn("[cu2cce]", traced.stderr)
+        # Without the shell debug flags there is no driver debug output.
+        env.pop("BASH_XTRACE")
+        quiet = subprocess.run(
+            [str(driver), "--proxy-mode", "-c", "main.cu", "-o", "main.o"],
+            env=env, capture_output=True, text=True)
+        self.assertNotIn("[cu2cce]", quiet.stderr)
+
+    def test_validator_rejects_broken_regex_cleanup_patterns(self) -> None:
+        import validate_cucc_rules  # noqa: PLC0415
+        rules = Path(self.tmp.name) / "bad-regex.json"
+        rules.write_text(json.dumps({
+            "schema_version": 1,
+            "frontend": {},
+            "all": {"forward": [], "drop": [], "replace": [], "reject": []},
+            "compile": {"inject": []},
+            "link": {"inject": []},
+            "compile_and_link": {"inject": []},
+            "capabilities": {},
+            "diagnostics": {},
+            "regex_cleanup": [{"pattern": "-Werror(=[^)]", "reason": "broken PCRE"}],
+        }), encoding="utf-8")
+        errors = validate_cucc_rules.validate(rules)
+        self.assertTrue(any("invalid regex" in error for error in errors))
+
 
 if __name__ == "__main__":
     unittest.main()

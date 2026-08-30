@@ -43,6 +43,9 @@
 | `__CUDA_ARCH__` | 总是定义（`-Xdevice` 限定 device pass） | 仅 `CU2CCE_CUDA_ARCH` 设置时定义；**2026-08-30 增补 opt-in 机制**：`CU2CCE_ARCH_MACRO=auto` 时从 drop 的 `-gencode/-arch` 值提取并注入（nvcc 编码 major*100+minor*10），显式 env 优先 | **结论维持**：ccec puresimt 是单遍编译，无 `-Xdevice` 式 device-pass 限定——全局定义会让 host 代码的 `#ifdef __CUDA_ARCH__` 分支误入 device 路径，故保持默认 off、显式声明（用户主动开启即接受该语义）；决策细节见 `CUBRIDGE_CMAKE_MAKE_DESIGN_ANALYSIS.md` §二#4 |
 | 查询直通 skipstring | conf.json skipstring（-dumpversion/-print-* 整条直通 mxcc） | **2026-08-30 补齐**：rules `queries` 段，命中即 phase=query 原样直通 ccec | 已对齐 |
 | `.cu` 自动预包含 cuda_runtime.h | condition `--include cuda_runtime.h` | **2026-08-30 补齐**：`source_is_cuda_and_runtime_header` 条件注入 | 已对齐（nvcc 语义） |
+| `-Werror=implicit-fallthrough=N` | 重写为 clang 兼容拼写（bin/cucc:250-280） | **第六批次改 drop→replace**：统一重写 `-Werror=implicit-fallthrough`（直达 + `-Xcompiler` 两路） | 已对齐 |
+| `-Xcompiler` 段剔除 `-Werror` | conf_regex.yaml C500S-11780（gomxccbin 命令串正则） | **第六批次补齐**：宿主旗标逐 flag 过滤中丢弃裸 `-Werror`（`-Wno-error=cpp` 等合法拼写保留）；等价机制为 rules `regex_cleanup` 段（PCRE + trace），无 Go 工具依赖 | 已对齐 |
+| `add_gcc_toolchain` | 真 gcc 非 /usr/bin/gcc 时追加 `--gcc-toolchain=<prefix>/`（cucc:1055-1066） | **第六批次补齐**：`_locate_real_gcc` 跳过 shim PATH 项；真机标准布局 no-op；`CU2CCE_GCC_TOOLCHAIN=off` 关闭 | 已对齐（休眠机制） |
 
 ### 1.3 我们有、cu-bridge 没有（优势面，保持）
 
