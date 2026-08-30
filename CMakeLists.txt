@@ -88,7 +88,7 @@ install(PROGRAMS tools/make_cce tools/cmake_cce tools/ninja_cce
         DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
 install(PROGRAMS tools/nvcc_entry.sh tools/cu2cce_driver.py tools/validate_cucc_rules.py
         DESTINATION ${CMAKE_INSTALL_PREFIX}/tools)
-install(PROGRAMS tools/device_arch.sh tools/pre_cce tools/hostcc_cce
+install(PROGRAMS tools/device_arch.sh tools/pre_cce tools/hostcc_cce tools/build_shim_tree.py
         DESTINATION ${CMAKE_INSTALL_PREFIX}/tools)
 install(DIRECTORY tools/mock DESTINATION ${CMAKE_INSTALL_PREFIX}/tools)
 install(PROGRAMS tools/real_test/fetch_external_cuda_samples.sh
@@ -98,7 +98,7 @@ install(PROGRAMS tools/real_test/fetch_external_cuda_samples.sh
 # expose validated bridge-backed targets and legacy build macros; they do not
 # perform CUDA kernel conversion.
 install(DIRECTORY cmake_modules/ DESTINATION ${CMAKE_INSTALL_PREFIX}/cmake_modules)
-install(FILES config/cu2cce_rules.json
+install(FILES config/cu2cce_rules.json config/shim_layout.json
         DESTINATION ${CMAKE_INSTALL_PREFIX}/config)
 
 # Native cu2cce package. This is intentionally separate from CUDA::cudart:

@@ -5,9 +5,16 @@
 # cu-bridge's documented use (FAQ Q5): autoconf-style `configure xxx`
 # becomes `pre_makefile configure xxx`. pre_cce does the same for NPU:
 # it prepares the fake CUDA toolkit environment (bin/nvcc -> cucc,
-# CUDA-named lib64 links, host compiler passthroughs) and then evals the
+# CUDA-named lib64 links, host compiler entries) and then evals the
 # wrapped command, so scripts that probe for nvcc/gcc during configuration
-# see a complete toolchain.
+# see a complete toolchain. The layout comes from the shared manifest
+# config/shim_layout.json via tools/build_shim_tree.py.
+#
+# Host compiler entries use the hostcc_cce wrapper (same as make_cce /
+# cmake_cce — links automatically carry the bridge runtime + CANN libs);
+# identity /usr/bin links are the fallback. Previously this wrapper used
+# identity links only, so autotools projects linking with plain g++ missed
+# the runtime injection.
 #
 # Usage:
 #   pre_cce ./configure --prefix=/opt/app
@@ -38,6 +45,10 @@ fi
 
 TEMP_DIR_NAME="cu2cce-bridge"
 DST_WCUDA="$CU2CCE_HOME/${TEMP_DIR_NAME}"
+# Parallel-job isolation (cu-bridge USE_WCUDA_FOR_MULTI_JOB parity).
+if [ "${CU2CCE_SHIM_ISOLATE:-0}" = "1" ]; then
+    DST_WCUDA="${DST_WCUDA}-${PPID}"
+fi
 if [ ! -f "$DST_WCUDA/make.log" ]; then
     rm -rf "$DST_WCUDA"
 fi
@@ -45,38 +56,19 @@ mkdir -p "$DST_WCUDA"
 echo 1 > "$DST_WCUDA/make.log"
 
 CUDA_DIR="$DST_WCUDA/CUDA_DIR"
-mkdir -p "$CUDA_DIR/bin" "$CUDA_DIR/include" "$CUDA_DIR/lib64/stubs"
-
-HOST_ARCH="$(uname -m 2>/dev/null || echo x86_64)"
-case "$HOST_ARCH" in amd64) HOST_ARCH=x86_64 ;; arm64) HOST_ARCH=aarch64 ;; esac
-HOST_OS="$(uname -s 2>/dev/null | tr '[:upper:]' '[:lower:]' || echo linux)"
-HOST_TRIPLE="${HOST_ARCH}-${HOST_OS}"
-mkdir -p "$CUDA_DIR/targets/$HOST_TRIPLE"
-
-ln -sf "${CUCC_PATH}/bin/cucc" "$CUDA_DIR/bin/nvcc"
-ln -sf "${CUCC_PATH}/bin/cucc" "$CUDA_DIR/bin/cucc"
-ln -sfn "${CUCC_PATH}/include" "$CUDA_DIR/include" 2>/dev/null || true
-ln -sfn "$CUDA_DIR/include" "$CUDA_DIR/targets/$HOST_TRIPLE/include"
-ln -sfn "$CUDA_DIR/lib64" "$CUDA_DIR/targets/$HOST_TRIPLE/lib"
-if [ ! -e "$CUDA_DIR/include/cuda_runtime.h" ]; then
-    for f in "${CUCC_PATH}/include"/*; do
-        ln -sfn "$f" "$CUDA_DIR/include/$(basename "$f")"
-    done
-fi
-
-for _cuda_lib in libcudart.so libcudart_static.a libcudadevrt.a libcuda.so libcuda.so.1; do
-    ln -sfn "${CUCC_PATH}/lib/libcce_bridge_runtime.so" "$CUDA_DIR/lib64/$_cuda_lib"
-    ln -sfn "${CUCC_PATH}/lib/libcce_bridge_runtime.so" "$CUDA_DIR/lib64/stubs/$_cuda_lib"
-done
-unset _cuda_lib
-
 mkdir -p "$DST_WCUDA/bin"
-for _host_cc in c++ g++ gcc cc; do
-    if [ -e "/usr/bin/$_host_cc" ]; then
-        ln -sfn "/usr/bin/$_host_cc" "$DST_WCUDA/bin/$_host_cc"
-    fi
-done
-unset _host_cc
+python3 "$CUCC_PATH/tools/build_shim_tree.py" \
+    --cuda-dir "$CUDA_DIR" \
+    --cucc-path "$CUCC_PATH" \
+    --nvcc-target "$CUCC_PATH/bin/cucc" \
+    --hostcc-bin-dir "$DST_WCUDA/bin" \
+    --hostcc-mode wrapper \
+    --cann-base "${CANN_BASE:-/usr/local/Ascend/latest}" \
+    --quiet
+if [ ! -e "$CUDA_DIR/bin/nvcc" ]; then
+    echo "pre_cce: fake toolkit build failed (see build_shim_tree output)" >&2
+    exit 1
+fi
 
 export CUDA_PATH="$CUDA_DIR"
 export PATH="$DST_WCUDA/bin:$CUDA_DIR/bin:$PATH"
@@ -85,9 +77,15 @@ export CANN_BASE="${CANN_BASE:-/usr/local/Ascend/latest}"
 export CU2CCE_NPU_ARCH="${CU2CCE_NPU_ARCH:-$(bash "${CUCC_PATH}/tools/device_arch.sh" 2>/dev/null || echo dav-c310-vec)}"
 export LD_LIBRARY_PATH="${CUCC_PATH}/lib:${CANN_BASE}/lib64:${LD_LIBRARY_PATH:-}"
 
-if [[ "$*" == *"clean"* ]]; then
-    rm -rf "$DST_WCUDA"
-fi
+# clean 目标词元匹配（与 make_cce 相同：按目标名而非整串子串）。
+for arg in "$@"; do
+    case "$arg" in
+        clean|*clean|clean-*)
+            rm -rf "$DST_WCUDA"
+            break
+            ;;
+    esac
+done
 
 # quote-safe eval of the wrapped command (mirrors pre_makefile's escaping)
 eval "$*"

@@ -74,6 +74,41 @@ def validate(path: Path) -> List[str]:
                         if previous and previous != action and {previous, action} & {"drop", "replace", "reject"}:
                             fail(errors, f"{phase}: conflicting actions for pattern {pattern!r}: {previous}/{action}")
                         seen[pattern] = action
+    # Optional cu-bridge skipstring-parity section: probe queries that bypass
+    # the whole rule pipeline and pass through to ccec unchanged.
+    if "queries" in data:
+        queries = data["queries"]
+        if not isinstance(queries, list):
+            fail(errors, "queries: must be a list")
+        else:
+            for index, rule in enumerate(queries):
+                if not isinstance(rule, dict) or "pattern" not in rule and "match" not in rule:
+                    fail(errors, f"queries[{index}]: requires pattern")
+                    continue
+                if not isinstance(rule.get("reason", ""), str):
+                    fail(errors, f"queries[{index}]: reason must be a string")
+    # Optional host compiler wrapper section (bin/gnu parity): phase-scoped
+    # actions with the same rule shapes as the main pipeline.
+    if "hostcc" in data:
+        hostcc = data["hostcc"]
+        if not isinstance(hostcc, dict):
+            fail(errors, "hostcc: must be an object")
+        else:
+            for phase, section in hostcc.items():
+                if phase == "comment":
+                    continue
+                if not isinstance(section, dict):
+                    fail(errors, f"hostcc.{phase}: must be an object")
+                    continue
+                for action, rules in section.items():
+                    if action not in ACTIONS:
+                        fail(errors, f"hostcc.{phase}: unknown action {action}")
+                        continue
+                    if not isinstance(rules, list):
+                        fail(errors, f"hostcc.{phase}.{action}: must be a list")
+                        continue
+                    for index, rule in enumerate(rules):
+                        validate_rule(rule, action, f"hostcc.{phase}.{action}[{index}]", errors)
     if not isinstance(data.get("capabilities"), dict):
         fail(errors, "capabilities: must be an object")
     if not isinstance(data.get("diagnostics"), dict):

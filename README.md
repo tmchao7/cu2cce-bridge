@@ -261,10 +261,14 @@ CUDA cuBLAS to CANN ACL CBLAS development is maintained separately on
 - `src/bridge/runtime/`：`cuda* → wcuda* → aclrt*`。
 - `src/bridge/blas/`：experimental cublas→aclblas，独立于 puresimt 验收。
 - `bin/cucc`：规则驱动的 nvcc 兼容入口；`.cu` 直接传给 ccec，不做 Python lowering。
-- `tools/cu2cce_driver.py`：cucc 与 CMake mock 共用的参数规则驱动。
-- `config/cu2cce_rules.json`：CUDA 参数 filter/replacer/inject/reject 规则。
-- `bin/cmake_cce`：CMake CUDA 工程入口；配置时使用 `cmake_cce -S . -B build`。
-- `bin/make_cce` / `bin/ninja_cce`：Makefile/Ninja 构建入口。
+- `tools/cu2cce_driver.py`：cucc 与 CMake mock 共用的参数规则驱动（含 `--hostcc-mode`）。
+- `config/cu2cce_rules.json`：CUDA 参数 filter/replacer/inject/reject + queries/hostcc 规则。
+- `tools/cmake_cce`（安装树 `bin/cmake_cce`）：CMake CUDA 工程入口；配置用
+  `cmake_cce -S . -B build`，构建用 `cmake_cce --build build`（按 build.ninja 分发 make/ninja）。
+- `tools/make_cce` / `tools/ninja_cce`（安装树 `bin/` 同名）：Makefile/Ninja 构建入口。
+- `tools/pre_cce`：configure 脚本包裹器（autotools FAQ Q5 等价）。
+- `tools/hostcc_cce`：宿主编译器包装器（链接自动补桥运行时，规则驱动）。
+- `tools/build_shim_tree.py` + `config/shim_layout.json`：假 CUDA SDK 目录的单一清单与构建器。
 - `docs/03_Comparison/BUILD_SYSTEM_COMPATIBILITY_MATRIX.md`：大型项目构建兼容矩阵。
 - `examples/external/cuda_samples_project/`：固定版本 NVIDIA CUDA Samples 的 CMake 外部工程 harness。
 - `examples/puresimt/`：维护中的 CUDA examples。

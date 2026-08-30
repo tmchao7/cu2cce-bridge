@@ -4,11 +4,14 @@
 # Usage:
 #   export CUCC_PATH=/path/to/cu2cce-bridge/install
 #   cmake_cce -S . -B build
-#   cmake --build build
+#   cmake_cce --build build            # dispatches to make_cce/ninja_cce
+#   cmake --build build                # also works via the persistent shim
 #
 # The wrapper creates a CUDA-toolkit-shaped shim for CMake's compiler
-# detection. Set CU2CCE_CMAKE_SHIM_DIR to keep it outside /tmp and make the
-# configured compiler path persistent across reboots or /tmp cleanup.
+# detection (layout manifest: config/shim_layout.json, built by
+# tools/build_shim_tree.py — cu-bridge link.json/stub_link.json parity).
+# Set CU2CCE_CMAKE_SHIM_DIR to keep it outside /tmp and make the configured
+# compiler path persistent across reboots or /tmp cleanup.
 
 set -euo pipefail
 
@@ -49,10 +52,15 @@ if [ -n "${CU2CCE_CMAKE_SHIM_DIR:-}" ]; then
 else
     SHIM_ROOT="${CU2CCE_HOME:-${CUBRIDGE_HOME:-$HOME}}/cu2cce-bridge/cmake-shim"
 fi
+# Parallel-build isolation (cu-bridge USE_WCUDA_FOR_MULTI_JOB parity): give
+# each top-level job its own shim when concurrent cmake_cce runs would race.
+if [ "${CU2CCE_SHIM_ISOLATE:-0}" = "1" ]; then
+    SHIM_ROOT="${SHIM_ROOT}-${PPID}"
+fi
 CUDA_DIR="$SHIM_ROOT/cuda"
 
 # Build/install phase: re-point the shim nvcc at the real cucc (cu-bridge's
-# make_maca rebuilds CUDA_DIR the same way), then hand over to cmake.
+# make_maca rebuilds CUDA_DIR the same way), then hand over.
 build_phase=0
 for arg in "$@"; do
     case "$arg" in
@@ -66,74 +74,94 @@ if [ "$build_phase" -eq 1 ]; then
     else
         printf 'cmake_cce: build phase: no shim from a configure run at %s; continuing\n' "$CUDA_DIR" >&2
     fi
+    # deal_build_param parity (cu-bridge cmake_mock:64-131): route the build
+    # through make_cce/ninja_cce so Make/Ninja get the same environment
+    # preparation (ASCEND vars, device arch, PATH) as direct make_cce runs.
+    # cmake --build remains the fallback for odd argument shapes.
+    build_dir=""
+    build_target=()
+    build_jobs=()
+    transfer_params=()
+    args=("$@")
+    count=${#args[@]}
+    index=0
+    while [ "$index" -lt "$count" ]; do
+        arg="${args[$index]}"
+        case "$arg" in
+            --build=*)
+                build_dir="${arg#--build=}"
+                ;;
+            --build)
+                index=$((index + 1))
+                if [ "$index" -lt "$count" ]; then build_dir="${args[$index]}"; fi
+                ;;
+            --target|-t)
+                while [ $((index + 1)) -lt "$count" ]; do
+                    next="${args[$((index + 1))]}"
+                    case "$next" in -*) break ;; esac
+                    build_target+=("$next")
+                    index=$((index + 1))
+                done
+                ;;
+            --parallel|-j)
+                next="${args[$((index + 1))]:-}"
+                case "$next" in
+                    ''|[-+]*) build_jobs+=("-j") ;;
+                    *) build_jobs+=("-j" "$next"); index=$((index + 1)) ;;
+                esac
+                ;;
+            --config|--verbose|-v)
+                : # generator-specific or informational; nothing to forward
+                ;;
+            --)
+                while [ $((index + 1)) -lt "$count" ]; do
+                    index=$((index + 1))
+                    transfer_params+=("${args[$index]}")
+                done
+                ;;
+            *)
+                : # unknown tokens after --build <dir> are ignored (reference parity)
+                ;;
+        esac
+        index=$((index + 1))
+    done
+    if [ -n "$build_dir" ]; then
+        if [ -f "$build_dir/build.ninja" ]; then
+            generator_tool="ninja_cce"
+        else
+            generator_tool="make_cce"
+        fi
+        tool_path="$CUCC_PATH/bin/$generator_tool"
+        [ -x "$tool_path" ] || tool_path="$CUCC_PATH/tools/$generator_tool"
+        if [ ! -x "$tool_path" ]; then
+            echo "cmake_cce: $generator_tool not found under $CUCC_PATH; falling back to cmake --build" >&2
+            exec cmake "$@"
+        fi
+        printf 'cmake_cce: dispatching --build %s -> %s\n' "$build_dir" "$tool_path" >&2
+        cd "$build_dir"
+        exec "$tool_path" ${build_jobs[@]+"${build_jobs[@]}"} \
+            ${build_target[@]+"${build_target[@]}"} \
+            ${transfer_params[@]+"${transfer_params[@]}"}
+    fi
     exec cmake "$@"
 fi
 
 HOST_ARCH="$(uname -m 2>/dev/null || echo x86_64)"
-case "$HOST_ARCH" in
-    amd64) HOST_ARCH=x86_64 ;;
-    arm64) HOST_ARCH=aarch64 ;;
-esac
+case "$HOST_ARCH" in amd64) HOST_ARCH=x86_64 ;; arm64) HOST_ARCH=aarch64 ;; esac
 HOST_OS="$(uname -s 2>/dev/null | tr '[:upper:]' '[:lower:]' || echo linux)"
-case "$HOST_OS" in
-    darwin) HOST_OS=darwin ;;
-    linux) HOST_OS=linux ;;
-esac
+case "$HOST_OS" in darwin) HOST_OS=darwin ;; linux) HOST_OS=linux ;; esac
 HOST_TRIPLE="${HOST_ARCH}-${HOST_OS}"
 
-mkdir -p \
-    "$CUDA_DIR/bin" \
-    "$CUDA_DIR/lib64/stubs" \
-    "$CUDA_DIR/nvvm/libdevice" \
-    "$CUDA_DIR/lib64/cmake/CUDAToolkit" \
-    "$CUDA_DIR/targets/$HOST_TRIPLE" \
-    "$CUDA_DIR/extras/CUPTI/include" \
-    "$CUDA_DIR/extras/CUPTI/lib64"
-
-# Recreate the include link as a single directory link so all installed CUDA
-# compatibility headers are visible to projects that use toolkit-relative
-# paths. Do not copy or rewrite user source files.
-rm -rf "$CUDA_DIR/include"
-ln -s "$CUCC_PATH/include" "$CUDA_DIR/include"
-# Configure phase: the shim nvcc goes through the probe-answering mock.
-# Re-pointing here makes repeated configure/build cycles on one persistent
-# shim deterministic (build phase re-points it to real cucc, see above).
-ln -sfn "$CUCC_PATH/tools/nvcc_entry.sh" "$CUDA_DIR/bin/nvcc"
-# Host compilers as toolkit-relative entries (mirrors cu-bridge's
-# link.json pre_cmake section): prefer the hostcc wrapper (adds the bridge
-# runtime on links, passthrough on compiles — bin/gnu parity), falling back
-# to identity symlinks when the wrapper is unavailable.
-for _host_cc in c++ g++ gcc cc; do
-    if [ -x "$CUCC_PATH/tools/hostcc_cce" ]; then
-        ln -sfn "$CUCC_PATH/tools/hostcc_cce" "$CUDA_DIR/bin/$_host_cc"
-    elif [ -e "/usr/bin/$_host_cc" ]; then
-        ln -sfn "/usr/bin/$_host_cc" "$CUDA_DIR/bin/$_host_cc"
-    fi
-done
-unset _host_cc
-ln -sfn "$CUDA_DIR/include" "$CUDA_DIR/targets/$HOST_TRIPLE/include"
-ln -sfn "$CUDA_DIR/lib64" "$CUDA_DIR/targets/$HOST_TRIPLE/lib"
-
-printf 'CUDA Version 11.6.0\n' > "$CUDA_DIR/version.txt"
-
-# CUDA-named runtime library symlinks (mirrors cu-bridge's link.json
-# pre_make/virtual_cmake sections: "lib64/libcudart.so" -> its runtime).
-# Projects linked by a plain host compiler with -lcudart/-lcuda resolve these
-# to the bridge runtime; objects compiled through cucc carry wcuda* symbols
-# only, so the mapping is exact rather than an ABI guess.
-for _cuda_lib in libcudart.so libcudart_static.a libcudadevrt.a libcuda.so libcuda.so.1; do
-    ln -sfn "$CUCC_PATH/lib/libcce_bridge_runtime.so" "$CUDA_DIR/lib64/$_cuda_lib"
-    ln -sfn "$CUCC_PATH/lib/libcce_bridge_runtime.so" "$CUDA_DIR/lib64/stubs/$_cuda_lib"
-done
-unset _cuda_lib
-
-# CMake's built-in toolkit probes inspect these paths even when the actual
-# compiler is the nvcc shim. Keep them present without inventing NVIDIA libs.
-ln -sfn "$CUCC_PATH/cmake_modules" "$CUDA_DIR/cmake_modules"
-ln -sfn "$CUCC_PATH/cmake_modules/FindCUDAToolkit.cmake" \
-    "$CUDA_DIR/lib64/cmake/CUDAToolkit/FindCUDAToolkit.cmake"
-printf 'include(\"${CMAKE_CURRENT_LIST_DIR}/FindCUDAToolkit.cmake\")\n' \
-    > "$CUDA_DIR/lib64/cmake/CUDAToolkit/CUDAToolkitConfig.cmake"
+# Build the toolkit-shaped shim from the shared layout manifest
+# (cu-bridge stub_link.json parity). Configure phase binds the shim nvcc to
+# the mock; the build phase re-points it to cucc above.
+python3 "$CUCC_PATH/tools/build_shim_tree.py" \
+    --cuda-dir "$CUDA_DIR" \
+    --cucc-path "$CUCC_PATH" \
+    --nvcc-target "$CUCC_PATH/tools/nvcc_entry.sh" \
+    --hostcc-bin-dir "$CUDA_DIR/bin" \
+    --hostcc-mode wrapper \
+    --cann-base "$CANN_BASE"
 
 printf 'cmake_cce: CUDA shim: %s\n' "$CUDA_DIR" >&2
 printf 'cmake_cce: host toolkit layout: %s\n' "$HOST_TRIPLE" >&2

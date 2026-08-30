@@ -5,7 +5,9 @@
 # 仿照 cu-bridge 的 tools/make_maca（Apache-2.0）：
 #   - 建立临时"伪 CUDA 目录"：把 cu2cce-bridge 的 include/bin 软链成
 #     CUDA_TOOLKIT 布局（bin/nvcc → cucc），这样 Makefile 里
-#     用 `nvcc`/`$(CUDA_PATH)/bin/nvcc` 的地方都被 cucc 接管
+#     用 `nvcc`/`$(CUDA_PATH)/bin/nvcc` 的地方都被 cucc 接管。
+#     目录布局来自共享清单 config/shim_layout.json（link.json parity），
+#     由 tools/build_shim_tree.py 统一构建，与 cmake_cce/pre_cce 共用。
 #   - 设 CUDA_PATH / PATH，然后调用原 make
 #
 # 用法：make_cce [-jN] [target...]   （等价 make，但 nvcc 被拦截）
@@ -39,6 +41,11 @@ fi
 
 TEMP_DIR_NAME="cu2cce-bridge"
 DST_WCUDA="$CU2CCE_HOME/${TEMP_DIR_NAME}"
+# Parallel-job isolation (cu-bridge USE_WCUDA_FOR_MULTI_JOB parity): each
+# top-level make_cce job gets its own fake toolkit when requested.
+if [ "${CU2CCE_SHIM_ISOLATE:-0}" = "1" ]; then
+    DST_WCUDA="${DST_WCUDA}-${PPID}"
+fi
 
 # 若上一次残留且没有 make.log，清理（仿照 make_maca 的容错）
 if [ ! -f "$DST_WCUDA/make.log" ]; then
@@ -50,67 +57,22 @@ mkdir -p "$DST_WCUDA"
 echo 1 > "$DST_WCUDA/make.log"
 
 # ---------------- 建伪 CUDA 目录 ----------------
-# CUDA_PATH 指向伪目录（其 bin/nvcc → cucc）
+# CUDA_PATH 指向伪目录（其 bin/nvcc → cucc）；布局由共享清单驱动
+# （lib64 CUDA 名软链族、targets 三元组、extras/CUPTI、宿主编译器条目）。
 CUDA_DIR="$DST_WCUDA/CUDA_DIR"
-mkdir -p "$CUDA_DIR/bin"
-mkdir -p "$CUDA_DIR/include"
-mkdir -p "$CUDA_DIR/lib64/stubs"
-mkdir -p "$CUDA_DIR/extras/CUPTI/include" "$CUDA_DIR/extras/CUPTI/lib64"
-
-# targets 三元组按宿主派生（与 cmake_cce 的 HOST_TRIPLE 规则一致，
-# 对应 make_maca 的 targets/$(uname -m)-$(uname -s | tr A-Z a-z) 布局）
-HOST_ARCH="$(uname -m 2>/dev/null || echo x86_64)"
-case "$HOST_ARCH" in amd64) HOST_ARCH=x86_64 ;; arm64) HOST_ARCH=aarch64 ;; esac
-HOST_OS="$(uname -s 2>/dev/null | tr '[:upper:]' '[:lower:]' || echo linux)"
-case "$HOST_OS" in darwin) HOST_OS=darwin ;; linux) HOST_OS=linux ;; esac
-HOST_TRIPLE="${HOST_ARCH}-${HOST_OS}"
-mkdir -p "$CUDA_DIR/targets/$HOST_TRIPLE"
-
-# bin/nvcc → cucc
-ln -sf "${CUCC_PATH}/bin/cucc" "$CUDA_DIR/bin/nvcc"
-ln -sf "${CUCC_PATH}/bin/cucc" "$CUDA_DIR/bin/cucc"
-
-# 宿主编译器 passthrough（对齐 cu-bridge link.json 的 pre_cmake/pre_make 段
-# 的 ../bin/{c++,g++,gcc,cc}）：放在 $DST_WCUDA/bin（PATH 最前），身份与系统
-# 编译器完全一致，仅让 $CUDA_PATH/bin/g++ 形式的引用可用。
 mkdir -p "$DST_WCUDA/bin"
-# 宿主编译器条目（cu-bridge bin/gnu 对齐）：优先 hostcc 包装器（链接自动补
-# 桥运行时、纯编译透传），包装器缺失时退化为 /usr/bin 身份软链。
-if [ -x "${CUCC_PATH}/tools/hostcc_cce" ]; then
-    for _host_cc in c++ g++ gcc cc; do
-        ln -sfn "${CUCC_PATH}/tools/hostcc_cce" "$DST_WCUDA/bin/$_host_cc"
-    done
-else
-    for _host_cc in c++ g++ gcc cc; do
-        if [ -e "/usr/bin/$_host_cc" ]; then
-            ln -sfn "/usr/bin/$_host_cc" "$DST_WCUDA/bin/$_host_cc"
-        fi
-    done
+python3 "$CUCC_PATH/tools/build_shim_tree.py" \
+    --cuda-dir "$CUDA_DIR" \
+    --cucc-path "$CUCC_PATH" \
+    --nvcc-target "$CUCC_PATH/bin/cucc" \
+    --hostcc-bin-dir "$DST_WCUDA/bin" \
+    --hostcc-mode wrapper \
+    --cann-base "${CANN_BASE:-/usr/local/Ascend/latest}" \
+    --quiet
+if [ ! -e "$CUDA_DIR/bin/nvcc" ]; then
+    echo "make_cce: fake toolkit build failed (see build_shim_tree output)" >&2
+    exit 1
 fi
-unset _host_cc
-
-# include：软链 cu2cce 的整个 include（含 cuda_runtime.h 等 + bridge/）
-ln -sfn "${CUCC_PATH}/include" "$CUDA_DIR/include" 2>/dev/null || true
-# 若上面整目录软链不生效（如跨文件系统），退化为逐项软链
-ln -sfn "$CUDA_DIR/include" "$CUDA_DIR/targets/$HOST_TRIPLE/include"
-ln -sfn "$CUDA_DIR/lib64" "$CUDA_DIR/targets/$HOST_TRIPLE/lib"
-if [ ! -e "$CUDA_DIR/include/cuda_runtime.h" ]; then
-    for f in "${CUCC_PATH}/include"/*; do
-        ln -sfn "$f" "$CUDA_DIR/include/$(basename "$f")"
-    done
-fi
-
-# 若 make 里用了 lib64（昇腾一般用 ASCEND_TOOLKIT_HOME/lib64），补一个
-mkdir -p "$CUDA_DIR/lib64"
-
-# CUDA 命名的运行时库软链（对齐 cu-bridge tools/link.json 的 pre_make 段：
-# "lib64/libcudart.so" -> runtime 库）。经 cucc 编译的对象只含 wcuda* 符号，
-# 纯 g++ 链接 Make 工程的 -lcudart/-lcuda 在此解析到桥运行时即可。
-for _cuda_lib in libcudart.so libcudart_static.a libcudadevrt.a libcuda.so libcuda.so.1; do
-    ln -sfn "${CUCC_PATH}/lib/libcce_bridge_runtime.so" "$CUDA_DIR/lib64/$_cuda_lib"
-    ln -sfn "${CUCC_PATH}/lib/libcce_bridge_runtime.so" "$CUDA_DIR/lib64/stubs/$_cuda_lib"
-done
-unset _cuda_lib
 
 # ---------------- 设环境并调 make ----------------
 export CUDA_PATH="$CUDA_DIR"
@@ -127,8 +89,15 @@ if [ "${WCUDA_DEBUG:-0}" == "1" ]; then
     echo "/* PATH=$PATH */"
 fi
 
-if [[ "$*" == *"clean"* ]]; then
-    rm -rf "$DST_WCUDA"
-fi
+# clean 目标词元匹配（对齐 make_maca 的"clean 时删伪目录"，但按目标名而非
+# 整串子串匹配：`make cleanpack` 这类恰好含 clean 子串的普通目标不误删）。
+for arg in "$@"; do
+    case "$arg" in
+        clean|*clean|clean-*)
+            rm -rf "$DST_WCUDA"
+            break
+            ;;
+    esac
+done
 
 exec make "$@"

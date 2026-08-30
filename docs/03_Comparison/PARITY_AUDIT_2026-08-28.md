@@ -40,7 +40,9 @@
 | `-arch/-gencode` | 翻译成 `-DNV_ARCH_*` | drop + `--cce-aicore-arch` 由 CU2CCE_NPU_ARCH 决定 | 平台差异，正确 |
 | `-lcudart` 等 | replace 成 `-lmcruntime` | drop + 桥运行时注入 | 平台差异 |
 | `@file` 展开 | 自制转义器 | shlex + 深度 16 + 报错 | 我们更稳 |
-| `__CUDA_ARCH__` | 总是定义 | 仅 `CU2CCE_CUDA_ARCH` 设置时定义 | **注意**：分支于该宏的代码静默走 host 路径；保持显式（用户主动声明） |
+| `__CUDA_ARCH__` | 总是定义（`-Xdevice` 限定 device pass） | 仅 `CU2CCE_CUDA_ARCH` 设置时定义；**2026-08-30 增补 opt-in 机制**：`CU2CCE_ARCH_MACRO=auto` 时从 drop 的 `-gencode/-arch` 值提取并注入（nvcc 编码 major*100+minor*10），显式 env 优先 | **结论维持**：ccec puresimt 是单遍编译，无 `-Xdevice` 式 device-pass 限定——全局定义会让 host 代码的 `#ifdef __CUDA_ARCH__` 分支误入 device 路径，故保持默认 off、显式声明（用户主动开启即接受该语义）；决策细节见 `CUBRIDGE_CMAKE_MAKE_DESIGN_ANALYSIS.md` §二#4 |
+| 查询直通 skipstring | conf.json skipstring（-dumpversion/-print-* 整条直通 mxcc） | **2026-08-30 补齐**：rules `queries` 段，命中即 phase=query 原样直通 ccec | 已对齐 |
+| `.cu` 自动预包含 cuda_runtime.h | condition `--include cuda_runtime.h` | **2026-08-30 补齐**：`source_is_cuda_and_runtime_header` 条件注入 | 已对齐（nvcc 语义） |
 
 ### 1.3 我们有、cu-bridge 没有（优势面，保持）
 

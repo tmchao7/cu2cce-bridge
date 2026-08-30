@@ -57,19 +57,52 @@ def _output_arg(args: List[str]) -> str:
     return ""
 
 
-def _handle_abi_probe(args: List[str], cwd: Path) -> int:
-    """Neuter the ABI probe without compiling anything.
+def _abi_source_path() -> Path:
+    """Shipped ABI stand-in source, compiled by the host compiler at probe
+    time (cu-bridge tools/mock parity — no prebuilt platform artifacts)."""
+    return Path(__file__).resolve().parent / "CMakeCUDACompilerABI.cpp"
 
-    The ABI probe would otherwise reach ccec; a placeholder object is written
-    so CMake's ABI scan sees the file and gives up arch autodetection
-    explicitly (no fake success, matching the no-no-op policy)."""
+
+def _handle_abi_probe(args: List[str], cwd: Path) -> int:
+    """Answer CMake's CMakeCUDACompilerABI.cu probe without reaching ccec.
+
+    Preferred path (cu-bridge deal_abi parity): compile the shipped
+    CMakeCUDACompilerABI.cpp with the host compiler so the probe binary
+    embeds the real INFO:... ABI strings and CMake's binary scan succeeds;
+    the compiled program reports "no CUDA devices" so arch autodetection
+    fails cleanly. When the stand-in cannot be compiled (no host compiler,
+    missing file), fall back to the explicit placeholder object — no fake
+    success, matching the no-no-op policy."""
     out = _output_arg(args)
-    if out:
-        out_path = Path(out)
-        if not out_path.is_absolute():
-            out_path = cwd / out_path
-        out_path.parent.mkdir(parents=True, exist_ok=True)
-        out_path.write_bytes(b"\x7fELFcu2cce-abi-placeholder")
+    if not out:
+        return 0
+    out_path = Path(out)
+    if not out_path.is_absolute():
+        out_path = cwd / out_path
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    source = _abi_source_path()
+    if source.is_file():
+        import subprocess  # noqa: PLC0415
+        use_object_mode = "-c" in args
+        try:
+            if use_object_mode:
+                result = subprocess.run(
+                    ["g++", "-c", str(source), "-o", str(out_path)],
+                    capture_output=True, text=True, timeout=60, shell=False)
+            else:
+                result = subprocess.run(
+                    ["g++", str(source), "-o", str(out_path)],
+                    capture_output=True, text=True, timeout=60, shell=False)
+        except (OSError, subprocess.SubprocessError):
+            result = None
+        if result is not None and result.returncode == 0 and out_path.is_file():
+            print("mock_nvcc: ABI probe compiled from shipped "
+                  "CMakeCUDACompilerABI.cpp (host g++; no ccec reach)",
+                  file=sys.stderr)
+            return 0
+
+    out_path.write_bytes(b"\x7fELFcu2cce-abi-placeholder")
     return 0
 
 

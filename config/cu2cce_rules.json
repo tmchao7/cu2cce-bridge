@@ -7,6 +7,52 @@
     "default_arch": "dav-c310-vec",
     "cuda_version": "11060"
   },
+  "queries": [
+    {
+      "pattern": "-dumpversion",
+      "reason": "probe query: bypasses the rule pipeline and passes through to ccec (cu-bridge conf.json skipstring parity)"
+    },
+    {
+      "pattern": "-dumpmachine",
+      "reason": "probe query: bypasses the rule pipeline and passes through to ccec (cu-bridge skipstring parity)"
+    },
+    {
+      "pattern": "-print-search-dirs",
+      "reason": "probe query: bypasses the rule pipeline and passes through to ccec (cu-bridge skipstring parity)"
+    },
+    {
+      "pattern": "-print-libgcc-file-name",
+      "reason": "probe query: bypasses the rule pipeline and passes through to ccec (cu-bridge skipstring parity)"
+    },
+    {
+      "pattern": "-print-file-name=*",
+      "reason": "probe query: bypasses the rule pipeline and passes through to ccec (cu-bridge skipstring parity)"
+    },
+    {
+      "pattern": "-print-prog-name=*",
+      "reason": "probe query: bypasses the rule pipeline and passes through to ccec (cu-bridge skipstring parity)"
+    },
+    {
+      "pattern": "-print-multiarch",
+      "reason": "probe query: bypasses the rule pipeline and passes through to ccec (cu-bridge skipstring parity)"
+    },
+    {
+      "pattern": "-print-multi-directory",
+      "reason": "probe query: bypasses the rule pipeline and passes through to ccec (cu-bridge skipstring parity)"
+    },
+    {
+      "pattern": "-print-multi-lib",
+      "reason": "probe query: bypasses the rule pipeline and passes through to ccec (cu-bridge skipstring parity)"
+    },
+    {
+      "pattern": "-print-multi-os-directory",
+      "reason": "probe query: bypasses the rule pipeline and passes through to ccec (cu-bridge skipstring parity)"
+    },
+    {
+      "pattern": "-print-sysroot",
+      "reason": "probe query: bypasses the rule pipeline and passes through to ccec (cu-bridge skipstring parity)"
+    }
+  ],
   "all": {
     "forward": [
       {
@@ -785,6 +831,14 @@
       {
         "tokens": [
           "-include",
+          "${CUCC_PATH}/include/cuda_runtime.h"
+        ],
+        "when": "source_is_cuda_and_runtime_header",
+        "reason": "nvcc auto-preincludes cuda_runtime.h for .cu translation units (cu-bridge condition parity); guarded include keeps double inclusion harmless"
+      },
+      {
+        "tokens": [
+          "-include",
           "${CUCC_PATH}/include/bridge/kernel/simt_adaptor.h"
         ],
         "when": "source_is_cuda_and_has_adaptor"
@@ -792,7 +846,9 @@
       {
         "tokens": [
           "-std=gnu++17"
-        ]
+        ],
+        "when": "no_user_std",
+        "reason": "an explicit user -std=... is forwarded untouched; the default only fills the gap"
       },
       {
         "tokens": [
@@ -829,6 +885,14 @@
           "__CUDA_ARCH__=${CU2CCE_CUDA_ARCH}"
         ],
         "when": "has_cuda_arch"
+      },
+      {
+        "tokens": [
+          "-D",
+          "__CUDA_ARCH__=${CU2CCE_CUDA_ARCH_EXTRACTED}"
+        ],
+        "when": "arch_macro_auto",
+        "reason": "CU2CCE_ARCH_MACRO=auto derives the macro from the dropped -gencode/-arch value (cu-bridge not_found.dev_compile parity); opt-in because the puresimt path has no separate device pass"
       },
       {
         "tokens": [
@@ -925,6 +989,48 @@
   },
   "compile_and_link": {
     "inject": []
+  },
+  "hostcc": {
+    "comment": "bin/gnu parity (cu-bridge conf_gnu.json link adders), NPU-adapted: the link executor stays g++ but carries the bridge runtime + CANN acl libraries. Consumed by tools/cu2cce_driver.py --hostcc-mode via tools/hostcc_cce.",
+    "link": {
+      "inject": [
+        {
+          "tokens": [
+            "-L",
+            "${CUCC_PATH}/lib"
+          ],
+          "when": "has_cucc"
+        },
+        {
+          "tokens": [
+            "-Wl,-rpath,${CUCC_PATH}/lib"
+          ],
+          "when": "has_cucc"
+        },
+        {
+          "tokens": [
+            "-lcce_bridge_runtime"
+          ],
+          "when": "has_cucc"
+        },
+        {
+          "tokens": [
+            "-L",
+            "${CANN_BASE}/lib64"
+          ]
+        },
+        {
+          "tokens": [
+            "-Wl,-rpath,${CANN_BASE}/lib64"
+          ]
+        },
+        {
+          "tokens": [
+            "-lascendcl"
+          ]
+        }
+      ]
+    }
   },
   "capabilities": {
     "cudart": {

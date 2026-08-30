@@ -443,6 +443,108 @@ class CuccRuleDriverTest(unittest.TestCase):
         plain = self.driver().prepare(["-c", "main.cu", "-o", "main.o"])
         self.assertNotIn("__CUDA_ARCH__", " ".join(plain.args))
 
+    def test_query_probes_bypass_the_rule_pipeline(self) -> None:
+        # cu-bridge skipstring parity (conf.json:3-17): toolchain probes
+        # (-dumpversion, -print-file-name=...) bypass every injection and are
+        # handed to ccec unchanged, so autoconf/libtool-style probes see the
+        # backend compiler's own answers.
+        for probe in ("-print-file-name=cudart", "-dumpmachine",
+                      "-print-search-dirs", "-print-prog-name=cc1"):
+            with self.subTest(probe=probe):
+                prepared = self.driver().prepare([probe])
+                self.assertEqual(prepared.phase, "query")
+                self.assertEqual(prepared.mode, "query")
+                self.assertEqual(prepared.args, [probe])
+                self.assertNotIn("-x", prepared.args)
+                self.assertNotIn("--enable-simt", prepared.args)
+                self.assertEqual(prepared.compiler, str(self.ccec))
+
+    def test_user_std_flag_suppresses_default_injection(self) -> None:
+        # Only one -std may reach ccec: an explicit user value wins over the
+        # injected -std=gnu++17 (cu-bridge forwards user flags verbatim).
+        explicit = self.driver().prepare(["-c", "main.cu", "-std=c++14", "-o", "main.o"])
+        self.assertIn("-std=c++14", explicit.args)
+        self.assertNotIn("-std=gnu++17", explicit.args)
+        default = self.driver().prepare(["-c", "main.cu", "-o", "main.o"])
+        self.assertIn("-std=gnu++17", default.args)
+
+    def test_arch_macro_auto_derives_from_gencode(self) -> None:
+        # CU2CCE_ARCH_MACRO=auto borrows cu-bridge's not_found.dev_compile
+        # chain: the dropped -gencode/-arch value is recovered and injected
+        # as __CUDA_ARCH__ (nvcc encoding: sm_80 -> 800, sm_86 -> 860,
+        # sm_120 -> 1200). Off by default — the puresimt path has no separate
+        # device pass, so this stays an explicit opt-in (PARITY_AUDIT).
+        auto = self.driver(CU2CCE_ARCH_MACRO="auto").prepare([
+            "-c", "main.cu", "-gencode", "arch=compute_80,code=sm_86", "-o", "main.o"])
+        self.assertIn("__CUDA_ARCH__=860", auto.args)
+        off = self.driver().prepare([
+            "-c", "main.cu", "-gencode", "arch=compute_80,code=sm_86", "-o", "main.o"])
+        self.assertNotIn("__CUDA_ARCH__", " ".join(off.args))
+        offload = self.driver(CU2CCE_ARCH_MACRO="auto").prepare([
+            "-c", "main.cu", "--offload-arch=sm_90", "-o", "main.o"])
+        self.assertIn("__CUDA_ARCH__=900", offload.args)
+        # Explicit CU2CCE_CUDA_ARCH still wins over the derived value.
+        pinned = self.driver(CU2CCE_ARCH_MACRO="auto", CU2CCE_CUDA_ARCH="800").prepare([
+            "-c", "main.cu", "-gencode", "arch=compute_80,code=sm_86", "-o", "main.o"])
+        self.assertIn("__CUDA_ARCH__=800", pinned.args)
+        self.assertNotIn("__CUDA_ARCH__=860", pinned.args)
+        # Invalid knob values are rejected like the other policy knobs.
+        with self.assertRaises(DriverError):
+            self.driver(CU2CCE_ARCH_MACRO="sometimes")
+
+    def test_cuda_runtime_h_is_preincluded_for_cuda_sources(self) -> None:
+        # nvcc auto-preincludes cuda_runtime.h for every .cu TU (cu-bridge
+        # condition parity). The bridge runtime header transitively includes
+        # simt_adaptor.h behind an include guard, so ordering is safe either
+        # way; the injection only fires when the header ships.
+        (self.cucc / "include/cuda_runtime.h").touch()
+        prepared = self.driver().prepare(["-c", "main.cu", "-o", "main.o"])
+        args = prepared.args
+        self.assertIn("-include", args)
+        runtime_idx = args.index(str(self.cucc / "include/cuda_runtime.h"))
+        adaptor_idx = args.index(str(self.cucc / "include/bridge/kernel/simt_adaptor.h"))
+        self.assertLess(runtime_idx, adaptor_idx)
+        # Non-CUDA TUs are untouched.
+        host = self.driver().prepare(["-c", "main.cpp", "-o", "main.o"])
+        self.assertNotIn("-include", host.args)
+
+    def test_hostcc_mode_is_rule_driven(self) -> None:
+        # bin/gnu parity moved into the rules file: hostcc_cce delegates to
+        # the driver's --hostcc-mode; links carry the bridge runtime + CANN
+        # acl, compiles/queries pass through, and .cu is refused.
+        driver_path = Path(__file__).resolve().parents[1] / "tools/cu2cce_driver.py"
+
+        def hostcc(*cli_args: str) -> subprocess.CompletedProcess:
+            env = dict(os.environ)
+            env.update(self.env)
+            return subprocess.run(
+                [sys.executable, str(driver_path), "--hostcc-mode",
+                 "--hostcc-name", "g++", "--proxy-mode", "--", *cli_args],
+                env=env, capture_output=True, text=True)
+
+        link = hostcc("main.o", "-o", "app")
+        self.assertEqual(link.returncode, 0, link.stderr)
+        self.assertIn("-lcce_bridge_runtime", link.stdout)
+        self.assertIn("-lascendcl", link.stdout)
+        self.assertIn("-o app", link.stdout)
+        compile_only = hostcc("-c", "helper.cpp", "-o", "helper.o")
+        self.assertEqual(compile_only.returncode, 0, compile_only.stderr)
+        self.assertNotIn("-lcce_bridge_runtime", compile_only.stdout)
+        self.assertIn("-c helper.cpp", compile_only.stdout)
+        refused = hostcc("-c", "kern.cu", "-o", "kern.o")
+        self.assertEqual(refused.returncode, 2)
+        self.assertIn("cucc", refused.stderr)
+
+    def test_capability_prefix_match_stays_advisory(self) -> None:
+        # Unknown variants of a capability library keep the advisory warning
+        # (never silently forwarded), but the message is honest about being
+        # a heuristic prefix match rather than an exact capability hit.
+        prepared = self.driver().prepare(["main.o", "-lcufftw", "-o", "app"])
+        self.assertIn("-lcufftw", prepared.args)
+        actions = [action for action in prepared.actions if action.argument == "-lcufftw"]
+        self.assertEqual(actions[0].action, "forward")
+        self.assertIn("prefix match", actions[0].reason)
+
 
 if __name__ == "__main__":
     unittest.main()

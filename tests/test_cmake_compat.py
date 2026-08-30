@@ -370,30 +370,200 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         # probes via mock_nvcc and repoints CUDA_DIR/bin/nvcc -> cucc for the
         # build phase; their link.json pre_make section creates lib64/libcudart
         # -> runtime symlinks so plain-g++ linked Make projects resolve
-        # -lcudart. Our cmake_cce/make_cce replicate both.
+        # -lcudart. Our cmake_cce/make_cce replicate both; since the fifth
+        # parity batch the shim TREE itself is built from the shared manifest
+        # config/shim_layout.json by tools/build_shim_tree.py (their
+        # link.json/stub_link.json single-manifest parity).
         cmake_cce = (ROOT / "tools/cmake_cce").read_text(encoding="utf-8")
         self.assertIn('cmake_cce: build phase: shim nvcc ->', cmake_cce)
         self.assertIn('ln -sfn "$CUCC_PATH/bin/cucc" "$CUDA_DIR/bin/nvcc"', cmake_cce)
         # Persistent shim default (their CUBRIDGE_HOME semantics) is what
         # makes the build-phase re-point effective across processes.
         self.assertIn('${CU2CCE_HOME:-${CUBRIDGE_HOME:-$HOME}}/cu2cce-bridge/cmake-shim', cmake_cce)
-        # configure re-points the shim nvcc back to the mock so repeated
-        # configure/build cycles on one shim are deterministic.
-        self.assertIn('ln -sfn "$CUCC_PATH/tools/nvcc_entry.sh" "$CUDA_DIR/bin/nvcc"', cmake_cce)
-        # Host compilers as toolkit-relative passthroughs (their pre_cmake).
-        self.assertIn("for _host_cc in c++ g++ gcc cc", cmake_cce)
+        # Configure phase binds the shim nvcc to the mock through the shared
+        # builder (re-pointing here makes repeated configure/build cycles on
+        # one persistent shim deterministic).
+        self.assertIn('--nvcc-target "$CUCC_PATH/tools/nvcc_entry.sh"', cmake_cce)
+        # Host compilers as toolkit-relative entries (their pre_cmake) come
+        # from the builder's hostcc modes now.
+        self.assertIn('--hostcc-mode wrapper', cmake_cce)
+        # The CUDA-named runtime alias family lives in the shared manifest.
+        layout = (ROOT / "config/shim_layout.json").read_text(encoding="utf-8")
         for lib in ("libcudart.so", "libcudart_static.a", "libcudadevrt.a",
-                    "libcuda.so", "libcuda.so.1"):
-            self.assertIn(lib, cmake_cce)
-            self.assertIn(lib, (ROOT / "tools/make_cce").read_text(encoding="utf-8"))
+                    "libcuda.so", "libcuda.so.1", "libcublas.so",
+                    "libcublas.so.1", "libnvToolsExt.so"):
+            self.assertIn(lib, layout)
         make_cce = (ROOT / "tools/make_cce").read_text(encoding="utf-8")
-        # targets triple derived from uname, matching cmake_cce HOST_TRIPLE
-        self.assertIn('HOST_TRIPLE="${HOST_ARCH}-${HOST_OS}"', make_cce)
-        self.assertIn('"lib64/libcudart.so" -> runtime', make_cce)
+        # targets triple derivation moved into build_shim_tree.py
+        # (uname machine/system, amd64/arm64 normalization).
+        builder = (ROOT / "tools/build_shim_tree.py").read_text(encoding="utf-8")
+        self.assertIn("amd64", builder)
+        self.assertIn("aarch64", builder)
+        self.assertIn('"libcudart.so"', layout)
+        self.assertIn('lib64/cmake/CUDAToolkit', layout)
         # make.log sentinel is actually created (persistent fake toolkit).
         self.assertIn('> "$DST_WCUDA/make.log"', make_cce)
-        self.assertIn('for _host_cc in c++ g++ gcc cc', make_cce)
         self.assertIn('PATH="$DST_WCUDA/bin:$CUDA_DIR/bin:$PATH"', make_cce)
+        # make_cce binds the shim nvcc to the real cucc through the builder.
+        self.assertIn('--nvcc-target "$CUCC_PATH/bin/cucc"', make_cce)
+
+    def test_shim_layout_manifest_is_single_source_for_three_entries(self) -> None:
+        # Fifth parity batch: cmake_cce/make_cce/pre_cce used to carry three
+        # hand-written copies of the mkdir/ln sequences (cu-bridge keeps ONE
+        # manifest: tools/link.json + tools/mock/stub_link.json). All three
+        # entries must now consume config/shim_layout.json via
+        # tools/build_shim_tree.py.
+        builder = ROOT / "tools/build_shim_tree.py"
+        self.assertTrue(builder.is_file())
+        for entry in ("tools/cmake_cce", "tools/make_cce", "tools/pre_cce"):
+            text = (ROOT / entry).read_text(encoding="utf-8")
+            self.assertIn("tools/build_shim_tree.py", text, entry)
+            self.assertIn("config/shim_layout.json", builder.read_text(encoding="utf-8"))
+        for section in ("dirs", "dir_links", "file_links", "hostcc_names",
+                        "cuda_lib_aliases", "alias_dirs", "alias_target", "files"):
+            self.assertIn(f'"{section}"', (ROOT / "config/shim_layout.json").read_text(encoding="utf-8"))
+
+    def test_cmake_cce_build_phase_dispatches_to_make_ninja_entries(self) -> None:
+        # deal_build_param parity (cu-bridge cmake_mock:64-131): cmake_cce
+        # --build must route through make_cce/ninja_cce (generator chosen by
+        # build.ninja presence) instead of exec'ing cmake directly, so the
+        # Make/Ninja path gets the same environment preparation.
+        cmake_cce = (ROOT / "tools/cmake_cce").read_text(encoding="utf-8")
+        self.assertIn('build_dir/build.ninja', cmake_cce)
+        self.assertIn('"ninja_cce"', cmake_cce)
+        self.assertIn('"make_cce"', cmake_cce)
+        self.assertIn('--target|-t', cmake_cce)
+        self.assertIn('--parallel|-j', cmake_cce)
+        self.assertIn('exec cmake "$@"', cmake_cce)
+
+    def test_make_entries_use_token_level_clean_matching(self) -> None:
+        # make_cce used `[[ "$*" == *"clean"* ]]` (substring): a goal like
+        # `cleanpack` would delete the fake toolkit. Both make_cce and
+        # pre_cce now match clean goals as tokens only.
+        for entry in ("tools/make_cce", "tools/pre_cce"):
+            text = (ROOT / entry).read_text(encoding="utf-8")
+            self.assertNotIn('[[ "$*" == *"clean"* ]]', text)
+            self.assertIn("clean|*clean|clean-*", text)
+
+    def test_shim_isolation_env_is_supported_by_all_entries(self) -> None:
+        # cu-bridge USE_WCUDA_FOR_MULTI_JOB parity: CU2CCE_SHIM_ISOLATE=1
+        # gives each top-level job its own shim ($PPID suffix).
+        for entry in ("tools/cmake_cce", "tools/make_cce", "tools/pre_cce"):
+            text = (ROOT / entry).read_text(encoding="utf-8")
+            self.assertIn("CU2CCE_SHIM_ISOLATE", text, entry)
+            self.assertIn('"1"', text)
+
+    def test_shim_builder_is_idempotent_and_produces_the_manifest_layout(self) -> None:
+        # Functional check of the shared builder (no CANN/ccec needed): the
+        # produced tree must carry the toolkit shape, the CUDA-named alias
+        # family pointing at the bridge runtime, hostcc entries, and must be
+        # idempotent (re-running with a different nvcc target re-points).
+        import json
+        import os
+        import subprocess as sp
+        import sys
+        import tempfile
+
+        sys.path.insert(0, str(ROOT / "tools"))
+        import build_shim_tree  # noqa: PLC0415
+
+        with tempfile.TemporaryDirectory() as tmp_name:
+            tmp = Path(tmp_name)
+            cucc = tmp / "install"
+            (cucc / "bin").mkdir(parents=True)
+            (cucc / "include").mkdir()
+            (cucc / "include/cuda_runtime.h").write_text("/* shim */\n", encoding="utf-8")
+            (cucc / "lib").mkdir()
+            (cucc / "lib/libcce_bridge_runtime.so").write_text("", encoding="utf-8")
+            (cucc / "cmake_modules").mkdir()
+            (cucc / "cmake_modules/FindCUDAToolkit.cmake").write_text("", encoding="utf-8")
+            (cucc / "tools").mkdir()
+            (cucc / "tools/hostcc_cce").write_text("#!/bin/sh\n", encoding="utf-8")
+            (cucc / "bin/cucc").write_text("#!/bin/sh\n", encoding="utf-8")
+
+            cuda_dir = tmp / "cuda"
+            hostbin = tmp / "hostbin"
+            result = sp.run([
+                sys.executable,
+                str(ROOT / "tools/build_shim_tree.py"),
+                "--cuda-dir", str(cuda_dir),
+                "--cucc-path", str(cucc),
+                "--nvcc-target", str(cucc / "bin/cucc"),
+                "--hostcc-bin-dir", str(hostbin),
+                "--hostcc-mode", "wrapper",
+            ], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+            self.assertTrue((cuda_dir / "include/cuda_runtime.h").is_file())
+            self.assertEqual(os.readlink(cuda_dir / "bin/nvcc"), str(cucc / "bin/cucc"))
+            self.assertEqual(os.readlink(cuda_dir / "bin/cucc"), str(cucc / "bin/cucc"))
+            self.assertEqual(os.readlink(hostbin / "g++"), str(cucc / "tools/hostcc_cce"))
+            self.assertEqual(os.readlink(cuda_dir / "lib64/libcudart.so"),
+                             str(cucc / "lib/libcce_bridge_runtime.so"))
+            self.assertEqual(os.readlink(cuda_dir / "lib64/libcublas.so"),
+                             str(cucc / "lib/libcce_bridge_runtime.so"))
+            self.assertEqual(os.readlink(cuda_dir / "lib64/stubs/libcuda.so.1"),
+                             str(cucc / "lib/libcce_bridge_runtime.so"))
+            self.assertTrue((cuda_dir / "version.txt").read_text(encoding="utf-8").startswith("CUDA Version 11.6"))
+            self.assertTrue((cuda_dir / "lib64/cmake/CUDAToolkit/CUDAToolkitConfig.cmake").is_file())
+            self.assertTrue((cuda_dir / "extras/CUPTI/include").is_dir())
+            triple_dir = cuda_dir / "targets" / build_shim_tree.host_triple()
+            self.assertTrue(triple_dir.is_dir(), triple_dir)
+
+            # Idempotent re-run re-points the shim nvcc without disturbing
+            # the rest of the tree.
+            rerun = sp.run([
+                sys.executable,
+                str(ROOT / "tools/build_shim_tree.py"),
+                "--cuda-dir", str(cuda_dir),
+                "--cucc-path", str(cucc),
+                "--nvcc-target", str(cucc / "tools/nvcc_entry.sh"),
+                "--quiet",
+            ], capture_output=True, text=True)
+            self.assertEqual(rerun.returncode, 0, rerun.stderr)
+            self.assertEqual(os.readlink(cuda_dir / "bin/nvcc"), str(cucc / "tools/nvcc_entry.sh"))
+            self.assertTrue((cuda_dir / "lib64/libcudart.so").is_symlink())
+
+    def test_mock_abi_probe_compiles_shipped_stand_in(self) -> None:
+        # cu-bridge deal_abi parity without prebuilt artifacts: the ABI probe
+        # compiles the shipped CMakeCUDACompilerABI.cpp with the host g++ so
+        # CMake's binary scan finds the INFO:... strings; the placeholder is
+        # only a fallback.
+        import importlib.util  # noqa: PLC0415
+        mock_path = ROOT / "tools/mock/mock_nvcc.py"
+        spec = importlib.util.spec_from_file_location("mock_nvcc_abi2", mock_path)
+        assert spec is not None and spec.loader is not None
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        self.assertTrue((ROOT / "tools/mock/CMakeCUDACompilerABI.cpp").is_file())
+        self.assertTrue((ROOT / "tools/mock/CMakeCompilerABI.h").is_file())
+
+        cwd = Path(self.tmpdir())
+        obj = cwd / "abi-probe.o"
+        code = module._handle_abi_probe(
+            ["-c", "Modules/CMakeCUDACompilerABI.cu", "-o", str(obj)], cwd)
+        self.assertEqual(code, 0)
+        self.assertTrue(obj.is_file())
+        binary = obj.read_bytes()
+        # Platform note: macOS produces Mach-O objects, Linux ELF — the
+        # contract is a real host-compiled binary carrying the ABI probe
+        # strings, not a specific container format.
+        self.assertGreater(len(binary), 64, "expected a real host-compiled object")
+        self.assertIn(b"INFO:sizeof_dptr[", binary)
+        # Placeholder fallback path still exists for host-compiler-less hosts.
+        fallback = cwd / "fallback.o"
+        module_orig = module._abi_source_path
+        module._abi_source_path = lambda: Path("/nonexistent/CMakeCUDACompilerABI.cpp")
+        try:
+            self.assertEqual(module._handle_abi_probe(
+                ["-c", "Modules/CMakeCUDACompilerABI.cu", "-o", str(fallback)], cwd), 0)
+        finally:
+            module._abi_source_path = module_orig
+        self.assertEqual(fallback.read_bytes(), b"\x7fELFcu2cce-abi-placeholder")
+
+    def tmpdir(self) -> Path:
+        import tempfile  # noqa: PLC0415
+        return Path(tempfile.mkdtemp(prefix="cu2cce-abi-test-"))
 
     def test_install_tree_provides_nvcc_symlink(self) -> None:
         # cu-bridge user manual FAQ Q2 workaround, automated: the install tree
@@ -484,20 +654,33 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         pre_cce = (ROOT / "tools/pre_cce").read_text(encoding="utf-8")
         self.assertIn('echo 1 > "$DST_WCUDA/make.log"', pre_cce)
         self.assertIn('eval "$*"', pre_cce)
-        self.assertIn("ln -sf \"${CUCC_PATH}/bin/cucc\" \"$CUDA_DIR/bin/nvcc\"", pre_cce)
+        # Fifth parity batch: the fake toolkit comes from the shared builder;
+        # pre_cce binds the shim nvcc to the real cucc like make_cce, and its
+        # host compiler entries go through hostcc_cce (was: identity links).
+        self.assertIn('--nvcc-target "$CUCC_PATH/bin/cucc"', pre_cce)
+        self.assertIn('--hostcc-mode wrapper', pre_cce)
 
         hostcc = (ROOT / "tools/hostcc_cce").read_text(encoding="utf-8")
-        # bin/gnu parity, NPU-adapted: real compiler for compiles, bridge
-        # runtime appended on links, .cu refused with cucc guidance.
+        # bin/gnu parity, NPU-adapted: real compiler for compiles, and the
+        # link injection is rule-driven (hostcc.link in cu2cce_rules.json,
+        # consumed by the driver's --hostcc-mode). The script keeps its
+        # no-bridge degradation to the plain system compiler.
         self.assertIn('exec "/usr/bin/$name" "$@"', hostcc)
-        self.assertIn('"-lcce_bridge_runtime"', hostcc)
-        self.assertIn("compile it with cucc", hostcc)
+        self.assertIn("--hostcc-mode", hostcc)
+        rules_text = (ROOT / "config/cu2cce_rules.json").read_text(encoding="utf-8")
+        self.assertIn('"hostcc"', rules_text)
+        self.assertIn('"-lcce_bridge_runtime"', rules_text)
+        self.assertIn("is a CUDA source",
+                      (ROOT / "tools/cu2cce_driver.py").read_text(encoding="utf-8"))
 
         for wrapper in ("tools/cmake_cce", "tools/make_cce"):
             text = (ROOT / wrapper).read_text(encoding="utf-8")
-            self.assertIn("tools/hostcc_cce", text)
+            self.assertIn("tools/build_shim_tree.py", text)
             self.assertIn("tools/device_arch.sh", text)
-            self.assertIn("extras/CUPTI/include", text)
+        builder_text = (ROOT / "tools/build_shim_tree.py").read_text(encoding="utf-8")
+        self.assertIn("hostcc_cce", builder_text)
+        layout_text = (ROOT / "config/shim_layout.json").read_text(encoding="utf-8")
+        self.assertIn("extras/CUPTI/include", layout_text)
         # the driver already accepts --options-file (cu-bridge conf.json parity)
         self.assertIn('"--options-file"', (ROOT / "tools/cu2cce_driver.py").read_text(encoding="utf-8"))
 

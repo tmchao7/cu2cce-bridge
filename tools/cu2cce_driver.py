@@ -36,6 +36,47 @@ class DriverError(RuntimeError):
 _DOUBLE_TOKEN_RE = re.compile(r"\bdouble[1-4]?\b")
 _DEVICE_FUNC_SIG_RE = re.compile(r"__global__\b|__device__\b")
 
+# nvcc GPU-architecture tokens embedded in -gencode/-arch/-code style
+# arguments ("arch=compute_80,code=sm_80", "sm_90", "compute_120").
+_CUDA_ARCH_TOKEN_RE = re.compile(r"(?:compute|sm)_([0-9]{2,3})\b")
+
+# nvcc flags that carry a GPU architecture value (space-separated form; the
+# =-joined form is caught by the token regex directly).
+_ARCH_VALUE_FLAGS = {
+    "-gencode", "--generate-code", "-arch", "--gpu-architecture",
+    "--gpu-code", "--cuda-gpu-arch", "--offload-arch",
+}
+
+
+def _cuda_arch_macro_value(digits: str) -> int:
+    """CUDA __CUDA_ARCH__ numeric value for a two/three digit sm_ token.
+
+    nvcc encodes the compute capability as major*100 + minor*10: sm_80 -> 800,
+    sm_86 -> 860, sm_100 -> 1000. The last digit is the minor version."""
+    major, minor = digits[:-1], digits[-1]
+    return int(major) * 100 + int(minor) * 10
+
+
+def extract_cuda_arch(args: Sequence[str]) -> Optional[int]:
+    """Highest GPU architecture requested on the command line, or None.
+
+    The arch flags themselves are dropped by the rules (Ascend selects its
+    target through CU2CCE_NPU_ARCH); this read-only scan recovers the value
+    so it can drive __CUDA_ARCH__=... when CU2CCE_ARCH_MACRO=auto (cu-bridge
+    bin/cucc not_found.dev_compile parity) and enrich the decision trace."""
+    best: Optional[int] = None
+    i = 0
+    while i < len(args):
+        arg = args[i]
+        if arg in _ARCH_VALUE_FLAGS and i + 1 < len(args):
+            arg = args[i + 1]
+        for match in _CUDA_ARCH_TOKEN_RE.finditer(arg):
+            value = _cuda_arch_macro_value(match.group(1))
+            if best is None or value > best:
+                best = value
+        i += 1
+    return best
+
 
 def _strip_noncode_preserving_lines(source: str) -> str:
     """Blank out comments and string/char literal CONTENTS.
@@ -241,6 +282,20 @@ class RuleDriver:
         self.fp64_policy = self.env.get("CU2CCE_DEVICE_FP64_POLICY", "error").lower()
         if self.fp64_policy not in {"error", "warn", "allow"}:
             raise DriverError("CU2CCE_DEVICE_FP64_POLICY must be error, warn, or allow")
+        # __CUDA_ARCH__ derivation (cu-bridge parity, opt-in): by default the
+        # macro is only defined through an explicit CU2CCE_CUDA_ARCH value.
+        # CU2CCE_ARCH_MACRO=auto additionally derives it from the -gencode /
+        # -arch value on the command line. The NPU backend has no separate
+        # device pass, so auto mode defines the macro for the whole
+        # translation unit — host branches behind `#ifdef __CUDA_ARCH__`
+        # take the device path (documented trade-off, see PARITY_AUDIT).
+        arch_macro = self.env.get("CU2CCE_ARCH_MACRO", "off").strip().lower()
+        if arch_macro in ("on", "1", "true"):
+            arch_macro = "auto"
+        if arch_macro not in {"off", "auto"}:
+            raise DriverError("CU2CCE_ARCH_MACRO must be off or auto")
+        self.arch_macro_mode = arch_macro
+        self.cuda_arch_value: Optional[int] = None
         self.cmake_identity = cmake_identity
         self.rules_path = self._select_rules_file(rules_file)
         try:
@@ -477,6 +532,8 @@ class RuleDriver:
                     has_pic = True
                     break
         shared_link = any(arg == "-shared" or arg.startswith("-shared=") for arg in args)
+        user_has_std = any(arg.startswith("-std=") for arg in args)
+        explicit_cuda_arch = bool(self.env.get("CU2CCE_CUDA_ARCH", "").strip())
         return {
             "shared_link_without_pic": shared_link and not has_pic,
             "system_libc": self.libc_mode == "system",
@@ -490,8 +547,26 @@ class RuleDriver:
             "source_is_cuda_and_has_adaptor": source_is_cuda and bool(
                 self.cucc_path and (self.cucc_path / "include/bridge/kernel/simt_adaptor.h").is_file()
             ),
+            # nvcc auto-preincludes cuda_runtime.h for every .cu translation
+            # unit (cu-bridge conf.json condition parity: --include
+            # cuda_runtime.h). Sources that include it themselves hit the
+            # include guard, so this is always safe to inject.
+            "source_is_cuda_and_runtime_header": source_is_cuda and bool(
+                self.cucc_path and (self.cucc_path / "include/cuda_runtime.h").is_file()
+            ),
             "link_stage": phase in ("link", "compile_and_link"),
-            "has_cuda_arch": bool(self.env.get("CU2CCE_CUDA_ARCH", "").strip()),
+            "has_cuda_arch": explicit_cuda_arch,
+            # CU2CCE_ARCH_MACRO=auto derives the macro from the dropped
+            # -gencode/-arch value; mutually exclusive with the explicit env.
+            "arch_macro_auto": (
+                self.arch_macro_mode == "auto"
+                and not explicit_cuda_arch
+                and self.cuda_arch_value is not None
+            ),
+            # cu-bridge forwards a single -std: an explicit user value wins
+            # over the injected -std=gnu++17 (avoids duplicate -std flags on
+            # the final ccec command line).
+            "no_user_std": not user_has_std,
         }
 
     def _resolve_simt_root(self) -> None:
@@ -519,6 +594,10 @@ class RuleDriver:
             "CUCC_CUDA_VERSION": self.cucc_cuda_version,
             "CU2CCE_NPU_ARCH": self.npu_arch,
             "CU2CCE_CUDA_ARCH": self.env.get("CU2CCE_CUDA_ARCH", "").strip(),
+            # Derived from the dropped -gencode/-arch flags; empty unless
+            # CU2CCE_ARCH_MACRO=auto and an architecture was requested, so
+            # the inject rule self-disables otherwise.
+            "CU2CCE_CUDA_ARCH_EXTRACTED": str(self.cuda_arch_value) if self.cuda_arch_value is not None else "",
             "SIMT_API_ROOT": simt_root,
             "SIMT_API_PARENT": str(Path(simt_root).parent) if simt_root else "",
         }
@@ -567,24 +646,38 @@ class RuleDriver:
         name = argument[2:]
         capabilities = self.rules.get("capabilities", {})
         capability = None
+        loose = False
         for key, entry in capabilities.items():
             # cudart has its own bridge-inject path (dropped at link by the
             # rules file); only advisory library entries are handled here.
             if entry.get("action") == "bridge_inject":
                 continue
-            if name == key or name.startswith(key + "_") or name.startswith(key):
+            if name == key or name.startswith(key + "_"):
                 capability = key
                 break
+            # Prefix match kept as a fallback so unknown variants
+            # (-lcufftw, -lcublasLtCore, ...) still get an advisory warning
+            # instead of silently forwarding, but the message is honest
+            # about being heuristic rather than an exact capability hit.
+            if capability is None and name.startswith(key):
+                capability = key
+                loose = True
         if capability is None:
             return False
         entry = capabilities.get(capability, {})
         map_to = entry.get("map_to", "")
-        message = f"CUDA library {argument} has no automatic Ascend mapping; preserving it"
-        if map_to:
+        if loose:
+            message = (
+                f"CUDA library {argument} resembles capability {capability} "
+                "(prefix match); no automatic Ascend mapping; preserving it"
+            )
+        elif map_to:
             message = (
                 f"CUDA library {argument}: Ascend mapping route documented -> {map_to}; "
                 "the shim is not implemented, so the reference is preserved as-is"
             )
+        else:
+            message = f"CUDA library {argument} has no automatic Ascend mapping; preserving it"
         if self.strict:
             raise DriverError(message)
         self._warn(message)
@@ -671,6 +764,38 @@ class RuleDriver:
                 return True, list(values)
         return False, []
 
+    def _find_query_rule(self, args: Sequence[str]) -> Optional[Dict[str, Any]]:
+        for rule in self.rules.get("queries", []):
+            pattern = rule.get("pattern", rule.get("match"))
+            for argument in args:
+                if self._match(pattern, argument):
+                    return rule
+        return None
+
+    def _prepare_query_passthrough(self, expanded: List[str], rule: Dict[str, Any]) -> PreparedCommand:
+        """cu-bridge skipstring semantics: a version/toolchain probe bypasses
+        the whole rule pipeline and is handed to the backend compiler
+        unchanged (no -x asc, no injected includes, no cmake identity) so
+        autoconf/libtool-style probes see the compiler's own answers."""
+        matched = next(
+            argument for argument in expanded
+            if self._match(rule.get("pattern", rule.get("match")), argument)
+        )
+        self._record(matched, "query_passthrough", rule.get("reason", "probe query passes through to ccec"))
+        prepared = PreparedCommand(
+            phase="query",
+            mode="query",
+            args=list(expanded),
+            compiler=self._compiler_path(),
+            inputs=[],
+            actions=self.actions,
+            injected=[],
+            rules_file=str(self.rules_path),
+            source_is_cuda=False,
+        )
+        self._write_trace(prepared)
+        return prepared
+
     def prepare(self, argv: Sequence[str]) -> PreparedCommand:
         expanded = self._expand_response_files(list(argv))
         if self.cmake_identity:
@@ -682,11 +807,25 @@ class RuleDriver:
                 "-D__CUDACC_VER__=110600",
                 *expanded,
             ]
+        query_rule = self._find_query_rule(expanded)
+        if query_rule is not None:
+            return self._prepare_query_passthrough(expanded, query_rule)
+        # Read-only recovery of the GPU architecture the build requested.
+        # The arch flags stay dropped; the value only feeds __CUDA_ARCH__
+        # derivation (CU2CCE_ARCH_MACRO=auto) and the decision trace.
+        self.cuda_arch_value = extract_cuda_arch(expanded)
         phase, mode, inputs, output, source_is_cuda = self._phase(expanded)
         if mode == "unsupported":
             raise DriverError("CUDA assembly output (-S) is not produced by the ccec puresimt driver; use cucc -c to compile objects")
         self._resolve_simt_root()
         context = self._context(phase, source_is_cuda, expanded)
+        if (self.arch_macro_mode == "auto" and self.cuda_arch_value is None
+                and source_is_cuda and not self.env.get("CU2CCE_CUDA_ARCH", "").strip()):
+            self._warn(
+                "CU2CCE_ARCH_MACRO=auto but the command line carries no "
+                "-gencode/-arch value; __CUDA_ARCH__ is not defined. Pass "
+                "-gencode or set CU2CCE_CUDA_ARCH for code that branches on it."
+            )
         if source_is_cuda and self.fp64_policy != "allow" and phase == "compile":
             self._pre_flight_report_device_double(inputs)
         result: List[str] = []
@@ -982,17 +1121,97 @@ class RuleDriver:
         return self.run_prepared(self.prepare(argv))
 
 
+    def run_hostcc(self, args: Sequence[str], name: str, proxy_mode: bool = False) -> int:
+        """bin/gnu-parity host compiler wrapper driven by config/cu2cce_rules.json.
+
+        The fake toolkit binds bin/{c++,g++,gcc,cc} to hostcc_cce, which
+        delegates here. Pure compiles/preprocess/queries pass through to the
+        real system compiler untouched; link commands append the
+        hostcc.link.inject rule set (bridge runtime + CANN acl), matching
+        cu-bridge's conf_gnu.json link adders. Device sources (.cu) are
+        refused: they must go through cucc.
+        """
+        if not name:
+            name = "g++"
+        for argument in args:
+            if not argument.startswith("-") and Path(argument).suffix == ".cu":
+                print(
+                    f"cu2cce hostcc: '{argument}' is a CUDA source; compile it "
+                    "with cucc (device code never goes through the host compiler)",
+                    file=sys.stderr,
+                )
+                return 2
+        compiler = f"/usr/bin/{name}"
+        if not Path(compiler).is_file():
+            import shutil  # noqa: PLC0415
+            resolved = shutil.which(name)
+            if not resolved:
+                print(f"cu2cce hostcc: host compiler '{name}' not found", file=sys.stderr)
+                return 1
+            compiler = resolved
+
+        has_c = "-c" in args
+        has_e = "-E" in args
+        is_query = any(arg in ("--version", "-dumpversion", "-v", "--help") for arg in args)
+        has_out = any(arg == "-o" or (arg.startswith("-o") and len(arg) > 2) for arg in args)
+        link_phase = not has_c and not has_e and not is_query
+
+        if is_query or has_c or has_e or not has_out:
+            # compile-only / preprocess / query / no explicit output: keep the
+            # real compiler's own semantics untouched.
+            if proxy_mode:
+                print(shlex.join([compiler, *args]))
+                return 0
+            os.execv(compiler, [compiler, *args])
+
+        injections: List[str] = []
+        if self.cucc_path and self.cucc_path.is_dir():
+            variables = self._variables()
+            for rule in self.rules.get("hostcc", {}).get("link", {}).get("inject", []):
+                if not self._when(str(rule.get("when", "always")), {
+                    "has_cucc": True,
+                    "link_stage": True,
+                }):
+                    continue
+                values = [self._expand_token(str(token), variables) for token in rule.get("tokens", [])]
+                if any(value == "" for value in values):
+                    continue
+                injections.extend(values)
+                self._record(" ".join(values), "inject", rule.get("reason", "hostcc link inject"))
+        if proxy_mode:
+            print(shlex.join([compiler, *args, *injections]))
+            return 0
+        os.execv(compiler, [compiler, *args, *injections])
+
+
 def main(argv: Optional[Sequence[str]] = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
     cmake_identity = False
     proxy_mode = False
-    if args and args[0] == "--cmake-identity":
-        cmake_identity = True
-        args = args[1:]
-    if args and args[0] == "--proxy-mode":
-        proxy_mode = True
+    hostcc_mode = False
+    hostcc_name = ""
+    # Driver-level flags are stripped from the front in any order; the first
+    # non-driver token starts the compiler argument list.
+    while args:
+        if args[0] == "--cmake-identity":
+            cmake_identity = True
+            args = args[1:]
+        elif args[0] == "--proxy-mode":
+            proxy_mode = True
+            args = args[1:]
+        elif args[0] == "--hostcc-mode":
+            hostcc_mode = True
+            args = args[1:]
+        elif args[0] == "--hostcc-name":
+            hostcc_name = args[1] if len(args) > 1 else ""
+            args = args[2:]
+        else:
+            break
+    if args and args[0] == "--":
         args = args[1:]
     try:
+        if hostcc_mode:
+            return RuleDriver(cmake_identity=False).run_hostcc(args, hostcc_name, proxy_mode=proxy_mode)
         if "--version" in args or "-V" in args:
             print("cucc: cu2cce-bridge rule-driven CUDA driver")
             print("CUDA compatibility version 11.6; backend ccec/puresimt")

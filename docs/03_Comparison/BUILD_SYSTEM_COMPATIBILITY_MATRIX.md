@@ -21,8 +21,13 @@
 | response file | `EXPERIMENTAL` | `tests/test_cucc_rules.py` | 构建系统组合仍需扩大 |
 | dependency generation `-M/-MM/-MD/-MF/-MT` | `DIAGNOSTIC_ONLY` until device proof | driver phase tests | ccec 真实依赖输出需真机确认 |
 | query `--version/-V/--help` | `SUPPORTED` for driver | local unit tests | 输出是 cu2cce compatibility identity |
+| toolchain probes `-dumpversion/-dumpmachine/-print-*` | `SUPPORTED` (passthrough) | `tests/test_cucc_rules.py` query bypass | cu-bridge skipstring parity：命中即整条命令原样直通 ccec，无注入 |
 | preprocess `-E` | `EXPERIMENTAL` | driver phase tests | ccec 真实预处理输出需真机确认 |
-| CUDA `-gencode` / `-arch` | `DIAGNOSTIC_ONLY` | rule trace | 不映射 fake Ascend architecture |
+| CUDA `-gencode` / `-arch` | `DIAGNOSTIC_ONLY`（识别并记录） | rule trace + `extract_cuda_arch` | flag 仍丢弃；架构值进 trace；`CU2CCE_ARCH_MACRO=auto`（opt-in）时注入 `__CUDA_ARCH__`（无 `-Xdevice` 式 device-pass 限定，host 分支语义见 PARITY_AUDIT） |
+| `-std` 用户值 | `SUPPORTED`（去重） | `tests/test_cucc_rules.py` | 用户 `-std=` 存在时不注入 `-std=gnu++17` |
+| `.cu` 自动预包含 `cuda_runtime.h` | `EXPERIMENTAL`（对齐 nvcc 语义） | `tests/test_cucc_rules.py`；真机回归待复验 | 桥内 `__cuda_runtime.h` 自含 simt_adaptor.h 且有 include guard |
+| shim lib64 CUDA 库名族 | `EXPERIMENTAL`（libcublas/libnvToolsExt 新增） | `tests/test_cmake_compat.py` | cublas 走桥内实验面（三用例真机绿）；cufft/cusparse/cudnn 等仍无替身、不造假 |
+| plain host-compiler link（`make_gxx_link` 载体 + hostcc 规则化注入） | `EXPERIMENTAL` | `examples/build_compat/make_gxx_link`；rules `hostcc.link.inject` | 链接器保持 g++，注入改为规则驱动 |
 | PTX/CUBIN/FATBIN | `UNSUPPORTED` | explicit rejection | puresimt 不消费 NVIDIA binary artifacts |
 | device-link/RDC | `UNSUPPORTED` for current scope | explicit rejection | 后续需单独验证 ccec 能力 |
 | `CUDA::cublas` | `EXPERIMENTAL` secondary | separate BLAS regression | 不属于默认构建兼容主线 |

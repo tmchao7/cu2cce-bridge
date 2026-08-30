@@ -1,10 +1,12 @@
-# 与 cu-bridge 的 CMake/Make 机制对齐审查（2026-08-28）
+# 与 cu-bridge 的 CMake/Make 机制对齐审查（2026-08-28；第五批次 2026-08-30 增补）
 
 > 背景：导师要求"实现方案与沐曦 cu-bridge 保持近似（后端不同：GPU vs NPU），
 > 并能逐文件讲清自己的代码"。本文基于对 cu-bridge v3.8.0（git `6ab1076`）
 > 的逐文件深读与其用户手册（docs/02_User_Manual），逐机制对照本桥实现，
 > 给出：已对齐 / 有意分歧（+理由）/ 真实差距（+修复）/ 代码导读。
 > 机制细节的完整事实库见 cu-bridge 仓库；本文只引用与本桥相关的部分。
+> 第五批次（2026-08-30）的设计原理剖析与逐项借鉴决策见
+> `CUBRIDGE_CMAKE_MAKE_DESIGN_ANALYSIS.md`（下称"分析文档"）。
 
 ## 1. cu-bridge 的 CMake/Make 实现机制（事实摘要）
 
@@ -65,23 +67,29 @@ configure 脚本用 `pre_makefile` 包裹；Python 库安装不管（FAQ Q7）�
 |---|---|---|---|
 | 用户入口 | cmake_maca（查询透传/目标检查/分流） | cmake_cce（查询透传/注入/shim） | 已对齐 |
 | 双阶段：configure=mock、build=真 cucc | cmake_mock + make_maca 重建 CUDA_DIR | **cmake_cce --build 分流**：刷新 shim `nvcc→cucc` 后 exec cmake --build | 已对齐（2026-08-28 起） |
+| cmake --build 分流 | deal_build_param → make_maca/ninja_maca（按 build.ninja） | **第五批次补齐**：cmake_cce --build 解析 --target/--parallel/-- 后分发 make_cce/ninja_cce | 已对齐（2026-08-30） |
 | 探测应答 | mock_nvcc.py 四分支（子串嗅探） | mock_nvcc.py 五分支（多 `--simple-preprocess`，支持 CMake≥3.24） | 已对齐+扩展 |
+| ABI 探针 | 宿主 g++ 现编 CMakeCUDACompilerABI.cpp（保留 INFO 串） | **第五批次补齐同款**：shipped 替身源码现编（可执行形态真链接、运行报无设备），占位仅作回退 | 已对齐（2026-08-30，无预编译工件） |
 | CompilerId 探针 | 伪 trace + 复制预编译 a.out ELF | 占位对象 + `--cmake-identity` 宏（无预编译 ELF） | 有意分歧：我们不携带平台特定二进制工件，真机验证走真实编译路径 |
 | 编译器自检 | 0 字节 CMakeTestCUDACompiler 覆盖 CMAKE_ROOT 跳过 | **不 patch CMake 模块**：mock 对 configure 期编译调用保留真编译回退（自检是真证据） | 有意分歧（更严格） |
 | 规则固化 | 无语言钩子（patched 模块未接线）；USE_CMAKE_MACA 二进制替换 hack | `CMAKE_USER_MAKE_RULES_OVERRIDE`（CMake 官方扩展点）+ `CU2CCE_CMAKE_NO_OVERRIDE` 回退（≈其 cmake_assist） | 有意分歧：官方钩子可维护性远优于二进制替换 |
-| 假工具包 lib 软链族 | link.json/stub_link.json（50+ 条） | **lib64 软链族已补**：libcudart.so/libcudart_static.a/libcudadevrt.a/libcuda.so(.1) → 桥运行时（cmake shim 与 make_cce 双侧） | 已对齐（本桥不映射 cublas 名——实验线诚实边界） |
-| 宿主编译器劫持 | bin/gnu 包装器（链接走 mxcc） | 不劫持：宿主编译/链接用系统 g++（桥运行时是 .so，配合 lib64 软链即可） | 有意分歧：链接器保持标准 g++，语义由桥运行时承接 |
-| Make 入口 | make_maca（假目录+PATH+make；make.log 哨兵） | make_cce（同构：make.log 哨兵**已创建**/容错清理/CUDA_DIR 布局/targets 三元组派生/宿主编译器 passthrough） | 已对齐 |
+| 假工具包 lib 软链族 | link.json/stub_link.json（50+ 条） | **lib64 软链族已补 + manifest 化**：libcudart/libcudart_static/libcudadevrt/libcuda.so(.1) → 桥运行时；第五批次扩展 libcublas.so(.1)/libnvToolsExt.so(.1)（EXPERIMENTAL），布局统一由 config/shim_layout.json + build_shim_tree.py 驱动 | 已对齐（本桥不映射 cufft/cusparse/cudnn 等名——诚实边界） |
+| 假工具包清单形式 | link.json（pre_make）+ stub_link.json（virtual_cmake） | **config/shim_layout.json 单一清单 + tools/build_shim_tree.py 单一构建器**（cmake_cce/make_cce/pre_cce 三入口共用，第五批次消灭三处硬编码） | 已对齐（2026-08-30） |
+| 查询直通（skipstring） | conf.json skipstring：探测旗标整条命令绕过规则引擎直通 mxcc | **第五批次补齐**：rules `queries` 段（-dumpversion/-dumpmachine/-print-*），命中即 phase=query 原样直通 ccec | 已对齐（2026-08-30） |
+| `-std` 去重 | 用户 flag 透传，无默认冲突 | **第五批次修复**：用户 `-std=` 存在时抑制注入 `-std=gnu++17`（`no_user_std` 条件） | 已对齐（2026-08-30） |
+| `__CUDA_ARCH__` 供给 | -gencode/-arch → `-DNV_ARCH_*` + `-Xdevice -D__CUDA_ARCH__`（device-pass 限定） | **机制级借鉴（opt-in）**：drop 前提取架构值；`CU2CCE_ARCH_MACRO=auto` 注入 `-D__CUDA_ARCH__=<值>`（nvcc 编码 major*100+minor*10），显式 `CU2CCE_CUDA_ARCH` 优先；默认 off（ccec 单遍无 -Xdevice 等价物，全局定义会改变 host `#ifdef __CUDA_ARCH__` 分支——风险记录于 PARITY_AUDIT） | 有意分歧（opt-in + 风险留档，2026-08-30） |
+| `.cu` 自动预包含 cuda_runtime.h | condition：.cu 追加 `--include cuda_runtime.h` | **第五批次补齐**：`source_is_cuda_and_runtime_header` 条件注入 `-include cuda_runtime.h`（先于 simt_adaptor.h；桥内 `__cuda_runtime.h` 已自含 adaptor 且有 guard） | 已对齐（2026-08-30） |
+| 宿主编译器劫持 | bin/gnu 包装器（链接走 mxcc） | hostcc_cce（第五批次规则化：`cu2cce_driver.py --hostcc-mode` 消费 rules `hostcc.link.inject`）；链接器保持 g++（语义由桥运行时承接） | 已对齐（规则面 2026-08-30；链接器保留 NPU 适配） |
+| Make 入口 | make_maca（假目录+PATH+make；make.log 哨兵） | make_cce（同构 + manifest 化布局；clean 目标词元匹配修复 `cleanpack` 误删） | 已对齐 |
+| 并行隔离 | USE_WCUDA_FOR_MULTI_JOB（$PPID 后缀） | **第五批次补齐**：`CU2CCE_SHIM_ISOLATE=1`（cmake_cce/make_cce/pre_cce 统一） | 已对齐（2026-08-30） |
 | 假工具包默认持久化 | CUBRIDGE_HOME=$HOME（持久，configure/build 共享） | **默认持久**：`${CU2CCE_HOME:-${CUBRIDGE_HOME:-$HOME}}/cu2cce-bridge/cmake-shim`（CU2CCE_CMAKE_SHIM_DIR 显式覆盖） | 已对齐（2026-08-28 静态补齐：双阶段的 build 切换依赖持久 shim） |
-| 宿主编译器 passthrough 软链 | pre_cmake 段：bin/{c++,g++,gcc,cc} → /usr/bin/* | cmake shim 与 make_cce 均提供同款 passthrough（仅当 /usr/bin 存在） | 已对齐（2026-08-28 静态补齐） |
-| configure 包裹器 | pre_makefile（configure 脚本包裹，FAQ Q5） | **pre_cce**（同构：假工具包环境 + eval 包裹命令） | 已对齐（2026-08-28） |
+| configure 包裹器 | pre_makefile（configure 脚本包裹，FAQ Q5） | **pre_cce**（同构 + hostcc_cce 统一——第五批次前是身份软链，纯 g++ 链接拿不到注入） | 已对齐（2026-08-28；2026-08-30 统一 hostcc） |
 | 设备架构探测助手 | multi_target.sh + get_device_arch.sh（CUCC_TARGETS → mx-smi → 提示） | **tools/device_arch.sh**（CU2CCE_NPU_ARCH → npu-smi 表映射 → cache → default + tip），cmake_cce/make_cce 接线 | 已对齐（2026-08-28，NPU 特性适配） |
-| 宿主编译器包装器 | bin/gnu（纯编译透传真 gcc、链接走 mxcc 并强制 MACA 库） | **tools/hostcc_cce**：纯编译透传真 gcc；链接追加桥运行时 + libascendcl（NPU 适配：链接器仍是 g++，语义由桥 .so 承接）；.cu 拒绝并指引 cucc | 已对齐（2026-08-28，有意保留 g++ 链接器的 NPU 适配） |
-| CUPTI 路径布局 | 虚拟目录含 extras/CUPTI/{include,lib64} | cmake shim 与 make_cce 同款空目录布局（路径探测兼容） | 已对齐（2026-08-28） |
+| CUPTI 路径布局 | 虚拟目录含 extras/CUPTI/{include,lib64} | shim_layout.json 同款空目录布局（路径探测兼容） | 已对齐（2026-08-28） |
 | nvcc 兼容软链 | FAQ Q2 手工软链 workaround | **安装树自动提供 `bin/nvcc → cucc`**（install CODE） | 已对齐+自动化 |
 | CUDA Toolkit 发现 | 无 FindCUDAToolkit（文档教用户绕开 CUDA 语言） | FindCUDAToolkit + CUDA::cudart/toolkit 别名族（真机验证） | **本桥领先** |
-| 参数适配 | conf.json（replacer/adder/filter）+ gomxccbin 正则 | cu2cce_rules.json（153 条，五动作）单一 in-process 驱动 | 机制不同目标相同；无 Go 工具依赖 |
-| 库名重写 | 40+ 条 -lcudart→-lmcruntime 等 | -lcudart 丢弃 + 桥运行时注入（cublas 实验线） | 语义等价（后端库面不同） |
+| 参数适配 | conf.json（replacer/adder/filter/skipstring）+ gomxccbin 正则 | cu2cce_rules.json（五动作 + queries + hostcc 段）单一 in-process 驱动 | 机制不同目标相同；无 Go 工具依赖 |
+| 库名重写 | 40+ 条 -lcudart→-lmcruntime 等 | -lcudart 丢弃 + 桥运行时注入；shim lib64 另备 libcublas/libnvToolsExt 名（EXPERIMENTAL，走桥内实验面） | 语义等价（后端库面不同） |
 | 设备架构 | CUCC_TARGETS / mx-smi | CU2CCE_NPU_ARCH / probe 自动探测 | 已对齐 |
 | CUDA 版本仿真 | CUCC_CUDA_VERSION → -DCUDA_VERSION | 同名开关 CUCC_CUDA_VERSION | 已对齐（同名） |
 | 调试 | WCUDA_DEBUG / CUBRIDGE_LOG_LEVEL | WCUDA_DEBUG / CU2CCE_DEBUG / CU2CCE_TRACE_FILE | 已对齐+扩展 |
@@ -101,41 +109,53 @@ configure 脚本用 `pre_makefile` 包裹；Python 库安装不管（FAQ Q7）�
 `docs/02_Architecture/06_cmake_principle_flow.md`；本节给出按数据流顺序的
 代码阅读地图（每步给出文件与关键函数）：
 
-1. **configure 入口**：`tools/cmake_cce` —— 环境预检（L20-28）→ build 分流
-   （新增：`--build/--install` 时 shim nvcc→cucc）→ shim 布局（L57+：bin/
-   include/lib64 软链族/targets 三元组/version.txt）→ cmake 参数注入
-   （L100+：ARCHITECTURES=OFF / RUNTIME_LIBRARY=None / MODULE_PATH 前插 /
+1. **configure 入口**：`tools/cmake_cce` —— 环境预检 → build 分流
+   （`--build/--install` 时 shim nvcc→cucc；`--build` 再按 build.ninja 分发
+   make_cce/ninja_cce，deal_build_param parity）→ shim 布局
+   （`tools/build_shim_tree.py` 消费 `config/shim_layout.json`：bin/include/
+   lib64 软链族/targets 三元组/version.txt）→ cmake 参数注入
+   （ARCHITECTURES=OFF / RUNTIME_LIBRARY=None / MODULE_PATH 前插 /
    CMAKE_CUDA_COMPILER=shim / USER_MAKE_RULES_OVERRIDE）→ `exec cmake`。
 2. **探测应答**：`tools/nvcc_entry.sh`（4 行：exec python3 mock）→
    `tools/mock/mock_nvcc.py main()` 五分支（determine_cuda 伪 `#$` /
    --version / --simple-preprocess / ABI 占位对象 / 其余→`run_driver`）。
 3. **真编译翻译**：`tools/cu2cce_driver.py` —— `RuleDriver.prepare()`：
-   `_scan_inputs` → `_phase()`（七阶段）→ **FP64 前置扫描**
-   （`scan_device_double_usage`，error/warn/allow）→ 逐参数规则循环
-   （reject→replace→drop→forward→未识别警告）→ `_inject()` 注入链 →
-   前缀排序（`-x asc` 与 `-include` 置前）→ `run_prepared()`（Popen ccec）。
-4. **规则数据**：`config/cu2cce_rules.json` —— 五动作 153 条；校验器
-   `tools/validate_cucc_rules.py`。
-5. **Make 线**：`tools/make_cce` —— 假工具包布局（nvcc→cucc、lib64 软链
-   族、targets 三元组）→ PATH/CUDA_PATH → exec make；对照 `tools/ninja_cce`。
+   `queries` 查询直通（phase=query 原样过 ccec）→ `-gencode` 架构提取
+   （`extract_cuda_arch`，喂 trace 与 CU2CCE_ARCH_MACRO）→ `_phase()`
+   （七阶段）→ **FP64 前置扫描**（`scan_device_double_usage`）→
+   逐参数规则循环（reject→replace→drop→forward→未识别警告）→ `_inject()`
+   注入链（含 `.cu` 预包含 cuda_runtime.h / `-std` 去重）→ 前缀排序
+   （`-x asc` 与 `-include` 置前）→ `run_prepared()`（Popen ccec）。
+4. **规则数据**：`config/cu2cce_rules.json` —— 五动作 + `queries` + `hostcc`
+   段；校验器 `tools/validate_cucc_rules.py`。
+5. **Make 线**：`tools/make_cce` —— build_shim_tree 建假工具包 →
+   PATH/CUDA_PATH → exec make（clean 词元匹配删假目录）；对照
+   `tools/ninja_cce`；`tools/pre_cce` 包裹 configure；`tools/hostcc_cce`
+   委托 driver `--hostcc-mode`（rules hostcc 段）。
 6. **运行时承接**：`src/bridge/runtime/src/cuda_runtime_wrapper.cpp`
    （默认流解析/事件注册表/FP64 策略）——链接进 `libcce_bridge_runtime.so`。
-7. **行为锁**：`tests/test_cucc_rules.py`（驱动 30 项）+
-   `tests/test_cmake_compat.py`（表面 18 项）+ `tests/test_blas_surface.py`。
+7. **行为锁**：`tests/test_cucc_rules.py`（驱动 38 项）+
+   `tests/test_cmake_compat.py`（表面 30 项）+ `tests/test_blas_surface.py`。
 
 ## 5. 剩余差距（后续项）
 
-1. Bazel/TF 构建配置（conf_bazel.json / WCUDA_BAZEL_TF_BUILD 等价物）；
-2. FindCUDA legacy 宏全集（CUDA_ADD_EXECUTABLE/CUDA_ADD_LIBRARY/
-   CUDA_COMPILE/CUDA_WRAP_SRCS 等；现有 FindCUDA.cmake 为诚实基础面，
-   ptx/cubin 宏明确不支持）；
-3. mock 的 CompilerId 预编译 ELF 技巧（我们刻意不用：不携带平台二进制工件）；
-4. gfortran/MPI 包装器（低频；cu-bridge 有 conf_gfortran.json 与 ompi 分派）。
+> 第五批次（2026-08-30）收口：cmake --build 分流、queries 查询直通、`-std` 去重、
+> `-gencode` 架构提取 + `CU2CCE_ARCH_MACRO` opt-in 注入、`.cu` 预包含
+> cuda_runtime.h、hostcc 规则化、shim 清单化（shim_layout.json +
+> build_shim_tree.py）、lib64 别名扩展（libcublas/libnvToolsExt，EXPERIMENTAL）、
+> pre_cce hostcc 统一、clean 词元匹配、CU2CCE_SHIM_ISOLATE 并行隔离、
+> mock ABI 现编替身——决策细节见分析文档 §二。
 
-> 已关闭的历史差距：pre_makefile（→pre_cce）、bin/gnu（→hostcc_cce）、
-> multi_target/get_device_arch（→device_arch.sh）、持久 shim、lib64 软链族、
-> 安装树 nvcc 软链——均为 2026-08-28 对齐批次落地。
-5. mock 的 CompilerId 预编译 ELF 技巧（我们刻意不用：不携带平台二进制）。
+1. Bazel/TF 构建配置（conf_bazel.json / WCUDA_BAZEL_TF_BUILD 等价物）；
+2. FindCUDA legacy 宏全集的 ptx/cubin/fatbin 族（明确不支持，诚实 FATAL_ERROR）；
+3. gfortran/MPI 包装器（低频；cu-bridge 有 conf_gfortran.json 与 ompi 分派）；
+4. CompilerId 预编译 ELF 技巧（刻意不用：不携带平台二进制工件——维持有意分歧）；
+5. 头文件生态/cuDriver API/多 `.cu` 归档聚合（SDK 级与昇腾侧议题，见分析文档 §四）。
+
+> 已关闭的历史差距：pre_makefile（→pre_cce）、bin/gnu（→hostcc_cce，第五批次
+> 进一步规则化）、multi_target/get_device_arch（→device_arch.sh）、持久 shim、
+> lib64 软链族、安装树 nvcc 软链、cmake --build 分流、queries 直通、mock ABI
+> 现编——2026-08-28/08-30 两批次落地。
 
 ## 6. 维护规则
 
