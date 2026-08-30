@@ -30,6 +30,11 @@
 | `__CUDACC__`/`__CUDACC_VER_*` 宏族 | `SUPPORTED`（nvcc 语义） | `tests/test_cucc_rules.py` | 仅 `.cu` TU 注入，值由 `CUCC_CUDA_VERSION` 推导（11060→11/6/0/110600）；mock identity 路径同源不重复 |
 | `-Xlinker` 链接选项 | `SUPPORTED`（成对透传） | `tests/test_cucc_rules.py` | clang 原生；compile 阶段仅 unused 告警（真机确认项） |
 | `-lnvrtc`/`-lOpenCL` | `UNSUPPORTED`（提前 drop） | `tests/test_cucc_rules.py` | cu-bridge conf.json 对齐：带警告丢弃而非链接期失败；strict 模式报错 |
+| `--use_fast_math` 族 | `SUPPORTED`（映射） | `tests/test_cucc_rules.py`；真机 dryrun 探针 | 四种拼写规范化为 clang/ccec 的 `-ffast-math`（FP 语义变化即调用方所请；cu-bridge 同样映射到自家拼写） |
+| OpenMP `-lgomp`/`-l:libgomp*` | `SUPPORTED`（映射） | `tests/test_cucc_rules.py` | clang 系驱动经 libomp 链接 OpenMP，非 gcc libgomp（cu-bridge 同样映射到自家运行时）；`-fopenmp` 经 `-Xcompiler` 白名单放行 |
+| `-static` | `UNSUPPORTED`（诚实 drop） | `tests/test_cucc_rules.py` | 全静态链接无法解析桥运行时（.so）；带警告丢弃而非在 ld 内报混淆错误（cu-bridge 同为后端限制做了改写） |
+| `--version/-V` banner | `SUPPORTED`（可解析） | `tests/test_cucc_rules.py` | 携带 cu-bridge 同款 `compatible with release 11.6` 词组 + 诚实的 cu2cce 身份 |
+| 杂项 filter 补齐（`g++*`/`/usr/bin/cc`/`--threads=*`/`--W*` 双横线族/`-diag-suppress`/`-keep-dir`） | `SUPPORTED`（drop） | `tests/test_cucc_rules.py` | 第八批 conf.json 差距收口；合法的单词号 clang 警告（如 `-Wreorder`）仍放行 |
 | `.cu` 自动预包含 `cuda_runtime.h` | `EXPERIMENTAL`（对齐 nvcc 语义） | `tests/test_cucc_rules.py`；真机回归待复验 | 桥内 `__cuda_runtime.h` 自含 simt_adaptor.h 且有 include guard |
 | shim lib64 CUDA 库名族 | `EXPERIMENTAL`（libcublas/libnvToolsExt 新增） | `tests/test_cmake_compat.py` | cublas 走桥内实验面（三用例真机绿）；cufft/cusparse/cudnn 等仍无替身、不造假 |
 | plain host-compiler link（`make_gxx_link` 载体 + hostcc 规则化注入） | `EXPERIMENTAL` | `examples/build_compat/make_gxx_link`；rules `hostcc.link.inject` | 链接器保持 g++，注入改为规则驱动 |

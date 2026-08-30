@@ -1374,8 +1374,13 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         if hostcc_mode:
             return RuleDriver(cmake_identity=False).run_hostcc(args, hostcc_name, proxy_mode=proxy_mode)
         if "--version" in args or "-V" in args:
-            print("cucc: cu2cce-bridge rule-driven CUDA driver")
-            print("CUDA compatibility version 11.6; backend ccec/puresimt")
+            # Banner carries the parseable "compatible with release" token
+            # (cu-bridge's -V banner does the same) so scripts probing
+            # `nvcc --version` keep working; identity stays honest about
+            # being the cu2cce driver.
+            print("cucc: cu2cce-bridge rule-driven CUDA driver, "
+                  "compatible with release 11.6, V11.6.0")
+            print("backend ccec/puresimt; CUCC_CUDA_VERSION controls the emulated release")
             return 0
         if "--help" in args or "-help" in args:
             print("usage: cucc [nvcc-compatible options] input.cu [-o output]")

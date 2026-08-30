@@ -217,6 +217,52 @@ else
     echo '[PASS] cucc rejects unsupported PTX/device artifact policy'
 fi
 
+# ---- 第六/七/八批次机制探针（full 画像；查询直通与 --dryrun，无需设备执行）----
+# 锁定 cu-bridge 运行时对齐行为：queries skipstring、ARCH_MACRO auto、
+# __CUDACC__ 宏族、.cu 预包含、-Xlinker 透传、fast-math 映射、库 drop。
+if profile_runs "full"; then
+    CUCC_PROBE_LOG="$OUT/cucc_probe_dumpmachine.log"
+    if CUCC_PATH="$PWD/build/real_test/install" "$CUCC_BIN" -dumpmachine >"$CUCC_PROBE_LOG" 2>&1 &&
+        [ -s "$CUCC_PROBE_LOG" ]; then
+        echo '[PASS] queries 直通：-dumpmachine 由 ccec 原生应答（skipstring parity）'
+    else
+        echo '[FAIL] queries 直通（-dumpmachine 未直通）'
+        cat "$CUCC_PROBE_LOG"
+        FAIL=$((FAIL + 1))
+        CUCC_RULES_PASS=0
+    fi
+
+    CUCC_PROBE_CMD="$OUT/cucc_probe_dryrun.txt"
+    if CUCC_PATH="$PWD/build/real_test/install" CU2CCE_ARCH_MACRO=auto \
+        "$CUCC_BIN" --dryrun -c examples/puresimt/vectorAdd_minimal.cu \
+        -gencode arch=compute_80,code=sm_86 -o "$OUT/probe.o" >"$CUCC_PROBE_CMD" 2>&1 &&
+        grep -Fq -- '-D__CUDA_ARCH__=860' "$CUCC_PROBE_CMD" &&
+        grep -Fq -- '-D__CUDACC__' "$CUCC_PROBE_CMD" &&
+        grep -Fq -- '-include' "$CUCC_PROBE_CMD"; then
+        echo '[PASS] 架构宏 auto 注入 + __CUDACC__ 宏族 + .cu 预包含 cuda_runtime.h'
+    else
+        echo '[FAIL] dryrun 探针（ARCH_MACRO/__CUDACC__/预包含）'
+        cat "$CUCC_PROBE_CMD"
+        FAIL=$((FAIL + 1))
+        CUCC_RULES_PASS=0
+    fi
+
+    if CUCC_PATH="$PWD/build/real_test/install" \
+        "$CUCC_BIN" --dryrun "$OUT/cucc_vectorAdd_minimal.o" -Xlinker -rpath=/tmp/x \
+        -lnvrtc --use_fast_math -o "$OUT/probe_app" >"$CUCC_PROBE_CMD" 2>&1 &&
+        grep -Fq -- '-Xlinker' "$CUCC_PROBE_CMD" &&
+        grep -Fq -- '-rpath=/tmp/x' "$CUCC_PROBE_CMD" &&
+        grep -Fq -- '-ffast-math' "$CUCC_PROBE_CMD" &&
+        ! grep -Fq -- '-lnvrtc' "$CUCC_PROBE_CMD"; then
+        echo '[PASS] -Xlinker 成对透传 / --use_fast_math→-ffast-math / -lnvrtc 丢弃'
+    else
+        echo '[FAIL] dryrun 探针（Xlinker/fast-math/nvrtc）'
+        cat "$CUCC_PROBE_CMD"
+        FAIL=$((FAIL + 1))
+        CUCC_RULES_PASS=0
+    fi
+fi
+
 if [ "$CUCC_RULES_PASS" -eq 1 ]; then
     echo 'CUCC_RULES_REGRESSION_PASS'
 else
@@ -480,6 +526,21 @@ elif [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$CMAKE_CCE" ]; then
         "$OUT/cmake-build" \
         "$OUT/cmake-build/cmake_vector_add" \
         'cmake vectorAdd OK'
+
+    # deal_build_param parity probe: cmake_cce --build must dispatch to
+    # make_cce (generator chosen by build.ninja presence) with the same
+    # environment preparation as a direct make_cce run.
+    if profile_runs "full"; then
+        if "$CMAKE_CCE" --build "$OUT/cmake-build" --parallel 2 \
+            >"$OUT/cmake-build-dispatch.log" 2>&1 &&
+            grep -Fq 'dispatching --build' "$OUT/cmake-build-dispatch.log"; then
+            echo '[PASS] cmake_cce --build 分流 make_cce（deal_build_param parity）'
+        else
+            echo "[FAIL] cmake_cce --build dispatch (log: $OUT/cmake-build-dispatch.log)"
+            tail -n 40 "$OUT/cmake-build-dispatch.log" 2>/dev/null || true
+            CMAKE_PASS=0
+        fi
+    fi
     cmake_case_full_only \
         cmake_compat \
         examples/cmake_compat \

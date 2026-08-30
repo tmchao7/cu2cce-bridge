@@ -173,6 +173,8 @@ build 期按 `build.make` 里**记录的绝对编译器路径**逐条发起真�
 | 26 | `__CUDACC__` 宏族（`-imacros __macro_mxcc.h`，conf.json all.adder） | mxcc 的 `__MACACC__` 翻译为 `__CUDACC__` + 版本宏 | **对齐（机制级）**：compile 注入 `-D__CUDACC__` + `__CUDACC_VER_MAJOR/MINOR/BUILD/VER`（值由 `CUCC_CUDA_VERSION` 推导，nvcc 编码 MMmmB）；仅 `.cu` TU（nvcc 语义）；mock `--cmake-identity` 前缀退役为 no-op——宏只剩规则文件一个定义点（simplifier） | rules compile.inject、driver |
 | 27 | gcc-only 旗标过滤（conf.json filter 的 var-tracking 族） | `-fno/var-tracking(-assignments)` 静默过滤 | **对齐**：regex_cleanup 种子 `^-f(no-)?var-tracking(-assignments)?$`（clang 报 unknown argument）；同时从宿主旗标白名单移除（白名单此前误放行） | rules regex_cleanup、driver |
 | 28 | 代码简化（code review 产出） | link.json 单一实现被三个包装器复用 | **对齐同款思想**：`tools/fake_toolkit_env.sh` 共享库（哨兵 + builder 调用 + host triple），cmake_cce/make_cce/pre_cce 三处 ~40 行重复收敛为一次 source；规则文件去掉 `--expt-extended-lambda`/`--generate-code=*` 重复项；`-lcublasLt` 库匹配改两段式（精确名优先于宽前缀，提示不再错位） | tools/fake_toolkit_env.sh、三入口、rules、driver |
+| 29 | conf.json filter/replacer 终检缺口（第八批） | `-lnvrtc`/`-lOpenCL` filter、`--share→-shared`、`-Xlinker` 直通、`--use_fast_math`→后端拼写、`-lgomp`→自家 OpenMP 运行时、`-static` 因后端限制改写、杂项 filter（`g++*`/`--threads=*`/`/usr/bin/cc`/`-keep-dir`/`--W*` 双横线族/`-diag-suppress`）、banner 可解析 release 词组 | **全部对齐（后端拼写不同）**：drop 带警告 / replace 规范化（`-ffast-math`、`-lomp`、`-shared`）/ `-Xlinker` 成对透传 / `-static` 诚实 drop；合法单词号 clang 警告有意保留 forward；banner 携带 `compatible with release 11.6` | rules、driver |
+| 30 | 真机可验证性 | 测试报告 xlsx（200+ 工程） | **harness 内建**：server_cmd.txt full 画像新增机制探针段（queries 直通 / ARCH_MACRO+__CUDACC__+预包含 dryrun / Xlinker+fast-math+nvrtc）与 `cmake_cce --build` 分流探针，失败即打落 CUCC_RULES/CMAKE badge | server_cmd.txt |
 
 ## 三、本批次后的机制拓扑（终态）
 
@@ -247,3 +249,5 @@ hostcc_cce ──> cu2cce_driver.py --hostcc-mode ──[hostcc.link.inject]─�
 | `__CUDACC__` 宏族 | 带 `#ifdef __CUDACC__` 的用户 kernel 编译 + `ccec` 内建宏行为观察 | 注入值与 ccec 自身定义（若有）一致无 redefinition 告警；`.cpp` TU 不出现 |
 | `-Xlinker` 透传 | 带 `-Xlinker -rpath=...` 的链接 | ccec 侧 rpath 生效；compile 阶段仅 unused-argument 告警 |
 | 库名 drop 提示 | `-lnvrtc` 参与 | 立即警告（非链接期失败），strict 模式报错 |
+| fast-math / OpenMP 映射 | `--use_fast_math` → `-ffast-math`；`-lgomp` → `-lomp` | dryrun 探针锁定（server_cmd full 画像），FP/并行语义由调用方选择 |
+| 机制探针段 | server_cmd full 画像 `[2.75/7]` 探针块 + `[5/7]` 分流探针 | 三组探针任一失败即 `CUCC_RULES_PASS=0`/`CMAKE_PASS=0`，badge 不再能掩盖机制回归 |

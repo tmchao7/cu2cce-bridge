@@ -156,6 +156,21 @@ configure 脚本用 `pre_makefile` 包裹；Python 库安装不管（FAQ Q7）�
 > 传递；并按项目作者确认在分析文档落档前提纠正——**puresimt 前端
 > （ccec -x asc --enable-simt）与 mxcc 同为原生认识 CUDA 语法的前端**，
 > 差异只是小改动。机制面至此全部收口（分析文档 §4.0）。
+>
+> 第七批次（2026-08-30，同日第三批）收口参数过滤尾部 + code simplifier：
+> `-lnvrtc/-l:libnvrtc*/-lOpenCL` 带警告 drop（原静默 forward）、`--share→
+> -shared`、`-Xlinker` 成对透传、var-tracking 族清洗种子、`__CUDACC__/
+> __CUDACC_VER_*` 宏族注入（CUCC_CUDA_VERSION 推导，仅 .cu；mock identity
+> 退役为 no-op）、`-lcublasLt` 两段式库匹配、cmake_cce build 目录检查、
+> `tools/fake_toolkit_env.sh` 共享库（三入口 ~40 行重复收敛）。
+>
+> 第八批次（2026-08-30，同日第四批）conf.json filter/replacer 终检收口：
+> `--use_fast_math` 四拼写→`-ffast-math`、`-lgomp/-l:libgomp*`→`-lomp`、
+> `-static` 诚实 drop、杂项 filter（`g++*`/`/usr/bin/cc`/`--threads=*`/
+> `-keep-dir` 族/`--W*` 双横线族/`-diag-suppress` 族）、banner 携带
+> `compatible with release` 可解析词组；server_cmd.txt full 画像新增
+> 机制探针段（queries 直通 / dryrun 三联 / `cmake_cce --build` 分流），
+> 失败即打落对应 badge——机制与参数面对齐至此全部可被真机回归锁定。
 
 1. Bazel/TF 构建配置（conf_bazel.json / WCUDA_BAZEL_TF_BUILD 等价物）；
 2. FindCUDA legacy 宏全集的 ptx/cubin/fatbin 族（明确不支持，诚实 FATAL_ERROR）；

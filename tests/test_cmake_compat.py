@@ -693,6 +693,23 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         # the driver already accepts --options-file (cu-bridge conf.json parity)
         self.assertIn('"--options-file"', (ROOT / "tools/cu2cce_driver.py").read_text(encoding="utf-8"))
 
+    def test_round8_machinery_probes_are_wired_into_the_harness(self) -> None:
+        # The real-machine harness locks the batch-5..8 runtime mechanisms
+        # without device execution: query passthrough, ARCH_MACRO auto +
+        # __CUDACC__ + preinclude via --dryrun greps, -Xlinker/fast-math/
+        # nvrtc handling, and the cmake_cce --build dispatch probe.
+        server_cmd = (ROOT / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
+        self.assertIn("queries 直通：-dumpmachine 由 ccec 原生应答", server_cmd)
+        self.assertIn("-D__CUDA_ARCH__=860", server_cmd)
+        self.assertIn("'-D__CUDACC__'", server_cmd)
+        self.assertIn("--use_fast_math", server_cmd)
+        self.assertIn("'-ffast-math'", server_cmd)
+        self.assertIn("cmake_cce --build 分流 make_cce（deal_build_param parity）", server_cmd)
+        # The probes only run in the full profile and must be able to fail
+        # the section badge (no silent skips for broken machinery).
+        self.assertIn("CU2CCE_ARCH_MACRO=auto", server_cmd)
+        self.assertGreaterEqual(server_cmd.count("CUCC_RULES_PASS=0"), 4)
+
     def test_mock_nvcc_short_circuits_preprocess_and_deps(self) -> None:
         mock = (ROOT / "tools/mock/mock_nvcc.py").read_text(encoding="utf-8")
         driver = (ROOT / "tools/cu2cce_driver.py").read_text(encoding="utf-8")

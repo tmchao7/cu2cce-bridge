@@ -725,6 +725,75 @@ class CuccRuleDriverTest(unittest.TestCase):
             "-c", "main.cu", "-Xcompiler", "-fno-var-tracking", "-o", "main.o"])
         self.assertNotIn("-fno-var-tracking", via_xcompiler.args)
 
+    def test_fast_math_spelling_maps_to_clang_form(self) -> None:
+        # cu-bridge maps --use_fast_math to its backend spelling; for the
+        # clang-based ccec the equivalent is -ffast-math. The caller asked
+        # for fast-math semantics, so a rewrite (not a silent drop) is the
+        # honest mapping.
+        for flag in ("--use_fast_math", "-use_fast_math",
+                     "--use-fast-math", "-use-fast-math"):
+            with self.subTest(flag=flag):
+                prepared = self.driver().prepare(["-c", "main.cu", flag, "-o", "main.o"])
+                self.assertIn("-ffast-math", prepared.args)
+                self.assertNotIn(flag, prepared.args)
+                actions = [action for action in prepared.actions if action.argument == flag]
+                self.assertEqual(actions[0].action, "replace")
+
+    def test_gomp_reference_maps_to_libomp(self) -> None:
+        # clang-based drivers link OpenMP through libomp, not gcc's libgomp
+        # (cu-bridge maps -lgomp to its backend OpenMP runtime too).
+        prepared = self.driver().prepare(["main.o", "-lgomp", "-o", "app"])
+        self.assertIn("-lomp", prepared.args)
+        self.assertNotIn("-lgomp", prepared.args)
+        attached = self.driver().prepare(["main.o", "-l:libgomp.so.1", "-o", "app"])
+        self.assertIn("-lomp", attached.args)
+        self.assertNotIn("-l:libgomp.so.1", attached.args)
+
+    def test_static_link_is_dropped_with_honest_reason(self) -> None:
+        # Fully static linking cannot resolve the bridge runtime (shared
+        # object); cu-bridge rewrites -static for the same backend
+        # limitation. Dropping with an explicit warning beats failing
+        # inside ld with a confusing mixed-static error.
+        prepared = self.driver().prepare(["main.o", "-static", "-o", "app"])
+        self.assertNotIn("-static", prepared.args)
+        actions = [action for action in prepared.actions if action.argument == "-static"]
+        self.assertEqual(actions[0].action, "drop")
+        self.assertIn("static", actions[0].reason)
+
+    def test_conf_json_filter_gaps_are_closed(self) -> None:
+        # Eighth batch: stray host-compiler arguments, nvcc double-dash
+        # warning spellings, diag-suppress/keep-dir two-token forms — all
+        # silently forwarded by the generic rules before, filtered now
+        # (cu-bridge conf.json parity).
+        for flag in ("g++-12", "g++", "/usr/bin/cc", "--threads=4",
+                     "--Wreorder", "--Wno-deprecated-declarations",
+                     "--Wmissing-launch-bounds", "--Wext-lambda-captures-this",
+                     "-diag-suppress=123", "-keep-dir=/tmp/x"):
+            with self.subTest(flag=flag):
+                prepared = self.driver().prepare(["-c", "main.cu", flag, "-o", "main.o"])
+                self.assertNotIn(flag, prepared.args, flag)
+        # Two-token forms must consume their values too.
+        paired = self.driver().prepare(["-c", "main.cu", "-diag-suppress", "2015", "-o", "main.o"])
+        self.assertNotIn("-diag-suppress", paired.args)
+        self.assertNotIn("2015", paired.args)
+        keepdir = self.driver().prepare(["-c", "main.cu", "-keep-dir", "/tmp/k", "-o", "main.o"])
+        self.assertNotIn("-keep-dir", keepdir.args)
+        self.assertNotIn("/tmp/k", keepdir.args)
+        # Valid single-dash clang warning spellings still forward on
+        # purpose (dropping a working warning would be a regression).
+        kept = self.driver().prepare(["-c", "main.cu", "-Wreorder", "-o", "main.o"])
+        self.assertIn("-Wreorder", kept.args)
+
+    def test_version_banner_carries_parseable_release_token(self) -> None:
+        # Scripts probing `nvcc --version` grep for "release X.Y"; the
+        # banner keeps the driver identity plus the cu-bridge-style
+        # "compatible with release" token.
+        driver = Path(__file__).resolve().parents[1] / "bin/cucc"
+        result = subprocess.run([str(driver), "--version"], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0)
+        self.assertIn("compatible with release 11.6", result.stdout)
+        self.assertIn("cu2cce-bridge", result.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()

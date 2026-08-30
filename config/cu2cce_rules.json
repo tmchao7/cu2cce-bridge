@@ -241,6 +241,52 @@
         "reason": "cu2cce supplies CUDA compatibility headers"
       },
       {
+        "pattern": "g++*",
+        "reason": "stray host-compiler name passed as an argument (some builds emit it); ccec would treat it as an input file (cu-bridge conf.json filters g++)"
+      },
+      {
+        "pattern": "/usr/bin/cc",
+        "reason": "stray absolute host-compiler argument (cu-bridge conf.json filter parity)"
+      },
+      {
+        "pattern": "--threads=*",
+        "reason": "nvcc host-compile parallelism is meaningless for a single ccec invocation"
+      },
+      {
+        "pattern": "-keep-dir",
+        "takes_value": true,
+        "reason": "nvcc intermediate directory"
+      },
+      {
+        "pattern": "-keep-dir=*",
+        "reason": "nvcc intermediate directory"
+      },
+      {
+        "pattern": "--Wno-deprecated-declarations",
+        "reason": "nvcc double-dash warning spelling; use -Wno-deprecated-declarations (clang spelling)"
+      },
+      {
+        "pattern": "--Wreorder",
+        "reason": "nvcc double-dash warning spelling; use -Wreorder (clang spelling)"
+      },
+      {
+        "pattern": "--Wmissing-launch-bounds",
+        "reason": "nvcc double-dash warning spelling is not accepted by ccec"
+      },
+      {
+        "pattern": "--Wext-lambda-captures-this",
+        "reason": "nvcc double-dash warning spelling is not accepted by ccec"
+      },
+      {
+        "pattern": "-diag-suppress",
+        "takes_value": true,
+        "reason": "nvcc diagnostic suppression spelling is not accepted by ccec"
+      },
+      {
+        "pattern": "-diag-suppress=*",
+        "reason": "nvcc diagnostic suppression spelling is not accepted by ccec"
+      },
+      {
         "pattern": "--expt-relaxed-constexpr",
         "reason": "not needed by ccec"
       },
@@ -364,14 +410,6 @@
         "reason": "cudafe host-frontend options are not part of the ccec toolchain"
       },
       {
-        "pattern": "--use_fast_math",
-        "reason": "NVIDIA fast-math flags are not mapped to ccec; use ccec float options if needed"
-      },
-      {
-        "pattern": "--use-fast-math",
-        "reason": "NVIDIA fast-math flags are not mapped to ccec; use ccec float options if needed"
-      },
-      {
         "pattern": "--fmad",
         "takes_value": true,
         "reason": "NVIDIA fmad control is not part of the ccec policy"
@@ -410,6 +448,10 @@
       {
         "pattern": "-G",
         "reason": "NVIDIA device-debug mode is not part of the ccec policy"
+      },
+      {
+        "pattern": "-static",
+        "reason": "fully static linking cannot resolve the bridge runtime (a shared object); link proceeds dynamically instead of failing inside ld (cu-bridge rewrites it for the same backend limitation)"
       },
       {
         "pattern": "--resource-usage",
@@ -690,6 +732,48 @@
         "pattern": "--compiler-options=*",
         "split_value": true,
         "reason": "forward host compiler options"
+      },
+      {
+        "pattern": "--use_fast_math",
+        "to": [
+          "-ffast-math"
+        ],
+        "reason": "clang/ccec equivalent of nvcc fast-math (cu-bridge maps it to its backend spelling too); FP semantics change is exactly what the caller asked for"
+      },
+      {
+        "pattern": "-use_fast_math",
+        "to": [
+          "-ffast-math"
+        ],
+        "reason": "clang/ccec equivalent of nvcc fast-math (cu-bridge maps it to its backend spelling too)"
+      },
+      {
+        "pattern": "--use-fast-math",
+        "to": [
+          "-ffast-math"
+        ],
+        "reason": "clang/ccec equivalent of nvcc fast-math (cu-bridge maps it to its backend spelling too)"
+      },
+      {
+        "pattern": "-use-fast-math",
+        "to": [
+          "-ffast-math"
+        ],
+        "reason": "clang/ccec equivalent of nvcc fast-math (cu-bridge maps it to its backend spelling too)"
+      },
+      {
+        "pattern": "-lgomp",
+        "to": [
+          "-lomp"
+        ],
+        "reason": "clang-based drivers link OpenMP through libomp, not gcc's libgomp (cu-bridge maps -lgomp to its backend OpenMP runtime too)"
+      },
+      {
+        "pattern": "-l:libgomp*",
+        "to": [
+          "-lomp"
+        ],
+        "reason": "clang-based drivers link OpenMP through libomp, not gcc's libgomp"
       },
       {
         "pattern": "--share",

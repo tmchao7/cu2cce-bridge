@@ -48,6 +48,9 @@
 | `add_gcc_toolchain` | 真 gcc 非 /usr/bin/gcc 时追加 `--gcc-toolchain=<prefix>/`（cucc:1055-1066） | **第六批次补齐**：`_locate_real_gcc` 跳过 shim PATH 项；真机标准布局 no-op；`CU2CCE_GCC_TOOLCHAIN=off` 关闭 | 已对齐（休眠机制） |
 | `-lnvrtc` / `-lOpenCL` / `--share` / `-Xlinker` | conf.json：nvrtc/OpenCL filter；`--share→-shared`；`-Xlinker` 直通 | **第七批次补齐**：库 drop 带警告（原静默 forward，链接期才炸）；`--share` replace；`-Xlinker` 成对透传（原 drop 丢失用户链接选项） | 已对齐 |
 | `-imacros __CUDACC__` 宏族 | all.adder：mxcc `__MACACC__` → `__CUDACC__` + 版本宏 | **第七批次补齐**：compile 注入 `__CUDACC__/__CUDACC_VER_*`（CUCC_CUDA_VERSION 推导，仅 `.cu`）；mock identity 前缀退役——宏单点定义 | 已对齐（真机观察 ccec 内建宏一致性） |
+| `--use_fast_math` / `-lgomp` / `-static` | conf.json：映射到自家后端拼写（-use-fast-math / 自家 OpenMP 运行时 / `-Wl,-Bdynamic -static` 改写） | **第八批次补齐**：fast-math 四拼写 → `-ffast-math`（clang 等价）；`-lgomp/-l:libgomp*` → `-lomp`（clang 系 OpenMP 运行时）；`-static` 诚实 drop（桥运行时是 .so，无法全静态） | 已对齐（语义等价，后端拼写不同） |
+| conf.json filter 杂项缺口 | `g++*`、`--threads=*`、`/usr/bin/cc`、`-keep-dir` 族、`--W*` 双横线警告族、`-diag-suppress` 族均 filter | **第八批次补齐**：全部 drop（双横线拼写给 clang 单横线指引；两 token 形式连值消费）；合法单词号 clang 警告（-Wreorder 等）有意保留 forward | 已对齐 |
+| `--version/-V` banner | `cu-bridge compilation tool, compatible with release 11.6, V11.6.124` | **第八批次对齐**：banner 含同款 `compatible with release 11.6` 可解析词组 + 诚实 cu2cce 身份行 | 已对齐 |
 
 ### 1.3 我们有、cu-bridge 没有（优势面，保持）
 
