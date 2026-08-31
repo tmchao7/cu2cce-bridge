@@ -458,6 +458,111 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
                         "cuda_lib_aliases", "alias_dirs", "alias_target", "files"):
             self.assertIn(f'"{section}"', (ROOT / "config/shim_layout.json").read_text(encoding="utf-8"))
 
+    def test_ninja_cce_rebuilds_the_same_persistent_npu_shim(self) -> None:
+        # The shared builder materializes <shim-root>/CUDA_DIR. Direct ninja
+        # invocation must use that same path as cmake_cce --build; using a
+        # different lowercase /cuda path silently leaves nvcc bound to mock.
+        ninja = (ROOT / "tools/ninja_cce").read_text(encoding="utf-8")
+        cmake = (ROOT / "tools/cmake_cce").read_text(encoding="utf-8")
+        self.assertIn('$SHIM_ROOT/CUDA_DIR', ninja)
+        self.assertIn('$SHIM_ROOT/CUDA_DIR', cmake)
+        self.assertNotIn('CUDA_DIR="$SHIM_ROOT/cuda"', ninja)
+        self.assertNotIn('CUDA_DIR="$SHIM_ROOT/cuda"', cmake)
+        for text in (ninja,):
+            self.assertIn("tools/fake_toolkit_env.sh", text)
+            self.assertIn("cu2cce_prepare_fake_toolkit", text)
+            self.assertIn("CU2CCE_SHIM_ISOLATE", text)
+            self.assertIn('export CUDA_PATH=', text)
+            self.assertIn('CANN_BASE=', text)
+            self.assertIn('export CANN_BASE', text)
+            self.assertIn('ASCEND_TOOLKIT_HOME=', text)
+            self.assertIn('export ASCEND_TOOLKIT_HOME', text)
+            self.assertIn('clean|*clean|clean-*', text)
+
+    def test_make_cce_clean_matching_preserves_cleanpack_and_removes_clean(self) -> None:
+        # Token-level clean matching must mirror cu-bridge's cleanup intent
+        # without deleting a persistent shim for an unrelated target such as
+        # cleanpack.
+        with tempfile.TemporaryDirectory() as tmp_name:
+            tmp = Path(tmp_name)
+            fake_bin = tmp / "bin"
+            fake_bin.mkdir()
+            fake_make = fake_bin / "make"
+            fake_make.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+            fake_make.chmod(0o755)
+            home = tmp / "home"
+            env = dict(os.environ)
+            env.update({
+                "CUCC_PATH": str(ROOT),
+                "CU2CCE_HOME": str(home),
+                "CU2CCE_NPU_ARCH": "dav-c310-vec",
+                "PATH": f"{fake_bin}{os.pathsep}{env.get('PATH', '')}",
+            })
+            keep = home / "cu2cce-bridge"
+            result = subprocess.run(
+                [str(ROOT / "tools/make_cce"), "cleanpack"],
+                env=env, capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue(keep.exists())
+
+            result = subprocess.run(
+                [str(ROOT / "tools/make_cce"), "clean"],
+                env=env, capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertFalse(keep.exists())
+
+    def test_ninja_cce_exports_npu_environment_and_builds_shim(self) -> None:
+        # Functional direct-entry test: Ninja must receive the same NPU
+        # environment as make_cce and the generated nvcc path must point to
+        # the real cucc, not the configure mock.
+        with tempfile.TemporaryDirectory() as tmp_name:
+            tmp = Path(tmp_name)
+            fake_bin = tmp / "bin"
+            fake_bin.mkdir()
+            log = tmp / "ninja.log"
+            fake_ninja = fake_bin / "ninja"
+            fake_ninja.write_text(
+                "#!/bin/sh\n"
+                "{ printf '%s\n' \"CUDA_PATH=$CUDA_PATH\" \"CUDA_HOME=$CUDA_HOME\" \"CANN_BASE=$CANN_BASE\" \"ASCEND_TOOLKIT_HOME=$ASCEND_TOOLKIT_HOME\" \"CU2CCE_NPU_ARCH=$CU2CCE_NPU_ARCH\"; printf 'ARG=%s\n' \"$@\"; } > \"$NINJA_LOG\"\n",
+                encoding="utf-8",
+            )
+            fake_ninja.chmod(0o755)
+            shim_root = tmp / "shim"
+            env = dict(os.environ)
+            env.update({
+                "CUCC_PATH": str(ROOT),
+                "CU2CCE_CMAKE_SHIM_DIR": str(shim_root),
+                "CANN_BASE": str(tmp / "cann"),
+                "ASCEND_TOOLKIT_HOME": str(tmp / "ascend"),
+                "CU2CCE_NPU_ARCH": "dav-c310-vec",
+                "NINJA_LOG": str(log),
+                "PATH": f"{fake_bin}{os.pathsep}{env.get('PATH', '')}",
+            })
+            result = subprocess.run(
+                [str(ROOT / "tools/ninja_cce"), "-j", "2", "all"],
+                env=env, capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(
+                log.read_text(encoding="utf-8").splitlines(),
+                [
+                    f"CUDA_PATH={shim_root / 'CUDA_DIR'}",
+                    f"CUDA_HOME={shim_root / 'CUDA_DIR'}",
+                    f"CANN_BASE={tmp / 'cann'}",
+                    f"ASCEND_TOOLKIT_HOME={tmp / 'ascend'}",
+                    "CU2CCE_NPU_ARCH=dav-c310-vec",
+                    "ARG=-j",
+                    "ARG=2",
+                    "ARG=all",
+                ],
+            )
+            self.assertEqual(
+                os.readlink(shim_root / "CUDA_DIR/bin/nvcc"),
+                str(ROOT / "bin/cucc"),
+            )
+
     def test_cmake_cce_build_phase_dispatches_to_make_ninja_entries(self) -> None:
         # deal_build_param parity (cu-bridge cmake_mock:64-131): cmake_cce
         # --build must route through make_cce/ninja_cce (generator chosen by
@@ -680,9 +785,10 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
             self.assertIn(honest, findcuda)
 
         ninja = (ROOT / "tools/ninja_cce").read_text(encoding="utf-8")
-        self.assertIn('SHIM_ROOT="${CU2CCE_CMAKE_SHIM_DIR:-${CU2CCE_HOME:-${CUBRIDGE_HOME:-$HOME}}/cu2cce-bridge/cmake-shim}"', ninja)
+        self.assertIn('CU2CCE_CMAKE_SHIM_DIR:-${CU2CCE_HOME}/cu2cce-bridge/cmake-shim', ninja)
         self.assertIn("ninja_cce: build phase: shim nvcc ->", ninja)
-        self.assertIn('ln -sfn "$CUCC_PATH/bin/cucc" "$CUDA_DIR/bin/nvcc"', ninja)
+        self.assertIn('cu2cce_prepare_fake_toolkit', ninja)
+        self.assertIn('"$CUCC_PATH/bin/cucc"', ninja)
 
         # plain-g++ link carrier: proves the lib64 symlink family end-to-end
         gxx_dir = ROOT / "examples/build_compat/make_gxx_link"

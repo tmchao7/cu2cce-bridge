@@ -137,7 +137,7 @@ sequenceDiagram
 
 ### 4.1 cmake_cce（入口）
 
-- 生成 shim：`$CU2CCE_CMAKE_SHIM_DIR/cuda/bin/nvcc → nvcc_entry.sh`，
+- 生成 shim：`$CU2CCE_CMAKE_SHIM_DIR/CUDA_DIR/bin/nvcc → nvcc_entry.sh`，
   外加 device-linker/fatbinary 同名占位（CMake ≥3.21 会探测它们）；
 - 注入：`-DCMAKE_USER_MAKE_RULES_OVERRIDE=<...>/CUDAOverrides.cmake` 与
   `..._OVERRIDE_CUDA=<同一文件>`（override 在**语言探测之前**加载，

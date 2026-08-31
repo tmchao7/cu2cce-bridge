@@ -62,7 +62,7 @@ fi
 if [ "${CU2CCE_SHIM_ISOLATE:-0}" = "1" ]; then
     SHIM_ROOT="${SHIM_ROOT}-${PPID}"
 fi
-CUDA_DIR="$SHIM_ROOT/cuda"
+CUDA_DIR="$SHIM_ROOT/CUDA_DIR"
 
 # Build/install phase: re-point the shim nvcc at the real cucc (cu-bridge's
 # make_maca rebuilds CUDA_DIR the same way), then hand over.
