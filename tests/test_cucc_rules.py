@@ -64,6 +64,22 @@ class CuccRuleDriverTest(unittest.TestCase):
         self.assertIn("--cce-aicore-arch=dav-c310-vec", prepared.args)
         self.assertIn("__CU2CCE_DEVICE_COMPILATION__", prepared.args)
 
+    def test_compile_injection_order_contract(self) -> None:
+        # Lock the puresimt command shape before splitting RuleDriver.prepare:
+        # language selection first, bridge includes before user arguments, and
+        # both runtime and SIMT adaptor pre-includes remain present.
+        (self.cucc / "include/cuda_runtime.h").touch()
+        prepared = self.driver().prepare([
+            "-c", "main.cu", "-I", "user/include",
+            "-Xcompiler", "-fPIC", "-o", "build/main.o",
+        ])
+        self.assertEqual(prepared.args[:2], ["-x", "asc"])
+        self.assertLess(prepared.args.index("-I"), prepared.args.index("-c"))
+        self.assertGreaterEqual(prepared.args.count("-include"), 2)
+        self.assertIn("cuda_runtime.h", " ".join(prepared.args))
+        self.assertIn("simt_adaptor.h", " ".join(prepared.args))
+        self.assertIn("user/include", prepared.args)
+
     def test_propagated_host_flags_are_filtered(self) -> None:
         # CMake CUDA_PROPAGATE_HOST_FLAGS sends host flags through
         # -Xcompiler. -m64/-march are machine-specific and must not reach the

@@ -939,35 +939,15 @@ class RuleDriver:
                                      "(cu-bridge add_gcc_toolchain parity)")
         return [flag]
 
-    def prepare(self, argv: Sequence[str]) -> PreparedCommand:
-        expanded = self._expand_response_files(list(argv))
-        # --cmake-identity is accepted for compatibility but is now a no-op:
-        # the __CUDACC__/__CUDACC_VER_* macro set moved into the rules-file
-        # inject section (source_is_cuda, values derived from
-        # CUCC_CUDA_VERSION), which covers the mock probe path and real
-        # Makefile-driven cucc compiles alike — one definition site instead
-        # of two (simplifier pass, seventh batch).
-        query_rule = self._find_query_rule(expanded)
-        if query_rule is not None:
-            return self._prepare_query_passthrough(expanded, query_rule)
-        # Read-only recovery of the GPU architecture the build requested.
-        # The arch flags stay dropped; the value only feeds __CUDA_ARCH__
-        # derivation (CU2CCE_ARCH_MACRO=auto) and the decision trace.
-        self.cuda_arch_value = extract_cuda_arch(expanded)
-        phase, mode, inputs, output, source_is_cuda = self._phase(expanded)
-        if mode == "unsupported":
-            raise DriverError("CUDA assembly output (-S) is not produced by the ccec puresimt driver; use cucc -c to compile objects")
-        self._resolve_simt_root()
-        context = self._context(phase, source_is_cuda, expanded)
-        if (self.arch_macro_mode == "auto" and self.cuda_arch_value is None
-                and source_is_cuda and not self.env.get("CU2CCE_CUDA_ARCH", "").strip()):
-            self._warn(
-                "CU2CCE_ARCH_MACRO=auto but the command line carries no "
-                "-gencode/-arch value; __CUDA_ARCH__ is not defined. Pass "
-                "-gencode or set CU2CCE_CUDA_ARCH for code that branches on it."
-            )
-        if source_is_cuda and self.fp64_policy != "allow" and phase == "compile":
-            self._pre_flight_report_device_double(inputs)
+    def _transform_arguments(
+        self, expanded: Sequence[str], phase: str
+    ) -> List[str]:
+        """Apply the ordered per-argument rule pipeline.
+
+        Keep this stage free of injection/final-command concerns: it only
+        classifies the expanded argv and records the same actions/warnings as
+        the original prepare loop.
+        """
         result: List[str] = []
         i = 0
         while i < len(expanded):
@@ -1090,7 +1070,16 @@ class RuleDriver:
             result.append(argument)
             i += 1
 
-        injections = self._inject(phase, context)
+        return result
+
+    def _order_injections(
+        self, injections: List[str], source_is_cuda: bool
+    ) -> Tuple[List[str], List[str]]:
+        """Split injected arguments into a command prefix and suffix.
+
+        CUDA language selection and compatibility include pairs must precede
+        user arguments; all other injections stay after them.
+        """
         prefix: List[str] = []
         if source_is_cuda:
             # The language selector must precede the CUDA source. Consume the
@@ -1104,24 +1093,37 @@ class RuleDriver:
             except StopIteration:
                 language_index = -1
             if language_index >= 0:
-                injections = injections[:language_index] + injections[language_index + 2:]
+                injections = (
+                    injections[:language_index]
+                    + injections[language_index + 2:]
+                )
             prefix = ["-x", "asc"]
 
         # Bridge compatibility headers must precede user/CANN include paths.
-        # Otherwise an installed CANN cooperative_groups.h or CUDA header can
-        # win before cu2cce's compatibility facade is considered. Keep all
-        # injected -I/-include pairs in a deterministic front section.
+        # Keep all injected -I/-include pairs in a deterministic front
+        # section, while leaving scalar injections in the trailing section.
         include_prefix: List[str] = []
-        remaining_injections: List[str] = []
+        remaining: List[str] = []
         i = 0
         while i < len(injections):
             if injections[i] in ("-I", "-include") and i + 1 < len(injections):
                 include_prefix.extend(injections[i:i + 2])
                 i += 2
                 continue
-            remaining_injections.append(injections[i])
+            remaining.append(injections[i])
             i += 1
-        result = [*prefix, *include_prefix, *result, *remaining_injections]
+        return [*prefix, *include_prefix], remaining
+
+    def _finalize_prepared_command(
+        self,
+        result: List[str],
+        phase: str,
+        mode: str,
+        inputs: List[str],
+        output: Optional[str],
+        source_is_cuda: bool,
+    ) -> PreparedCommand:
+        """Apply final link/env cleanup and construct the traceable command."""
         if output and output.endswith(".o") and "-c" not in result:
             result.insert(0, "-c")
 
@@ -1133,9 +1135,10 @@ class RuleDriver:
             # defer to the caller's environment when no explicit LDFLAGS given.
             self._record("LDFLAGS", "forward", "conda LDFLAGS appended to link")
             result.extend(conda_ldflags)
+
         # Final-command passes (cu-bridge runs them right before executing
-        # the backend): gcc-toolchain injection, then the data-driven
-        # regex cleanup layer over the assembled command.
+        # the backend): gcc-toolchain injection, then data-driven regex
+        # cleanup over the assembled command.
         result.extend(self._gcc_toolchain_flags())
         result = self._apply_regex_cleanup(result)
         prepared = PreparedCommand(
@@ -1155,6 +1158,52 @@ class RuleDriver:
             self._debug(f"inputs={inputs}")
             self._debug("final command: " + " ".join([compiler, *result]))
         return prepared
+
+    def prepare(self, argv: Sequence[str]) -> PreparedCommand:
+        expanded = self._expand_response_files(list(argv))
+        # --cmake-identity is accepted for compatibility but is now a no-op:
+        # the __CUDACC__/__CUDACC_VER_* macro set moved into the rules-file
+        # inject section (source_is_cuda, values derived from
+        # CUCC_CUDA_VERSION), which covers the mock probe path and real
+        # Makefile-driven cucc compiles alike — one definition site instead
+        # of two (simplifier pass, seventh batch).
+        query_rule = self._find_query_rule(expanded)
+        if query_rule is not None:
+            return self._prepare_query_passthrough(expanded, query_rule)
+
+        # Read-only recovery of the GPU architecture the build requested.
+        # The arch flags stay dropped; the value only feeds __CUDA_ARCH__
+        # derivation (CU2CCE_ARCH_MACRO=auto) and the decision trace.
+        self.cuda_arch_value = extract_cuda_arch(expanded)
+        phase, mode, inputs, output, source_is_cuda = self._phase(expanded)
+        if mode == "unsupported":
+            raise DriverError(
+                "CUDA assembly output (-S) is not produced by the ccec puresimt "
+                "driver; use cucc -c to compile objects"
+            )
+        self._resolve_simt_root()
+        context = self._context(phase, source_is_cuda, expanded)
+        if (
+            self.arch_macro_mode == "auto"
+            and self.cuda_arch_value is None
+            and source_is_cuda
+            and not self.env.get("CU2CCE_CUDA_ARCH", "").strip()
+        ):
+            self._warn(
+                "CU2CCE_ARCH_MACRO=auto but the command line carries no "
+                "-gencode/-arch value; __CUDA_ARCH__ is not defined. Pass "
+                "-gencode or set CU2CCE_CUDA_ARCH for code that branches on it."
+            )
+        if source_is_cuda and self.fp64_policy != "allow" and phase == "compile":
+            self._pre_flight_report_device_double(inputs)
+
+        result = self._transform_arguments(expanded, phase)
+        injections = self._inject(phase, context)
+        prefix, suffix = self._order_injections(injections, source_is_cuda)
+        result = [*prefix, *result, *suffix]
+        return self._finalize_prepared_command(
+            result, phase, mode, inputs, output, source_is_cuda
+        )
 
     def _compiler_path(self) -> str:
         configured = self.env.get("CCEC_PATH", "")

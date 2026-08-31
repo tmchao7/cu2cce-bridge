@@ -52,3 +52,21 @@ cd /home/t50063365/workspace/repos/cu2cce-bridge
 git pull --ff-only gitcode main
 bash tools/real_test/server_cmd.txt
 ```
+
+## 交付与真机回归纪律
+
+1. 每次对仓库做出实际代码、测试或文档修改后，必须先完成本地可行验证，再创建 git commit。
+2. 提交完成后必须推送到 `gitcode` 远端；默认主线为 `gitcode/main`，不要只停留在本地或只推 `origin`。
+3. 每次对话交付时，必须明确告诉用户服务器执行步骤，至少包括：切换到目标分支、从 `gitcode` 更新/拉取、执行 `tools/real_test/clean.sh`、最后执行 `tools/real_test/server_cmd.txt`。
+4. 服务器命令应使用当前实际提交对应的分支和提交号；如不是 `main`，不得把 `main` 命令写成默认回归命令。
+5. 服务器回归命令模板：
+
+```bash
+cd /home/t50063365/workspace/repos/cu2cce-bridge
+git switch <目标分支>
+git pull --ff-only gitcode <目标分支>
+bash tools/real_test/clean.sh
+bash tools/real_test/server_cmd.txt
+```
+
+6. 如果本地无法运行 CANN/NPU 回归，必须明确说明服务器仍需执行上述命令，不能把本地 mock/syntax/test 结果冒充真机通过。

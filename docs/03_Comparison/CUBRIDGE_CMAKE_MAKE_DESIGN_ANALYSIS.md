@@ -182,7 +182,7 @@ build 期按 `build.make` 里**记录的绝对编译器路径**逐条发起真�
 cmake_cce ──configure──> build_shim_tree.py(shim_layout.json) ──> mock_nvcc.py（探测应答/真编译回退）
    │                                        │                        └─> cu2cce_driver.py（--cmake-identity）
    ├──--build──────────deal_build_param─────┴──> make_cce / ninja_cce（build.ninja 选择）
-make_cce/pre_cce ──> build_shim_tree.py ──> PATH+CUDA_PATH ──> make/eval
+make_cce/pre_cce ──> build_shim_tree.py ──> PATH+CUDA_PATH ──> make/direct-exec
 bin/nvcc / cucc ──> cu2cce_driver.py ──[queries 直通 | 五动作规则 | 注入/排序]──> ccec -x asc --enable-simt
 hostcc_cce ──> cu2cce_driver.py --hostcc-mode ──[hostcc.link.inject]──> /usr/bin/g++（链接补桥运行时）
 ```

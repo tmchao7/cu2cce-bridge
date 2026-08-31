@@ -5,8 +5,9 @@
 # cu-bridge's documented use (FAQ Q5): autoconf-style `configure xxx`
 # becomes `pre_makefile configure xxx`. pre_cce does the same for NPU:
 # it prepares the fake CUDA toolkit environment (bin/nvcc -> cucc,
-# CUDA-named lib64 links, host compiler entries) and then evals the
-# wrapped command, so scripts that probe for nvcc/gcc during configuration
+# CUDA-named lib64 links, host compiler entries) and then executes the
+# wrapped command directly, so scripts that probe for nvcc/gcc during
+# configuration
 # see a complete toolchain. The sentinel/build logic lives in the shared
 # helper tools/fake_toolkit_env.sh (config/shim_layout.json manifest).
 #
@@ -74,5 +75,6 @@ for arg in "$@"; do
     esac
 done
 
-# quote-safe eval of the wrapped command (mirrors pre_makefile's escaping)
-eval "$*"
+# Execute the original argv directly. Reconstructing "$*" through eval would
+# split values containing spaces and execute shell syntax supplied as data.
+exec "$@"

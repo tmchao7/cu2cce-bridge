@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Static contract checks for the CMake/build compatibility surface."""
+import os
 from pathlib import Path
+import subprocess
+import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -614,6 +617,27 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
             self.assertIn(section, doc)
         self.assertIn("docs/02_Architecture/06_cmake_principle_flow.md", doc)
 
+    def test_findcuda_uses_shared_legacy_helpers(self) -> None:
+        # Keep the legacy CMake surface easy to audit: repeated CUDA-language
+        # enablement and target setup should live in private helpers, while
+        # Ascend-specific unsupported artifact paths remain explicit.
+        findcuda = (ROOT / "cmake_modules/FindCUDA.cmake").read_text(encoding="utf-8")
+        self.assertIn("function(_cu2cce_enable_cuda)", findcuda)
+        self.assertIn("function(_cu2cce_attach_target", findcuda)
+        for public in (
+            "function(cuda_add_executable target)",
+            "function(cuda_add_library target)",
+            "macro(cuda_compile out_var)",
+            "macro(cuda_wrap_srcs cuda_target format generated_files)",
+        ):
+            self.assertIn(public, findcuda)
+        for unsupported in (
+            "CUDA PTX generation is unsupported on Ascend puresimt",
+            "CUDA FATBIN generation is unsupported on Ascend puresimt",
+            "CUDA CUBIN generation is unsupported on Ascend puresimt",
+        ):
+            self.assertIn(unsupported, findcuda)
+
     def test_findcuda_legacy_macros_and_ninja_two_phase(self) -> None:
         # Fourth alignment batch: legacy FindCUDA macro surface (cuda_compile
         # as a LANGUAGE-CUDA passthrough — real FindCUDA produces objects,
@@ -642,6 +666,43 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         server_cmd = (ROOT / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
         self.assertIn("make_gxx_link: plain-g++ link with -lcudart -> bridge runtime", server_cmd)
 
+    def test_pre_cce_preserves_argument_boundaries(self) -> None:
+        # pre_cce receives an argv vector and must not reconstruct it through
+        # eval/$*: values containing spaces or shell syntax are user data, not
+        # commands. This is the NPU equivalent of the cu-bridge pre_makefile
+        # wrapper contract, with safer direct execution semantics.
+        with tempfile.TemporaryDirectory() as tmp_name:
+            tmp = Path(tmp_name)
+            recorder = tmp / "record_args.py"
+            output = tmp / "argv.txt"
+            recorder.write_text(
+                "#!/usr/bin/env python3\n"
+                "import os, sys\n"
+                "from pathlib import Path\n"
+                "Path(os.environ['ARGV_OUT']).write_text(\n"
+                "    chr(10).join(sys.argv[1:]) + chr(10), encoding='utf-8'\n"
+                ")\n",
+                encoding="utf-8",
+            )
+            recorder.chmod(0o755)
+            env = dict(os.environ)
+            env.update({
+                "CUCC_PATH": str(ROOT),
+                "CU2CCE_HOME": str(tmp / "shim-home"),
+                "CANN_BASE": str(tmp / "cann"),
+                "ARGV_OUT": str(output),
+            })
+            result = subprocess.run(
+                [str(ROOT / "tools/pre_cce"), str(recorder),
+                 "alpha beta", "$(printf unsafe)"],
+                env=env, capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(
+                output.read_text(encoding="utf-8").splitlines(),
+                ["alpha beta", "$(printf unsafe)"],
+            )
+
     def test_cubridge_parity_tools_are_shipped(self) -> None:
         # Third alignment batch: multi_target/get_device_arch -> device_arch,
         # pre_makefile -> pre_cce, bin/gnu -> hostcc_cce, CUPTI layout.
@@ -665,7 +726,8 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         # hostcc_cce).
         self.assertIn('. "${CUCC_PATH}/tools/fake_toolkit_env.sh"', pre_cce)
         self.assertIn('cu2cce_prepare_fake_toolkit "$DST_WCUDA" "$CUCC_PATH/bin/cucc"', pre_cce)
-        self.assertIn('eval "$*"', pre_cce)
+        self.assertIn('exec "$@"', pre_cce)
+        self.assertNotIn('eval "$*"', pre_cce)
 
         hostcc = (ROOT / "tools/hostcc_cce").read_text(encoding="utf-8")
         # bin/gnu parity, NPU-adapted: real compiler for compiles, and the
