@@ -21,7 +21,7 @@ Rules are implemented by `config/cu2cce_rules.json` and shared by `cucc` and the
 | `--cuda-gpu-arch=sm_*` | equal | compile | DROP | `DIAGNOSTIC_ONLY` | Clang/CMake GPU architecture spelling is not used by ccec |
 | `-M/-MM` | exact | dependency | FORWARD | `EXPERIMENTAL` | real ccec dependency output pending |
 | `-MD/-MF/-MT` | exact/separate | compile/dependency | FORWARD | `EXPERIMENTAL` | dedicated Makefile smoke |
-| `-E` | exact | preprocess | FORWARD | `EXPERIMENTAL` | phase is not linked |
+| `-E` | exact | query/preprocess | QUERY PASSTHROUGH | `SUPPORTED` for mechanism | ccec receives the original query without SIMT/runtime injection; output semantics remain diagnostic-only until real proof |
 | `--version/-V/--help` | exact | query | DRIVER | `SUPPORTED` | compatibility identity output |
 | `--dryrun` | exact | all | DRIVER | `SUPPORTED` | prints final ccec command |
 | `-shared` | exact | compile/link | INJECT `-fPIC` | `SUPPORTED` for tested shape | required for ccec TLS/registration relocations |

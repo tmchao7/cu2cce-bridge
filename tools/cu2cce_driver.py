@@ -284,9 +284,7 @@ class RuleDriver:
         )
         self.cann_base = self.env.get("CANN_BASE", "/usr/local/Ascend/latest")
         self.cucc_cuda_version = self.env.get("CUCC_CUDA_VERSION", "11060")
-        self.npu_arch = self.env.get(
-            "CU2CCE_NPU_ARCH", self.env.get("CUCC_NPU_ARCH", "dav-c310-vec")
-        )
+        self.npu_arch = self._resolve_npu_arch()
         self.debug_enabled = self.env.get("CU2CCE_DEBUG", "0") == "1" or \
             self.env.get("WCUDA_DEBUG", "0") == "1"
         self.strict = self.env.get("CU2CCE_STRICT_FLAGS", "0") == "1"
@@ -325,7 +323,11 @@ class RuleDriver:
         frontend_defaults = self.rules.get("frontend", {})
         if "CUCC_CUDA_VERSION" not in self.env:
             self.cucc_cuda_version = str(frontend_defaults.get("cuda_version", self.cucc_cuda_version))
-        if "CU2CCE_NPU_ARCH" not in self.env and "CUCC_NPU_ARCH" not in self.env:
+        if (
+            "CU2CCE_NPU_ARCH" not in self.env
+            and "CUCC_NPU_ARCH" not in self.env
+            and not self.env.get("CUCC_TARGETS", "").strip()
+        ):
             self.npu_arch = str(frontend_defaults.get("default_arch", self.npu_arch))
         if self.rules.get("schema_version") != 1:
             raise DriverError(
@@ -334,6 +336,41 @@ class RuleDriver:
             )
         self.actions: List[Action] = []
         self.injected: List[str] = []
+        self.response_files: List[str] = []
+
+    def _resolve_npu_arch(self) -> str:
+        """Resolve one Ascend target without treating CUDA sm_* as a device arch.
+
+        ``CUCC_TARGETS`` is accepted as a compatibility alias for cu-bridge's
+        environment knob, but ccec puresimt emits one Ascend ``dav-*`` target
+        per invocation. Multiple or NVIDIA targets are therefore rejected
+        instead of silently selecting an incompatible backend.
+        """
+        explicit = self.env.get("CU2CCE_NPU_ARCH") or self.env.get("CUCC_NPU_ARCH")
+        if explicit:
+            if not explicit.startswith("dav-"):
+                raise DriverError(
+                    f"NPU architecture {explicit!r} is not an Ascend dav-* "
+                    "target; CUDA sm_*/compute_* values cannot select ccec"
+                )
+            return explicit
+        raw_targets = self.env.get("CUCC_TARGETS", "").replace(",", " ")
+        targets = raw_targets.split()
+        if not targets:
+            return "dav-c310-vec"
+        if len(set(targets)) != 1:
+            raise DriverError(
+                "CUCC_TARGETS must contain exactly one Ascend dav-* architecture "
+                "for a ccec puresimt invocation"
+            )
+        target = targets[0]
+        if not target.startswith("dav-"):
+            raise DriverError(
+                f"CUCC_TARGETS={target!r} is not an Ascend dav-* architecture; "
+                "CUDA sm_*/compute_* targets cannot select ccec"
+            )
+        return target
+
 
     def _select_rules_file(self, explicit: Optional[Path]) -> Path:
         candidates: List[Path] = []
@@ -352,8 +389,7 @@ class RuleDriver:
             "config/cu2cce_rules.json"
         )
 
-    @staticmethod
-    def _expand_response_files(args: Sequence[str], depth: int = 0) -> List[str]:
+    def _expand_response_files(self, args: Sequence[str], depth: int = 0) -> List[str]:
         if depth > 16:
             raise DriverError("response-file nesting exceeds 16 levels")
         expanded: List[str] = []
@@ -371,7 +407,8 @@ class RuleDriver:
                     nested = shlex.split(content, posix=True)
                 except (OSError, ValueError) as exc:
                     raise DriverError(f"cannot parse options file {path}: {exc}") from exc
-                expanded.extend(RuleDriver._expand_response_files(nested, depth + 1))
+                self.response_files.append(str(path.resolve()))
+                expanded.extend(self._expand_response_files(nested, depth + 1))
                 i += 2
                 continue
             if arg.startswith("@") and len(arg) > 1:
@@ -381,7 +418,8 @@ class RuleDriver:
                         nested = shlex.split(path.read_text(encoding="utf-8"), posix=True)
                     except (OSError, ValueError) as exc:
                         raise DriverError(f"cannot parse response file {path}: {exc}") from exc
-                    expanded.extend(RuleDriver._expand_response_files(nested, depth + 1))
+                    self.response_files.append(str(path.resolve()))
+                    expanded.extend(self._expand_response_files(nested, depth + 1))
                     i += 1
                     continue
             expanded.append(arg)
@@ -1231,6 +1269,7 @@ class RuleDriver:
             "source_is_cuda": prepared.source_is_cuda,
             "libc_mode": self.libc_mode,
             "rules_file": prepared.rules_file,
+            "response_files": list(self.response_files),
             "actions": [
                 {
                     "argument": action.argument,

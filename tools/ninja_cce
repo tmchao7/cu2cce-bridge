@@ -25,12 +25,7 @@ fi
 ASCEND_TOOLKIT_HOME="${ASCEND_TOOLKIT_HOME:-/usr/local/Ascend/ascend-toolkit/latest}"
 CANN_BASE="${CANN_BASE:-/usr/local/Ascend/latest}"
 CU2CCE_HOME="${CU2CCE_HOME:-${CUBRIDGE_HOME:-$HOME}}"
-if [ -z "${CU2CCE_NPU_ARCH:-}" ] && [ -z "${CUCC_NPU_ARCH:-}" ]; then
-    CU2CCE_NPU_ARCH="$(bash "$CUCC_PATH/tools/device_arch.sh" 2>/dev/null || echo dav-c310-vec)"
-else
-    CU2CCE_NPU_ARCH="${CU2CCE_NPU_ARCH:-${CUCC_NPU_ARCH:-dav-c310-vec}}"
-fi
-
+CU2CCE_NPU_ARCH="$(cu2cce_resolve_npu_arch)" || exit 1
 SHIM_ROOT="${CU2CCE_CMAKE_SHIM_DIR:-${CU2CCE_HOME}/cu2cce-bridge/cmake-shim}"
 if [ "${CU2CCE_SHIM_ISOLATE:-0}" = "1" ]; then
     SHIM_ROOT="${SHIM_ROOT}-${PPID}"

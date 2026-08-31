@@ -458,6 +458,34 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
                         "cuda_lib_aliases", "alias_dirs", "alias_target", "files"):
             self.assertIn(f'"{section}"', (ROOT / "config/shim_layout.json").read_text(encoding="utf-8"))
 
+    def test_device_arch_rejects_cuda_targets_and_accepts_one_dav_target(self) -> None:
+        script = ROOT / "tools/device_arch.sh"
+        env = dict(os.environ)
+        env.pop("CU2CCE_NPU_ARCH", None)
+        env.pop("CUCC_NPU_ARCH", None)
+        accepted = subprocess.run(
+            ["bash", str(script)],
+            env={**env, "CUCC_TARGETS": "dav-c310-vec"},
+            capture_output=True, text=True, check=False,
+        )
+        self.assertEqual(accepted.returncode, 0, accepted.stderr)
+        self.assertEqual(accepted.stdout.strip(), "dav-c310-vec")
+        rejected = subprocess.run(
+            ["bash", str(script)],
+            env={**env, "CUCC_TARGETS": "sm_80"},
+            capture_output=True, text=True, check=False,
+        )
+        self.assertNotEqual(rejected.returncode, 0)
+        self.assertIn("dav-*", rejected.stderr)
+
+    def test_build_wrappers_share_validated_npu_arch_resolution(self) -> None:
+        helper = (ROOT / "tools/fake_toolkit_env.sh").read_text(encoding="utf-8")
+        self.assertIn("cu2cce_resolve_npu_arch()", helper)
+        for name in ("tools/cmake_cce", "tools/make_cce", "tools/ninja_cce", "tools/pre_cce"):
+            text = (ROOT / name).read_text(encoding="utf-8")
+            self.assertIn("cu2cce_resolve_npu_arch", text, name)
+            self.assertNotIn("|| echo dav-c310-vec", text, name)
+
     def test_ninja_cce_rebuilds_the_same_persistent_npu_shim(self) -> None:
         # The shared builder materializes <shim-root>/CUDA_DIR. Direct ninja
         # invocation must use that same path as cmake_cce --build; using a
@@ -562,6 +590,63 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
                 os.readlink(shim_root / "CUDA_DIR/bin/nvcc"),
                 str(ROOT / "bin/cucc"),
             )
+
+    def test_cmake_cce_build_dispatches_to_real_make_or_ninja_wrapper(self) -> None:
+        # Exercise the wrapper boundary without CANN: fake ccec only satisfies
+        # the entry gate, while fake make/ninja records the argv it receives.
+        with tempfile.TemporaryDirectory() as tmp_name:
+            tmp = Path(tmp_name)
+            fake_bin = tmp / "bin"
+            fake_bin.mkdir()
+            cann_bin = tmp / "cann/bin"
+            cann_bin.mkdir(parents=True)
+            (cann_bin / "ccec").write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+            (cann_bin / "ccec").chmod(0o755)
+            log = tmp / "generator.log"
+            for name in ("make", "ninja"):
+                tool = fake_bin / name
+                tool.write_text(
+                    "#!/bin/sh\n"
+                    "printf '%s\n' \"GENERATOR=$0\" > \"$GENERATOR_LOG\"\n"
+                    "for arg in \"$@\"; do printf 'ARG=%s\n' \"$arg\" >> \"$GENERATOR_LOG\"; done\n",
+                    encoding="utf-8",
+                )
+                tool.chmod(0o755)
+            env = dict(os.environ)
+            env.update({
+                "CUCC_PATH": str(ROOT),
+                "CANN_BASE": str(tmp / "cann"),
+                "ASCEND_TOOLKIT_HOME": str(tmp / "ascend"),
+                "CU2CCE_CMAKE_SHIM_DIR": str(tmp / "cmake-shim"),
+                "CU2CCE_NPU_ARCH": "dav-c310-vec",
+                "GENERATOR_LOG": str(log),
+                "PATH": f"{fake_bin}{os.pathsep}{env.get('PATH', '')}",
+            })
+
+            ninja_build = tmp / "ninja-build"
+            ninja_build.mkdir()
+            (ninja_build / "build.ninja").write_text("# fake\n", encoding="utf-8")
+            result = subprocess.run(
+                [str(ROOT / "tools/cmake_cce"), "--build", str(ninja_build),
+                 "--target", "app", "--parallel", "2", "--", "--verbose"],
+                env=env, capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            ninja_lines = log.read_text(encoding="utf-8").splitlines()
+            self.assertTrue(ninja_lines[0].endswith("/ninja"), ninja_lines)
+            self.assertEqual(ninja_lines[1:], ["ARG=-j", "ARG=2", "ARG=app", "ARG=--verbose"])
+
+            make_build = tmp / "make-build"
+            make_build.mkdir()
+            result = subprocess.run(
+                [str(ROOT / "tools/cmake_cce"), "--build", str(make_build),
+                 "--target", "app", "--parallel", "3"],
+                env=env, capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            make_lines = log.read_text(encoding="utf-8").splitlines()
+            self.assertTrue(make_lines[0].endswith("/make"), make_lines)
+            self.assertEqual(make_lines[1:], ["ARG=-j", "ARG=3", "ARG=app"])
 
     def test_cmake_cce_build_phase_dispatches_to_make_ninja_entries(self) -> None:
         # deal_build_param parity (cu-bridge cmake_mock:64-131): cmake_cce
@@ -748,6 +833,23 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
             self.assertIn(section, doc)
         self.assertIn("docs/02_Architecture/06_cmake_principle_flow.md", doc)
 
+    def test_findcuda_exposes_cubridge_legacy_macro_names_with_npu_limits(self) -> None:
+        findcuda = (ROOT / "cmake_modules/FindCUDA.cmake").read_text(encoding="utf-8")
+        for macro in (
+            "macro(CUDA_ADD_EXECUTABLE",
+            "macro(CUDA_ADD_LIBRARY",
+            "macro(CUDA_COMPILE ",
+            "macro(CUDA_WRAP_SRCS ",
+            "macro(CUDA_ADD_CUBLAS_TO_TARGET",
+            "macro(CUDA_ADD_CUFFT_TO_TARGET",
+            "macro(CUDA_ADD_CUSOLVER_TO_TARGET",
+            "macro(CUDA_ADD_CUSPARSE_TO_TARGET",
+            "macro(CUDA_ADD_CURAND_TO_TARGET",
+        ):
+            self.assertIn(macro, findcuda)
+        self.assertIn("no validated Ascend equivalent", findcuda)
+        self.assertIn("CUDA_LIBRARIES", findcuda)
+
     def test_findcuda_uses_shared_legacy_helpers(self) -> None:
         # Keep the legacy CMake surface easy to audit: repeated CUDA-language
         # enablement and target setup should live in private helpers, while
@@ -877,8 +979,9 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         for wrapper in ("tools/cmake_cce", "tools/make_cce"):
             text = (ROOT / wrapper).read_text(encoding="utf-8")
             self.assertIn("tools/fake_toolkit_env.sh", text)
-            self.assertIn("tools/device_arch.sh", text)
+            self.assertIn("cu2cce_resolve_npu_arch", text)
         helper_text = (ROOT / "tools/fake_toolkit_env.sh").read_text(encoding="utf-8")
+        self.assertIn("tools/device_arch.sh", helper_text)
         self.assertIn("tools/build_shim_tree.py", helper_text)
         self.assertIn("hostcc_cce",
                       (ROOT / "tools/build_shim_tree.py").read_text(encoding="utf-8"))
@@ -886,6 +989,14 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         self.assertIn("extras/CUPTI/include", layout_text)
         # the driver already accepts --options-file (cu-bridge conf.json parity)
         self.assertIn('"--options-file"', (ROOT / "tools/cu2cce_driver.py").read_text(encoding="utf-8"))
+
+    def test_round9_query_arch_and_options_probes_are_wired_into_the_harness(self) -> None:
+        server_cmd = (ROOT / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
+        self.assertIn("-E query passthrough", server_cmd)
+        self.assertIn("--options-file", server_cmd)
+        self.assertIn("CUCC_TARGETS=dav-c310-vec", server_cmd)
+        self.assertIn("direct ninja_cce", server_cmd)
+        self.assertIn("response_files", (ROOT / "tools/cu2cce_driver.py").read_text(encoding="utf-8"))
 
     def test_round8_machinery_probes_are_wired_into_the_harness(self) -> None:
         # The real-machine harness locks the batch-5..8 runtime mechanisms

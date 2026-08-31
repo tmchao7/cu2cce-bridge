@@ -22,7 +22,7 @@
 | dependency generation `-M/-MM/-MD/-MF/-MT` | `DIAGNOSTIC_ONLY` until device proof | driver phase tests | ccec 真实依赖输出需真机确认 |
 | query `--version/-V/--help` | `SUPPORTED` for driver | local unit tests | 输出是 cu2cce compatibility identity |
 | toolchain probes `-dumpversion/-dumpmachine/-print-*` | `SUPPORTED` (passthrough) | `tests/test_cucc_rules.py` query bypass | cu-bridge skipstring parity：命中即整条命令原样直通 ccec，无注入 |
-| preprocess `-E` | `EXPERIMENTAL` | driver phase tests | ccec 真实预处理输出需真机确认 |
+| preprocess `-E` | `SUPPORTED` for passthrough mechanism | driver query tests | ccec receives original `-E` command; actual output remains diagnostic-only until real proof |
 | CUDA `-gencode` / `-arch` | `DIAGNOSTIC_ONLY`（识别并记录） | rule trace + `extract_cuda_arch` | flag 仍丢弃；架构值进 trace；`CU2CCE_ARCH_MACRO=auto`（opt-in）时注入 `__CUDA_ARCH__`（无 `-Xdevice` 式 device-pass 限定，host 分支语义见 PARITY_AUDIT） |
 | `-std` 用户值 | `SUPPORTED`（去重） | `tests/test_cucc_rules.py` | 用户 `-std=` 存在时不注入 `-std=gnu++17` |
 | `-Werror=implicit-fallthrough*` | `SUPPORTED`（规范化） | `tests/test_cucc_rules.py` | nvcc/gcc 的 =N 拼写重写为 clang 兼容 `-Werror=implicit-fallthrough`（cu-bridge bin/cucc:250-280 对齐）；`-Xcompiler` 值中的裸 `-Werror` 丢弃（conf_regex.yaml C500S-11780 对齐） |

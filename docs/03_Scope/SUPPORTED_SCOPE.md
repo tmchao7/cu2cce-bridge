@@ -12,7 +12,8 @@
 | 规则数据驱动（JSON 五动作）+ strict 模式 | `SUPPORTED` |
 | `-c` 编译 / compile_and_link / link 三形态 | `SUPPORTED` |
 | FP64 device 使用前置策略（error/warn/allow） | `SUPPORTED` |
-| dependency（-M/-MD）/ preprocess（-E） | `DIAGNOSTIC_ONLY` |
+| dependency（-M/-MD） | `DIAGNOSTIC_ONLY` |
+| preprocess（-E）query passthrough | `SUPPORTED` for mechanism / `DIAGNOSTIC_ONLY` for output parity |
 | PTX/CUBIN/FATBIN/S/设备链 | `UNSUPPORTED`（明确拒绝） |
 
 ## 2. 语言/头文件面（.cu 源码所见）

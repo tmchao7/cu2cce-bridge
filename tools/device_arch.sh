@@ -22,11 +22,29 @@ print_tip() {
 
 # 1) environment wins (mirrors CUCC_TARGETS-first semantics)
 if [ -n "${CU2CCE_NPU_ARCH:-}" ]; then
+    if [[ "$CU2CCE_NPU_ARCH" != dav-* ]]; then
+        echo "device_arch: NPU architecture must be an Ascend dav-* target" >&2
+        exit 2
+    fi
     echo "$CU2CCE_NPU_ARCH"
     exit 0
 fi
 if [ -n "${CUCC_NPU_ARCH:-}" ]; then
+    if [[ "$CUCC_NPU_ARCH" != dav-* ]]; then
+        echo "device_arch: NPU architecture must be an Ascend dav-* target" >&2
+        exit 2
+    fi
     echo "$CUCC_NPU_ARCH"
+    exit 0
+fi
+if [ -n "${CUCC_TARGETS:-}" ]; then
+    targets="${CUCC_TARGETS//,/ }"
+    read -r -a target_list <<< "$targets"
+    if [ "${#target_list[@]}" -ne 1 ] || [[ "${target_list[0]}" != dav-* ]]; then
+        echo "device_arch: CUCC_TARGETS must contain exactly one Ascend dav-* architecture" >&2
+        exit 2
+    fi
+    echo "${target_list[0]}"
     exit 0
 fi
 

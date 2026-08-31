@@ -1,7 +1,7 @@
 # cu-bridge parity audit
 
 Reference: `6ab1076` (3.8.0)
-Implementation: `0db2f9b`
+Implementation: `fe1560e`
 
 ## cmake_make
 
@@ -21,7 +21,7 @@ Implementation: `0db2f9b`
 | ID | Status | Reference | Implementation | Note |
 |---|---|---|---|---|
 | options_file | ALIGNED | --options-file recursive expansion | safe shlex response/options expansion | No shell evaluation; nesting is depth-limited. |
-| query_skipstring | ALIGNED | 13 reference skipstring queries | 11 configured queries plus driver banner handling | -E and -V remain explicit follow-up parity items if not represented by rules. |
+| query_skipstring | ALIGNED | 13 reference skipstring queries | 12 configured queries plus driver banner handling | -E is a query passthrough rule; -V remains an honest cu2cce driver banner. |
 | rule_pipeline | EQUIVALENT_NPU | 68 filters / 209 replacer pairs | 146 drops / 14 replacements plus NPU policy | Rules preserve semantics where ccec has an equivalent and reject/drop the rest honestly. |
 | architecture_policy | EQUIVALENT_NPU | CUCC_TARGETS -> --offload-arch for MACA | CU2CCE_NPU_ARCH/device_arch.sh -> --cce-aicore-arch=dav-* | sm_* is metadata or compatibility macro input, never a ccec target. |
 | library_policy | EQUIVALENT_NPU | CUDA libraries map to MACA library names | validated bridge/CANN mapping, experimental cublas, map_to diagnostics | No unvalidated CUDA library is presented as an Ascend equivalent. |

@@ -12,6 +12,8 @@
 - **绝不伪造**：不支持的参数/类型按规则 reject 或明确 not-support；
   不静默吞错误。
 
+Ascend 架构选择优先使用 `CU2CCE_NPU_ARCH`/`CUCC_NPU_ARCH`；为对齐 cu-bridge，`CUCC_TARGETS` 作为兼容别名接受，但当前 ccec puresimt 一次只允许一个 `dav-*` 架构。`sm_*`/`compute_*` 只用于 CUDA 兼容宏、trace 或诊断，绝不作为 ccec 的目标架构。
+
 ## 2. 五阶段模型（phase/mode）
 
 | 输入形态 | phase | 行为 |
@@ -19,11 +21,13 @@
 | `.cu` 带 `-c` | compile | `-x asc --enable-simt` + 注入链 → 产出 `.o` |
 | `.cu` 无 `-c` | compile_and_link | 编译 + 链接（自动补桥运行时/CANN 库） |
 | 只链接（`.o`/库） | link | 透传 + 库策略 |
-| `-E` | preprocess | 透传（真机输出待验，DIAGNOSTIC_ONLY） |
+| `-E` | query/preprocess passthrough | 原样交给 ccec，不注入 SIMT/runtime 参数；输出语义仍需真机确认 |
 | `-M/-MM/-MD` | dependency | 透传（DIAGNOSTIC_ONLY） |
 | `-S`/`-ptx`/`-cubin` 等 | unsupported | 明确拒绝（puresimt 不产 NVIDIA 中间产物） |
 
 ## 3. 规则文件：`config/cu2cce_rules.json`
+
+规则文件之外，`--options-file` 与 `@response-file` 均由同一个安全的 `shlex` 展开器处理；trace 会记录文件路径，不记录文件内容。工具链查询和 `-E` 命中 `queries` 后跳过规则注入，直接透传给 ccec。
 
 五种动作（按序匹配，命中即停）：
 

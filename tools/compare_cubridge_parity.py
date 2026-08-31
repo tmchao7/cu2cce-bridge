@@ -202,7 +202,7 @@ def build_report(repo: Path, reference: Path) -> Dict[str, Any]:
                 "ALIGNED" if current_query_count >= reference_query_count - 2 else "MISSING",
                 f"{reference_query_count} reference skipstring queries",
                 f"{current_query_count} configured queries plus driver banner handling",
-                "-E and -V remain explicit follow-up parity items if not represented by rules.",
+                "-E is a query passthrough rule; -V remains an honest cu2cce driver banner.",
             ),
             _item(
                 "rule_pipeline",

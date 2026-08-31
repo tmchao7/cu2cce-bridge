@@ -9,6 +9,10 @@
   },
   "queries": [
     {
+      "pattern": "-E",
+      "reason": "preprocess query passes through to ccec without CUDA/SIMT or link injection (cu-bridge skipstring parity)"
+    },
+    {
       "pattern": "-dumpversion",
       "reason": "probe query: bypasses the rule pipeline and passes through to ccec (cu-bridge conf.json skipstring parity)"
     },
@@ -1191,6 +1195,41 @@
       "status": "map_available",
       "action": "warn_no_automatic_replacement",
       "map_to": "HCCL (hccl.h: HcclCommInitRootInfo/HcclCommInitClusterInfo, HcclAllReduce/Broadcast/Send/Recv, HcclGetRankSize/RankId)"
+    },
+    "cufftw": {
+      "status": "unsupported",
+      "action": "warn_no_automatic_replacement",
+      "map_to": "CANN FFT operators; no 1:1 cufftw shim yet"
+    },
+    "cufile": {
+      "status": "unsupported",
+      "action": "warn_no_automatic_replacement",
+      "map_to": "Ascend data mover/ACL IO APIs; no 1:1 cuFile shim yet"
+    },
+    "cupti": {
+      "status": "unsupported",
+      "action": "warn_no_automatic_replacement",
+      "map_to": "CANN profiling APIs; nvToolsExt shim is separate"
+    },
+    "nvjpeg": {
+      "status": "unsupported",
+      "action": "warn_no_automatic_replacement",
+      "map_to": "CANN image/codec operators; no 1:1 nvJPEG shim yet"
+    },
+    "npp": {
+      "status": "unsupported",
+      "action": "warn_no_automatic_replacement",
+      "map_to": "CANN image/vision operators; no 1:1 NPP shim yet"
+    },
+    "nvperf": {
+      "status": "unsupported",
+      "action": "warn_no_automatic_replacement",
+      "map_to": "CANN profiling/performance tooling; no 1:1 nvperf shim yet"
+    },
+    "nvidia-ml": {
+      "status": "unsupported",
+      "action": "warn_no_automatic_replacement",
+      "map_to": "Ascend npu-smi/device management; no 1:1 NVML shim yet"
     }
   },
   "regex_cleanup": [

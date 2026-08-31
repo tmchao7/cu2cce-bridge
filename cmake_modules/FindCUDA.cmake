@@ -152,3 +152,48 @@ macro(cuda_compile_cubin out_var)
 endmacro()
 
 message(STATUS "Found cu2cce legacy CUDA compatibility: ${CUDA_NVCC_EXECUTABLE}")
+
+# Reference FindCUDA exposes uppercase aliases. Keep the aliases as thin
+# wrappers around the validated lowercase implementation so legacy projects
+# configure without introducing a second code path.
+macro(CUDA_ADD_EXECUTABLE target)
+  cuda_add_executable(${target} ${ARGN})
+endmacro()
+
+macro(CUDA_ADD_LIBRARY target)
+  cuda_add_library(${target} ${ARGN})
+endmacro()
+
+macro(CUDA_COMPILE out_var)
+  cuda_compile(${out_var} ${ARGN})
+endmacro()
+
+macro(CUDA_WRAP_SRCS cuda_target format generated_files)
+  cuda_wrap_srcs(${cuda_target} ${format} ${generated_files} ${ARGN})
+endmacro()
+
+macro(CUDA_INCLUDE_DIRECTORIES)
+  cuda_include_directories(${ARGN})
+endmacro()
+
+function(_cu2cce_fail_unmapped_legacy_library library target)
+  message(FATAL_ERROR
+    "cu2cce: ${library} for ${target} has no validated Ascend equivalent; "
+    "use an explicit CANN/bridge target instead of a CUDA library alias")
+endfunction()
+
+macro(CUDA_ADD_CUBLAS_TO_TARGET target)
+  _cu2cce_fail_unmapped_legacy_library("CUDA::cublas" "${target}")
+endmacro()
+macro(CUDA_ADD_CUFFT_TO_TARGET target)
+  _cu2cce_fail_unmapped_legacy_library("CUDA::cufft" "${target}")
+endmacro()
+macro(CUDA_ADD_CUSOLVER_TO_TARGET target)
+  _cu2cce_fail_unmapped_legacy_library("CUDA::cusolver" "${target}")
+endmacro()
+macro(CUDA_ADD_CUSPARSE_TO_TARGET target)
+  _cu2cce_fail_unmapped_legacy_library("CUDA::cusparse" "${target}")
+endmacro()
+macro(CUDA_ADD_CURAND_TO_TARGET target)
+  _cu2cce_fail_unmapped_legacy_library("CUDA::curand" "${target}")
+endmacro()

@@ -30,11 +30,6 @@ CUCC_PATH=${CUCC_PATH:-}
 # Keep the old CUBRIDGE_HOME name as a compatibility alias, but use the
 # cu2cce-specific name for new projects.
 CU2CCE_HOME=${CU2CCE_HOME:-${CUBRIDGE_HOME:-$HOME}}
-# Device architecture resolution (cu-bridge multi_target.sh parity).
-if [ -z "${CU2CCE_NPU_ARCH:-}" ] && [ -z "${CUCC_NPU_ARCH:-}" ]; then
-    CU2CCE_NPU_ARCH="$(bash "${CUCC_PATH}/tools/device_arch.sh" 2>/dev/null || echo dav-c310-vec)"
-fi
-
 if [ -z "${CUCC_PATH}" ]; then
     echo "make_cce: CUCC_PATH not set (point to cu2cce-bridge install dir)" >&2
     exit 1
@@ -44,6 +39,7 @@ if [ ! -f "${CUCC_PATH}/tools/fake_toolkit_env.sh" ]; then
     exit 1
 fi
 . "${CUCC_PATH}/tools/fake_toolkit_env.sh"
+CU2CCE_NPU_ARCH="$(cu2cce_resolve_npu_arch)" || exit 1
 
 TEMP_DIR_NAME="cu2cce-bridge"
 DST_WCUDA="$CU2CCE_HOME/${TEMP_DIR_NAME}"

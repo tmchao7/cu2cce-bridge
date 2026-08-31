@@ -24,6 +24,34 @@ cu2cce_host_triple() {
     printf '%s-%s\n' "$arch" "$os"
 }
 
+# Resolve one Ascend architecture for all build wrappers. CUCC_TARGETS is the
+# cu-bridge-compatible alias, but unlike MACA's multi-target list the current
+# ccec puresimt path accepts exactly one dav-* target. Explicit invalid input
+# fails instead of silently falling back to dav-c310-vec.
+cu2cce_resolve_npu_arch() {
+    if [ -n "${CU2CCE_NPU_ARCH:-}" ]; then
+        if [[ "$CU2CCE_NPU_ARCH" != dav-* ]]; then
+            echo "cu2cce: NPU architecture must be an Ascend dav-* target" >&2
+            return 2
+        fi
+        printf '%s\n' "$CU2CCE_NPU_ARCH"
+        return 0
+    fi
+    if [ -n "${CUCC_NPU_ARCH:-}" ]; then
+        if [[ "$CUCC_NPU_ARCH" != dav-* ]]; then
+            echo "cu2cce: NPU architecture must be an Ascend dav-* target" >&2
+            return 2
+        fi
+        printf '%s\n' "$CUCC_NPU_ARCH"
+        return 0
+    fi
+    if [ -n "${CUCC_TARGETS:-}" ]; then
+        bash "$CUCC_PATH/tools/device_arch.sh"
+        return $?
+    fi
+    bash "$CUCC_PATH/tools/device_arch.sh" 2>/dev/null || printf 'dav-c310-vec\n'
+}
+
 # cu2cce_prepare_fake_toolkit DST_WCUDA NVCC_TARGET HOSTCC_BIN_DIR HOSTCC_MODE
 #
 # Builds the toolkit-shaped tree under $DST_WCUDA/CUDA_DIR:

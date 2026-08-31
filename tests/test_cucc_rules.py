@@ -97,6 +97,18 @@ class CuccRuleDriverTest(unittest.TestCase):
         self.assertIn("-fno-exceptions", kept.args)
         self.assertIn("-fPIC", kept.args)
 
+    def test_reference_library_families_get_explicit_ascend_policy(self) -> None:
+        # cu-bridge maps a wider CUDA library family. The NPU driver must not
+        # silently forward those names: preserve the link token only with an
+        # explicit capability warning and map_to guidance.
+        for library in ("-lcufftlegacy", "-lnvjpeg", "-lcupti", "-lnppc", "-lcufile", "-lnvidia-ml"):
+            with self.subTest(library=library):
+                prepared = self.driver().prepare(["main.o", library, "-o", "app"])
+                self.assertIn(library, prepared.args)
+                actions = [action for action in prepared.actions if action.argument == library]
+                self.assertTrue(actions, library)
+                self.assertIn("mapping", actions[0].reason.lower())
+
     def test_object_link_drops_cudart_but_does_not_map_cublas(self) -> None:
         prepared = self.driver().prepare([
             "build/main.o", "-lcudart", "-lcublas", "-o", "build/app",
@@ -347,11 +359,51 @@ class CuccRuleDriverTest(unittest.TestCase):
         self.assertIn("--enable-simt", args)
         self.assertNotIn("-gencode", args)
 
-    def test_preprocess_and_dependency_phases_are_distinct(self) -> None:
+    def test_preprocess_query_matches_cubridge_skipstring_semantics(self) -> None:
+        # cu-bridge treats -E as a query-like passthrough. On Ascend this
+        # means ccec owns preprocessing, but cucc must not inject SIMT/link
+        # flags into the query command.
+        prepared = self.driver().prepare(["-E", "main.cu", "-o", "main.i"])
+        self.assertEqual(prepared.phase, "query")
+        self.assertEqual(prepared.mode, "query")
+        self.assertEqual(prepared.args, ["-E", "main.cu", "-o", "main.i"])
+        self.assertNotIn("-x", prepared.args)
+        self.assertNotIn("--enable-simt", prepared.args)
+        self.assertNotIn("-include", prepared.args)
+
+    def test_options_file_sources_are_recorded_without_file_contents(self) -> None:
+        outer = Path(self.tmp.name) / "trace.options"
+        inner = Path(self.tmp.name) / "trace-inner.options"
+        inner.write_text("-O2\n", encoding="utf-8")
+        outer.write_text(f'--options-file "{inner}"\n', encoding="utf-8")
+        trace = Path(self.tmp.name) / "driver-trace.json"
+        env = dict(self.env)
+        env["CU2CCE_TRACE_FILE"] = str(trace)
+        RuleDriver(env=env).prepare([
+            "--options-file", str(outer), "-c", "main.cu", "-o", "main.o",
+        ])
+        payload = json.loads(trace.read_text(encoding="utf-8"))
+        self.assertEqual(payload["response_files"], [str(outer.resolve()), str(inner.resolve())])
+        self.assertNotIn("-O2", json.dumps(payload["response_files"]))
+
+    def test_options_file_nested_and_malformed_paths_are_safe(self) -> None:
+        outer = Path(self.tmp.name) / "outer.options"
+        inner = Path(self.tmp.name) / "inner.options"
+        inner.write_text('-DVALUE="hello world"\n', encoding="utf-8")
+        outer.write_text(f'--options-file "{inner}" -O2\n', encoding="utf-8")
+        prepared = self.driver().prepare(["--options-file", str(outer), "-c", "main.cu", "-o", "main.o"])
+        self.assertIn("-DVALUE=hello world", prepared.args)
+        self.assertIn("-O2", prepared.args)
+
+        missing = Path(self.tmp.name) / "missing.options"
+        with self.assertRaisesRegex(DriverError, "options file not found"):
+            self.driver().prepare(["--options-file", str(missing), "-c", "main.cu"])
+
+    def test_preprocess_query_and_dependency_phases_are_distinct(self) -> None:
         preprocess = self.driver().prepare(["-E", "main.cu", "-o", "main.i"])
         dependency = self.driver().prepare(["-M", "main.cu", "-MF", "main.d"])
-        self.assertEqual(preprocess.phase, "preprocess")
-        self.assertEqual(preprocess.mode, "preprocess")
+        self.assertEqual(preprocess.phase, "query")
+        self.assertEqual(preprocess.mode, "query")
         self.assertEqual(dependency.phase, "dependency")
         self.assertEqual(dependency.mode, "dependency")
         self.assertNotIn("-lcce_bridge_runtime", preprocess.args)
@@ -484,6 +536,28 @@ class CuccRuleDriverTest(unittest.TestCase):
         default = self.driver().prepare(["-c", "main.cu", "-o", "main.o"])
         self.assertIn("-std=gnu++17", default.args)
 
+    def test_cucc_targets_accepts_one_ascend_architecture_only(self) -> None:
+        env = dict(self.env)
+        env.pop("CU2CCE_NPU_ARCH")
+        prepared = RuleDriver(env={**env, "CUCC_TARGETS": "dav-c310-vec"}).prepare([
+            "-c", "main.cu", "-o", "main.o",
+        ])
+        self.assertIn("--cce-aicore-arch=dav-c310-vec", prepared.args)
+
+        with self.assertRaisesRegex(DriverError, "CUCC_TARGETS"):
+            RuleDriver(env={**env, "CUCC_TARGETS": "sm_80"}).prepare([
+                "-c", "main.cu", "-o", "main.o",
+            ])
+        with self.assertRaisesRegex(DriverError, "exactly one"):
+            RuleDriver(env={**env, "CUCC_TARGETS": "dav-c310-vec,dav-c100-vec"}).prepare([
+                "-c", "main.cu", "-o", "main.o",
+            ])
+
+        with self.assertRaisesRegex(DriverError, "Ascend dav"):
+            self.driver(CU2CCE_NPU_ARCH="sm_80").prepare([
+                "-c", "main.cu", "-o", "main.o",
+            ])
+
     def test_arch_macro_auto_derives_from_gencode(self) -> None:
         # CU2CCE_ARCH_MACRO=auto borrows cu-bridge's not_found.dev_compile
         # chain: the dropped -gencode/-arch value is recovered and injected
@@ -555,9 +629,9 @@ class CuccRuleDriverTest(unittest.TestCase):
         # Unknown variants of a capability library keep the advisory warning
         # (never silently forwarded), but the message is honest about being
         # a heuristic prefix match rather than an exact capability hit.
-        prepared = self.driver().prepare(["main.o", "-lcufftw", "-o", "app"])
-        self.assertIn("-lcufftw", prepared.args)
-        actions = [action for action in prepared.actions if action.argument == "-lcufftw"]
+        prepared = self.driver().prepare(["main.o", "-lcufftlegacy", "-o", "app"])
+        self.assertIn("-lcufftlegacy", prepared.args)
+        actions = [action for action in prepared.actions if action.argument == "-lcufftlegacy"]
         self.assertEqual(actions[0].action, "forward")
         self.assertIn("prefix match", actions[0].reason)
 
@@ -661,6 +735,23 @@ class CuccRuleDriverTest(unittest.TestCase):
             [str(driver), "--proxy-mode", "-c", "main.cu", "-o", "main.o"],
             env=env, capture_output=True, text=True)
         self.assertNotIn("[cu2cce]", quiet.stderr)
+
+    def test_validator_rejects_invalid_capability_policy(self) -> None:
+        import validate_cucc_rules  # noqa: PLC0415
+        rules = Path(self.tmp.name) / "bad-capability.json"
+        rules.write_text(json.dumps({
+            "schema_version": 1,
+            "frontend": {},
+            "all": {"forward": [], "drop": [], "replace": [], "reject": []},
+            "compile": {"inject": []},
+            "link": {"inject": []},
+            "compile_and_link": {"inject": []},
+            "capabilities": {"npp": {"status": "unknown", "action": "maybe"}},
+            "diagnostics": {},
+        }), encoding="utf-8")
+        errors = validate_cucc_rules.validate(rules)
+        self.assertTrue(any("capabilities.npp.status" in error for error in errors))
+        self.assertTrue(any("capabilities.npp.action" in error for error in errors))
 
     def test_validator_rejects_broken_regex_cleanup_patterns(self) -> None:
         import validate_cucc_rules  # noqa: PLC0415
@@ -805,10 +896,12 @@ class CuccRuleDriverTest(unittest.TestCase):
         # banner keeps the driver identity plus the cu-bridge-style
         # "compatible with release" token.
         driver = Path(__file__).resolve().parents[1] / "bin/cucc"
-        result = subprocess.run([str(driver), "--version"], capture_output=True, text=True)
-        self.assertEqual(result.returncode, 0)
-        self.assertIn("compatible with release 11.6", result.stdout)
-        self.assertIn("cu2cce-bridge", result.stdout)
+        for flag in ("--version", "-V"):
+            with self.subTest(flag=flag):
+                result = subprocess.run([str(driver), flag], capture_output=True, text=True)
+                self.assertEqual(result.returncode, 0)
+                self.assertIn("compatible with release 11.6", result.stdout)
+                self.assertIn("cu2cce-bridge", result.stdout)
 
 
 if __name__ == "__main__":

@@ -9,6 +9,8 @@ from typing import Any, Dict, List
 
 ACTIONS = {"forward", "drop", "replace", "inject", "reject"}
 PHASES = {"all", "compile", "link", "compile_and_link"}
+CAPABILITY_STATUSES = {"supported_by_bridge", "experimental", "unsupported", "map_available"}
+CAPABILITY_ACTIONS = {"bridge_inject", "warn_no_automatic_replacement", "drop", "reject"}
 REQUIRED_TOP = {"schema_version", "frontend", "all", "compile", "link", "compile_and_link", "capabilities", "diagnostics"}
 
 
@@ -133,8 +135,23 @@ def validate(path: Path) -> List[str]:
                         continue
                     for index, rule in enumerate(rules):
                         validate_rule(rule, action, f"hostcc.{phase}.{action}[{index}]", errors)
-    if not isinstance(data.get("capabilities"), dict):
+    capabilities = data.get("capabilities")
+    if not isinstance(capabilities, dict):
         fail(errors, "capabilities: must be an object")
+    else:
+        for name, entry in capabilities.items():
+            path_prefix = f"capabilities.{name}"
+            if not isinstance(entry, dict):
+                fail(errors, f"{path_prefix}: must be an object")
+                continue
+            status = entry.get("status")
+            if status not in CAPABILITY_STATUSES:
+                fail(errors, f"{path_prefix}.status must be one of {sorted(CAPABILITY_STATUSES)}")
+            action = entry.get("action")
+            if action not in CAPABILITY_ACTIONS:
+                fail(errors, f"{path_prefix}.action must be one of {sorted(CAPABILITY_ACTIONS)}")
+            if "map_to" in entry and not isinstance(entry["map_to"], str):
+                fail(errors, f"{path_prefix}.map_to must be a string")
     if not isinstance(data.get("diagnostics"), dict):
         fail(errors, "diagnostics: must be an object")
     return errors
