@@ -27,6 +27,7 @@ cmake_install.cmake
 CTestTestfile.cmake
 Makefile
 !examples/build_compat/make/Makefile
+!examples/build_compat/make_gxx_link/Makefile
 CMakePresets.json.local
 
 # cucc/make_cce 临时工作目录（对应 cu-bridge 的 CUBRIDGE_HOME）

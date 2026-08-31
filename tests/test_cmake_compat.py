@@ -700,10 +700,12 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         # nvrtc handling, and the cmake_cce --build dispatch probe.
         server_cmd = (ROOT / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
         self.assertIn("queries 直通：-dumpmachine 由 ccec 原生应答", server_cmd)
-        self.assertIn("-D__CUDA_ARCH__=860", server_cmd)
-        self.assertIn("'-D__CUDACC__'", server_cmd)
+        # 8th-batch fix: the final command is shlex-joined, so inject tokens
+        # arrive either attached (-D__CUDA_ARCH__=860) or space-separated
+        # (-D __CUDA_ARCH__=860); the probe must accept both spellings.
+        self.assertIn('__CUDA_ARCH__=860|__CUDA_ARCH__ = 860', server_cmd)
         self.assertIn("--use_fast_math", server_cmd)
-        self.assertIn("'-ffast-math'", server_cmd)
+        self.assertIn("-ffast-math", server_cmd)
         self.assertIn("cmake_cce --build 分流 make_cce（deal_build_param parity）", server_cmd)
         # The probes only run in the full profile and must be able to fail
         # the section badge (no silent skips for broken machinery).

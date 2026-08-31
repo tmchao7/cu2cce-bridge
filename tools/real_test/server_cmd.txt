@@ -233,12 +233,15 @@ if profile_runs "full"; then
     fi
 
     CUCC_PROBE_CMD="$OUT/cucc_probe_dryrun.txt"
+    # 8th-batch lesson: the final command is shlex-joined, so inject tokens
+    # arrive as "-D __CUDA_ARCH__=860" (space) for multi-token rules and as
+    # "-D__CUDACC__" (attached) for single-token ones. grep both spellings.
     if CUCC_PATH="$PWD/build/real_test/install" CU2CCE_ARCH_MACRO=auto \
         "$CUCC_BIN" --dryrun -c examples/puresimt/vectorAdd_minimal.cu \
         -gencode arch=compute_80,code=sm_86 -o "$OUT/probe.o" >"$CUCC_PROBE_CMD" 2>&1 &&
-        grep -Fq -- '-D__CUDA_ARCH__=860' "$CUCC_PROBE_CMD" &&
-        grep -Fq -- '-D__CUDACC__' "$CUCC_PROBE_CMD" &&
-        grep -Fq -- '-include' "$CUCC_PROBE_CMD"; then
+        { grep -Eq -- '(__CUDA_ARCH__=860|__CUDA_ARCH__ = 860)' "$CUCC_PROBE_CMD"; } &&
+        { grep -Eq -- '(__CUDACC__)' "$CUCC_PROBE_CMD"; } &&
+        { grep -Eq -- '(-include)' "$CUCC_PROBE_CMD"; }; then
         echo '[PASS] 架构宏 auto 注入 + __CUDACC__ 宏族 + .cu 预包含 cuda_runtime.h'
     else
         echo '[FAIL] dryrun 探针（ARCH_MACRO/__CUDACC__/预包含）'
@@ -252,7 +255,7 @@ if profile_runs "full"; then
         -lnvrtc --use_fast_math -o "$OUT/probe_app" >"$CUCC_PROBE_CMD" 2>&1 &&
         grep -Fq -- '-Xlinker' "$CUCC_PROBE_CMD" &&
         grep -Fq -- '-rpath=/tmp/x' "$CUCC_PROBE_CMD" &&
-        grep -Fq -- '-ffast-math' "$CUCC_PROBE_CMD" &&
+        { grep -Eq -- '(-ffast-math)' "$CUCC_PROBE_CMD"; } &&
         ! grep -Fq -- '-lnvrtc' "$CUCC_PROBE_CMD"; then
         echo '[PASS] -Xlinker 成对透传 / --use_fast_math→-ffast-math / -lnvrtc 丢弃'
     else
