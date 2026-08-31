@@ -25,11 +25,15 @@ $(MAIN_O): main.cpp | $(BUILD)
 	    -I$(ASCEND_TOOLKIT_HOME)/include
 
 # The lib64 symlink family maps -lcudart to the bridge runtime; g++ never
-# sees a real NVIDIA libcudart.
+# sees a real NVIDIA libcudart. The puresimt kernel.o carries Ascend runtime
+# references (rtConfigureCall & co), so the Ascend runtime must be on the
+# link line explicitly (GNU ld: "DSO missing from command line" otherwise).
 $(BUILD)/app: $(MAIN_O) $(KERNEL_O) | $(BUILD)
 	$(CXX) $(MAIN_O) $(KERNEL_O) \
 	    -L$(CUDA_PATH)/lib64 -lcudart \
+	    -L$(ASCEND_TOOLKIT_HOME)/lib64 -lruntime \
 	    -Wl,-rpath,$(CUCC_PATH)/lib \
+	    -Wl,-rpath,$(ASCEND_TOOLKIT_HOME)/lib64 \
 	    -o $@
 
 clean:
