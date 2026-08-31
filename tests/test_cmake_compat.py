@@ -10,9 +10,35 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class CMakeCompatibilityContractTest(unittest.TestCase):
+    def test_cubridge_parity_audit_reports_backend_aware_sections(self) -> None:
+        # Stage-0 baseline: compare the checked-in cu-bridge reference assets
+        # with the NPU implementation without treating MACA-only mappings as
+        # missing Ascend features.
+        audit = ROOT / "tools/compare_cubridge_parity.py"
+        self.assertTrue(audit.is_file())
+        result = subprocess.run(
+            [
+                "python3", str(audit),
+                "--reference", str(ROOT.parent / "cu-bridge"),
+                "--format", "json",
+            ],
+            capture_output=True, text=True, check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        import json
+        report = json.loads(result.stdout)
+        self.assertEqual(report["reference"]["commit"], "6ab1076")
+        self.assertIn("cmake_make", report["sections"])
+        self.assertIn("cucc", report["sections"])
+        statuses = report["summary"]
+        self.assertIn("EQUIVALENT_NPU", statuses)
+        self.assertIn("NOT_APPLICABLE_NPU", statuses)
+        self.assertGreater(statuses["ALIGNED"], 0)
+        self.assertGreater(report["reference_assets"]["cuda_library_aliases"], 0)
+
     def test_cmake_entrypoints_are_installed(self) -> None:
         cmake = (ROOT / "CMakeLists.txt").read_text(encoding="utf-8")
-        for tool in ("tools/cmake_cce", "tools/make_cce", "tools/ninja_cce", "tools/cu2cce_driver.py"):
+        for tool in ("tools/cmake_cce", "tools/make_cce", "tools/ninja_cce", "tools/cu2cce_driver.py", "tools/compare_cubridge_parity.py"):
             self.assertIn(tool, cmake)
 
     def test_stream_and_device_flag_compatibility_is_declared(self) -> None:
