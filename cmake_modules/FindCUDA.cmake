@@ -5,6 +5,7 @@
 #   cuda_add_executable() / cuda_add_library() / cuda_compile() /
 #   cuda_wrap_srcs() / cuda_include_directories() /
 #   cuda_select_nvcc_arch_flags() / CUDA_NVCC_FLAGS
+#   uppercase legacy aliases CUDA_ADD_* / CUDA_COMPILE / CUDA_WRAP_SRCS
 #   CUDA_INCLUDE_DIRS / CUDA_LIBRARIES / CUDA_NVCC_EXECUTABLE
 #
 # The implementation delegates to normal CMake targets. It never generates
@@ -196,4 +197,28 @@ macro(CUDA_ADD_CUSPARSE_TO_TARGET target)
 endmacro()
 macro(CUDA_ADD_CURAND_TO_TARGET target)
   _cu2cce_fail_unmapped_legacy_library("CUDA::curand" "${target}")
+endmacro()
+
+# Additional FindCUDA helper names commonly used by older projects. They are
+# compatibility shims over the same normal-CMake implementation; none creates
+# NVIDIA device artifacts on the Ascend puresimt backend.
+macro(CUDA_GET_SOURCES_AND_OPTIONS sources cmake_options options)
+  _cu2cce_legacy_parse("legacy" _cu2cce_sources _cu2cce_cmake_options _cu2cce_nvcc_options ${ARGN})
+  set(${sources} "${_cu2cce_sources}")
+  set(${cmake_options} "${_cu2cce_cmake_options}")
+  set(${options} "${_cu2cce_nvcc_options}")
+endmacro()
+
+macro(cuda_compile_base cuda_target format generated_files)
+  cuda_wrap_srcs(${cuda_target} ${format} ${generated_files} ${ARGN})
+endmacro()
+
+macro(cuda_unset_include_and_libraries)
+  unset(CUDA_INCLUDE_DIRS)
+  unset(CUDA_LIBRARIES)
+endmacro()
+
+macro(CUDA_BUILD_CLEAN_TARGET)
+  # CMake's native clean target already covers generated objects in this
+  # direct-language implementation; no extra CUDA artifact cleanup is needed.
 endmacro()

@@ -833,6 +833,29 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
             self.assertIn(section, doc)
         self.assertIn("docs/02_Architecture/06_cmake_principle_flow.md", doc)
 
+    def test_findcuda_supports_common_legacy_helpers_and_rejects_unmapped_libs(self) -> None:
+        findcuda = (ROOT / "cmake_modules/FindCUDA.cmake").read_text(encoding="utf-8")
+        for macro in (
+            "macro(CUDA_GET_SOURCES_AND_OPTIONS",
+            "macro(cuda_compile_base",
+            "macro(CUDA_BUILD_CLEAN_TARGET",
+            "macro(cuda_unset_include_and_libraries",
+        ):
+            self.assertIn(macro, findcuda)
+        with tempfile.TemporaryDirectory() as tmp_name:
+            script = Path(tmp_name) / "reject.cmake"
+            script.write_text(
+                f'include("{ROOT / "cmake_modules/FindCUDA.cmake"}")\n'
+                'CUDA_ADD_CUBLAS_TO_TARGET(app)\n',
+                encoding="utf-8",
+            )
+            result = subprocess.run(
+                ["cmake", "-P", str(script)],
+                capture_output=True, text=True, check=False,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("no validated Ascend equivalent", result.stderr)
+
     def test_findcuda_exposes_cubridge_legacy_macro_names_with_npu_limits(self) -> None:
         findcuda = (ROOT / "cmake_modules/FindCUDA.cmake").read_text(encoding="utf-8")
         for macro in (
