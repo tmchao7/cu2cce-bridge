@@ -1,7 +1,7 @@
 # cu-bridge parity audit
 
 Reference: `6ab1076` (3.8.0)
-Implementation: `fe1560e`
+Implementation: `b7fe098`
 
 ## cmake_make
 

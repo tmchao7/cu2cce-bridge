@@ -1013,6 +1013,18 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         # the driver already accepts --options-file (cu-bridge conf.json parity)
         self.assertIn('"--options-file"', (ROOT / "tools/cu2cce_driver.py").read_text(encoding="utf-8"))
 
+    def test_build_parity_keeps_mac_specific_paths_out_of_npu_wrappers(self) -> None:
+        # Mechanism parity must not become literal MACA backend copying. The
+        # Ascend wrappers use ccec/g++/CANN instead of mxcc, -fgpu-rdc, or
+        # --maca-link, and system cmake replacement stays deliberately absent.
+        for name in ("tools/cmake_cce", "tools/make_cce", "tools/ninja_cce", "tools/pre_cce"):
+            text = (ROOT / name).read_text(encoding="utf-8")
+            self.assertNotIn("mxcc", text, name)
+            self.assertNotIn("--maca-link", text, name)
+            self.assertNotIn("-fgpu-rdc", text, name)
+        self.assertNotIn("USE_CMAKE_MACA", (ROOT / "tools/cmake_cce").read_text(encoding="utf-8"))
+        self.assertIn("ccec", (ROOT / "tools/cmake_cce").read_text(encoding="utf-8"))
+
     def test_round9_query_arch_and_options_probes_are_wired_into_the_harness(self) -> None:
         server_cmd = (ROOT / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
         self.assertIn("-E query passthrough", server_cmd)

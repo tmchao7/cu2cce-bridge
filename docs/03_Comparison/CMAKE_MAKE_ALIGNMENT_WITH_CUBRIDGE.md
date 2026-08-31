@@ -187,3 +187,15 @@ configure 脚本用 `pre_makefile` 包裹；Python 库安装不管（FAQ Q7）�
 
 cu-bridge 机制变化（升级 mock 分支/link.json 结构/新增入口）时：重读本表
 → 差距更新 → 需要对齐的项走"探针取证 → 落层 → 契约测试"标准流程。
+
+## 2026-08-31 parity follow-up
+
+本轮继续按 `cu-bridge` 机制逐项收口，同时保留 Ascend NPU 后端边界：
+
+- `ninja_cce` 现在与 `make_cce`/`pre_cce` 共用 fake toolkit 生命周期，统一处理持久 shim、`CUDA_PATH`、`CANN_BASE`、`ASCEND_TOOLKIT_HOME`、`CU2CCE_NPU_ARCH`、`LD_LIBRARY_PATH`、clean 和并行隔离。
+- 修正 CMake shim 路径一致性：`cmake_cce`、`ninja_cce` 和 `build_shim_tree.py` 统一使用 `<shim-root>/CUDA_DIR`，避免 CMake 记录的 mock `nvcc` 路径与 build 阶段重指向路径不一致。
+- `pre_cce` 和所有构建 wrapper 保持 argv 直接传递，不复制参考脚本的 `eval` 字符串执行风险。
+- `-E` 采用 `cu-bridge` 的 query passthrough 机制，但后端仍由 Ascend ccec 负责，实际预处理输出继续以真机证据为准。
+- `CUCC_TARGETS` 作为兼容别名接受，但 Ascend ccec puresimt 一次只允许一个 `dav-*` 目标；`sm_*`/`compute_*` 不会被误传为 NPU 架构。
+- legacy `FindCUDA` 增加常见 uppercase helper 名称；CUDA math-library adders 在没有已验证 Ascend 等价物时显式失败，不创建伪库链接。
+- CUDA 库 alias 继续只覆盖已验证 bridge/CANN 路径；`cufft`、`nvjpeg`、`cupti`、NPP、cuFile、NVML 等进入 capability warning/map-to policy，不直接照搬 MACA 库名。
