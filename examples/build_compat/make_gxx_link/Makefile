@@ -20,7 +20,9 @@ $(KERNEL_O): kernel.cu | $(BUILD)
 	$(NVCC) -c $< -o $@ -std=c++17 -O2
 
 $(MAIN_O): main.cpp | $(BUILD)
-	$(CXX) -c $< -o $@ -std=c++17 -O2 -I$(CUDA_PATH)/include
+	$(CXX) -c $< -o $@ -std=c++17 -O2 \
+	    -I$(CUDA_PATH)/include \
+	    -I$(ASCEND_TOOLKIT_HOME)/include
 
 # The lib64 symlink family maps -lcudart to the bridge runtime; g++ never
 # sees a real NVIDIA libcudart.
