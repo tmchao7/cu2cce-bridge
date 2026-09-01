@@ -23,6 +23,7 @@ Rules are implemented by `config/cu2cce_rules.json` and shared by `cucc` and the
 | `-MD/-MF/-MT` | exact/separate | compile/dependency | FORWARD | `EXPERIMENTAL` | dedicated Makefile smoke |
 | `-E` | exact | query/preprocess | QUERY PASSTHROUGH | `SUPPORTED` for mechanism | ccec receives the original query without SIMT/runtime injection; output semantics remain diagnostic-only until real proof |
 | `--version/-V/--help` | exact | query | DRIVER | `SUPPORTED` | compatibility identity output |
+| `WCUDA_BAZEL_TF_BUILD=1` | environment | all | REJECT | `UNSUPPORTED` | no validated Ascend equivalent; use explicit CMake/Make integration |
 | `--dryrun` | exact | all | DRIVER | `SUPPORTED` | prints final ccec command |
 | `-shared` | exact | compile/link | INJECT `-fPIC` | `SUPPORTED` for tested shape | required for ccec TLS/registration relocations |
 | `--device-link/-dlink` | exact | device link | DROP + phase degrade | `DIAGNOSTIC_ONLY` | CMake layer forces `CUDA_SEPARABLE_COMPILATION OFF`; stray flag no longer hard-crashes configure |

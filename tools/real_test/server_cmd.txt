@@ -325,6 +325,22 @@ if profile_runs "full"; then
         FAIL=$((FAIL + 1))
         CUCC_RULES_PASS=0
     fi
+
+    if WCUDA_BAZEL_TF_BUILD=1 CUCC_PATH="$PWD/build/real_test/install" \
+        "$CUCC_BIN" --dryrun -c examples/puresimt/vectorAdd_minimal.cu \
+        -o "$OUT/bazel_probe.o" >"$CUCC_PROBE_CMD" 2>&1; then
+        echo '[FAIL] WCUDA_BAZEL_TF_BUILD 未被显式拒绝'
+        cat "$CUCC_PROBE_CMD"
+        FAIL=$((FAIL + 1))
+        CUCC_RULES_PASS=0
+    elif grep -Eiq 'Bazel/TF|not supported' "$CUCC_PROBE_CMD"; then
+        echo '[PASS] WCUDA_BAZEL_TF_BUILD 在 Ascend 路径显式拒绝'
+    else
+        echo '[FAIL] WCUDA_BAZEL_TF_BUILD 拒绝信息缺失'
+        cat "$CUCC_PROBE_CMD"
+        FAIL=$((FAIL + 1))
+        CUCC_RULES_PASS=0
+    fi
 fi
 
 if [ "$CUCC_RULES_PASS" -eq 1 ]; then

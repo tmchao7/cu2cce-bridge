@@ -284,6 +284,11 @@ class RuleDriver:
         )
         self.cann_base = self.env.get("CANN_BASE", "/usr/local/Ascend/latest")
         self.cucc_cuda_version = self.env.get("CUCC_CUDA_VERSION", "11060")
+        if self.env.get("WCUDA_BAZEL_TF_BUILD") == "1":
+            raise DriverError(
+                "Bazel/TF cu-bridge mode is not supported by the Ascend puresimt "
+                "driver; use cmake_cce/make_cce with explicit CANN integration"
+            )
         self.npu_arch = self._resolve_npu_arch()
         self.debug_enabled = self.env.get("CU2CCE_DEBUG", "0") == "1" or \
             self.env.get("WCUDA_DEBUG", "0") == "1"

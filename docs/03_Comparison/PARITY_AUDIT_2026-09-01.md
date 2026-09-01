@@ -1,7 +1,7 @@
 # cu-bridge parity audit
 
 Reference: `6ab1076` (3.8.0)
-Implementation: `17399c5`
+Implementation: `ff2ac86`
 
 ## cmake_make
 
@@ -29,7 +29,7 @@ Implementation: `17399c5`
 | library_policy | EQUIVALENT_NPU | CUDA libraries map to MACA library names | validated bridge/CANN mapping, experimental cublas, map_to diagnostics | No unvalidated CUDA library is presented as an Ascend equivalent. |
 | device_artifacts | NOT_APPLICABLE_NPU | PTX/CUBIN/FATBIN and MACA device-link paths | explicit reject for NVIDIA artifacts and unvalidated RDC/device-link | puresimt produces Ascend code through ccec and has no NVIDIA artifact path. |
 | cucc_openmp_mode | EQUIVALENT_NPU | CUCC_USE_GOPENMP -> -fopenmp/-fopenmp=libgomp | CUCC_USE_GOPENMP -> ccec/clang -fopenmp/-fopenmp=libomp | The runtime name changes for the Ascend clang backend; real CANN link acceptance remains a server probe. |
-| cucc_low_frequency_modes | MISSING | CUCC_USE_PYTHON, Bazel/TF condition paths | Python driver is native; no Bazel/TF dispatch | The safe NPU plan is explicit diagnostics/rejection, not MACA compiler forwarding. |
+| cucc_low_frequency_modes | DIAGNOSTIC_ONLY | CUCC_USE_PYTHON, Bazel/TF condition paths | Python driver is native; WCUDA_BAZEL_TF_BUILD is explicit reject | The safe NPU plan is explicit rejection, not MACA compiler forwarding. |
 | observability | ALIGNED | debug echo and generated command trace | CU2CCE_DEBUG, CU2CCE_TRACE_FILE, --dryrun, --proxy-mode | Trace records argv decisions without source contents. |
 
 ## Summary
@@ -37,5 +37,5 @@ Implementation: `17399c5`
 - `ALIGNED`: 10
 - `EQUIVALENT_NPU`: 6
 - `NOT_APPLICABLE_NPU`: 2
-- `MISSING`: 1
-- `DIAGNOSTIC_ONLY`: 0
+- `DIAGNOSTIC_ONLY`: 1
+- `MISSING`: 0

@@ -865,6 +865,12 @@ class CuccRuleDriverTest(unittest.TestCase):
         self.assertNotIn("--nvlink-options", prepared.args)
         self.assertNotIn("--foo", prepared.args)
 
+    def test_bazel_tf_mode_is_explicitly_rejected_on_ascend(self) -> None:
+        with self.assertRaisesRegex(DriverError, "Bazel/TF"):
+            self.driver(WCUDA_BAZEL_TF_BUILD="1").prepare([
+                "-c", "main.cu", "-o", "main.o",
+            ])
+
     def test_cucc_use_gopenmp_enables_clang_openmp_runtime(self) -> None:
         prepared = self.driver(CUCC_USE_GOPENMP="1").prepare([
             "-c", "main.cu", "-o", "main.o",

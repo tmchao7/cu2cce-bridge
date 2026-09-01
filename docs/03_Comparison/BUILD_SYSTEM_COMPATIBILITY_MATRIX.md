@@ -16,6 +16,7 @@
 | install/export/package | `EXPERIMENTAL` | native `cu2cce::runtime` package | 需安装树真机回归 |
 | Unix Makefiles | `EXPERIMENTAL` | `examples/build_compat/make` | 通过 `make_cce` |
 | Ninja | `EXPERIMENTAL` | CMake Ninja smoke + `ninja_cce` | 需服务器安装 Ninja |
+| Bazel/TF cu-bridge environment mode | `UNSUPPORTED` with explicit diagnostic | `WCUDA_BAZEL_TF_BUILD=1` driver probe | 无已验证 Ascend puresimt 等价实现，不伪造 MACA 参数/链接 |
 | multi-directory CMake project | `SUPPORTED` for validated core | `examples/large_project` 真机通过（configure/build/run/install-export，`LARGE_PROJECT_REGRESSION_PASS`） | 每 linked library 仍为一个 `.cu` |
 | generated input + cross-directory target dependency | `SUPPORTED` for validated core | `examples/large_project/util` custom command 真机通过 | 生成的数据文件仅供 host 侧读取，不进入 device 编译 |
 | response file | `EXPERIMENTAL` | `tests/test_cucc_rules.py` | 构建系统组合仍需扩大 |

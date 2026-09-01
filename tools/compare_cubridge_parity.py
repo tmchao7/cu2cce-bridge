@@ -297,10 +297,10 @@ def build_report(repo: Path, reference: Path) -> Dict[str, Any]:
             ),
             _item(
                 "cucc_low_frequency_modes",
-                "MISSING",
+                "DIAGNOSTIC_ONLY",
                 "CUCC_USE_PYTHON, Bazel/TF condition paths",
-                "Python driver is native; no Bazel/TF dispatch",
-                "The safe NPU plan is explicit diagnostics/rejection, not MACA compiler forwarding.",
+                "Python driver is native; WCUDA_BAZEL_TF_BUILD is explicit reject",
+                "The safe NPU plan is explicit rejection, not MACA compiler forwarding.",
             ),
             _item(
                 "observability",

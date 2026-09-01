@@ -35,7 +35,7 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         self.assertIn("EQUIVALENT_NPU", statuses)
         self.assertIn("NOT_APPLICABLE_NPU", statuses)
         self.assertGreater(statuses["ALIGNED"], 0)
-        self.assertGreater(statuses["MISSING"], 0)
+        self.assertGreater(statuses["DIAGNOSTIC_ONLY"], 0)
         self.assertGreater(report["reference_assets"]["cuda_library_aliases"], 0)
         self.assertFalse(report["reference_assets"]["missing_findcuda_macros"])
         self.assertTrue(report["reference_assets"]["missing_link_names"])
@@ -1254,6 +1254,7 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         self.assertIn("CUCC_TARGETS=dav-c310-vec", server_cmd)
         self.assertIn("direct ninja_cce", server_cmd)
         self.assertIn("CUCC_USE_GOPENMP=1", server_cmd)
+        self.assertIn("WCUDA_BAZEL_TF_BUILD=1", server_cmd)
         self.assertIn("response_files", (ROOT / "tools/cu2cce_driver.py").read_text(encoding="utf-8"))
 
     def test_round8_machinery_probes_are_wired_into_the_harness(self) -> None:

@@ -1324,7 +1324,8 @@
     "trace_env": "CU2CCE_TRACE_FILE",
     "unsupported_modes": {
       "-S": "CUDA assembly output is unsupported by ccec puresimt",
-      "--device-link": "CUDA device-link/separable compilation is unsupported by current scope"
+      "--device-link": "CUDA device-link/separable compilation is unsupported by current scope",
+      "WCUDA_BAZEL_TF_BUILD": "Bazel/TF cu-bridge mode has no validated Ascend puresimt equivalent; use explicit CMake/Make integration"
     }
   }
 }

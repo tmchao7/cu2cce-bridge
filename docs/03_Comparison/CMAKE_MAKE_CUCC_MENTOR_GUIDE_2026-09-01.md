@@ -434,7 +434,7 @@ tools/gfortran_cce
 tools/mpi_cce
 ```
 
-保留普通 host-only 编译，同时对 `.cu/.cuh` 直接报错并提示使用 `cucc`。这是对 `cu-bridge` 入口机制的安全等价实现，不是声称 Ascend 已支持 Fortran CUDA 或 MPI device compilation。Bazel/TF 仍需单独的项目级 wrapper 设计。
+保留普通 host-only 编译，同时对 `.cu/.cuh` 直接报错并提示使用 `cucc`。这是对 `cu-bridge` 入口机制的安全等价实现，不是声称 Ascend 已支持 Fortran CUDA 或 MPI device compilation。Bazel/TF 仍需单独的项目级 wrapper 设计；当前 `WCUDA_BAZEL_TF_BUILD=1` 会在 cucc 入口显式拒绝，避免把 MACA 的 device/link 参数误用到 Ascend。
 
 ## 十、当前真实差距
 
