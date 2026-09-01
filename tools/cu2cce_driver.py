@@ -381,7 +381,6 @@ class RuleDriver:
             raise DriverError("CU2CCE_GCC_TOOLCHAIN must be auto or off")
         self.gcc_toolchain_mode = gcc_toolchain
         self.cuda_arch_value: Optional[int] = None
-        self.cmake_identity = cmake_identity
         self.rules_path = self._select_rules_file(rules_file)
         try:
             self.rules = json.loads(self.rules_path.read_text(encoding="utf-8"))
@@ -809,22 +808,6 @@ class RuleDriver:
     # -Xcompiler (CMake CUDA_PROPAGATE_HOST_FLAGS). Anything that pins host
     # ABI/machine specificity is dropped with a warning; generic safe flags
     # are forwarded to ccec unchanged.
-    _HOST_FLAG_ALLOWED = frozenset({
-        "-fPIC", "-fpic", "-fno-exceptions", "-fexceptions",
-        "-fno-rtti", "-frtti", "-fno-strict-aliasing", "-fstrict-aliasing",
-        "-fvisibility=hidden", "-fvisibility=default",
-        "-fno-omit-frame-pointer", "-fomit-frame-pointer",
-        "-fno-common", "-fcommon", "-fno-stack-protector", "-fstack-protector",
-        "-fno-stack-protector-all", "-fopenmp", "-pthread",
-        "-fno-plt", "-fplt", "-fno-asynchronous-unwind-tables",
-        "-fno-unwind-tables", "-fno-delete-null-pointer-checks",
-        "-fno-inline", "-fno-inline-functions",
-        "-fno-builtin", "-fno-builtin-memcpy",
-        "-funwind-tables", "-fno-sanitize=all", "-fno-ident",
-        # Note: the gcc-only var-tracking family is NOT here — it is dropped
-        # by the regex_cleanup rules (clang rejects it as unknown argument).
-    })
-
     _HOST_FLAG_DROPPED = frozenset({
         "-m64", "-m32", "-mx32", "-march", "-mtune", "-msse",
         "-msse2", "-msse3", "-mavx", "-mavx2", "-mfma", "-mno-sse",
