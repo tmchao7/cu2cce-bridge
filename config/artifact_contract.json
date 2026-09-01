@@ -9,6 +9,47 @@
     ".maca"
   ],
   "cases": {
+    "bridge_install": {
+      "build_system": "cmake-install",
+      "required": [
+        {
+          "path": "lib/libcce_bridge_runtime.so",
+          "kind": "shared"
+        },
+        {
+          "path": "bin/cucc",
+          "kind": "file"
+        },
+        {
+          "path": "bin/nvcc",
+          "kind": "file"
+        },
+        {
+          "path": "lib/cmake/cu2cce-bridge/cu2cceTargets.cmake",
+          "kind": "file"
+        },
+        {
+          "path": "lib/cmake/cu2cce-bridge/cu2cce-bridgeConfig.cmake",
+          "kind": "file"
+        },
+        {
+          "path": "cmake_modules/FindCUDA.cmake",
+          "kind": "file"
+        },
+        {
+          "path": "config/cu2cce_rules.json",
+          "kind": "file"
+        }
+      ],
+      "metadata": [
+        {
+          "path": "lib/cmake/cu2cce-bridge/cu2cceTargets.cmake",
+          "contains": [
+            "cu2cce::runtime"
+          ]
+        }
+      ]
+    },
     "cucc_direct": {
       "build_system": "cucc",
       "required": [
@@ -229,7 +270,11 @@
       "metadata": [
         {
           "path": "lib/cmake/large_project/largeProjectTargets.cmake",
-          "contains": ["large_project_app", "large_kernel_lib", "large_util_lib"]
+          "contains": [
+            "large_project_app",
+            "large_kernel_lib",
+            "large_util_lib"
+          ]
         }
       ]
     },
@@ -387,7 +432,11 @@
       "metadata": [
         {
           "path": "lib/cmake/build_compat/buildCompatTargets.cmake",
-          "contains": ["build_compat_app", "build_compat_static", "build_compat_shared"]
+          "contains": [
+            "build_compat_app",
+            "build_compat_static",
+            "build_compat_shared"
+          ]
         }
       ]
     },

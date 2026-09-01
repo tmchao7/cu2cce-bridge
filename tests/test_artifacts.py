@@ -31,6 +31,7 @@ class ArtifactVerifierTest(unittest.TestCase):
         data = json.loads(contract.read_text(encoding="utf-8"))
         self.assertEqual(data["schema_version"], 1)
         for case in (
+            "bridge_install",
             "cucc_direct",
             "cmake_demo",
             "cmake_compat",
@@ -45,6 +46,24 @@ class ArtifactVerifierTest(unittest.TestCase):
             "cmake_large_project_install",
         ):
             self.assertIn(case, data["cases"])
+
+    def test_bridge_install_contract_covers_runtime_and_package_surface(self) -> None:
+        data = json.loads((ROOT / "config/artifact_contract.json").read_text(encoding="utf-8"))
+        case = data["cases"]["bridge_install"]
+        required = {entry["path"] for entry in case["required"]}
+        for path in (
+            "lib/libcce_bridge_runtime.so",
+            "bin/cucc",
+            "bin/nvcc",
+            "lib/cmake/cu2cce-bridge/cu2cceTargets.cmake",
+            "lib/cmake/cu2cce-bridge/cu2cce-bridgeConfig.cmake",
+            "cmake_modules/FindCUDA.cmake",
+            "config/cu2cce_rules.json",
+        ):
+            self.assertIn(path, required)
+        metadata = {entry["path"]: entry.get("contains", []) for entry in case.get("metadata", [])}
+        self.assertIn("lib/cmake/cu2cce-bridge/cu2cceTargets.cmake", metadata)
+        self.assertIn("cu2cce::runtime", " ".join(metadata["lib/cmake/cu2cce-bridge/cu2cceTargets.cmake"]))
 
     def test_cmake_makefile_cases_check_link_txt_for_bridge_runtime(self) -> None:
         contract = json.loads((ROOT / "config/artifact_contract.json").read_text(encoding="utf-8"))
@@ -151,6 +170,7 @@ class ArtifactVerifierTest(unittest.TestCase):
         self.assertIn("cmake_build_compat_ninja", server)
         self.assertIn("direct ninja_cce build-compat artifact shape matches CMake Makefiles", server)
         self.assertIn("ARTIFACT_CONTRACT_REGRESSION_PASS", server)
+        self.assertIn("artifact_check bridge_install", server)
         self.assertIn("ARTIFACT_CONTRACT_REGRESSION_FAIL", server)
 
     def test_verifier_accepts_macho_independent_dependency_and_archive_contract(self) -> None:

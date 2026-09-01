@@ -191,6 +191,12 @@ fi
 printf '\n===== [2.5/4] bridge runtime 重编 =====\n'
 if bash tools/real_test/build_bridge.sh; then
     echo '[PASS] bridge runtime rebuild'
+    if artifact_check bridge_install "$PWD/build/real_test/install"; then
+        echo '[PASS] bridge install artifact contract'
+    else
+        echo '[FAIL] bridge install artifact contract'
+        FAIL=$((FAIL + 1))
+    fi
 else
     echo '[FAIL] bridge runtime rebuild'
     FAIL=$((FAIL + 1))
