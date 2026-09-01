@@ -120,6 +120,14 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
             self.assertIn("cmake_cce --build", text, relative)
             self.assertNotIn("cmake --build", text, relative)
 
+    def test_top_level_install_destinations_are_prefix_relative(self) -> None:
+        # CMake applies --prefix only to relative DESTINATION values. Absolute
+        # destinations embedding CMAKE_INSTALL_PREFIX make custom install roots
+        # ineffective and can write into /usr/local on a server.
+        top = (ROOT / "CMakeLists.txt").read_text(encoding="utf-8")
+        self.assertNotRegex(top, r"DESTINATION\s+\$\{CMAKE_INSTALL_PREFIX\}")
+        self.assertIn("LIB_DEST_DIR \"lib\"", top)
+
     def test_examples_cover_build_systems(self) -> None:
         self.assertTrue((ROOT / "examples/build_compat/cmake/CMakeLists.txt").is_file())
         self.assertTrue((ROOT / "examples/build_compat/make/Makefile").is_file())
@@ -998,6 +1006,58 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
             )
             self.assertEqual(verbose.returncode, 0, verbose.stderr)
             self.assertEqual(log.read_text(encoding="utf-8").splitlines(), ["ARG=VERBOSE=1"])
+
+    def test_cmake_cce_supports_attached_build_target_and_job_forms(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_name:
+            tmp = Path(tmp_name)
+            fake_bin = tmp / "bin"
+            fake_bin.mkdir()
+            cann_bin = tmp / "cann/bin"
+            cann_bin.mkdir(parents=True)
+            (cann_bin / "ccec").write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+            (cann_bin / "ccec").chmod(0o755)
+            install = tmp / "install"
+            (install / "bin").mkdir(parents=True)
+            (install / "tools").mkdir()
+            (install / "bin/cucc").write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+            (install / "bin/cucc").chmod(0o755)
+            (install / "tools/fake_toolkit_env.sh").write_text(
+                (ROOT / "tools/fake_toolkit_env.sh").read_text(encoding="utf-8"),
+                encoding="utf-8",
+            )
+            (install / "tools/device_arch.sh").write_text(
+                (ROOT / "tools/device_arch.sh").read_text(encoding="utf-8"),
+                encoding="utf-8",
+            )
+            (install / "tools/device_arch.sh").chmod(0o755)
+            log = tmp / "generator.log"
+            fake_make = install / "bin/make_cce"
+            fake_make.write_text(
+                "#!/bin/sh\n"
+                "for arg in \"$@\"; do printf 'ARG=%s\n' \"$arg\" >> \"$GENERATOR_LOG\"; done\n",
+                encoding="utf-8",
+            )
+            fake_make.chmod(0o755)
+            build_dir = tmp / "build"
+            build_dir.mkdir()
+            env = dict(os.environ)
+            env.update({
+                "CUCC_PATH": str(install),
+                "CANN_BASE": str(tmp / "cann"),
+                "ASCEND_TOOLKIT_HOME": str(tmp / "ascend"),
+                "CU2CCE_CMAKE_SHIM_DIR": str(tmp / "shim"),
+                "CU2CCE_NPU_ARCH": "dav-c310-vec",
+                "GENERATOR_LOG": str(log),
+                "PATH": f"{fake_bin}{os.pathsep}{env.get('PATH', '')}",
+            })
+            result = subprocess.run(
+                [str(ROOT / "tools/cmake_cce"), f"--build={build_dir}",
+                 "--target=app", "-j=4", "--config=Release"],
+                env=env, capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(log.read_text(encoding="utf-8").splitlines(),
+                             ["ARG=-j", "ARG=4", "ARG=app"])
 
     def test_cmake_cce_build_dispatches_to_real_make_or_ninja_wrapper(self) -> None:
         # Exercise the wrapper boundary without CANN: fake ccec only satisfies

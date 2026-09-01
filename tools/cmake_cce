@@ -75,7 +75,7 @@ CUDA_DIR="$SHIM_ROOT/CUDA_DIR"
 build_phase=0
 for arg in "$@"; do
     case "$arg" in
-        --build|--install) build_phase=1 ;;
+        --build|--build=*|--install|--install=*) build_phase=1 ;;
     esac
 done
 if [ "$build_phase" -eq 1 ]; then
@@ -108,6 +108,10 @@ if [ "$build_phase" -eq 1 ]; then
                 index=$((index + 1))
                 if [ "$index" -lt "$count" ]; then build_dir="${args[$index]}"; fi
                 ;;
+            --target=*|-t=*)
+                target_value="${arg#*=}"
+                if [ -n "$target_value" ]; then build_target+=("$target_value"); fi
+                ;;
             --target|-t)
                 while [ $((index + 1)) -lt "$count" ]; do
                     next="${args[$((index + 1))]}"
@@ -122,6 +126,9 @@ if [ "$build_phase" -eq 1 ]; then
             -j[0-9]*)
                 build_jobs+=("-j" "${arg#-j}")
                 ;;
+            -j=*)
+                build_jobs+=("-j" "${arg#-j=}")
+                ;;
             --parallel|-j)
                 next="${args[$((index + 1))]:-}"
                 case "$next" in
@@ -129,7 +136,7 @@ if [ "$build_phase" -eq 1 ]; then
                     *) build_jobs+=("-j" "$next"); index=$((index + 1)) ;;
                 esac
                 ;;
-            --config)
+            --config|--config=*)
                 : # generator-specific; Make/Ninja do not consume it
                 ;;
             --verbose|-v)
