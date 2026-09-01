@@ -161,10 +161,17 @@ wrapper 层虽已将 shim root 绝对化，但直接使用共享 builder 时，
 写入 toolkit 内部，导致 `bin/nvcc`/include 等链接失效。现在 builder 在
 写 manifest 前统一 resolve CLI path，Make/CMake/Ninja/pre 共享同一行为。
 
+### [P2] `CUCC_TARGETS` 与 `CUCC_TARGETS_FROM_DEVICE` 优先级不一致 — 已修复（`129f145`）
+
+Make/CMake/Ninja wrapper 通过 `device_arch.sh` 时以 `CUCC_TARGETS_FROM_DEVICE`
+优先，但 driver 曾以 `CUCC_TARGETS` 优先；两个环境变量同时存在会导致 wrapper
+和实际 cucc 选择不同 `dav-*` 架构。现在四条入口统一使用 device-derived alias
+优先级。
+
 ## 本轮验证
 
 ```text
-173 tests OK
+174 tests OK
 cucc rules validator PASS
 Python py_compile PASS
 bash -n 所有入口脚本 PASS
