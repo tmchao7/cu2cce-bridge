@@ -147,10 +147,17 @@ artifact contract 原先只验证 dependency 文件非空；现在要求至少�
 make-style `target: dependency` 规则，既覆盖 `-MD/-MF` 产物形状，也避免
 placeholder 或编译错误文本误报为可用依赖文件。
 
+### [P2] `NEEDED`/RPATH 字符串子串匹配会误报动态依赖 — 已修复（`83ffbb2`）
+
+artifact verifier 原先使用 `library in readelf_output`，近似名称或相似路径
+即可满足 contract。现在解析 `readelf -d` 的 bracketed `NEEDED`、`RPATH`、
+`RUNPATH` 条目；库名要求精确相等，路径只允许精确项或 contract 声明的
+绝对路径后缀。
+
 ## 本轮验证
 
 ```text
-170 tests OK
+171 tests OK
 cucc rules validator PASS
 Python py_compile PASS
 bash -n 所有入口脚本 PASS
