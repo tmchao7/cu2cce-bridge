@@ -2,7 +2,7 @@
 
 Reference: `6ab1076` (3.8.0)
 Reference path: `/Users/tmchao7/repos/09_expLearn/cu-bridge-muxi`
-Implementation: `e0016e0`
+Implementation: `2d5f300`
 
 ## cmake_make
 
@@ -49,8 +49,6 @@ Implementation: `e0016e0`
 以及禁止的 NVIDIA/MACA 中间产物。Ascend 与 MACA 的 device binary、runtime
 库名和 host linker 不要求字节级相同，差异必须落在 NPU-aware 说明中。
 
-## Latest artifact evidence
-
-Full profile 新增 `cmake_build_compat_ninja`：使用 Ninja 构建与 Makefile/CMake
-版本同构的 static/shared/host executable 工程，并复用 artifact contract 检查 `.o`、
-`.a`、`.so`、ELF 和 Ninja `rules.ninja` compiler metadata。
+Full profile 额外对 `examples/build_compat/cmake` 运行 Ninja 版本，使用
+`cmake_build_compat_ninja` contract 对照 Makefiles 版本的 `.o/.a/.so/ELF` 产物，
+并检查 `CMakeFiles/rules.ninja` 中的 CUDA compiler shim。
