@@ -732,6 +732,12 @@ class CuccRuleDriverTest(unittest.TestCase):
         self.assertEqual(refused.returncode, 2)
         self.assertIn("cucc", refused.stderr)
 
+    def test_longer_capability_prefix_wins_for_cublaslt_variants(self) -> None:
+        prepared = self.driver().prepare(["main.o", "-lcublasLtCore", "-o", "app"])
+        actions = [action for action in prepared.actions if action.argument == "-lcublasLtCore"]
+        self.assertTrue(actions)
+        self.assertIn("cublasLt", actions[0].reason)
+
     def test_capability_prefix_match_stays_advisory(self) -> None:
         # Unknown variants of a capability library keep the advisory warning
         # (never silently forwarded), but the message is honest about being

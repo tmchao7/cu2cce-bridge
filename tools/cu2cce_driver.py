@@ -761,14 +761,15 @@ class RuleDriver:
         # capability actually matched.
         capability = None
         loose = False
-        for key, entry in capabilities.items():
+        capability_items = sorted(capabilities.items(), key=lambda item: len(item[0]), reverse=True)
+        for key, entry in capability_items:
             if entry.get("action") == "bridge_inject":
                 continue
             if name == key or name.startswith(key + "_"):
                 capability = key
                 break
         if capability is None:
-            for key, entry in capabilities.items():
+            for key, entry in capability_items:
                 if entry.get("action") == "bridge_inject":
                     continue
                 # Prefix match kept as a fallback so unknown variants
