@@ -161,6 +161,8 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         self.assertNotIn('cmake --build "$MULTICU_BUILD"', server)
         self.assertIn("cmake_cce: build phase: shim nvcc ->", server)
         self.assertIn('readlink "$CU2CCE_CMAKE_SHIM_DIR/CUDA_DIR/bin/nvcc"', server)
+        self.assertIn("cmake_large_project_install", server)
+        self.assertIn('cmake --install "$OUT/cmake-large-project-build"', server)
 
     def test_external_cuda_samples_profile_is_pinned(self) -> None:
         profile = (ROOT / "examples/external/cuda_samples_project/profile_core.json").read_text(encoding="utf-8")
