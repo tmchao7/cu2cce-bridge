@@ -226,6 +226,19 @@ server harness 之前主要依赖 `build_bridge.sh` 的手工文件循环；现�
 package/export 文件、FindCUDA 模块和 rules 配置，并验证 `cu2cce::runtime`
 导出 target。
 
+### [P1] 顶层 CMake 绝对安装路径使自定义 prefix 失效 — 已修复（`b428ca0`）
+
+顶层 `CMakeLists.txt` 原先把 `install(... DESTINATION ...)` 写成
+`${CMAKE_INSTALL_PREFIX}/...`，`cmake --install --prefix <dir>` 不能可靠地
+重定位，且可能触碰默认 `/usr/local`。现在改用 `lib`、`bin`、`include` 等
+prefix-relative destination；`bin/nvcc` 仍由 install-time CODE 创建。
+
+### [P2] bridge 安装树未纳入统一产物契约 — 已修复（`253069c`）
+
+新增 `bridge_install` artifact contract，并在 server bridge rebuild 后阻塞检查
+`libcce_bridge_runtime.so`、`cucc`/`nvcc`、CMake package/export、FindCUDA
+模块和 rules 配置，确保交付的安装树不只是“构建命令成功”。
+
 ## 本轮验证
 
 ```text
