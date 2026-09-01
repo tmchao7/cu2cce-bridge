@@ -188,10 +188,17 @@ dispatch 和真实 cucc symlink 校验。现在 CMake 示例统一使用 `cmake_
 `git pull --ff-only` 返回值；远端更新失败时仍可能继续跑旧代码。现在
 gitcode 更新失败会输出明确 FAIL 并立即退出，避免产生 stale-code 假 PASS。
 
+### [P2] external profile 的零 FAIL 不能合成 puresimt PASS — 已修复（`9b0197c`）
+
+最终 summary 原先只看全局 `FAIL=0` 就打印 `PURESIMT_REGRESSION_PASS`；
+当 `external` profile 跳过 puresimt/CMake/Make 时会产生虚假 section badge。
+现在只有实际执行 `fast,full` 的 profile 才打印 puresimt PASS，跳过的 section
+继续明确输出 `*_SECTION_SKIPPED`。
+
 ## 本轮验证
 
 ```text
-177 tests OK
+178 tests OK
 cucc rules validator PASS
 Python py_compile PASS
 bash -n 所有入口脚本 PASS
