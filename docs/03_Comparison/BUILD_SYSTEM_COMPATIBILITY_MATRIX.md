@@ -21,6 +21,10 @@
 | generated input + cross-directory target dependency | `SUPPORTED` for validated core | `examples/large_project/util` custom command 真机通过 | 生成的数据文件仅供 host 侧读取，不进入 device 编译 |
 | response file | `EXPERIMENTAL` | `tests/test_cucc_rules.py` | 构建系统组合仍需扩大 |
 | dependency generation `-M/-MM/-MD/-MF/-MT` | `DIAGNOSTIC_ONLY` until device proof | driver phase tests | ccec 真实依赖输出需真机确认 |
+| cucc direct output contract | `SUPPORTED` for validated shape | `config/artifact_contract.json`, `verify_artifacts.py`, full server profile | `.o/.d/ELF executable/.so`; no `.cce/.ptx/.cubin/.fatbin/.maca` |
+| CMake output contract | `SUPPORTED` for validated core | CMake cases + artifact verifier | `.o/.a/.so/ELF`, build metadata, export file, NPU runtime dependencies |
+| Make output contract | `SUPPORTED` for validated smoke | `examples/build_compat/make`, `make_gxx_link` + artifact verifier | `.o/.d/.a/.so/ELF`, plain g++ carrier, explicit Ascend runtime link |
+| Ninja output contract | `SUPPORTED` for validated smoke | CMake Ninja case + direct `ninja_cce` + artifact verifier | `build.ninja`, same output categories as Makefiles; no mock/intermediate artifact |
 | query `--version/-V/--help` | `SUPPORTED` for driver | local unit tests | 输出是 cu2cce compatibility identity |
 | toolchain probes `-dumpversion/-dumpmachine/-print-*` | `SUPPORTED` (passthrough) | `tests/test_cucc_rules.py` query bypass | cu-bridge skipstring parity：命中即整条命令原样直通 ccec，无注入 |
 | preprocess `-E` | `SUPPORTED` for passthrough mechanism | driver query tests | ccec receives original `-E` command; actual output remains diagnostic-only until real proof |

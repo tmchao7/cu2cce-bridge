@@ -92,8 +92,9 @@ fail=0
 for f in lib/libcce_bridge_runtime.so \
          include/cuda_runtime.h include/bridge/kernel/simt_adaptor.h \
          bin/cucc bin/cmake_cce bin/make_cce bin/ninja_cce tools/nvcc_entry.sh \
-         tools/cu2cce_driver.py tools/validate_cucc_rules.py config/cu2cce_rules.json \
-         tools/real_test/fetch_external_cuda_samples.sh \
+         tools/cu2cce_driver.py tools/validate_cucc_rules.py tools/compare_cubridge_parity.py \
+         config/cu2cce_rules.json config/artifact_contract.json \
+         tools/real_test/fetch_external_cuda_samples.sh tools/real_test/verify_artifacts.py \
          lib/cmake/cu2cce-bridge/cu2cceTargets.cmake \
          cmake_modules/FindCUDA.cmake cmake_modules/FindCUDAToolkit.cmake \
          lib/cmake/cu2cce-bridge/cu2cce-bridgeConfig.cmake; do

@@ -40,3 +40,11 @@ Implementation: `7bf109d`
 - `NOT_APPLICABLE_NPU`: 2
 - `DIAGNOSTIC_ONLY`: 1
 - `MISSING`: 0
+
+## Artifact alignment
+
+2026-09-01 起，parity 不再只记录入口和参数机制；`server_cmd.txt` 的 full profile
+还对 cucc/CMake/Make/Ninja 的实际输出运行 artifact contract。契约检查产物类别、
+相对路径、ELF/archive 类型、`.d`、CMake/Ninja metadata、`NEEDED`、RPATH/RUNPATH
+以及禁止的 NVIDIA/MACA 中间产物。Ascend 与 MACA 的 device binary、runtime
+库名和 host linker 不要求字节级相同，差异必须落在 NPU-aware 说明中。

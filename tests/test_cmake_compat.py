@@ -57,6 +57,8 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         cmake = (ROOT / "CMakeLists.txt").read_text(encoding="utf-8")
         for tool in ("tools/cmake_cce", "tools/make_cce", "tools/ninja_cce", "tools/cu2cce_driver.py", "tools/compare_cubridge_parity.py"):
             self.assertIn(tool, cmake)
+        self.assertIn("tools/real_test/verify_artifacts.py", cmake)
+        self.assertIn("config/artifact_contract.json", cmake)
 
     def test_stream_and_device_flag_compatibility_is_declared(self) -> None:
         adaptor = (ROOT / "include/bridge/runtime/cuda_to_cce_mcr_adaptor.h").read_text(encoding="utf-8")
@@ -72,6 +74,18 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         # that uses cudaMalloc(&float_ptr, ...) without a void** cast).
         self.assertIn("inline aclError wcudaMalloc(", wrapper_h)
         self.assertIn("inline aclError wcudaMallocHost(", wrapper_h)
+
+    def test_real_build_installs_artifact_contract_verifier(self) -> None:
+        build = (ROOT / "tools/real_test/build_bridge.sh").read_text(encoding="utf-8")
+        self.assertIn("tools/real_test/verify_artifacts.py", build)
+        self.assertIn("config/artifact_contract.json", build)
+
+    def test_quickstart_documents_output_artifact_contract(self) -> None:
+        quickstart = (ROOT / "QUICKSTART.md").read_text(encoding="utf-8")
+        self.assertIn("config/artifact_contract.json", quickstart)
+        self.assertIn("verify_artifacts.py", quickstart)
+        self.assertIn("NEEDED", quickstart)
+        self.assertIn("RPATH/RUNPATH", quickstart)
 
     def test_package_exports_native_runtime(self) -> None:
         cmake = (ROOT / "CMakeLists.txt").read_text(encoding="utf-8")

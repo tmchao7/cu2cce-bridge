@@ -199,3 +199,32 @@ cu-bridge 机制变化（升级 mock 分支/link.json 结构/新增入口）时�
 - `CUCC_TARGETS` 作为兼容别名接受，但 Ascend ccec puresimt 一次只允许一个 `dav-*` 目标；`sm_*`/`compute_*` 不会被误传为 NPU 架构。
 - legacy `FindCUDA` 增加常见 uppercase helper 名称；CUDA math-library adders 在没有已验证 Ascend 等价物时显式失败，不创建伪库链接。
 - CUDA 库 alias 继续只覆盖已验证 bridge/CANN 路径；`cufft`、`nvjpeg`、`cupti`、NPP、cuFile、NVML 等进入 capability warning/map-to policy，不直接照搬 MACA 库名。
+
+## 产物对齐（2026-09-01）
+
+本轮把 parity 从“命令能执行”提升为“命令生成的产物可验证”。产物契约位于
+`config/artifact_contract.json`，检查器位于 `tools/real_test/verify_artifacts.py`，由
+`tools/real_test/server_cmd.txt` 在真实 CANN 服务器上调用。
+
+| 产物层 | cu-bridge | cu2cce-bridge / Ascend NPU | 判定 |
+|---|---|---|---|
+| CUDA device compile | `.o`，由 mxcc 生成 | `.o`，由 `ccec -x asc --enable-simt` 生成 | 结构等价 |
+| dependency output | `.d` / `-MD/-MF/-MT` | `.d` / `-MD/-MF/-MT` | 机制等价，真实内容由服务器验证 |
+| static library | `.a` | `.a`，由 CMake 或 `ar` 归档 | 结构等价 |
+| shared library | `.so` | `.so`，带 bridge/CANN 运行时依赖 | 结构等价，依赖后端不同 |
+| executable | ELF executable | ELF executable，链接 `libcce_bridge_runtime.so` 和 CANN runtime | NPU-aware 等价 |
+| build metadata | `CMakeFiles`、`build.make`、`build.ninja`、`link.txt` | 同类 CMake/Make/Ninja 元数据，CUDA compiler 指向 shim/cuсc | 结构等价 |
+| runtime search path | MACA lib paths | bridge/CANN lib paths，必要时包含 `libruntime.so` 所在目录 | 后端适配 |
+| forbidden intermediates | 用户工程不依赖 `.maca` 中间源 | 禁止 `.cce/.ptx/.cubin/.fatbin/.maca` | 明确禁止 |
+| bridge SDK internals | `runtime_cu.so`、`symbol_cu.so` | `libcce_bridge_runtime.so` + `libascendcl.so`/`libruntime.so` | 不做字节/符号复制 |
+
+当前 blocking artifact cases 覆盖：
+
+- 直接 `cucc` 的 `.o/.d/executable/.so`；
+- CMake demo、multi-CU、legacy FindCUDA、large project、build-compat、Ninja；
+- Make static/shared/executable 和 plain g++ link carrier；
+- CMake install/export 文件；
+- 禁止中间物扫描、ELF/archive 类型、`NEEDED` 和 `RPATH/RUNPATH`。
+
+成功路径只在终端打印一行 artifact summary，详细结果写入
+`build/real_test/puresimt/artifacts/`；失败路径输出有限 tail，不隐藏产物检查原因。

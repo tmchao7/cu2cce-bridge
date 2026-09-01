@@ -475,3 +475,32 @@ Reference: cu-bridge 6ab1076 / 3.8.0
 一句话总结：
 
 > 我们借鉴的是 cu-bridge 的“CUDA-shaped shim + 双阶段构建 + 动态规则驱动”机制，而不是把 MACA 的 compiler/linker/library 选项原样搬到 Ascend；后端不支持的能力通过规则和诊断显式分层。
+
+## 十二、产物对齐：mentor review 的重点
+
+构建兼容不能只看“命令返回 0”或“程序 marker 通过”，还要确认构建系统实际生成的
+文件类别、路径和运行时依赖。当前 `server_cmd.txt` 使用
+`config/artifact_contract.json` + `tools/real_test/verify_artifacts.py` 检查以下内容：
+
+```text
+cucc       -> .o / .d / executable / .so
+CMake      -> CMakeFiles / build.make / build.ninja / .o / .a / .so / executable
+Make       -> .o / .d / .a / .so / executable
+Ninja      -> build.ninja + 与 CMake Makefiles 同类别的最终产物
+```
+
+对齐标准是 NPU-aware 的结构契约，而不是 MACA 字节级复制：
+
+- `.o`、`.a`、`.so`、ELF executable 和 `.d` 的类别与用户可见路径保持稳定；
+- `readelf` 验证最终 ELF 的类型、`NEEDED` 和 `RPATH/RUNPATH`；
+- Ascend 产物需要 bridge/CANN runtime，常见为 `libcce_bridge_runtime.so`、
+  `libascendcl.so`、`libruntime.so`，不能改成 MACA 的 `libmcruntime.so`；
+- CMake 的 `CUDA_DIR/bin/nvcc` 是兼容 shim，构建阶段最终必须落到真实 `cucc`；
+- 禁止用户工程生成 `.cce`、`.ptx`、`.cubin`、`.fatbin`、`.maca` 或旧 converter 中间源；
+- `asyncAPI` 等后端语义问题仍为 diagnostic-only，不影响 artifact contract 的构建产物判定。
+
+详细 artifact 日志位于：
+
+```text
+build/real_test/puresimt/artifacts/
+```

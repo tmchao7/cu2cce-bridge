@@ -158,6 +158,21 @@ $CUCC_PATH/
 └── tools/                         # nvcc_entry.sh / cu2cce_driver.py 等
 ```
 
+构建系统生成物的真实回归由 `config/artifact_contract.json` 描述，服务器上由
+`tools/real_test/verify_artifacts.py` 检查。它验证 `.o/.d/.a/.so/ELF`、CMake/Ninja
+元数据、`NEEDED`、RPATH/RUNPATH，并拒绝 `.cce/.ptx/.cubin/.fatbin/.maca` 中间物。
+详细检查结果位于 `build/real_test/puresimt/artifacts/`；成功时终端只打印一行摘要。
+
+手动检查某个已经生成的构建目录：
+
+```bash
+python3 tools/real_test/verify_artifacts.py \
+  --contract config/artifact_contract.json \
+  --case cmake_demo \
+  --root build/real_test/puresimt/cmake-build \
+  --log /tmp/cmake-demo-artifacts.log
+```
+
 以后如果修改了 `src/`、`include/`、`CMakeLists.txt` 或 `bin/cucc`，需要重新执行：
 
 ```bash

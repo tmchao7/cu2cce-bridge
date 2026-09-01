@@ -47,6 +47,11 @@ git pull --ff-only gitcode "$REGRESSION_BRANCH" && git log -1 --oneline
 OUT="$PWD/build/real_test/puresimt"
 mkdir -p "$OUT"
 rm -f "$OUT"/*
+ARTIFACT_CONTRACT="$PWD/config/artifact_contract.json"
+ARTIFACT_LOG_DIR="$OUT/artifacts"
+mkdir -p "$ARTIFACT_LOG_DIR"
+ARTIFACT_CONTRACT_PASS=1
+ARTIFACT_CASES_EXECUTED=0
 FAIL=0
 DEVICE_HEALTHY=0
 DEVICE_ACCESS_DENIED=0
@@ -71,6 +76,29 @@ profile_runs() {
         *",$REGRESSION_PROFILE,"*) return 0 ;;
         *) return 1 ;;
     esac
+}
+
+artifact_check() {
+    local case_name="$1"
+    local root="$2"
+    local log="$ARTIFACT_LOG_DIR/${case_name}.artifact.log"
+    local output="$ARTIFACT_LOG_DIR/${case_name}.artifact.stdout"
+    local error="$ARTIFACT_LOG_DIR/${case_name}.artifact.stderr"
+    ARTIFACT_CASES_EXECUTED=1
+    python3 tools/real_test/verify_artifacts.py \
+        --contract "$ARTIFACT_CONTRACT" \
+        --case "$case_name" \
+        --root "$root" \
+        --log "$log" >"$output" 2>"$error"
+    local status=$?
+    if [ "$status" -eq 0 ]; then
+        cat "$output"
+        return 0
+    fi
+    ARTIFACT_CONTRACT_PASS=0
+    echo "[FAIL] artifact [$case_name] (details: $log)"
+    tail -n 30 "$error" 2>/dev/null || true
+    return "$status"
 }
 
 _SECTION_T0=$SECONDS
@@ -178,11 +206,19 @@ CUCC_RULES_PASS=1
 printf '\n===== [2.75/7] cucc puresimt 直通检查 =====\n'
 CUCC_BIN="$PWD/build/real_test/install/bin/cucc"
 CUCC_OBJ="$OUT/cucc_vectorAdd_minimal.o"
+CUCC_DEP="$OUT/cucc_vectorAdd_minimal.d"
+CUCC_APP="$OUT/cucc_vectorAdd_minimal"
+CUCC_SHARED="$OUT/libcucc_vectorAdd_minimal.so"
 CUCC_LOG="$OUT/cucc_direct.log"
+CUCC_LINK_LOG="$OUT/cucc_direct_link.log"
+CUCC_SHARED_LOG="$OUT/cucc_direct_shared.log"
 CUCC_TRACE="$OUT/cucc_direct.trace.json"
-rm -f "$CUCC_OBJ" "$CUCC_LOG" "$CUCC_TRACE" "$OUT"/*.cce
+rm -f "$CUCC_OBJ" "$CUCC_DEP" "$CUCC_APP" "$CUCC_SHARED" \
+    "$CUCC_LOG" "$CUCC_LINK_LOG" "$CUCC_SHARED_LOG" "$CUCC_TRACE" "$OUT"/*.cce
 if [ -x "$CUCC_BIN" ] && CUCC_PATH="$PWD/build/real_test/install" CUDA_PATH="$PWD/build/real_test/install" \
-    CU2CCE_DEBUG=1 CU2CCE_TRACE_FILE="$CUCC_TRACE" "$CUCC_BIN" -c examples/puresimt/vectorAdd_minimal.cu -o "$CUCC_OBJ" >"$CUCC_LOG" 2>&1; then
+    CU2CCE_DEBUG=1 CU2CCE_TRACE_FILE="$CUCC_TRACE" "$CUCC_BIN" -c \
+    examples/puresimt/vectorAdd_minimal.cu -MD -MF "$CUCC_DEP" -o "$CUCC_OBJ" \
+    >"$CUCC_LOG" 2>&1; then
     if grep -Eiq 'kernel[_ -]?convert|__simt_vf__|async_invoke' "$CUCC_LOG" || \
        find "$OUT" -type f -name '*.cce' -print -quit 2>/dev/null | grep -q .; then
         echo '[FAIL] cucc 仍触发 legacy kernel lowering'
@@ -196,8 +232,24 @@ if [ -x "$CUCC_BIN" ] && CUCC_PATH="$PWD/build/real_test/install" CUDA_PATH="$PW
         cat "$CUCC_TRACE" 2>/dev/null
         FAIL=$((FAIL + 1))
         CUCC_RULES_PASS=0
+    elif ! CUCC_PATH="$PWD/build/real_test/install" CUDA_PATH="$PWD/build/real_test/install" \
+        "$CUCC_BIN" "$CUCC_OBJ" -o "$CUCC_APP" >"$CUCC_LINK_LOG" 2>&1; then
+        echo '[FAIL] cucc direct object link (log: '$CUCC_LINK_LOG')'
+        tail -n 60 "$CUCC_LINK_LOG" 2>/dev/null || true
+        FAIL=$((FAIL + 1))
+        CUCC_RULES_PASS=0
+    elif ! CUCC_PATH="$PWD/build/real_test/install" CUDA_PATH="$PWD/build/real_test/install" \
+        "$CUCC_BIN" -shared examples/puresimt/vectorAdd_minimal.cu -fPIC \
+        -o "$CUCC_SHARED" >"$CUCC_SHARED_LOG" 2>&1; then
+        echo '[FAIL] cucc direct shared link (log: '$CUCC_SHARED_LOG')'
+        tail -n 60 "$CUCC_SHARED_LOG" 2>/dev/null || true
+        FAIL=$((FAIL + 1))
+        CUCC_RULES_PASS=0
+    elif artifact_check cucc_direct "$OUT"; then
+        echo '[PASS] cucc direct compile/link artifacts (.o/.d/executable/.so)'
     else
-        echo '[PASS] cucc 直接调用 ccec；规则驱动 trace 与 SIMT 注入通过；未生成 legacy converter/.cce 中间文件'
+        echo '[FAIL] cucc direct artifact contract'
+        CUCC_RULES_PASS=0
     fi
 else
     echo '[FAIL] cucc puresimt direct compile'
@@ -559,6 +611,12 @@ run_cmake_case() {
         return 0
     fi
 
+    if ! artifact_check "$name" "$build_dir"; then
+        echo "[FAIL] [$name] CMake artifact contract"
+        CMAKE_PASS=0
+        return 0
+    fi
+
     if "$binary" >"$run_log" 2>&1 && grep -Fq "$expected" "$run_log"; then
         echo "[PASS] [$name] CMake run: $(grep -F "$expected" "$run_log" | tail -n 1)"
     else
@@ -691,6 +749,9 @@ elif [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$CMAKE_CCE" ]; then
         if cmake --install "$OUT/cmake-build-compat-build" --prefix "$OUT/cmake-build-compat-install" >"$OUT/cmake-install.log" 2>&1 && \
            [ -f "$OUT/cmake-build-compat-install/lib/cmake/build_compat/buildCompatTargets.cmake" ]; then
             echo '[PASS] CMake install/export smoke'
+            if ! artifact_check cmake_build_compat_install "$OUT/cmake-build-compat-install"; then
+                CMAKE_PASS=0
+            fi
         else
             echo '[FAIL] CMake install/export smoke'
             cat "$OUT/cmake-install.log" 2>/dev/null
@@ -746,6 +807,9 @@ if [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$MAKE_CCE" ]; then
         if examples/build_compat/make/build/build_compat_app >"$MAKE_COMPAT_RUN_LOG" 2>&1 && \
            grep -Fq 'make_cce build_compat OK' "$MAKE_COMPAT_RUN_LOG"; then
             echo "[PASS] make_cce build: $(grep -F 'make_cce build_compat OK' "$MAKE_COMPAT_RUN_LOG")"
+            if ! artifact_check make_compat "$PWD/examples/build_compat/make"; then
+                BUILD_COMPAT_PASS=0
+            fi
         else
             echo '[FAIL] make_cce build run'
             cat "$MAKE_COMPAT_RUN_LOG" 2>/dev/null
@@ -765,6 +829,9 @@ if [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$MAKE_CCE" ]; then
         if examples/build_compat/make_gxx_link/build/app >"$OUT/make_gxx_link.run.log" 2>&1 && \
            grep -Fq 'make_gxx_link OK' "$OUT/make_gxx_link.run.log"; then
             echo '[PASS] make_gxx_link: plain-g++ link with -lcudart -> bridge runtime'
+            if ! artifact_check make_gxx_link "$PWD/examples/build_compat/make_gxx_link"; then
+                BUILD_COMPAT_PASS=0
+            fi
         else
             echo '[FAIL] make_gxx_link run'
             cat "$OUT/make_gxx_link.run.log" 2>/dev/null
@@ -783,6 +850,9 @@ if [ "${BUILD_COMPAT_PASS:-0}" -eq 1 ] && [ "${CMAKE_PASS:-0}" -eq 1 ] && comman
     if CUCC_PATH="$PWD/build/real_test/install" "$NINJA_CCE" -C "$OUT/cmake-ninja-build" >"$OUT/ninja_cce.log" 2>&1 &&
        grep -Fq 'ninja_cce: build phase: shim nvcc ->' "$OUT/ninja_cce.log"; then
         echo '[PASS] direct ninja_cce wrapper + persistent shim rebuild'
+        if ! artifact_check cmake_ninja "$OUT/cmake-ninja-build"; then
+            BUILD_COMPAT_PASS=0
+        fi
     else
         echo '[FAIL] ninja_cce wrapper'
         tail -n 100 "$OUT/ninja_cce.log" 2>/dev/null
@@ -942,6 +1012,17 @@ else
     CUDA_SAMPLES_PASS=0
 fi
 mark_timing external_samples
+
+if [ "$ARTIFACT_CASES_EXECUTED" -eq 1 ]; then
+    if [ "$ARTIFACT_CONTRACT_PASS" -eq 1 ]; then
+        echo "ARTIFACT_CONTRACT_REGRESSION_PASS (details: $ARTIFACT_LOG_DIR)"
+    else
+        echo "ARTIFACT_CONTRACT_REGRESSION_FAIL (details: $ARTIFACT_LOG_DIR)"
+        FAIL=$((FAIL + 1))
+    fi
+else
+    echo "ARTIFACT_CONTRACT_SECTION_SKIPPED (profile=$REGRESSION_PROFILE)"
+fi
 
 if [ "${CUDA_SAMPLES_EXECUTED:-0}" -ne 1 ]; then
     echo 'CUDA_SAMPLES_SECTION_SKIPPED (profile='$REGRESSION_PROFILE')'

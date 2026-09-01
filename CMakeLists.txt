@@ -96,13 +96,14 @@ install(PROGRAMS tools/fake_toolkit_env.sh
         DESTINATION ${CMAKE_INSTALL_PREFIX}/tools)
 install(DIRECTORY tools/mock DESTINATION ${CMAKE_INSTALL_PREFIX}/tools)
 install(PROGRAMS tools/real_test/fetch_external_cuda_samples.sh
+        tools/real_test/verify_artifacts.py
         DESTINATION ${CMAKE_INSTALL_PREFIX}/tools/real_test)
 
 # Optional CMake compatibility modules used by cmake_cce. These modules only
 # expose validated bridge-backed targets and legacy build macros; they do not
 # perform CUDA kernel conversion.
 install(DIRECTORY cmake_modules/ DESTINATION ${CMAKE_INSTALL_PREFIX}/cmake_modules)
-install(FILES config/cu2cce_rules.json config/shim_layout.json
+install(FILES config/cu2cce_rules.json config/shim_layout.json config/artifact_contract.json
         DESTINATION ${CMAKE_INSTALL_PREFIX}/config)
 
 # Native cu2cce package. This is intentionally separate from CUDA::cudart:

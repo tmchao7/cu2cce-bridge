@@ -1,0 +1,297 @@
+{
+  "schema_version": 1,
+  "comment": "NPU-aware output contract for cucc/CMake/Make/Ninja. Paths are relative to --root. ELF/NEEDED/RPATH checks run on the Ascend server; local unit tests may use require_elf=false.",
+  "forbidden_suffixes": [
+    ".cce",
+    ".ptx",
+    ".cubin",
+    ".fatbin",
+    ".maca"
+  ],
+  "cases": {
+    "cucc_direct": {
+      "build_system": "cucc",
+      "required": [
+        {
+          "path": "cucc_vectorAdd_minimal.o",
+          "kind": "object"
+        },
+        {
+          "path": "cucc_vectorAdd_minimal.d",
+          "kind": "dependency"
+        },
+        {
+          "path": "cucc_vectorAdd_minimal",
+          "kind": "executable",
+          "required_needed": [
+            "libcce_bridge_runtime.so"
+          ],
+          "required_rpath": [
+            "build/real_test/install/lib"
+          ]
+        },
+        {
+          "path": "libcucc_vectorAdd_minimal.so",
+          "kind": "shared",
+          "required_needed": [
+            "libcce_bridge_runtime.so"
+          ],
+          "required_rpath": [
+            "build/real_test/install/lib"
+          ]
+        }
+      ]
+    },
+    "cmake_demo": {
+      "build_system": "cmake-makefiles",
+      "required": [
+        {
+          "path": "cmake_vector_add",
+          "kind": "executable",
+          "required_needed": [
+            "libcce_bridge_runtime.so"
+          ],
+          "required_rpath": [
+            "build/real_test/install/lib"
+          ]
+        },
+        {
+          "path": "CMakeFiles/cmake_vector_add.dir/*.o",
+          "kind": "object"
+        }
+      ],
+      "metadata": [
+        {
+          "path": "CMakeCache.txt",
+          "contains": [
+            "CMAKE_CUDA_COMPILER"
+          ]
+        },
+        {
+          "path": "CMakeFiles/cmake_vector_add.dir/build.make",
+          "contains": [
+            "nvcc"
+          ]
+        }
+      ]
+    },
+    "cmake_compat": {
+      "build_system": "cmake-makefiles",
+      "required": [
+        {
+          "path": "cmake_compat_app",
+          "kind": "executable",
+          "required_needed": [
+            "libcce_bridge_runtime.so"
+          ],
+          "required_rpath": [
+            "build/real_test/install/lib"
+          ]
+        },
+        {
+          "path": "libcmake_static_kernel.a",
+          "kind": "archive"
+        },
+        {
+          "path": "libcmake_shared_kernel.so",
+          "kind": "shared"
+        },
+        {
+          "path": "CMakeFiles/cmake_static_kernel.dir/*.o",
+          "kind": "object"
+        },
+        {
+          "path": "CMakeFiles/cmake_shared_kernel.dir/*.o",
+          "kind": "object"
+        }
+      ],
+      "metadata": [
+        {
+          "path": "CMakeCache.txt",
+          "contains": [
+            "CMAKE_CUDA_COMPILER"
+          ]
+        }
+      ]
+    },
+    "cmake_compat_legacy": {
+      "build_system": "cmake-findcuda",
+      "required": [
+        {
+          "path": "legacy_vector_add",
+          "kind": "executable",
+          "required_needed": [
+            "libcce_bridge_runtime.so"
+          ],
+          "required_rpath": [
+            "build/real_test/install/lib"
+          ]
+        },
+        {
+          "path": "CMakeFiles/legacy_vector_add.dir/*.o",
+          "kind": "object"
+        }
+      ]
+    },
+    "cmake_large_project": {
+      "build_system": "cmake-multi-directory",
+      "required": [
+        {
+          "path": "large_project_app",
+          "kind": "executable",
+          "required_needed": [
+            "libcce_bridge_runtime.so"
+          ],
+          "required_rpath": [
+            "build/real_test/install/lib"
+          ]
+        },
+        {
+          "path": "comp/liblarge_kernel_lib.a",
+          "kind": "archive"
+        },
+        {
+          "path": "util/liblarge_util_lib.a",
+          "kind": "archive"
+        },
+        {
+          "path": "comp/CMakeFiles/large_kernel_lib.dir/*.o",
+          "kind": "object"
+        }
+      ],
+      "metadata": [
+        {
+          "path": "CMakeCache.txt",
+          "contains": [
+            "CMAKE_CUDA_COMPILER"
+          ]
+        }
+      ]
+    },
+    "cmake_build_compat": {
+      "build_system": "cmake-makefiles",
+      "required": [
+        {
+          "path": "build_compat_app",
+          "kind": "executable",
+          "required_needed": [
+            "libcce_bridge_runtime.so"
+          ],
+          "required_rpath": [
+            "build/real_test/install/lib"
+          ]
+        },
+        {
+          "path": "libbuild_compat_static.a",
+          "kind": "archive"
+        },
+        {
+          "path": "libbuild_compat_shared.so",
+          "kind": "shared"
+        },
+        {
+          "path": "CMakeFiles/build_compat_static.dir/*.o",
+          "kind": "object"
+        },
+        {
+          "path": "CMakeFiles/build_compat_shared.dir/*.o",
+          "kind": "object"
+        }
+      ]
+    },
+    "cmake_ninja": {
+      "build_system": "cmake-ninja",
+      "required": [
+        {
+          "path": "cmake_vector_add",
+          "kind": "executable",
+          "required_needed": [
+            "libcce_bridge_runtime.so"
+          ],
+          "required_rpath": [
+            "build/real_test/install/lib"
+          ]
+        },
+        {
+          "path": "CMakeFiles/cmake_vector_add.dir/*.o",
+          "kind": "object"
+        }
+      ],
+      "metadata": [
+        {
+          "path": "build.ninja",
+          "contains": [
+            "nvcc"
+          ]
+        }
+      ]
+    },
+    "make_compat": {
+      "build_system": "make",
+      "required": [
+        {
+          "path": "build/kernel_a.o",
+          "kind": "object"
+        },
+        {
+          "path": "build/kernel_a.d",
+          "kind": "dependency"
+        },
+        {
+          "path": "build/libkernel_a.a",
+          "kind": "archive"
+        },
+        {
+          "path": "build/libkernel_b.so",
+          "kind": "shared"
+        },
+        {
+          "path": "build/main.o",
+          "kind": "object"
+        },
+        {
+          "path": "build/build_compat_app",
+          "kind": "executable",
+          "required_needed": [
+            "libcce_bridge_runtime.so"
+          ],
+          "required_rpath": [
+            "build/real_test/install/lib"
+          ]
+        }
+      ]
+    },
+    "make_gxx_link": {
+      "build_system": "make-gxx",
+      "required": [
+        {
+          "path": "build/kernel.o",
+          "kind": "object"
+        },
+        {
+          "path": "build/main.o",
+          "kind": "object"
+        },
+        {
+          "path": "build/app",
+          "kind": "executable",
+          "required_needed": [
+            "libcce_bridge_runtime.so"
+          ],
+          "required_rpath": [
+            "build/real_test/install/lib"
+          ]
+        }
+      ]
+    },
+    "cmake_build_compat_install": {
+      "build_system": "cmake-install-export",
+      "required": [
+        {
+          "path": "lib/cmake/build_compat/buildCompatTargets.cmake",
+          "kind": "file"
+        }
+      ]
+    }
+  }
+}
