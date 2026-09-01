@@ -115,10 +115,17 @@ CMake、multi-cu diagnostic 和 external samples build 都通过 `cmake_cce --bu
 控制 flag、普通规则管线和 trace provenance 共享同一份 argv；仍然不执行
 文件内容。
 
+### [P2] artifact contract schema 损坏时会泄漏内部异常 — 已修复（`0da8272`）
+
+`verify_artifacts.py` 原先只检查顶层 `required` 类型；坏的 `metadata` entry
+会在 server 进程中触发 `AttributeError`，而不是稳定的 contract failure。现在
+required artifact、动态依赖、metadata、forbidden suffix 均在加载阶段校验，
+错误统一以 `ContractError` 写入 artifact log 并返回 compact FAIL。
+
 ## 本轮验证
 
 ```text
-164 tests OK
+165 tests OK
 cucc rules validator PASS
 Python py_compile PASS
 bash -n 所有入口脚本 PASS
