@@ -150,6 +150,18 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         for sample in ("simpleStreams", "simpleMultiCopy", "asyncAPI"):
             self.assertIn(sample, harness)
 
+    def test_server_cmake_builds_use_real_cmake_cce_build_phase(self) -> None:
+        server = (ROOT / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
+        # Configure uses mock_nvcc, but every CUDA build must go through
+        # cmake_cce --build so the persistent shim is repointed to real cucc.
+        self.assertIn('if "$CMAKE_CCE" --build "$build_dir"', server)
+        self.assertNotIn('if cmake --build "$build_dir"', server)
+        self.assertIn('"$CMAKE_CCE" --build "$EXTERNAL_BUILD"', server)
+        self.assertNotIn('cmake --build "$EXTERNAL_BUILD" --parallel "$EXTERNAL_JOBS" --target vectorAdd matrixMul', server)
+        self.assertNotIn('cmake --build "$MULTICU_BUILD"', server)
+        self.assertIn("cmake_cce: build phase: shim nvcc ->", server)
+        self.assertIn('readlink "$CU2CCE_CMAKE_SHIM_DIR/CUDA_DIR/bin/nvcc"', server)
+
     def test_external_cuda_samples_profile_is_pinned(self) -> None:
         profile = (ROOT / "examples/external/cuda_samples_project/profile_core.json").read_text(encoding="utf-8")
         fetch = (ROOT / "tools/real_test/fetch_external_cuda_samples.sh").read_text(encoding="utf-8")

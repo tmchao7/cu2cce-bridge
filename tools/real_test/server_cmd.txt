@@ -604,11 +604,25 @@ run_cmake_case() {
         return 0
     fi
 
-    if cmake --build "$build_dir" >"$build_log" 2>&1; then
+    # Configure uses mock_nvcc; build must go through cmake_cce so it
+    # repoints the persistent shim and executes the real cucc path.
+    if "$CMAKE_CCE" --build "$build_dir" >"$build_log" 2>&1; then
         echo "[PASS] [$name] CMake build"
     else
         echo "[FAIL] [$name] CMake build (log: $build_log)"
         tail -n 100 "$build_log" 2>/dev/null || true
+        CMAKE_PASS=0
+        return 0
+    fi
+
+    # The configure shim is intentionally mock-backed. Verify this build
+    # actually crossed the second phase and repointed nvcc to real cucc before
+    # accepting its artifacts; otherwise a mock-only build could look green.
+    if ! grep -Fq 'cmake_cce: build phase: shim nvcc ->' "$build_log" || \
+       [ ! -L "$CU2CCE_CMAKE_SHIM_DIR/CUDA_DIR/bin/nvcc" ] || \
+       [ "$(readlink "$CU2CCE_CMAKE_SHIM_DIR/CUDA_DIR/bin/nvcc")" != "$CUCC_PATH/bin/cucc" ]; then
+        echo "[FAIL] [$name] CMake build did not use real cucc (log: $build_log)"
+        tail -n 30 "$build_log" 2>/dev/null || true
         CMAKE_PASS=0
         return 0
     fi
@@ -719,7 +733,7 @@ elif [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$CMAKE_CCE" ]; then
     if "$CMAKE_CCE" -S examples/multi_cu_diagnostic -B "$MULTICU_BUILD" \
         -DCMAKE_CUDA_ARCHITECTURES=OFF >"$OUT/multi_cu_configure.log" 2>&1; then
         echo '[PASS] multi_cu_diagnostic configure'
-        if cmake --build "$MULTICU_BUILD" >"$OUT/multi_cu_build.log" 2>&1; then
+        if "$CMAKE_CCE" --build "$MULTICU_BUILD" >"$OUT/multi_cu_build.log" 2>&1; then
             echo '[PASS] multi_cu_diagnostic build'
             if "$MULTICU_BUILD/multi_cu_diag_app" >"$OUT/multi_cu_run.log" 2>&1 \
                 && grep -Fq 'multi_cu diagnostic OK' "$OUT/multi_cu_run.log"; then
@@ -951,7 +965,7 @@ elif [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$EXTERNAL_FETCH" ] && [ -x "$CMAKE_CCE
             if run_with_timeout "$EXTERNAL_BUILD_TIMEOUT" env \
                CU2CCE_LIBC_MODE=system CUCC_PATH="$PWD/build/real_test/install" CUDA_PATH="$CUCC_PATH" \
                PATH="$CUCC_PATH/bin:$PATH" \
-               cmake --build "$EXTERNAL_BUILD" --parallel "$EXTERNAL_JOBS" --target vectorAdd matrixMul \
+               "$CMAKE_CCE" --build "$EXTERNAL_BUILD" --parallel "$EXTERNAL_JOBS" --target vectorAdd matrixMul \
                 >"$EXTERNAL_BUILD_LOG" 2>&1; then
                 echo '[PASS] external CUDA Samples build'
                 for sample in vectorAdd matrixMul; do
@@ -986,7 +1000,7 @@ elif [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$EXTERNAL_FETCH" ] && [ -x "$CMAKE_CCE
                     elif ! run_with_timeout "$EXTERNAL_BUILD_TIMEOUT" env \
                        CU2CCE_LIBC_MODE=system CUCC_PATH="$PWD/build/real_test/install" CUDA_PATH="$CUCC_PATH" \
                        PATH="$CUCC_PATH/bin:$PATH" \
-                       cmake --build "$EXTERNAL_BUILD" --parallel "$EXTERNAL_JOBS" --target "$sample" >"$diag_build_log" 2>&1; then
+                       "$CMAKE_CCE" --build "$EXTERNAL_BUILD" --parallel "$EXTERNAL_JOBS" --target "$sample" >"$diag_build_log" 2>&1; then
                         echo "[DIAG-ONLY] [$sample] build failed (log: $diag_build_log; tail 12)"
                         tail -n 12 "$diag_build_log" 2>/dev/null || true
                         continue
