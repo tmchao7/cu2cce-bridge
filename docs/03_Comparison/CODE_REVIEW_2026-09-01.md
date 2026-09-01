@@ -118,7 +118,7 @@ CMake、multi-cu diagnostic 和 external samples build 都通过 `cmake_cce --bu
 ## 本轮验证
 
 ```text
-158 tests OK
+164 tests OK
 cucc rules validator PASS
 Python py_compile PASS
 bash -n 所有入口脚本 PASS
