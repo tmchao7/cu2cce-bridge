@@ -195,10 +195,16 @@ gitcode 更新失败会输出明确 FAIL 并立即退出，避免产生 stale-co
 现在只有实际执行 `fast,full` 的 profile 才打印 puresimt PASS，跳过的 section
 继续明确输出 `*_SECTION_SKIPPED`。
 
+### [P2] server harness 未显式 `fetch` gitcode，更新失败语义不完整 — 已修复（`2041a1c`）
+
+回归脚本原先只执行 `git pull --ff-only`；现在显式先 `git fetch gitcode`，
+再执行 fast-forward pull，并对两步都 fail-closed。这样服务器使用的 checkout
+和远端 `gitcode` 分支状态是可审计的。
+
 ## 本轮验证
 
 ```text
-178 tests OK
+179 tests OK
 cucc rules validator PASS
 Python py_compile PASS
 bash -n 所有入口脚本 PASS
