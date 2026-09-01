@@ -86,6 +86,37 @@ def _reference_cuda_library_alias_count(*assets: Mapping[str, Any]) -> int:
     )
 
 
+def _cmake_command_names(text: str) -> List[str]:
+    import re
+    return [name.lower() for name in re.findall(
+        r"^\s*(?:macro|function)\(\s*([A-Za-z_][A-Za-z0-9_]*)",
+        text, flags=re.MULTILINE,
+    )]
+
+
+def _reference_link_names(*assets: Mapping[str, Any]) -> List[str]:
+    names = {
+        str(obj.get("ln"))
+        for asset in assets
+        for obj in _walk_objects(asset)
+        if obj.get("ln")
+    }
+    return sorted(names)
+
+
+def _is_cuda_library_name(name: str) -> bool:
+    return name.startswith((
+        "libcuda", "libcudart", "libcublas", "libcufft", "libcudnn",
+        "libcusparse", "libcurand", "libnccl", "libnvToolsExt",
+        "libnvrtc", "libnvjpeg", "libnvperf", "libcupti", "libcufile",
+        "libnpp",
+    ))
+
+
+def _library_link_names(names: Iterable[str]) -> List[str]:
+    return sorted({name for name in names if _is_cuda_library_name(name)})
+
+
 def _item(
     item_id: str,
     status: str,
@@ -129,6 +160,15 @@ def build_report(repo: Path, reference: Path) -> Dict[str, Any]:
     current_query_count = len(rules.get("queries", [])) if isinstance(rules.get("queries"), list) else 0
     reference_alias_count = _reference_cuda_library_alias_count(ref_link, ref_stub)
     current_alias_count = len(layout.get("cuda_lib_aliases", [])) if isinstance(layout.get("cuda_lib_aliases"), list) else 0
+    reference_findcuda_macros = _cmake_command_names(_read(reference / "cmake_module/maca/FindCUDA.cmake"))
+    current_findcuda_macros = _cmake_command_names(_read(repo / "cmake_modules/FindCUDA.cmake"))
+    missing_findcuda_macros = sorted(set(reference_findcuda_macros) - set(current_findcuda_macros))
+    reference_link_names = _library_link_names(_reference_link_names(ref_link, ref_stub))
+    current_link_names = _library_link_names(
+        [str(x) for x in layout.get("cuda_lib_aliases", [])]
+        if isinstance(layout.get("cuda_lib_aliases"), list) else []
+    )
+    missing_link_names = sorted(set(reference_link_names) - set(current_link_names))
 
     sections: Dict[str, List[Dict[str, str]]] = {
         "cmake_make": [
@@ -182,11 +222,25 @@ def build_report(repo: Path, reference: Path) -> Dict[str, Any]:
                 "Avoids root requirement, global mutation, and restore failure risk.",
             ),
             _item(
+                "legacy_findcuda_surface",
+                "MISSING" if missing_findcuda_macros else "ALIGNED",
+                f"{len(set(reference_findcuda_macros))} reference FindCUDA commands",
+                f"{len(set(current_findcuda_macros))} current FindCUDA commands",
+                f"Missing reference commands: {', '.join(missing_findcuda_macros) or 'none'}.",
+            ),
+            _item(
+                "low_frequency_wrappers",
+                "MISSING",
+                "conf_bazel.json, conf_gfortran.json, MPI/Fortran wrappers",
+                "No Bazel/gfortran/MPI wrapper",
+                "Audit-only gap; implement only safe detection/diagnostic or explicit NPU rejection.",
+            ),
+            _item(
                 "shim_manifest",
                 "ALIGNED" if layout and ref_link and ref_stub else "MISSING",
                 "link.json + stub_link.json",
                 "config/shim_layout.json + build_shim_tree.py",
-                f"Reference CUDA alias entries: {reference_alias_count}; current manifest aliases: {current_alias_count}.",
+                f"Reference CUDA alias entries: {reference_alias_count}; current manifest aliases: {current_alias_count}; {len(missing_link_names)} reference names are not aliases in the NPU shim and require policy/validation rather than blind copying.",
             ),
         ],
         "cucc": [
@@ -233,6 +287,13 @@ def build_report(repo: Path, reference: Path) -> Dict[str, Any]:
                 "puresimt produces Ascend code through ccec and has no NVIDIA artifact path.",
             ),
             _item(
+                "cucc_low_frequency_modes",
+                "MISSING",
+                "CUCC_USE_GOPENMP, CUCC_USE_PYTHON, Bazel/gfortran condition paths",
+                "Python driver is native; no Bazel/gfortran/MPI dispatch",
+                "The safe NPU plan is explicit diagnostics/rejection, not MACA compiler forwarding.",
+            ),
+            _item(
                 "observability",
                 "ALIGNED" if "CU2CCE_TRACE_FILE" in driver and "CU2CCE_DEBUG" in driver else "MISSING",
                 "debug echo and generated command trace",
@@ -262,6 +323,12 @@ def build_report(repo: Path, reference: Path) -> Dict[str, Any]:
             "link_json_keys": len(ref_link),
             "stub_link_json_keys": len(ref_stub),
             "cuda_library_aliases": reference_alias_count,
+            "reference_link_names": reference_link_names,
+            "current_link_names": current_link_names,
+            "missing_link_names": missing_link_names,
+            "reference_findcuda_macros": sorted(set(reference_findcuda_macros)),
+            "current_findcuda_macros": sorted(set(current_findcuda_macros)),
+            "missing_findcuda_macros": missing_findcuda_macros,
         },
         "sections": sections,
         "summary": dict(summary),

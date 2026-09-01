@@ -35,7 +35,10 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         self.assertIn("EQUIVALENT_NPU", statuses)
         self.assertIn("NOT_APPLICABLE_NPU", statuses)
         self.assertGreater(statuses["ALIGNED"], 0)
+        self.assertGreater(statuses["MISSING"], 0)
         self.assertGreater(report["reference_assets"]["cuda_library_aliases"], 0)
+        self.assertTrue(report["reference_assets"]["missing_findcuda_macros"])
+        self.assertTrue(report["reference_assets"]["missing_link_names"])
 
     def test_cmake_entrypoints_are_installed(self) -> None:
         cmake = (ROOT / "CMakeLists.txt").read_text(encoding="utf-8")
