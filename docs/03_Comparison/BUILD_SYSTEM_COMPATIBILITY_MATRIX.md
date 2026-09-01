@@ -214,3 +214,13 @@ memory semantics are separately validated.
   DNS-resolvable ones). Non-allowlisted hosts fall back to an exact
   known-good GitHub allowlist (github.com / api.github.com / raw.githubusercontent.com /
   codeload.github.com / objects.githubusercontent.com).
+
+### 2026-09-01 产物回归修正
+
+- CMake Ninja 的 CUDA compiler 规则位于 `CMakeFiles/rules.ninja`，而顶层
+  `build.ninja` 主要保存 target/build graph；artifact contract 分别检查两者，
+  避免把正确的 Ninja 产物误报为缺少 compiler metadata。
+- `multi_cu_diagnostic` 的两个 `.cu` 聚合到同一静态库后，Ascend ccec 会为每个
+  translation unit 生成重复的 eager-registration helper。该 case 保持
+  `DIAG-ONLY`，终端明确标注为 expected Ascend backend limitation，不改变主线
+  artifact 或 regression PASS。

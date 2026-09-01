@@ -221,6 +221,12 @@
         {
           "path": "build.ninja",
           "contains": [
+            "cmake_vector_add"
+          ]
+        },
+        {
+          "path": "CMakeFiles/rules.ninja",
+          "contains": [
             "nvcc"
           ]
         }

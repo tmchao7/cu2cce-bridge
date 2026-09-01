@@ -97,7 +97,7 @@ artifact_check() {
     fi
     ARTIFACT_CONTRACT_PASS=0
     echo "[FAIL] artifact [$case_name] (details: $log)"
-    tail -n 30 "$error" 2>/dev/null || true
+    tail -n 30 "$log" 2>/dev/null || true
     return "$status"
 }
 
@@ -727,7 +727,7 @@ elif [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$CMAKE_CCE" ]; then
                 tail -n 30 "$OUT/multi_cu_run.log" 2>/dev/null || true
             fi
         else
-            echo '[DIAG-ONLY] multi_cu_diagnostic build (duplicate registration or similar; log tail:)'
+            echo '[DIAG-ONLY] multi_cu_diagnostic expected Ascend backend limitation (duplicate registration; log tail:)'
             tail -n 40 "$OUT/multi_cu_build.log" 2>/dev/null || true
         fi
     else

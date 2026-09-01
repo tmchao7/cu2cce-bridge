@@ -44,6 +44,21 @@ class ArtifactVerifierTest(unittest.TestCase):
         ):
             self.assertIn(case, data["cases"])
 
+    def test_server_artifact_failure_prints_one_summary_and_log_tail(self) -> None:
+        server = (ROOT / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
+        self.assertIn('echo "[FAIL] artifact [$case_name] (details: $log)"', server)
+        self.assertIn('tail -n 30 "$log"', server)
+        self.assertNotIn('tail -n 30 "$error"', server)
+
+    def test_ninja_contract_checks_rules_file_for_cuda_compiler(self) -> None:
+        contract = json.loads((ROOT / "config/artifact_contract.json").read_text(encoding="utf-8"))
+        metadata = contract["cases"]["cmake_ninja"]["metadata"]
+        entries = {entry["path"]: entry.get("contains", []) for entry in metadata}
+        self.assertIn("build.ninja", entries)
+        self.assertIn("CMakeFiles/rules.ninja", entries)
+        self.assertIn("nvcc", entries["CMakeFiles/rules.ninja"])
+        self.assertNotIn("nvcc", entries["build.ninja"])
+
     def test_server_harness_wires_blocking_artifact_checks_for_all_build_systems(self) -> None:
         server = (ROOT / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
         self.assertIn("ARTIFACT_CONTRACT=", server)

@@ -1283,6 +1283,12 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         self.assertIn("details: $diag_log", server)
         self.assertIn("details: $run_log", server)
 
+    def test_multi_cu_diagnostic_is_explicitly_non_blocking_npu_limit(self) -> None:
+        server = (ROOT / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
+        self.assertIn("multi_cu_diagnostic (diagnostic-only, non-blocking)", server)
+        self.assertIn("expected Ascend backend limitation", server)
+        self.assertIn("duplicate eager-registration", (ROOT / "examples/multi_cu_diagnostic/CMakeLists.txt").read_text(encoding="utf-8"))
+
     def test_round9_query_arch_and_options_probes_are_wired_into_the_harness(self) -> None:
         server_cmd = (ROOT / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
         self.assertIn("-E query passthrough", server_cmd)
