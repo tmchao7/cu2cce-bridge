@@ -539,10 +539,10 @@ class CuccRuleDriverTest(unittest.TestCase):
     def test_cucc_targets_from_device_alias_accepts_one_ascend_architecture(self) -> None:
         env = dict(self.env)
         env.pop("CU2CCE_NPU_ARCH")
-        prepared = RuleDriver(env={**env, "CUCC_TARGETS_FROM_DEVICE": "dav-c310-vec"}).prepare([
+        prepared = RuleDriver(env={**env, "CUCC_TARGETS_FROM_DEVICE": "dav-c100-vec"}).prepare([
             "-c", "main.cu", "-o", "main.o",
         ])
-        self.assertIn("--cce-aicore-arch=dav-c310-vec", prepared.args)
+        self.assertIn("--cce-aicore-arch=dav-c100-vec", prepared.args)
         with self.assertRaisesRegex(DriverError, "CUCC_TARGETS"):
             RuleDriver(env={**env, "CUCC_TARGETS_FROM_DEVICE": "sm_80"}).prepare([
                 "-c", "main.cu", "-o", "main.o",

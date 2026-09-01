@@ -20,9 +20,13 @@ print_tip() {
          "or install npu-smi for device detection; using default" >&2
 }
 
+is_valid_dav_arch() {
+    [[ "$1" =~ ^dav-[[:alnum:]_.-]+$ ]]
+}
+
 # 1) environment wins (mirrors CUCC_TARGETS-first semantics)
 if [ -n "${CU2CCE_NPU_ARCH:-}" ]; then
-    if [[ "$CU2CCE_NPU_ARCH" != dav-* ]]; then
+    if ! is_valid_dav_arch "$CU2CCE_NPU_ARCH"; then
         echo "device_arch: NPU architecture must be an Ascend dav-* target" >&2
         exit 2
     fi
@@ -30,7 +34,7 @@ if [ -n "${CU2CCE_NPU_ARCH:-}" ]; then
     exit 0
 fi
 if [ -n "${CUCC_NPU_ARCH:-}" ]; then
-    if [[ "$CUCC_NPU_ARCH" != dav-* ]]; then
+    if ! is_valid_dav_arch "$CUCC_NPU_ARCH"; then
         echo "device_arch: NPU architecture must be an Ascend dav-* target" >&2
         exit 2
     fi
@@ -40,7 +44,7 @@ fi
 if [ -n "${CUCC_TARGETS_FROM_DEVICE:-}" ]; then
     targets="${CUCC_TARGETS_FROM_DEVICE//,/ }"
     read -r -a target_list <<< "$targets"
-    if [ "${#target_list[@]}" -ne 1 ] || [[ "${target_list[0]}" != dav-* ]]; then
+    if [ "${#target_list[@]}" -ne 1 ] || ! is_valid_dav_arch "${target_list[0]}"; then
         echo "device_arch: CUCC_TARGETS_FROM_DEVICE must contain exactly one Ascend dav-* architecture" >&2
         exit 2
     fi
@@ -50,7 +54,7 @@ fi
 if [ -n "${CUCC_TARGETS:-}" ]; then
     targets="${CUCC_TARGETS//,/ }"
     read -r -a target_list <<< "$targets"
-    if [ "${#target_list[@]}" -ne 1 ] || [[ "${target_list[0]}" != dav-* ]]; then
+    if [ "${#target_list[@]}" -ne 1 ] || ! is_valid_dav_arch "${target_list[0]}"; then
         echo "device_arch: CUCC_TARGETS must contain exactly one Ascend dav-* architecture" >&2
         exit 2
     fi
@@ -74,9 +78,12 @@ esac
 CACHE="${CU2CCE_HOME:-${CUBRIDGE_HOME:-$HOME}}/cu2cce-bridge/device_arch.cache"
 if [ -f "$CACHE" ]; then
     cached="$(cat "$CACHE" 2>/dev/null || true)"
-    if [ -n "$cached" ]; then
+    if is_valid_dav_arch "$cached"; then
         echo "$cached"
         exit 0
+    fi
+    if [ -n "$cached" ]; then
+        echo "device_arch: ignoring invalid cached architecture '$cached'" >&2
     fi
 fi
 

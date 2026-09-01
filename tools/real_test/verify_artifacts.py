@@ -34,13 +34,6 @@ class ArtifactResult:
         return "\n".join(self.details) if self.details else "artifact contract passed"
 
 
-@dataclass
-class _Inspect:
-    path: Path
-    description: str = ""
-    dynamic: str = ""
-
-
 def load_contract(path: Path) -> Dict[str, Any]:
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
@@ -164,13 +157,12 @@ def _check_kind(path: Path, spec: Mapping[str, Any], description: str) -> List[s
     return errors
 
 
-def _check_dynamic(path: Path, spec: Mapping[str, Any], inspect: _Inspect) -> List[str]:
+def _check_dynamic(path: Path, spec: Mapping[str, Any]) -> List[str]:
     needed = [str(value) for value in spec.get("required_needed", [])]
     rpaths = [str(value) for value in spec.get("required_rpath", [])]
     if not needed and not rpaths:
         return []
     dynamic = _readelf_dynamic(path)
-    inspect.dynamic = dynamic
     if not dynamic:
         return [f"readelf -d unavailable for dynamic contract: {path}"]
     errors: List[str] = []
@@ -242,15 +234,11 @@ def verify_case(root: Path, case: Mapping[str, Any], contract: Mapping[str, Any]
         if not matches:
             details.append(f"missing required artifact: {root / pattern}")
             continue
-        if spec.get("all_matches", False) and not matches:
-            details.append(f"required glob has no matches: {root / pattern}")
-            continue
         for path in matches:
             checked.append(str(path))
             description = _file_description(path)
-            inspect = _Inspect(path, description)
             details.extend(_check_kind(path, spec, description))
-            details.extend(_check_dynamic(path, spec, inspect))
+            details.extend(_check_dynamic(path, spec))
     metadata_errors, metadata_checked = _check_metadata(root, case.get("metadata", []))
     details.extend(metadata_errors)
     checked.extend(metadata_checked)

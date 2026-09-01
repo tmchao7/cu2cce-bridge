@@ -53,6 +53,21 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         self.assertFalse(report["reference_assets"]["missing_findcuda_macros"])
         self.assertTrue(report["reference_assets"]["missing_link_names"])
 
+    def test_cmake_cce_query_modes_bypass_cann_environment_checks(self) -> None:
+        # The reference cmake_maca forwards --version/-E/--help directly to
+        # cmake. cmake_cce must do the same before requiring an Ascend install,
+        # so tooling can inspect the wrapper on a development host.
+        env = dict(os.environ)
+        for key in ("CUCC_PATH", "CANN_BASE", "ASCEND_TOOLKIT_HOME"):
+            env.pop(key, None)
+        for args in (("--version",), ("-E", "capabilities"), ("--help",)):
+            with self.subTest(args=args):
+                result = subprocess.run(
+                    [str(ROOT / "tools/cmake_cce"), *args],
+                    env=env, capture_output=True, text=True, check=False,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_cmake_entrypoints_are_installed(self) -> None:
         cmake = (ROOT / "CMakeLists.txt").read_text(encoding="utf-8")
         for tool in ("tools/cmake_cce", "tools/make_cce", "tools/ninja_cce", "tools/cu2cce_driver.py", "tools/compare_cubridge_parity.py"):
@@ -498,6 +513,48 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
             text = (ROOT / entry).read_text(encoding="utf-8")
             self.assertIn("WCUDA_HOME", text, entry)
 
+    def test_device_arch_ignores_malformed_cached_dav_value(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_name:
+            tmp = Path(tmp_name)
+            cache_dir = tmp / "home" / "cu2cce-bridge"
+            cache_dir.mkdir(parents=True)
+            (cache_dir / "device_arch.cache").write_text("dav-c310-vec\n--bad\n", encoding="utf-8")
+            env = dict(os.environ)
+            for key in ("CU2CCE_NPU_ARCH", "CUCC_NPU_ARCH", "CUCC_TARGETS", "CUCC_TARGETS_FROM_DEVICE"):
+                env.pop(key, None)
+            env["CU2CCE_HOME"] = str(tmp / "home")
+            env["PATH"] = "/usr/bin:/bin"
+            result = subprocess.run(
+                ["/bin/bash", str(ROOT / "tools/device_arch.sh")],
+                env=env, capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stdout.strip(), "dav-c310-vec")
+            self.assertNotIn("--bad", result.stdout)
+
+    def test_device_arch_centralizes_dav_architecture_validation(self) -> None:
+        script = (ROOT / "tools/device_arch.sh").read_text(encoding="utf-8")
+        self.assertIn("is_valid_dav_arch()", script)
+        self.assertGreaterEqual(script.count("is_valid_dav_arch"), 5)
+
+    def test_device_arch_ignores_invalid_cached_cuda_architecture(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_name:
+            tmp = Path(tmp_name)
+            cache_dir = tmp / "home" / "cu2cce-bridge"
+            cache_dir.mkdir(parents=True)
+            (cache_dir / "device_arch.cache").write_text("sm_80\n", encoding="utf-8")
+            env = dict(os.environ)
+            for key in ("CU2CCE_NPU_ARCH", "CUCC_NPU_ARCH", "CUCC_TARGETS", "CUCC_TARGETS_FROM_DEVICE"):
+                env.pop(key, None)
+            env["CU2CCE_HOME"] = str(tmp / "home")
+            env["PATH"] = "/usr/bin:/bin"
+            result = subprocess.run(
+                ["/bin/bash", str(ROOT / "tools/device_arch.sh")],
+                env=env, capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stdout.strip(), "dav-c310-vec")
+
     def test_device_arch_rejects_cuda_targets_and_accepts_one_dav_target(self) -> None:
         script = ROOT / "tools/device_arch.sh"
         env = dict(os.environ)
@@ -580,6 +637,28 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
             )
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertFalse(keep.exists())
+
+    def test_build_wrapper_rejects_invalid_targets_from_device_without_defaulting(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_name:
+            tmp = Path(tmp_name)
+            fake_bin = tmp / "bin"
+            fake_bin.mkdir()
+            fake_ninja = fake_bin / "ninja"
+            fake_ninja.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+            fake_ninja.chmod(0o755)
+            env = dict(os.environ)
+            env.update({
+                "CUCC_PATH": str(ROOT),
+                "CU2CCE_CMAKE_SHIM_DIR": str(tmp / "shim"),
+                "CUCC_TARGETS_FROM_DEVICE": "sm_80",
+                "PATH": f"{fake_bin}{os.pathsep}{env.get('PATH', '')}",
+            })
+            result = subprocess.run(
+                [str(ROOT / "tools/ninja_cce"), "-n"],
+                env=env, capture_output=True, text=True, check=False,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("CUCC_TARGETS_FROM_DEVICE", result.stderr)
 
     def test_ninja_cce_exports_npu_environment_and_builds_shim(self) -> None:
         # Functional direct-entry test: Ninja must receive the same NPU
@@ -1101,6 +1180,13 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
             self.assertIn(helper, findcuda)
         self.assertIn("CUDA_SEPARABLE_COMPILATION OFF", findcuda)
         self.assertIn("unsupported on Ascend puresimt", findcuda)
+
+    def test_findcuda_public_adders_enable_cuda_before_target_creation(self) -> None:
+        findcuda = (ROOT / "cmake_modules/FindCUDA.cmake").read_text(encoding="utf-8")
+        for function_name in ("cuda_add_executable", "cuda_add_library"):
+            start = findcuda.index(f"function({function_name}")
+            end = findcuda.index("endfunction()", start)
+            self.assertIn("_cu2cce_enable_cuda()", findcuda[start:end], function_name)
 
     def test_findcuda_uses_shared_legacy_helpers(self) -> None:
         # Keep the legacy CMake surface easy to audit: repeated CUDA-language

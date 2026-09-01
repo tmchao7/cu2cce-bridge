@@ -18,6 +18,15 @@ set -euo pipefail
 CUCC_PATH="${CUCC_PATH:-}"
 CANN_BASE="${CANN_BASE:-/usr/local/Ascend/latest}"
 ASCEND_TOOLKIT_HOME="${ASCEND_TOOLKIT_HOME:-/usr/local/Ascend/ascend-toolkit/latest}"
+
+# Match cu-bridge's query passthrough: informational cmake invocations must
+# work on a development host before an Ascend/CANN install is available.
+for arg in "$@"; do
+    case "$arg" in
+        --version|-version|/V|-E|--help*) exec cmake "$@";;
+    esac
+done
+
 if [ -z "$CUCC_PATH" ] || [ ! -x "$CUCC_PATH/bin/cucc" ]; then
     echo "cmake_cce: CUCC_PATH must point to an installed cu2cce-bridge directory" >&2
     echo "cmake_cce: expected $CUCC_PATH/bin/cucc" >&2
@@ -33,12 +42,6 @@ if [ ! -f "${CUCC_PATH}/tools/fake_toolkit_env.sh" ]; then
 fi
 . "${CUCC_PATH}/tools/fake_toolkit_env.sh"
 CU2CCE_NPU_ARCH="$(cu2cce_resolve_npu_arch)" || exit 1
-
-for arg in "$@"; do
-    case "$arg" in
-        --version|-version|/V|-E|--help*) exec cmake "$@";;
-    esac
-done
 
 # Shim directory resolution + two-phase protocol. The DEFAULT shim root is
 # persistent under the user's home — same semantics as cu-bridge's

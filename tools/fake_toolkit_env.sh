@@ -30,7 +30,7 @@ cu2cce_host_triple() {
 # fails instead of silently falling back to dav-c310-vec.
 cu2cce_resolve_npu_arch() {
     if [ -n "${CU2CCE_NPU_ARCH:-}" ]; then
-        if [[ "$CU2CCE_NPU_ARCH" != dav-* ]]; then
+        if [[ ! "$CU2CCE_NPU_ARCH" =~ ^dav-[[:alnum:]_.-]+$ ]]; then
             echo "cu2cce: NPU architecture must be an Ascend dav-* target" >&2
             return 2
         fi
@@ -38,14 +38,14 @@ cu2cce_resolve_npu_arch() {
         return 0
     fi
     if [ -n "${CUCC_NPU_ARCH:-}" ]; then
-        if [[ "$CUCC_NPU_ARCH" != dav-* ]]; then
+        if [[ ! "$CUCC_NPU_ARCH" =~ ^dav-[[:alnum:]_.-]+$ ]]; then
             echo "cu2cce: NPU architecture must be an Ascend dav-* target" >&2
             return 2
         fi
         printf '%s\n' "$CUCC_NPU_ARCH"
         return 0
     fi
-    if [ -n "${CUCC_TARGETS:-}" ]; then
+    if [ -n "${CUCC_TARGETS:-}" ] || [ -n "${CUCC_TARGETS_FROM_DEVICE:-}" ]; then
         bash "$CUCC_PATH/tools/device_arch.sh"
         return $?
     fi

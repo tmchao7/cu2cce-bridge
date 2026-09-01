@@ -356,7 +356,7 @@ class RuleDriver:
         """
         explicit = self.env.get("CU2CCE_NPU_ARCH") or self.env.get("CUCC_NPU_ARCH")
         if explicit:
-            if not explicit.startswith("dav-"):
+            if not re.fullmatch(r"dav-[A-Za-z0-9_.-]+", explicit):
                 raise DriverError(
                     f"NPU architecture {explicit!r} is not an Ascend dav-* "
                     "target; CUDA sm_*/compute_* values cannot select ccec"
@@ -375,7 +375,7 @@ class RuleDriver:
                 "for a ccec puresimt invocation"
             )
         target = targets[0]
-        if not target.startswith("dav-"):
+        if not re.fullmatch(r"dav-[A-Za-z0-9_.-]+", target):
             raise DriverError(
                 f"CUCC_TARGETS={target!r} is not an Ascend dav-* architecture; "
                 "CUDA sm_*/compute_* targets cannot select ccec"
