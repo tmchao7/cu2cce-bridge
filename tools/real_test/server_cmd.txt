@@ -42,7 +42,11 @@ cd /home/t50063365/workspace/repos/cu2cce-bridge
 REGRESSION_BRANCH="${CU2CCE_REGRESSION_BRANCH:-$(git branch --show-current)}"
 if [ -z "$REGRESSION_BRANCH" ]; then REGRESSION_BRANCH=main; fi
 printf 'BRANCH=%s HEAD=' "$REGRESSION_BRANCH"
-git pull --ff-only gitcode "$REGRESSION_BRANCH" && git log -1 --oneline
+if ! git pull --ff-only gitcode "$REGRESSION_BRANCH"; then
+    echo "[FAIL] gitcode update failed; refusing to run regression on stale checkout"
+    exit 1
+fi
+git log -1 --oneline
 
 OUT="$PWD/build/real_test/puresimt"
 mkdir -p "$OUT"
