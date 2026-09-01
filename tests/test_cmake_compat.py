@@ -169,7 +169,7 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         # WCUDA_DEBUG=1 so failing samples leave per-call bridge traces.
         self.assertIn("WCUDA_DEBUG=1 run_with_timeout", server_cmd)
         self.assertNotIn('env WCUDA_DEBUG=', server_cmd)
-        self.assertIn("tail -n 60 \"$diag_log\"", server_cmd)
+        self.assertIn('tail -n 12 "$diag_log"', server_cmd)
         self.assertIn("cuda_samples_${sample}.build.log", server_cmd)
         self.assertIn("cuda_samples_diag_${sample}.log", server_cmd)
         ext_cmake = (ROOT / "examples/external/cuda_samples_project/CMakeLists.txt").read_text(encoding="utf-8")
