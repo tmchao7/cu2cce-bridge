@@ -182,10 +182,16 @@ dispatch 和真实 cucc symlink 校验。现在 CMake 示例统一使用 `cmake_
 探测失真。现在使用 `CU2CCE_HOST_TRIPLE` 或实际 host platform 生成目标路径，
 并由 `cmake_cce` 传递该值。
 
+### [P2] server harness 在 git 更新失败时可能继续使用 stale checkout — 已修复（`a7bd28b`）
+
+`server_cmd.txt` 使用 `set +e` 以便分类记录测试结果，但原先没有单独检查
+`git pull --ff-only` 返回值；远端更新失败时仍可能继续跑旧代码。现在
+gitcode 更新失败会输出明确 FAIL 并立即退出，避免产生 stale-code 假 PASS。
+
 ## 本轮验证
 
 ```text
-176 tests OK
+177 tests OK
 cucc rules validator PASS
 Python py_compile PASS
 bash -n 所有入口脚本 PASS
