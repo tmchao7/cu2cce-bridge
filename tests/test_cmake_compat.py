@@ -425,7 +425,7 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         self.assertIn('ln -sfn "$CUCC_PATH/bin/cucc" "$CUDA_DIR/bin/nvcc"', cmake_cce)
         # Persistent shim default (their CUBRIDGE_HOME semantics) is what
         # makes the build-phase re-point effective across processes.
-        self.assertIn('${CU2CCE_HOME:-${CUBRIDGE_HOME:-$HOME}}/cu2cce-bridge/cmake-shim', cmake_cce)
+        self.assertIn('${CU2CCE_HOME:-${WCUDA_HOME:-${CUBRIDGE_HOME:-$HOME}}}/cu2cce-bridge/cmake-shim', cmake_cce)
         # Configure phase binds the shim nvcc to the mock through the shared
         # helper (re-pointing here makes repeated configure/build cycles on
         # one persistent shim deterministic). Since the seventh batch the
@@ -474,6 +474,15 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         for section in ("dirs", "dir_links", "file_links", "hostcc_names",
                         "cuda_lib_aliases", "alias_dirs", "alias_target", "files"):
             self.assertIn(f'"{section}"', (ROOT / "config/shim_layout.json").read_text(encoding="utf-8"))
+
+    def test_cubridge_environment_aliases_are_supported_across_entries(self) -> None:
+        device_arch = (ROOT / "tools/device_arch.sh").read_text(encoding="utf-8")
+        driver = (ROOT / "tools/cu2cce_driver.py").read_text(encoding="utf-8")
+        self.assertIn("CUCC_TARGETS_FROM_DEVICE", device_arch)
+        self.assertIn("CUCC_TARGETS_FROM_DEVICE", driver)
+        for entry in ("tools/cmake_cce", "tools/make_cce", "tools/ninja_cce", "tools/pre_cce"):
+            text = (ROOT / entry).read_text(encoding="utf-8")
+            self.assertIn("WCUDA_HOME", text, entry)
 
     def test_device_arch_rejects_cuda_targets_and_accepts_one_dav_target(self) -> None:
         script = ROOT / "tools/device_arch.sh"
@@ -1116,7 +1125,7 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
             self.assertIn(honest, findcuda)
 
         ninja = (ROOT / "tools/ninja_cce").read_text(encoding="utf-8")
-        self.assertIn('CU2CCE_CMAKE_SHIM_DIR:-${CU2CCE_HOME}/cu2cce-bridge/cmake-shim', ninja)
+        self.assertIn('CU2CCE_CMAKE_SHIM_DIR:-${CU2CCE_HOME:-${WCUDA_HOME:-${CUBRIDGE_HOME:-$HOME}}}/cu2cce-bridge/cmake-shim', ninja)
         self.assertIn("ninja_cce: build phase: shim nvcc ->", ninja)
         self.assertIn('cu2cce_prepare_fake_toolkit', ninja)
         self.assertIn('"$CUCC_PATH/bin/cucc"', ninja)

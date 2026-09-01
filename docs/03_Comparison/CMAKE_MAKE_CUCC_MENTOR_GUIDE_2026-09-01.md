@@ -122,6 +122,8 @@ tools/build_shim_tree.py
 
 ## 三、Make 原理
 
+为兼容 `cu-bridge` 的项目隔离方式，`CU2CCE_HOME`、`WCUDA_HOME`、`CUBRIDGE_HOME` 按此优先级提供 shim 工作目录覆盖；架构来源还兼容 `CUCC_TARGETS_FROM_DEVICE`，但 Ascend ccec 仍只接受一个 `dav-*` target。
+
 ### 3.1 `cu-bridge` 的 Make 机制
 
 `make_maca` 的核心做法：

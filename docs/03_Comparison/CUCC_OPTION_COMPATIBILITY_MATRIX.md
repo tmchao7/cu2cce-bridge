@@ -13,6 +13,7 @@ Rules are implemented by `config/cu2cce_rules.json` and shared by `cucc` and the
 | `-L/-l` | separate/equal | link | FORWARD | `EXPERIMENTAL` | unvalidated CUDA libraries warn and remain unmodified |
 | `-Xcompiler/--compiler-options` | separate/equal | compile/link | REPLACE | `EXPERIMENTAL` | `shlex`/comma-split host flags, per-flag NPU filtering |
 | `-Xlinker` / `--linker-options` | separate/equal | link | FORWARD/REPLACE | `SUPPORTED` for command shape | `--linker-options <arg>` maps to `-Xlinker <arg>`; actual ccec link semantics require real proof |
+| `CUCC_TARGETS/CUCC_TARGETS_FROM_DEVICE` | environment | all | RESOLVE | `SUPPORTED` for one `dav-*` target | cu-bridge-compatible source, validated for Ascend single-target ccec |
 | `-gencode/--generate-code` | separate/equal | compile | DROP | `DIAGNOSTIC_ONLY` | never mapped to fake Ascend architecture |
 | `-arch/--gpu-architecture` | separate/equal | compile | DROP | `DIAGNOSTIC_ONLY` | `CU2CCE_NPU_ARCH` selects ccec target |
 | `--ptxas-options/-Xptxas` | separate/equal | compile | DROP | `DIAGNOSTIC_ONLY` | ptxas is not used |

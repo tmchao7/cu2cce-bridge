@@ -37,6 +37,16 @@ if [ -n "${CUCC_NPU_ARCH:-}" ]; then
     echo "$CUCC_NPU_ARCH"
     exit 0
 fi
+if [ -n "${CUCC_TARGETS_FROM_DEVICE:-}" ]; then
+    targets="${CUCC_TARGETS_FROM_DEVICE//,/ }"
+    read -r -a target_list <<< "$targets"
+    if [ "${#target_list[@]}" -ne 1 ] || [[ "${target_list[0]}" != dav-* ]]; then
+        echo "device_arch: CUCC_TARGETS_FROM_DEVICE must contain exactly one Ascend dav-* architecture" >&2
+        exit 2
+    fi
+    echo "${target_list[0]}"
+    exit 0
+fi
 if [ -n "${CUCC_TARGETS:-}" ]; then
     targets="${CUCC_TARGETS//,/ }"
     read -r -a target_list <<< "$targets"

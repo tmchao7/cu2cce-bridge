@@ -33,7 +33,7 @@ setup_debug_propagation
 
 ASCEND_TOOLKIT_HOME=${ASCEND_TOOLKIT_HOME:-/usr/local/Ascend/ascend-toolkit/latest}
 CUCC_PATH=${CUCC_PATH:-}
-CU2CCE_HOME=${CU2CCE_HOME:-${CUBRIDGE_HOME:-$HOME}}
+CU2CCE_HOME=${CU2CCE_HOME:-${WCUDA_HOME:-${CUBRIDGE_HOME:-$HOME}}}
 
 if [ -z "${CUCC_PATH}" ]; then
     echo "pre_cce: CUCC_PATH not set (point to cu2cce-bridge install dir)" >&2

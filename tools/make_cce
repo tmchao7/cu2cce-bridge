@@ -29,7 +29,7 @@ ASCEND_TOOLKIT_HOME=${ASCEND_TOOLKIT_HOME:-/usr/local/Ascend/ascend-toolkit/late
 CUCC_PATH=${CUCC_PATH:-}
 # Keep the old CUBRIDGE_HOME name as a compatibility alias, but use the
 # cu2cce-specific name for new projects.
-CU2CCE_HOME=${CU2CCE_HOME:-${CUBRIDGE_HOME:-$HOME}}
+CU2CCE_HOME=${CU2CCE_HOME:-${WCUDA_HOME:-${CUBRIDGE_HOME:-$HOME}}}
 if [ -z "${CUCC_PATH}" ]; then
     echo "make_cce: CUCC_PATH not set (point to cu2cce-bridge install dir)" >&2
     exit 1

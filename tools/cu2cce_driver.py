@@ -331,7 +331,10 @@ class RuleDriver:
         if (
             "CU2CCE_NPU_ARCH" not in self.env
             and "CUCC_NPU_ARCH" not in self.env
-            and not self.env.get("CUCC_TARGETS", "").strip()
+            and not (
+                self.env.get("CUCC_TARGETS", "").strip()
+                or self.env.get("CUCC_TARGETS_FROM_DEVICE", "").strip()
+            )
         ):
             self.npu_arch = str(frontend_defaults.get("default_arch", self.npu_arch))
         if self.rules.get("schema_version") != 1:
@@ -359,7 +362,10 @@ class RuleDriver:
                     "target; CUDA sm_*/compute_* values cannot select ccec"
                 )
             return explicit
-        raw_targets = self.env.get("CUCC_TARGETS", "").replace(",", " ")
+        raw_targets = (
+            self.env.get("CUCC_TARGETS", "")
+            or self.env.get("CUCC_TARGETS_FROM_DEVICE", "")
+        ).replace(",", " ")
         targets = raw_targets.split()
         if not targets:
             return "dav-c310-vec"

@@ -48,7 +48,7 @@ done
 if [ -n "${CU2CCE_CMAKE_SHIM_DIR:-}" ]; then
     SHIM_ROOT="$CU2CCE_CMAKE_SHIM_DIR"
 else
-    SHIM_ROOT="${CU2CCE_HOME:-${CUBRIDGE_HOME:-$HOME}}/cu2cce-bridge/cmake-shim"
+    SHIM_ROOT="${CU2CCE_HOME:-${WCUDA_HOME:-${CUBRIDGE_HOME:-$HOME}}}/cu2cce-bridge/cmake-shim"
 fi
 # Parallel-build isolation (cu-bridge USE_WCUDA_FOR_MULTI_JOB parity): give
 # each top-level job its own shim when concurrent cmake_cce runs would race.
