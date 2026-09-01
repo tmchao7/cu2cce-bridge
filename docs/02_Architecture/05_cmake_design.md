@@ -72,7 +72,7 @@ CMakeLists 本身保持原样（`project(... LANGUAGES CXX CUDA)`、
    （真机教训）；普通可执行文件由 `CUDA_ARCHITECTURES OFF` 移除按架构
    产物管线。
 4. **外部样本构建树增量复用**：源码缓存在 `build/` 之外的
-   `.cu2cce-cache/`（逃过 clean.sh），`cmake --build --parallel`；构建树
+   `.cu2cce-cache/`（逃过 clean.sh），`cmake_cce --build --parallel`；构建树
    不再每轮删除，坏树自动回退全量 reconfigure。
 
 ## 5. 边界与升级路径
