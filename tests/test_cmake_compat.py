@@ -174,7 +174,7 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         # only vectorAdd/matrixMul were in the required "--target" list.
         server_cmd = (ROOT / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
         self.assertIn("for sample in simpleStreams simpleMultiCopy asyncAPI; do", server_cmd)
-        self.assertIn('cmake --build "$EXTERNAL_BUILD" --parallel "$EXTERNAL_JOBS" --target "$sample"', server_cmd)
+        self.assertIn('"$CMAKE_CCE" --build "$EXTERNAL_BUILD" --parallel "$EXTERNAL_JOBS" --target "$sample"', server_cmd)
         # Regression guard: prefixing a shell FUNCTION with env yields
         # "env: 'run_with_timeout': No such file or directory" (exit 127)
         # and silently swallows every diagnostic run. Diagnostics force
@@ -271,7 +271,7 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         # compilation is parallel.
         self.assertIn('CU2CCE_EXTERNAL_CACHE_DIR:-$PWD/.cu2cce-cache', server_cmd)
         self.assertNotIn('EXTERNAL_SOURCE="$OUT/external/nvidia_cuda_samples"', server_cmd)
-        self.assertIn('cmake --build "$EXTERNAL_BUILD" --parallel "$EXTERNAL_JOBS"', server_cmd)
+        self.assertIn('"$CMAKE_CCE" --build "$EXTERNAL_BUILD" --parallel "$EXTERNAL_JOBS"', server_cmd)
         self.assertIn("EXTERNAL_JOBS=", server_cmd)
         self.assertNotIn('rm -rf "$EXTERNAL_BUILD"', server_cmd)
         # fast keeps only the core puresimt subset; every legacy case stays in
