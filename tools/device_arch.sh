@@ -75,7 +75,7 @@ case "${SOC_NAME}" in
 esac
 
 # 3) cached value from a previous explicit setting/probe
-CACHE="${CU2CCE_HOME:-${CUBRIDGE_HOME:-$HOME}}/cu2cce-bridge/device_arch.cache"
+CACHE="${CU2CCE_HOME:-${WCUDA_HOME:-${CUBRIDGE_HOME:-$HOME}}}/cu2cce-bridge/device_arch.cache"
 if [ -f "$CACHE" ]; then
     cached="$(cat "$CACHE" 2>/dev/null || true)"
     if is_valid_dav_arch "$cached"; then

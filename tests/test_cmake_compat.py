@@ -645,6 +645,26 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
             self.assertEqual(result.stdout.strip(), "dav-c310-vec")
             self.assertNotIn("--bad", result.stdout)
 
+    def test_device_arch_cache_honors_wcuda_home_alias(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_name:
+            tmp = Path(tmp_name)
+            cache_dir = tmp / "wcuda" / "cu2cce-bridge"
+            cache_dir.mkdir(parents=True)
+            (cache_dir / "device_arch.cache").write_text("dav-c100-vec\n", encoding="utf-8")
+            env = dict(os.environ)
+            for key in ("CU2CCE_NPU_ARCH", "CUCC_NPU_ARCH", "CUCC_TARGETS", "CUCC_TARGETS_FROM_DEVICE"):
+                env.pop(key, None)
+            env.pop("CU2CCE_HOME", None)
+            env.pop("CUBRIDGE_HOME", None)
+            env["WCUDA_HOME"] = str(tmp / "wcuda")
+            env["PATH"] = "/usr/bin:/bin"
+            result = subprocess.run(
+                ["/bin/bash", str(ROOT / "tools/device_arch.sh")],
+                env=env, capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stdout.strip(), "dav-c100-vec")
+
     def test_device_arch_centralizes_dav_architecture_validation(self) -> None:
         script = (ROOT / "tools/device_arch.sh").read_text(encoding="utf-8")
         self.assertIn("is_valid_dav_arch()", script)
