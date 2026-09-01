@@ -102,6 +102,15 @@ def build_shim(
     hostcc_mode: str = "wrapper",
     cann_base: str = "",
 ) -> List[str]:
+    # Resolve all CLI paths before writing symlinks. Otherwise a relative
+    # target such as `install/bin/cucc` is interpreted relative to the link
+    # location inside the generated toolkit and becomes dangling.
+    cuda_dir = cuda_dir.expanduser().resolve()
+    cucc_path = cucc_path.expanduser().resolve()
+    nvcc_target = nvcc_target.expanduser().resolve()
+    layout_path = layout_path.expanduser().resolve()
+    if hostcc_bin_dir is not None:
+        hostcc_bin_dir = hostcc_bin_dir.expanduser().resolve()
     layout = json.loads(layout_path.read_text(encoding="utf-8"))
     variables = {
         "CUDA_DIR": str(cuda_dir),

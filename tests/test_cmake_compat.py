@@ -1136,6 +1136,39 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
             self.assertIn("CUDA source", text)
             self.assertIn('exec "$compiler" "$@"', text)
 
+    def test_shim_builder_resolves_relative_cli_paths(self) -> None:
+        import os
+        import subprocess as sp
+        import sys
+
+        with tempfile.TemporaryDirectory() as tmp_name:
+            tmp = Path(tmp_name)
+            cucc = tmp / "install"
+            (cucc / "bin").mkdir(parents=True)
+            (cucc / "include").mkdir()
+            (cucc / "include/cuda_runtime.h").write_text("/* shim */\n", encoding="utf-8")
+            (cucc / "lib").mkdir()
+            (cucc / "lib/libcce_bridge_runtime.so").write_text("", encoding="utf-8")
+            (cucc / "tools").mkdir()
+            (cucc / "tools/hostcc_cce").write_text("#!/bin/sh\n", encoding="utf-8")
+            (cucc / "bin/cucc").write_text("#!/bin/sh\n", encoding="utf-8")
+            (cucc / "bin/cucc").chmod(0o755)
+            (cucc / "tools/hostcc_cce").chmod(0o755)
+            result = sp.run([
+                sys.executable, str(ROOT / "tools/build_shim_tree.py"),
+                "--cuda-dir", "shim/CUDA_DIR",
+                "--cucc-path", "install",
+                "--nvcc-target", "install/bin/cucc",
+                "--hostcc-bin-dir", "shim/bin",
+                "--quiet",
+            ], cwd=tmp, capture_output=True, text=True, check=False)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue((tmp / "shim/CUDA_DIR/include/cuda_runtime.h").is_file())
+            self.assertEqual(
+                os.readlink(tmp / "shim/CUDA_DIR/bin/nvcc"),
+                str((cucc / "bin/cucc").resolve()),
+            )
+
     def test_shim_builder_is_idempotent_and_produces_the_manifest_layout(self) -> None:
         # Functional check of the shared builder (no CANN/ccec needed): the
         # produced tree must carry the toolkit shape, the CUDA-named alias
