@@ -109,8 +109,9 @@ build 期按 `build.make` 里**记录的绝对编译器路径**逐条发起真�
    compile_and_link；仅 `.o`/库 → link；**参数含 `*.o` 时追加设备链接旗标**——
    "链接含设备码的目标文件"等同设备链接处理，RDC 语义折叠进链接步。
 4. **注入与后处理**：目标架构 `--offload-arch`（优先命令行，其次 `CUCC_TARGETS`/
-   `CUCC_TARGETS_FROM_DEVICE`，皆无则**报错退出**，`cucc:1085-1107`；
-   设备探测 `tools/get_device_arch.sh` 走 mx-smi + sysfs）；`-gencode/-arch` →
+   `CUCC_TARGETS_FROM_DEVICE`；Ascend 版要求单个合法 `dav-*`，未提供时由
+   `device_arch.sh` 经 `npu-smi` 探测，无法探测则使用 `dav-c310-vec` 默认值并打印
+   usage tip）；`-gencode/-arch` →
    `-DNV_ARCH_* -Xdevice -D__CUDA_ARCH__=NNN`（**`-Xdevice` 把宏限定在 device
    pass**，host 代码的 `#ifdef __CUDA_ARCH__` 分支不受污染——这是宏语义的关键）；
    `.cu` 条件追加 `--include cuda_runtime.h`（nvcc 自动预包含语义，
