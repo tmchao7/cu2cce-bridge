@@ -212,10 +212,24 @@ toolkit 版本元数据，CMake 探测和直接 cucc 的兼容版本保持一致
 为保持 server 终端 compact output，CMake install/export 失败分支现在只输出
 最近 30 行并保留完整日志路径，不再将整个 install log 直接 `cat` 到终端。
 
+### [P1] 顶层 CMake 使用绝对 install destination，`--prefix` 不生效 — 已修复（`b428ca0`）
+
+`CMakeLists.txt` 原先把 `DESTINATION` 拼成 `${CMAKE_INSTALL_PREFIX}/...`，
+会使自定义 `cmake --install --prefix <dir>` 失效，并可能尝试写入默认
+`/usr/local`。现在所有安装目标改为标准 prefix-relative 路径（`lib`、`bin`、
+`include` 等），保留 `bin/nvcc` 的 install-time symlink。
+
+### [P2] bridge 本体安装产物此前未纳入统一 artifact contract — 已修复（`253069c`）
+
+server harness 之前主要依赖 `build_bridge.sh` 的手工文件循环；现在新增
+`bridge_install` contract，阻塞检查 runtime shared object、`cucc`/`nvcc`、
+package/export 文件、FindCUDA 模块和 rules 配置，并验证 `cu2cce::runtime`
+导出 target。
+
 ## 本轮验证
 
 ```text
-181 tests OK
+184 tests OK
 cucc rules validator PASS
 Python py_compile PASS
 bash -n 所有入口脚本 PASS
