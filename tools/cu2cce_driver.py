@@ -82,12 +82,25 @@ def extract_cuda_arch(args: Sequence[str]) -> Optional[int]:
     i = 0
     while i < len(args):
         arg = args[i]
-        if arg in _ARCH_VALUE_FLAGS and i + 1 < len(args):
-            arg = args[i + 1]
-        for match in _CUDA_ARCH_TOKEN_RE.finditer(arg):
-            value = _cuda_arch_macro_value(match.group(1))
-            if best is None or value > best:
-                best = value
+        candidates: List[str] = []
+        if arg in _ARCH_VALUE_FLAGS:
+            if i + 1 < len(args):
+                candidates.append(args[i + 1])
+                i += 1
+        else:
+            for flag in _ARCH_VALUE_FLAGS:
+                prefix = flag + "="
+                if arg.startswith(prefix):
+                    candidates.append(arg[len(prefix):])
+                    break
+        # Only inspect values attached to an architecture flag. Scanning every
+        # argv token would mistake a source such as kernel_sm_80.cu for a
+        # requested NVIDIA architecture and inject a bogus __CUDA_ARCH__.
+        for candidate in candidates:
+            for match in _CUDA_ARCH_TOKEN_RE.finditer(candidate):
+                value = _cuda_arch_macro_value(match.group(1))
+                if best is None or value > best:
+                    best = value
         i += 1
     return best
 
@@ -424,15 +437,16 @@ class RuleDriver:
                 continue
             if arg.startswith("@") and len(arg) > 1:
                 path = Path(arg[1:]).expanduser()
-                if path.is_file():
-                    try:
-                        nested = shlex.split(path.read_text(encoding="utf-8"), posix=True)
-                    except (OSError, ValueError) as exc:
-                        raise DriverError(f"cannot parse response file {path}: {exc}") from exc
-                    self.response_files.append(str(path.resolve()))
-                    expanded.extend(self._expand_response_files(nested, depth + 1))
-                    i += 1
-                    continue
+                if not path.is_file():
+                    raise DriverError(f"response file not found: {path}")
+                try:
+                    nested = shlex.split(path.read_text(encoding="utf-8"), posix=True)
+                except (OSError, ValueError) as exc:
+                    raise DriverError(f"cannot parse response file {path}: {exc}") from exc
+                self.response_files.append(str(path.resolve()))
+                expanded.extend(self._expand_response_files(nested, depth + 1))
+                i += 1
+                continue
             expanded.append(arg)
             i += 1
         return expanded
@@ -710,14 +724,17 @@ class RuleDriver:
     def _is_cuda_shim_library_path(self, argument: str) -> bool:
         if not argument.startswith("-L"):
             return False
-        value = argument[2:].strip('"')
+        value = os.path.normpath(argument[2:].strip('"'))
         cuda_path = self.env.get("CUDA_PATH", "")
-        if cuda_path and value in {
-            f"{cuda_path}/lib64",
-            f"{cuda_path}/targets/x86_64-linux/lib",
-            f"{cuda_path}/lib64/stubs",
-        }:
-            return True
+        if cuda_path:
+            cuda_root = os.path.normpath(cuda_path.strip('"'))
+            if value in {f"{cuda_root}/lib64", f"{cuda_root}/lib64/stubs"}:
+                return True
+            # The manifest uses targets/${HOST_TRIPLE}/lib.  Do not hard-code
+            # x86_64: Ascend deployments also run on aarch64 hosts.
+            target_prefix = f"{cuda_root}/targets/"
+            if value.startswith(target_prefix) and value.endswith("/lib"):
+                return True
         return "cu2cce-cmake-shim-" in value and "/cuda/" in value
 
     def _handle_library_policy(self, argument: str) -> bool:
@@ -1066,6 +1083,8 @@ class RuleDriver:
 
             replace = self._find_rule("replace", phase, argument)
             if replace:
+                if replace.get("takes_value") and "=" not in argument and i + 1 >= len(expanded):
+                    raise DriverError(f"{argument} requires a value")
                 reason = replace.get("reason", "rule replacement")
                 values: List[str] = []
                 if replace.get("takes_value") and i + 1 < len(expanded):
@@ -1089,6 +1108,15 @@ class RuleDriver:
                 else:
                     raw = replace.get("to", argument)
                     values = [str(raw)] if not isinstance(raw, list) else [str(x) for x in raw]
+                # A replacement can expose a CUDA shim library path (for
+                # example --library-path <CUDA_DIR>/lib64 -> -L <path>).
+                # Re-run the path policy on the replacement so that only the
+                # bridge/CANN library directories reach the linker.
+                if values[:1] == ["-L"] and len(values) == 2 and \
+                        self._is_cuda_shim_library_path("-L" + values[1]):
+                    self._record(argument, "drop", "temporary CUDA shim library path")
+                    i += consumed
+                    continue
                 # -Xcompiler/--compiler-options carry host flags (CMake
                 # CUDA_PROPAGATE_HOST_FLAGS). Drop machine-specific ones that
                 # would break the Ascend device compile, keep safe ones. Both
@@ -1109,6 +1137,8 @@ class RuleDriver:
 
             drop = self._find_rule("drop", phase, argument)
             if drop:
+                if drop.get("takes_value") and "=" not in argument and i + 1 >= len(expanded):
+                    raise DriverError(f"{argument} requires a value")
                 reason = drop.get("reason", "filtered by cu2cce rule")
                 if drop.get("takes_value") and i + 1 < len(expanded):
                     consumed = 2
@@ -1255,7 +1285,7 @@ class RuleDriver:
                 "-gencode/-arch value; __CUDA_ARCH__ is not defined. Pass "
                 "-gencode or set CU2CCE_CUDA_ARCH for code that branches on it."
             )
-        if source_is_cuda and self.fp64_policy != "allow" and phase == "compile":
+        if source_is_cuda and self.fp64_policy != "allow" and phase in ("compile", "compile_and_link"):
             self._pre_flight_report_device_double(inputs)
 
         result = self._transform_arguments(expanded, phase)
@@ -1424,13 +1454,13 @@ class RuleDriver:
 
         has_c = "-c" in args
         has_e = "-E" in args
-        is_query = any(arg in ("--version", "-dumpversion", "-v", "--help") for arg in args)
-        has_out = any(arg == "-o" or (arg.startswith("-o") and len(arg) > 2) for arg in args)
-        link_phase = not has_c and not has_e and not is_query
+        # -v is a verbose build flag, not a query: `g++ obj.o -v` still links.
+        is_query = any(arg in ("--version", "-dumpversion", "--help") for arg in args)
 
-        if is_query or has_c or has_e or not has_out:
-            # compile-only / preprocess / query / no explicit output: keep the
-            # real compiler's own semantics untouched.
+        if is_query or has_c or has_e:
+            # compile-only / preprocess / query: keep the real compiler's own
+            # semantics untouched. Link output is allowed to use the compiler's
+            # default `a.out`; runtime injection must not depend on -o.
             if proxy_mode:
                 print(shlex.join([compiler, *args]))
                 return 0
@@ -1487,10 +1517,15 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         if "--version" in args or "-V" in args:
             # Banner carries the parseable "compatible with release" token
             # (cu-bridge's -V banner does the same) so scripts probing
-            # `nvcc --version` keep working; identity stays honest about
-            # being the cu2cce driver.
+            # `nvcc --version` keep working; honor the same emulated release
+            # used by the macro injector instead of advertising a stale value.
+            version = os.environ.get("CUCC_CUDA_VERSION", "11060")
+            major, minor, build, _ = _cuda_version_parts(version)
+            if not all((major, minor, build)):
+                major, minor, build = "11", "6", "0"
+            release = f"{major}.{minor}.{build}"
             print("cucc: cu2cce-bridge rule-driven CUDA driver, "
-                  "compatible with release 11.6, V11.6.0")
+                  f"compatible with release {release}, V{release}")
             print("backend ccec/puresimt; CUCC_CUDA_VERSION controls the emulated release")
             return 0
         if "--help" in args or "-help" in args:
@@ -1503,7 +1538,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         driver = RuleDriver(cmake_identity=cmake_identity)
         prepared = driver.prepare(args)
         if dryrun:
-            print(" ".join([prepared.compiler, *prepared.args]))
+            print(shlex.join([prepared.compiler, *prepared.args]))
             return 0
         if proxy_mode:
             # Emit the prepared command as a single shell-quoted line without

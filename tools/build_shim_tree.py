@@ -69,7 +69,16 @@ def _atomic_symlink(link: Path, target: str) -> None:
             return
         link.unlink()
     elif link.exists():
-        link.unlink()
+        # A previous interrupted/older shim build may have left a real
+        # directory where the manifest now requires a link (for example
+        # targets/<triple>/include).  This path is inside the generated fake
+        # toolkit, so remove the stale directory just like _replace_symlink
+        # does instead of calling Path.unlink() and failing with IsADirectoryError.
+        if link.is_dir():
+            import shutil  # noqa: PLC0415
+            shutil.rmtree(link)
+        else:
+            link.unlink()
     link.parent.mkdir(parents=True, exist_ok=True)
     # Random suffix + os.symlink (which never clobbers) + rename: an attacker
     # cannot pre-place the temporary link, and a collision just retries.

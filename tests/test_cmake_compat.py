@@ -439,6 +439,71 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
             (ROOT / "tools/real_test/fetch_external_cuda_samples.sh").read_text(
                 encoding="utf-8").count("require_public_https_url"), 2)
 
+    def test_legacy_cuda_compile_does_not_leak_options_as_sources(self) -> None:
+        # FindCUDA's CUDA_COMPILE accepts `OPTIONS ...` after its source list.
+        # The compatibility macro must consume those options rather than
+        # handing them back as CMake source names.
+        with tempfile.TemporaryDirectory() as tmp_name:
+            tmp = Path(tmp_name)
+            (tmp / "CMakeLists.txt").write_text(
+                "cmake_minimum_required(VERSION 3.16)\n"
+                "project(legacy_compile_probe CXX)\n"
+                f"set(CUCC_PATH \"{ROOT}\")\n"
+                f"include(\"{ROOT / 'cmake_modules/FindCUDA.cmake'}\")\n"
+                "function(_cu2cce_enable_cuda)\nendfunction()\n"
+                "cuda_compile(out foo.cu OPTIONS -arch=sm_80)\n"
+                "message(STATUS \"OUT=[${out}]\")\n"
+                "if(\"OPTIONS\" IN_LIST out OR \"-arch=sm_80\" IN_LIST out)\n"
+                "  message(FATAL_ERROR \"legacy CUDA options leaked into source list\")\n"
+                "endif()\n",
+                encoding="utf-8",
+            )
+            result = subprocess.run(
+                ["cmake", "-S", str(tmp), "-B", str(tmp / "build")],
+                capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_legacy_cuda_wrap_srcs_rejects_nvidia_device_artifact_formats(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_name:
+            tmp = Path(tmp_name)
+            (tmp / "CMakeLists.txt").write_text(
+                "cmake_minimum_required(VERSION 3.16)\n"
+                "project(legacy_artifact_probe CXX)\n"
+                f"include(\"{ROOT / 'cmake_modules/FindCUDA.cmake'}\")\n"
+                "function(_cu2cce_enable_cuda)\nendfunction()\n"
+                "cuda_wrap_srcs(probe PTX generated foo.cu)\n",
+                encoding="utf-8",
+            )
+            result = subprocess.run(
+                ["cmake", "-S", str(tmp), "-B", str(tmp / "build")],
+                capture_output=True, text=True, check=False,
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("PTX generation is unsupported", result.stderr)
+
+    def test_legacy_cuda_wrap_srcs_drops_phony_marker_from_compile_options(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_name:
+            tmp = Path(tmp_name)
+            (tmp / "CMakeLists.txt").write_text(
+                "cmake_minimum_required(VERSION 3.16)\n"
+                "project(legacy_wrap_probe CXX)\n"
+                f"include(\"{ROOT / 'cmake_modules/FindCUDA.cmake'}\")\n"
+                "function(_cu2cce_enable_cuda)\nendfunction()\n"
+                "cuda_wrap_srcs(probe OBJ generated foo.cu OPTIONS -arch=sm_80 PHONY)\n"
+                "get_source_file_property(opts foo.cu COMPILE_OPTIONS)\n"
+                "message(STATUS \"OPTS=[${opts}]\")\n"
+                "if(\"PHONY\" IN_LIST opts)\n"
+                "  message(FATAL_ERROR \"PHONY leaked into CUDA compile options\")\n"
+                "endif()\n",
+                encoding="utf-8",
+            )
+            result = subprocess.run(
+                ["cmake", "-S", str(tmp), "-B", str(tmp / "build")],
+                capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_cmake_build_phase_and_lib_symlinks_align_with_cubridge(self) -> None:
         # cu-bridge alignment (2026-08-28): two-phase protocol and the CUDA-
         # named lib64 symlink family. Their cmake_maca answers configure
@@ -660,6 +725,39 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("CUCC_TARGETS_FROM_DEVICE", result.stderr)
 
+    def test_make_cce_honors_cmake_shim_directory_for_build_dispatch(self) -> None:
+        # cmake_cce and make_cce must share one shim when the caller selects a
+        # custom persistent root; otherwise CMake's recorded host/compiler
+        # paths and Make's runtime environment diverge.
+        with tempfile.TemporaryDirectory() as tmp_name:
+            tmp = Path(tmp_name)
+            fake_bin = tmp / "bin"
+            fake_bin.mkdir()
+            log = tmp / "make.log"
+            fake_make = fake_bin / "make"
+            fake_make.write_text(
+                "#!/bin/sh\n"
+                "printf '%s\n' \"CUDA_PATH=$CUDA_PATH\" > \"$MAKE_LOG\"\n",
+                encoding="utf-8",
+            )
+            fake_make.chmod(0o755)
+            shim_root = tmp / "custom-shim"
+            env = dict(os.environ)
+            env.update({
+                "CUCC_PATH": ".",
+                "CU2CCE_CMAKE_SHIM_DIR": str(shim_root),
+                "CU2CCE_NPU_ARCH": "dav-c310-vec",
+                "MAKE_LOG": str(log),
+                "PATH": f"{fake_bin}{os.pathsep}{env.get('PATH', '')}",
+            })
+            result = subprocess.run(
+                [str(ROOT / "tools/make_cce"), "all"],
+                env=env, cwd=ROOT, capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(log.read_text(encoding="utf-8").strip(),
+                             f"CUDA_PATH={shim_root / 'CUDA_DIR'}")
+
     def test_ninja_cce_exports_npu_environment_and_builds_shim(self) -> None:
         # Functional direct-entry test: Ninja must receive the same NPU
         # environment as make_cce and the generated nvcc path must point to
@@ -764,6 +862,15 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertEqual(log.read_text(encoding="utf-8").splitlines(), ["ARG=-j", "ARG=4"])
 
+            log.unlink(missing_ok=True)
+            verbose = subprocess.run(
+                [str(ROOT / "tools/cmake_cce"), "--build", str(build_dir), "--verbose"],
+                env={**env, "CUCC_PATH": "install"}, cwd=tmp,
+                capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(verbose.returncode, 0, verbose.stderr)
+            self.assertEqual(log.read_text(encoding="utf-8").splitlines(), ["ARG=VERBOSE=1"])
+
     def test_cmake_cce_build_dispatches_to_real_make_or_ninja_wrapper(self) -> None:
         # Exercise the wrapper boundary without CANN: fake ccec only satisfies
         # the entry gate, while fake make/ninja records the argv it receives.
@@ -808,6 +915,23 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
             ninja_lines = log.read_text(encoding="utf-8").splitlines()
             self.assertTrue(ninja_lines[0].endswith("/ninja"), ninja_lines)
             self.assertEqual(ninja_lines[1:], ["ARG=-j", "ARG=2", "ARG=app", "ARG=--verbose"])
+
+            (ninja_build / "build.ninja").touch()
+            log.unlink()
+            verbose = subprocess.run(
+                [str(ROOT / "tools/cmake_cce"), "--build", str(ninja_build), "--verbose"],
+                env=env, capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(verbose.returncode, 0, verbose.stderr)
+            self.assertEqual(log.read_text(encoding="utf-8").splitlines()[1:], ["ARG=-v"])
+
+            log.unlink()
+            unbounded = subprocess.run(
+                [str(ROOT / "tools/cmake_cce"), "--build", str(ninja_build), "--parallel"],
+                env=env, capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(unbounded.returncode, 0, unbounded.stderr)
+            self.assertEqual(log.read_text(encoding="utf-8").splitlines()[1:], ["ARG=-j", "ARG=0"])
 
             make_build = tmp / "make-build"
             make_build.mkdir()
@@ -976,6 +1100,22 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
             self.assertTrue((cuda_dir / "extras/CUPTI/include").is_dir())
             triple_dir = cuda_dir / "targets" / build_shim_tree.host_triple()
             self.assertTrue(triple_dir.is_dir(), triple_dir)
+
+            # A damaged real directory at a manifest-owned link path must be
+            # repaired instead of reaching Path.unlink(directory) and failing.
+            broken_include = cuda_dir / "targets" / build_shim_tree.host_triple() / "include"
+            broken_include.unlink()
+            broken_include.mkdir(parents=True)
+            repaired = sp.run([
+                sys.executable,
+                str(ROOT / "tools/build_shim_tree.py"),
+                "--cuda-dir", str(cuda_dir),
+                "--cucc-path", str(cucc),
+                "--nvcc-target", str(cucc / "bin/cucc"),
+                "--quiet",
+            ], capture_output=True, text=True)
+            self.assertEqual(repaired.returncode, 0, repaired.stderr)
+            self.assertTrue(broken_include.is_symlink())
 
             # Idempotent re-run re-points the shim nvcc without disturbing
             # the rest of the tree.

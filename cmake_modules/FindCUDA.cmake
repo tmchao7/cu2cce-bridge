@@ -116,29 +116,49 @@ function(cuda_include_directories)
 endfunction()
 
 macro(cuda_compile out_var)
-  # Legacy `cuda_compile(objs foo.cu ...)`: generate CUDA objects for the
-  # listed sources. Implemented as a LANGUAGE-CUDA passthrough — the sources
-  # are compiled by the CUDA rules recorded from the shim (nvcc -> cucc), and
-  # the returned list doubles as the source list for add_executable/
-  # add_library, matching how legacy projects consume the variable.
+  # Legacy `cuda_compile(objs foo.cu ... OPTIONS ...)`: consume the same
+  # source/options split as the reference implementation. Returning OPTIONS
+  # tokens as source names makes CMake generate bogus build rules.
+  _cu2cce_legacy_parse("legacy" _cu2cce_sources _cu2cce_cmake_options _cu2cce_nvcc_options ${ARGN})
   _cu2cce_enable_cuda()
   set(${out_var})
-  foreach(_src ${ARGN})
+  foreach(_src IN LISTS _cu2cce_sources)
     if(_src MATCHES "\\.cu$")
-      set_source_files_properties("${_src}" PROPERTIES LANGUAGE CUDA)
+      if(_cu2cce_nvcc_options)
+        set_source_files_properties("${_src}" PROPERTIES
+          LANGUAGE CUDA COMPILE_OPTIONS "${_cu2cce_nvcc_options}")
+      else()
+        set_source_files_properties("${_src}" PROPERTIES LANGUAGE CUDA)
+      endif()
     endif()
     list(APPEND ${out_var} "${_src}")
   endforeach()
 endmacro()
 
 macro(cuda_wrap_srcs cuda_target format generated_files)
-  # Legacy CUDA_WRAP_SRCS parity: filter the CUDA sources out of ARGN, mark
-  # them for the CUDA compiler, and return them via ${generated_files}.
+  # Legacy CUDA_WRAP_SRCS parity: split OPTIONS before filtering sources,
+  # mark CUDA inputs for the real CMake CUDA rules, and return only sources.
+  string(TOUPPER "${format}" _cu2cce_format)
+  if(_cu2cce_format STREQUAL "PTX" OR
+     _cu2cce_format STREQUAL "CUBIN" OR
+     _cu2cce_format STREQUAL "FATBIN")
+    message(FATAL_ERROR
+      "cu2cce: CUDA ${_cu2cce_format} generation is unsupported on Ascend puresimt")
+  endif()
+  _cu2cce_legacy_parse("${cuda_target}" _cu2cce_sources _cu2cce_cmake_options _cu2cce_nvcc_options ${ARGN})
+  # CUDA_COMPILE_BASE appends PHONY as a helper-only marker after OPTIONS;
+  # it must not become a compiler option on the real CUDA source.
+  list(REMOVE_ITEM _cu2cce_nvcc_options PHONY)
   _cu2cce_enable_cuda()
   set(${generated_files})
-  foreach(_src ${ARGN})
+  foreach(_src IN LISTS _cu2cce_sources)
     if(_src MATCHES "\\.cu$")
-      set_source_files_properties("${_src}" PROPERTIES LANGUAGE CUDA)
+      if(_cu2cce_nvcc_options)
+        set_source_files_properties("${_src}" PROPERTIES
+          LANGUAGE CUDA COMPILE_OPTIONS "${_cu2cce_nvcc_options}")
+      else()
+        set_source_files_properties("${_src}" PROPERTIES LANGUAGE CUDA)
+      endif()
       list(APPEND ${generated_files} "${_src}")
     endif()
   endforeach()

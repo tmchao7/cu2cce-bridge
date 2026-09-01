@@ -47,10 +47,17 @@ if [ ! -f "${CUCC_PATH}/tools/fake_toolkit_env.sh" ]; then
     echo "pre_cce: shared helper missing: ${CUCC_PATH}/tools/fake_toolkit_env.sh" >&2
     exit 1
 fi
+CUCC_PATH="$(cd "$CUCC_PATH" && pwd -P)"
 . "${CUCC_PATH}/tools/fake_toolkit_env.sh"
 
 TEMP_DIR_NAME="cu2cce-bridge"
-DST_WCUDA="$CU2CCE_HOME/${TEMP_DIR_NAME}"
+if [ -n "${CU2CCE_CMAKE_SHIM_DIR:-}" ]; then
+    # CMake configure records compiler/host-tool paths under this root; keep
+    # direct Make/pre-wrapper execution on the same persistent shim.
+    DST_WCUDA="$CU2CCE_CMAKE_SHIM_DIR"
+else
+    DST_WCUDA="$CU2CCE_HOME/${TEMP_DIR_NAME}"
+fi
 # Parallel-job isolation (cu-bridge USE_WCUDA_FOR_MULTI_JOB parity).
 if [ "${CU2CCE_SHIM_ISOLATE:-0}" = "1" ]; then
     DST_WCUDA="${DST_WCUDA}-${PPID}"

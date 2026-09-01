@@ -40,6 +40,9 @@ if [ ! -f "${CUCC_PATH}/tools/fake_toolkit_env.sh" ]; then
     echo "cmake_cce: shared helper missing: ${CUCC_PATH}/tools/fake_toolkit_env.sh" >&2
     exit 1
 fi
+# Build dispatch changes directory before exec'ing make_cce/ninja_cce. Resolve
+# the install path now so a caller may safely use CUCC_PATH=./install.
+CUCC_PATH="$(cd "$CUCC_PATH" && pwd -P)"
 . "${CUCC_PATH}/tools/fake_toolkit_env.sh"
 CU2CCE_NPU_ARCH="$(cu2cce_resolve_npu_arch)" || exit 1
 
@@ -53,11 +56,18 @@ if [ -n "${CU2CCE_CMAKE_SHIM_DIR:-}" ]; then
 else
     SHIM_ROOT="${CU2CCE_HOME:-${WCUDA_HOME:-${CUBRIDGE_HOME:-$HOME}}}/cu2cce-bridge/cmake-shim"
 fi
+# Keep a relative user-provided shim path stable across the build-phase cd.
+if [[ "$SHIM_ROOT" != /* ]]; then
+    SHIM_ROOT="$PWD/$SHIM_ROOT"
+fi
 # Parallel-build isolation (cu-bridge USE_WCUDA_FOR_MULTI_JOB parity): give
 # each top-level job its own shim when concurrent cmake_cce runs would race.
 if [ "${CU2CCE_SHIM_ISOLATE:-0}" = "1" ]; then
     SHIM_ROOT="${SHIM_ROOT}-${PPID}"
 fi
+# Pass the resolved root to the generator wrapper so Make/Ninja rebuild the
+# same shim that CMake used during configure, including custom roots.
+export CU2CCE_CMAKE_SHIM_DIR="$SHIM_ROOT"
 CUDA_DIR="$SHIM_ROOT/CUDA_DIR"
 
 # Build/install phase: re-point the shim nvcc at the real cucc (cu-bridge's
@@ -82,6 +92,8 @@ if [ "$build_phase" -eq 1 ]; then
     build_dir=""
     build_target=()
     build_jobs=()
+    build_unbounded_parallel=0
+    build_verbose=0
     transfer_params=()
     args=("$@")
     count=${#args[@]}
@@ -113,12 +125,15 @@ if [ "$build_phase" -eq 1 ]; then
             --parallel|-j)
                 next="${args[$((index + 1))]:-}"
                 case "$next" in
-                    ''|[-+]*) build_jobs+=("-j") ;;
+                    ''|[-+]*) build_unbounded_parallel=1 ;;
                     *) build_jobs+=("-j" "$next"); index=$((index + 1)) ;;
                 esac
                 ;;
-            --config|--verbose|-v)
-                : # generator-specific or informational; nothing to forward
+            --config)
+                : # generator-specific; Make/Ninja do not consume it
+                ;;
+            --verbose|-v)
+                build_verbose=1
                 ;;
             --)
                 while [ $((index + 1)) -lt "$count" ]; do
@@ -141,6 +156,23 @@ if [ "$build_phase" -eq 1 ]; then
             generator_tool="ninja_cce"
         else
             generator_tool="make_cce"
+        fi
+        if [ "$build_unbounded_parallel" -eq 1 ]; then
+            if [ "$generator_tool" = "ninja_cce" ]; then
+                # Ninja requires an explicit value; 0 means unlimited, which
+                # is the equivalent of Make's bare -j and CMake's
+                # --parallel-without-a-value semantics.
+                build_jobs+=("-j" "0")
+            else
+                build_jobs+=("-j")
+            fi
+        fi
+        if [ "$build_verbose" -eq 1 ]; then
+            if [ "$generator_tool" = "ninja_cce" ]; then
+                build_jobs+=("-v")
+            else
+                build_jobs+=("VERBOSE=1")
+            fi
         fi
         tool_path="$CUCC_PATH/bin/$generator_tool"
         [ -x "$tool_path" ] || tool_path="$CUCC_PATH/tools/$generator_tool"

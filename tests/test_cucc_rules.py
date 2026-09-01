@@ -47,6 +47,37 @@ class CuccRuleDriverTest(unittest.TestCase):
         env.update(extra)
         return RuleDriver(env=env)
 
+    def test_version_banner_honors_compatibility_version_environment(self) -> None:
+        env = dict(os.environ)
+        env.update({"CUCC_PATH": str(Path(__file__).resolve().parents[1]),
+                    "CUCC_CUDA_VERSION": "12020"})
+        result = subprocess.run(
+            [str(Path(__file__).resolve().parents[1] / "bin/cucc"), "--version"],
+            env=env, capture_output=True, text=True, check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("compatible with release 12.2.0", result.stdout)
+        self.assertIn("V12.2.0", result.stdout)
+
+    def test_hostcc_link_injects_runtime_without_explicit_output(self) -> None:
+        import contextlib
+        import io
+
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            result = self.driver().run_hostcc(["main.o"], "g++", proxy_mode=True)
+        self.assertEqual(result, 0)
+        self.assertIn("-lcce_bridge_runtime", output.getvalue())
+        self.assertIn("-lascendcl", output.getvalue())
+
+    def test_non_x86_cuda_shim_library_paths_are_filtered(self) -> None:
+        cuda_path = self.cucc / "CUDA_DIR"
+        shim_lib = cuda_path / "targets/aarch64-linux/lib"
+        prepared = self.driver(CUDA_PATH=str(cuda_path)).prepare([
+            "main.o", "-L", str(shim_lib), "-o", "app",
+        ])
+        self.assertNotIn(str(shim_lib), prepared.args)
+
     def test_compile_phase_drops_gpu_flags_and_injects_simt(self) -> None:
         prepared = self.driver().prepare([
             "-c", "main.cu", "-gencode", "arch=compute_80,code=sm_80",
@@ -198,6 +229,29 @@ class CuccRuleDriverTest(unittest.TestCase):
         self.assertEqual(prepared.phase, "compile_and_link")
         self.assertIn("-fPIC", prepared.args)
 
+    def test_fp64_policy_also_applies_to_direct_compile_and_link(self) -> None:
+        source = Path(self.tmp.name) / "double_kernel.cu"
+        source.write_text("__global__ void k(double value) { double x = value; }\n", encoding="utf-8")
+        with self.assertRaises(DriverError):
+            self.driver().prepare([str(source), "-o", "app"])
+
+    def test_dryrun_uses_shell_quoting_for_argument_boundaries(self) -> None:
+        env = dict(self.env)
+        env["CUCC_PATH"] = str(self.cucc)
+        env["CU2CCE_CANN_MISSING"] = "1"
+        result = subprocess.run(
+            [sys.executable, str(Path(__file__).resolve().parents[1] / "tools/cu2cce_driver.py"),
+             "--dryrun", "-c", "main.cu", "-I", "path with spaces", "-o", "main.o"],
+            env=env, capture_output=True, text=True, check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("'path with spaces'", result.stdout)
+
+    def test_value_bearing_rule_rejects_missing_value(self) -> None:
+        for flag in ("-ccbin", "-Xcompiler", "--library-path"):
+            with self.subTest(flag=flag), self.assertRaises(DriverError):
+                self.driver().prepare([flag])
+
     def test_source_without_c_is_compile_and_link(self) -> None:
         prepared = self.driver().prepare(["main.cu", "-o", "app"])
         self.assertEqual(prepared.phase, "compile_and_link")
@@ -247,6 +301,19 @@ class CuccRuleDriverTest(unittest.TestCase):
             with self.subTest(flag=flag):
                 prepared = self.driver().prepare(["-c", "main.cu", flag, "-o", "main.o"])
                 self.assertNotIn(flag, prepared.args, flag)
+
+    def test_missing_at_response_file_is_rejected(self) -> None:
+        missing = Path(self.tmp.name) / "missing.rsp"
+        with self.assertRaises(DriverError):
+            self.driver().prepare([f"@{missing}", "-c", "main.cu", "-o", "main.o"])
+
+    def test_library_path_spelling_drops_cuda_shim_paths(self) -> None:
+        cuda_path = self.cucc / "CUDA_DIR"
+        shim_lib = cuda_path / "targets/aarch64-linux/lib"
+        prepared = self.driver(CUDA_PATH=str(cuda_path)).prepare([
+            "main.o", "--library-path", str(shim_lib), "-o", "app",
+        ])
+        self.assertNotIn(str(shim_lib), prepared.args)
 
     def test_response_file_uses_shell_quoting(self) -> None:
         response = Path(self.tmp.name) / "options.rsp"
@@ -585,6 +652,12 @@ class CuccRuleDriverTest(unittest.TestCase):
         offload = self.driver(CU2CCE_ARCH_MACRO="auto").prepare([
             "-c", "main.cu", "--offload-arch=sm_90", "-o", "main.o"])
         self.assertIn("__CUDA_ARCH__=900", offload.args)
+        # A filename containing sm_* is not an architecture request.
+        filename = Path(self.tmp.name) / "kernel_sm_80.cu"
+        filename_auto = self.driver(CU2CCE_ARCH_MACRO="auto").prepare([
+            "-c", str(filename), "-o", "kernel.o",
+        ])
+        self.assertNotIn("__CUDA_ARCH__", " ".join(filename_auto.args))
         # Explicit CU2CCE_CUDA_ARCH still wins over the derived value.
         pinned = self.driver(CU2CCE_ARCH_MACRO="auto", CU2CCE_CUDA_ARCH="800").prepare([
             "-c", "main.cu", "-gencode", "arch=compute_80,code=sm_86", "-o", "main.o"])
