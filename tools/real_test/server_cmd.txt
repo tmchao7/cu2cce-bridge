@@ -1099,7 +1099,12 @@ echo "PROFILE=$REGRESSION_PROFILE"
 if [ "$TEST_BLOCKED_BY_DEVICE" -eq 1 ]; then
     echo 'RESULT=TEST_BLOCKED_BY_DEVICE'
 elif [ "$FAIL" -eq 0 ]; then
-    echo 'PURESIMT_REGRESSION_PASS'
+    # Only claim a section passed if its profile actually executed it. In the
+    # external profile puresimt/CMake/Make sections are skipped and must not
+    # acquire synthetic PASS badges from the global zero-failure count.
+    if profile_runs "fast,full"; then
+        echo 'PURESIMT_REGRESSION_PASS'
+    fi
     if [ "${CMAKE_PASS:-0}" -eq 1 ]; then
         echo 'CMAKE_CCE_REGRESSION_PASS'
     fi

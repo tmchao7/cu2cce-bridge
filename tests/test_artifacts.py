@@ -91,6 +91,10 @@ class ArtifactVerifierTest(unittest.TestCase):
         self.assertIn('tail -n 30 "$run_log"', server)
         self.assertIn('tail -n 30 "$OUT/make_gxx_link.run.log"', server)
 
+    def test_server_summary_does_not_claim_skipped_puresimt_pass(self) -> None:
+        server = (ROOT / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
+        self.assertIn("if profile_runs \"fast,full\"; then\n        echo 'PURESIMT_REGRESSION_PASS'", server)
+
     def test_server_harness_does_not_run_stale_checkout_after_git_update_failure(self) -> None:
         server = (ROOT / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
         self.assertIn('if ! git pull --ff-only gitcode "$REGRESSION_BRANCH"; then', server)
