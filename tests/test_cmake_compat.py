@@ -2,6 +2,7 @@
 """Static contract checks for the CMake/build compatibility surface."""
 import os
 from pathlib import Path
+import re
 import subprocess
 import tempfile
 import unittest
@@ -833,6 +834,22 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
             self.assertIn(section, doc)
         self.assertIn("docs/02_Architecture/06_cmake_principle_flow.md", doc)
 
+    def test_findcuda_does_not_define_case_colliding_recursive_aliases(self) -> None:
+        # CMake command names are case-insensitive. Defining CUDA_ADD_EXECUTABLE
+        # after cuda_add_executable replaces the same command and a wrapper
+        # call recurses forever (the server failure repeated FindCUDA.cmake:161).
+        findcuda = (ROOT / "cmake_modules/FindCUDA.cmake").read_text(encoding="utf-8")
+        definitions = re.findall(
+            r"^\s*(?:macro|function)\(\s*([A-Za-z_][A-Za-z0-9_]*)",
+            findcuda, flags=re.MULTILINE,
+        )
+        definition_names = [name.lower() for name in definitions]
+        for command in (
+            "cuda_add_executable", "cuda_add_library", "cuda_compile",
+            "cuda_wrap_srcs", "cuda_include_directories",
+        ):
+            self.assertEqual(definition_names.count(command), 1, command)
+
     def test_findcuda_supports_common_legacy_helpers_and_rejects_unmapped_libs(self) -> None:
         findcuda = (ROOT / "cmake_modules/FindCUDA.cmake").read_text(encoding="utf-8")
         for macro in (
@@ -858,11 +875,13 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
 
     def test_findcuda_exposes_cubridge_legacy_macro_names_with_npu_limits(self) -> None:
         findcuda = (ROOT / "cmake_modules/FindCUDA.cmake").read_text(encoding="utf-8")
+        # CMake command names are case-insensitive; lowercase definitions
+        # provide both spellings without recursive duplicate aliases.
         for macro in (
-            "macro(CUDA_ADD_EXECUTABLE",
-            "macro(CUDA_ADD_LIBRARY",
-            "macro(CUDA_COMPILE ",
-            "macro(CUDA_WRAP_SRCS ",
+            "function(cuda_add_executable target)",
+            "function(cuda_add_library target)",
+            "macro(cuda_compile out_var)",
+            "macro(cuda_wrap_srcs cuda_target format generated_files)",
             "macro(CUDA_ADD_CUBLAS_TO_TARGET",
             "macro(CUDA_ADD_CUFFT_TO_TARGET",
             "macro(CUDA_ADD_CUSOLVER_TO_TARGET",

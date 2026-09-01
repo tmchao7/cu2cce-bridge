@@ -154,28 +154,11 @@ endmacro()
 
 message(STATUS "Found cu2cce legacy CUDA compatibility: ${CUDA_NVCC_EXECUTABLE}")
 
-# Reference FindCUDA exposes uppercase aliases. Keep the aliases as thin
-# wrappers around the validated lowercase implementation so legacy projects
-# configure without introducing a second code path.
-macro(CUDA_ADD_EXECUTABLE target)
-  cuda_add_executable(${target} ${ARGN})
-endmacro()
-
-macro(CUDA_ADD_LIBRARY target)
-  cuda_add_library(${target} ${ARGN})
-endmacro()
-
-macro(CUDA_COMPILE out_var)
-  cuda_compile(${out_var} ${ARGN})
-endmacro()
-
-macro(CUDA_WRAP_SRCS cuda_target format generated_files)
-  cuda_wrap_srcs(${cuda_target} ${format} ${generated_files} ${ARGN})
-endmacro()
-
-macro(CUDA_INCLUDE_DIRECTORIES)
-  cuda_include_directories(${ARGN})
-endmacro()
+# CMake command names are case-insensitive, so the lowercase public
+# implementations above are also callable as CUDA_ADD_EXECUTABLE,
+# CUDA_ADD_LIBRARY, CUDA_COMPILE, CUDA_WRAP_SRCS, and
+# CUDA_INCLUDE_DIRECTORIES. Do not define duplicate uppercase wrappers: doing
+# so would replace the same command and recursively call itself.
 
 function(_cu2cce_fail_unmapped_legacy_library library target)
   message(FATAL_ERROR
