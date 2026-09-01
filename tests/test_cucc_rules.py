@@ -561,6 +561,15 @@ class CuccRuleDriverTest(unittest.TestCase):
         preprocess = module._simple_preprocess_response()
         self.assertIn("__CUDACC_VER_MAJOR__ 11", preprocess)
         self.assertIn("__CUDACC_VER_MINOR__ 6", preprocess)
+        previous_triple = os.environ.get("CU2CCE_HOST_TRIPLE")
+        os.environ["CU2CCE_HOST_TRIPLE"] = "aarch64-linux"
+        try:
+            self.assertIn("_TARGET_DIR_=targets/aarch64-linux", module.determine_cuda())
+        finally:
+            if previous_triple is None:
+                os.environ.pop("CU2CCE_HOST_TRIPLE", None)
+            else:
+                os.environ["CU2CCE_HOST_TRIPLE"] = previous_triple
 
         previous = os.environ.get("CUCC_CUDA_VERSION")
         os.environ["CUCC_CUDA_VERSION"] = "12020"

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import platform
 import sys
 from pathlib import Path
 from typing import List
@@ -32,15 +33,26 @@ def version() -> str:
     )
 
 
+def _host_triple() -> str:
+    configured = os.environ.get("CU2CCE_HOST_TRIPLE", "").strip()
+    if configured:
+        return configured
+    arch = platform.machine().lower()
+    arch = {"amd64": "x86_64", "arm64": "aarch64"}.get(arch, arch)
+    system = platform.system().lower() or "linux"
+    return f"{arch}-{system}"
+
+
 def determine_cuda() -> str:
     cuda_path = os.environ.get("CUDA_PATH", "/tmp/cu2cce-cuda-shim")
+    target_dir = f"targets/{_host_triple()}"
     return f'''#$ _NVVM_BRANCH_=nvvm
 #$ _SPACE_=
 #$ _CUDART_=cudart
 #$ _HERE_={cuda_path}/bin
 #$ _THERE_={cuda_path}/bin
 #$ _TARGET_SIZE_=64
-#$ _TARGET_DIR_=targets/x86_64-linux
+#$ _TARGET_DIR_={target_dir}
 #$ TOP={cuda_path}
 #$ NVVMIR_LIBRARY_DIR={cuda_path}/nvvm/libdevice
 #$ LD_LIBRARY_PATH={cuda_path}/lib64:
