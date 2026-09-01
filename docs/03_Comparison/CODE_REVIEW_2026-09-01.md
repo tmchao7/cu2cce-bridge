@@ -122,10 +122,22 @@ CMake、multi-cu diagnostic 和 external samples build 都通过 `cmake_cce --bu
 required artifact、动态依赖、metadata、forbidden suffix 均在加载阶段校验，
 错误统一以 `ContractError` 写入 artifact log 并返回 compact FAIL。
 
+### [P2] capability library heuristic 以短前缀抢先匹配 — 已修复（`09145fc`）
+
+`-lcublasLtCore` 原先会命中 `cublas` 而不是更具体的 `cublasLt`，
+导致诊断信息错误。现在按 capability key 长度降序匹配；仍保持未验证 CUDA
+库不自动映射、不伪造 Ascend 语义。
+
+### [P2] Make/Ninja 在 `-C` 下的相对 shim 路径会漂移 — 已修复（`92d6b38`）
+
+当 wrapper 先生成相对 `CUDA_PATH`、再由 Make/Ninja 切换工作目录时，
+构建命令会解析到另一位置。现在 Make、Ninja、pre wrapper 在目录切换前
+将 shim root 锚定为绝对路径，并有 Make/Ninja wrapper 级测试。
+
 ## 本轮验证
 
 ```text
-165 tests OK
+168 tests OK
 cucc rules validator PASS
 Python py_compile PASS
 bash -n 所有入口脚本 PASS
