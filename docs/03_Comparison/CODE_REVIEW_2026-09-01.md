@@ -92,6 +92,13 @@ manifest-owned symlink path 若被旧版本/中断构建留下真实目录，
 `Path.unlink()` 会失败。builder 现在在生成 fake toolkit 内移除 stale directory
 后重建 symlink，并有真实复现回归测试。
 
+### [P2] diagnostic-only 日志与历史输出目录会污染服务器终端/证据 — 已修复（`ade77c3`、`8ec6f8f`）
+
+`server_cmd.txt` 的 diagnostic-only 失败分支原先会输出 25～60 行完整 ACL/wcuda
+尾部，且 `rm -f "$OUT"/*` 不会删除上一轮留下的 artifact 子目录。现在诊断
+路径统一只打印 12 行 tail 并保留完整日志路径；回归开始时用 `find` 清除 OUT
+下的文件和目录，外部 source/build cache 仍按设计保留。
+
 ## 本轮验证
 
 ```text
