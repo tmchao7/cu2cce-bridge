@@ -562,8 +562,8 @@ if "$CCEC" $PS_FLAGS examples/puresimt/async_repro_diag.cu \
         echo '[DIAG-PASS] async_repro_diag（两种变体均无元素丢失）'
         tail -n 3 "$OUT/async_repro_diag.run.log"
     else
-        echo '[DIAG-ONLY] async_repro_diag 复现到元素丢失（昇腾侧议题证据，log 全文:）'
-        cat "$OUT/async_repro_diag.run.log" 2>/dev/null || true
+        echo "[DIAG-ONLY] async_repro_diag 复现到元素丢失（log: $OUT/async_repro_diag.run.log; tail 12）"
+        tail -n 12 "$OUT/async_repro_diag.run.log" 2>/dev/null || true
     fi
 else
     echo '[DIAG-ONLY] async_repro_diag 编译失败（log 首 30 行）:'
@@ -985,8 +985,8 @@ elif [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$EXTERNAL_FETCH" ] && [ -x "$CMAKE_CCE
                        CU2CCE_LIBC_MODE=system CUCC_PATH="$PWD/build/real_test/install" CUDA_PATH="$CUCC_PATH" \
                        PATH="$CUCC_PATH/bin:$PATH" \
                        cmake --build "$EXTERNAL_BUILD" --parallel "$EXTERNAL_JOBS" --target "$sample" >"$diag_build_log" 2>&1; then
-                        echo "[DIAG-ONLY] [$sample] build failed (build log tail:)"
-                        tail -n 25 "$diag_build_log" 2>/dev/null || true
+                        echo "[DIAG-ONLY] [$sample] build failed (log: $diag_build_log; tail 12)"
+                        tail -n 12 "$diag_build_log" 2>/dev/null || true
                         continue
                     fi
                     if [ ! -x "$binary" ]; then
@@ -1006,8 +1006,8 @@ elif [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$EXTERNAL_FETCH" ] && [ -x "$CMAKE_CCE
                     if [ "$diag_status" -eq 0 ]; then
                         echo "[DIAG-PASS] [$sample] completed (unexpectedly passed; re-classify or investigate API surface; details: $diag_log)"
                     else
-                        echo "[DIAG-ONLY] [$sample] failed, exit=$diag_status (log tail:)"
-                        tail -n 60 "$diag_log" 2>/dev/null || true
+                        echo "[DIAG-ONLY] [$sample] failed, exit=$diag_status (log: $diag_log; tail 12)"
+                        tail -n 12 "$diag_log" 2>/dev/null || true
                     fi
                 done
                 if grep -Eiq 'kernel[_ -]?convert|__simt_vf__|async_invoke|\.cce' \

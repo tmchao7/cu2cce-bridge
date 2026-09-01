@@ -68,6 +68,12 @@ class ArtifactVerifierTest(unittest.TestCase):
         )
         self.assertIn("CMakeFiles/rules.ninja", {entry["path"] for entry in ninja_case["metadata"]})
 
+    def test_server_diagnostic_logs_stay_compact_on_terminal(self) -> None:
+        server = (ROOT / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
+        self.assertIn('tail -n 12 "$diag_log"', server)
+        self.assertNotIn('tail -n 60 "$diag_log"', server)
+        self.assertNotIn('cat "$OUT/async_repro_diag.run.log"', server)
+
     def test_server_artifact_failure_prints_one_summary_and_log_tail(self) -> None:
         server = (ROOT / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
         self.assertIn('echo "[FAIL] artifact [$case_name] (details: $log)"', server)
