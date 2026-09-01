@@ -770,6 +770,66 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
             self.assertEqual(log.read_text(encoding="utf-8").strip(),
                              f"CUDA_PATH={shim_root / 'CUDA_DIR'}")
 
+    def test_make_cce_resolves_relative_shim_before_make_changes_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_name:
+            tmp = Path(tmp_name)
+            fake_bin = tmp / "bin"
+            fake_bin.mkdir()
+            log = tmp / "make.log"
+            fake_make = fake_bin / "make"
+            fake_make.write_text(
+                "#!/bin/sh\n"
+                "printf '%s\n' \"CUDA_PATH=$CUDA_PATH\" > \"$MAKE_LOG\"\n",
+                encoding="utf-8",
+            )
+            fake_make.chmod(0o755)
+            (tmp / "build").mkdir()
+            env = dict(os.environ)
+            env.update({
+                "CUCC_PATH": str(ROOT),
+                "CU2CCE_CMAKE_SHIM_DIR": "relative-shim",
+                "CU2CCE_NPU_ARCH": "dav-c310-vec",
+                "MAKE_LOG": str(log),
+                "PATH": f"{fake_bin}{os.pathsep}{env.get('PATH', '')}",
+            })
+            result = subprocess.run(
+                [str(ROOT / "tools/make_cce"), "-C", "build", "all"],
+                env=env, cwd=tmp, capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(log.read_text(encoding="utf-8").strip(),
+                             f"CUDA_PATH={(tmp / 'relative-shim' / 'CUDA_DIR').resolve()}")
+
+    def test_ninja_cce_resolves_relative_shim_before_ninja_changes_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_name:
+            tmp = Path(tmp_name)
+            fake_bin = tmp / "bin"
+            fake_bin.mkdir()
+            log = tmp / "ninja.log"
+            fake_ninja = fake_bin / "ninja"
+            fake_ninja.write_text(
+                "#!/bin/sh\n"
+                "printf '%s\n' \"CUDA_PATH=$CUDA_PATH\" > \"$NINJA_LOG\"\n",
+                encoding="utf-8",
+            )
+            fake_ninja.chmod(0o755)
+            (tmp / "build").mkdir()
+            env = dict(os.environ)
+            env.update({
+                "CUCC_PATH": str(ROOT),
+                "CU2CCE_CMAKE_SHIM_DIR": "relative-shim",
+                "CU2CCE_NPU_ARCH": "dav-c310-vec",
+                "NINJA_LOG": str(log),
+                "PATH": f"{fake_bin}{os.pathsep}{env.get('PATH', '')}",
+            })
+            result = subprocess.run(
+                [str(ROOT / "tools/ninja_cce"), "-C", "build"],
+                env=env, cwd=tmp, capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(log.read_text(encoding="utf-8").strip(),
+                             f"CUDA_PATH={(tmp / 'relative-shim' / 'CUDA_DIR').resolve()}")
+
     def test_ninja_cce_exports_npu_environment_and_builds_shim(self) -> None:
         # Functional direct-entry test: Ninja must receive the same NPU
         # environment as make_cce and the generated nvcc path must point to

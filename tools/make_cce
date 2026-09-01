@@ -50,6 +50,11 @@ if [ -n "${CU2CCE_CMAKE_SHIM_DIR:-}" ]; then
 else
     DST_WCUDA="$CU2CCE_HOME/${TEMP_DIR_NAME}"
 fi
+if [[ "$DST_WCUDA" != /* ]]; then
+    # The wrapped make/pre command may change directory; keep CUDA_PATH and
+    # all generated symlink targets anchored to the invocation directory.
+    DST_WCUDA="$PWD/$DST_WCUDA"
+fi
 # Parallel-job isolation (cu-bridge USE_WCUDA_FOR_MULTI_JOB parity): each
 # top-level make_cce job gets its own fake toolkit when requested.
 if [ "${CU2CCE_SHIM_ISOLATE:-0}" = "1" ]; then
