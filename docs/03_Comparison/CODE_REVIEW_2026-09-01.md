@@ -154,10 +154,17 @@ artifact verifier 原先使用 `library in readelf_output`，近似名称或相�
 `RUNPATH` 条目；库名要求精确相等，路径只允许精确项或 contract 声明的
 绝对路径后缀。
 
+### [P2] direct `build_shim_tree.py` 的相对路径会生成 dangling symlink — 已修复（`1e3119a`）
+
+wrapper 层虽已将 shim root 绝对化，但直接使用共享 builder 时，
+`--cucc-path install`、`--nvcc-target install/bin/cucc` 仍会把相对 target
+写入 toolkit 内部，导致 `bin/nvcc`/include 等链接失效。现在 builder 在
+写 manifest 前统一 resolve CLI path，Make/CMake/Ninja/pre 共享同一行为。
+
 ## 本轮验证
 
 ```text
-171 tests OK
+173 tests OK
 cucc rules validator PASS
 Python py_compile PASS
 bash -n 所有入口脚本 PASS
