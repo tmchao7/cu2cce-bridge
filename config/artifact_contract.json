@@ -225,6 +225,12 @@
           "path": "lib/cmake/large_project/largeProjectTargets.cmake",
           "kind": "file"
         }
+      ],
+      "metadata": [
+        {
+          "path": "lib/cmake/large_project/largeProjectTargets.cmake",
+          "contains": ["large_project_app", "large_kernel_lib", "large_util_lib"]
+        }
       ]
     },
     "cmake_build_compat": {
@@ -376,6 +382,12 @@
         {
           "path": "lib/cmake/build_compat/buildCompatTargets.cmake",
           "kind": "file"
+        }
+      ],
+      "metadata": [
+        {
+          "path": "lib/cmake/build_compat/buildCompatTargets.cmake",
+          "contains": ["build_compat_app", "build_compat_static", "build_compat_shared"]
         }
       ]
     },

@@ -59,6 +59,16 @@ class ArtifactVerifierTest(unittest.TestCase):
             self.assertIn(link_path, metadata, case_name)
             self.assertIn("libcce_bridge_runtime", " ".join(metadata[link_path]), case_name)
 
+    def test_install_export_contracts_check_exported_target_names(self) -> None:
+        data = json.loads((ROOT / "config/artifact_contract.json").read_text(encoding="utf-8"))
+        for case, names in {
+            "cmake_build_compat_install": ("build_compat_app", "build_compat_static", "build_compat_shared"),
+            "cmake_large_project_install": ("large_project_app", "large_kernel_lib", "large_util_lib"),
+        }.items():
+            metadata = data["cases"][case]["metadata"]
+            tokens = {token for entry in metadata for token in entry.get("contains", [])}
+            self.assertTrue(set(names).issubset(tokens), case)
+
     def test_ninja_build_compatibility_case_matches_makefile_artifact_shape(self) -> None:
         contract = json.loads((ROOT / "config/artifact_contract.json").read_text(encoding="utf-8"))
         make_case = contract["cases"]["cmake_build_compat"]
