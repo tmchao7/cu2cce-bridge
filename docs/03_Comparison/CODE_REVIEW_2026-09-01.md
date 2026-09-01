@@ -168,10 +168,17 @@ Make/CMake/Ninja wrapper 通过 `device_arch.sh` 时以 `CUCC_TARGETS_FROM_DEVIC
 和实际 cucc 选择不同 `dav-*` 架构。现在四条入口统一使用 device-derived alias
 优先级。
 
+### [P3] 用户示例仍推荐普通 `cmake --build`，容易绕过真实 build wrapper — 已修复（`6bf2e0b`）
+
+示例 README 原先 configure 使用 `cmake_cce`，build 却调用普通 `cmake --build`；
+这条路径虽然可借 persistent shim 工作，但不会执行 `cmake_cce` 的 generator
+dispatch 和真实 cucc symlink 校验。现在 CMake 示例统一使用 `cmake_cce --build`，
+并由文档契约测试锁定。
+
 ## 本轮验证
 
 ```text
-174 tests OK
+175 tests OK
 cucc rules validator PASS
 Python py_compile PASS
 bash -n 所有入口脚本 PASS
