@@ -213,6 +213,12 @@ parity audit MISSING=0
 git diff --check PASS
 ```
 
+### Simplifier 收口（`8bd3dbe`）
+
+删除 `RuleDriver` 中未使用的 `_HOST_FLAG_ALLOWED` 常量和死字段
+`self.cmake_identity`；保留 `--cmake-identity` 的兼容接口，实际宏注入仍由
+规则文件单点负责，减少误以为存在 allowlist/第二套 identity 状态的维护负担。
+
 ## Simplifier 结果
 
 - `device_arch.sh` 的 dav 架构格式校验收敛到 `is_valid_dav_arch()`；
