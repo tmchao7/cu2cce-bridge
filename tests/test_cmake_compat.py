@@ -453,6 +453,29 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
             (ROOT / "tools/real_test/fetch_external_cuda_samples.sh").read_text(
                 encoding="utf-8").count("require_public_https_url"), 2)
 
+    def test_legacy_cuda_add_library_preserves_exclude_from_all(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_name:
+            tmp = Path(tmp_name)
+            (tmp / "CMakeLists.txt").write_text(
+                "cmake_minimum_required(VERSION 3.16)\n"
+                "project(legacy_library_options CXX)\n"
+                f"set(CUCC_PATH \"{ROOT}\")\n"
+                f"include(\"{ROOT / 'cmake_modules/FindCUDA.cmake'}\")\n"
+                "function(_cu2cce_enable_cuda)\nendfunction()\n"
+                "file(WRITE \"${CMAKE_CURRENT_BINARY_DIR}/host.cpp\" \"int f() { return 0; }\n\")\n"
+                "cuda_add_library(legacy STATIC EXCLUDE_FROM_ALL host.cpp)\n"
+                "get_target_property(excluded legacy EXCLUDE_FROM_ALL)\n"
+                "if(NOT excluded)\n"
+                "  message(FATAL_ERROR \"EXCLUDE_FROM_ALL was dropped\")\n"
+                "endif()\n",
+                encoding="utf-8",
+            )
+            result = subprocess.run(
+                ["cmake", "-S", str(tmp), "-B", str(tmp / "build")],
+                capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_legacy_cuda_compile_does_not_leak_options_as_sources(self) -> None:
         # FindCUDA's CUDA_COMPILE accepts `OPTIONS ...` after its source list.
         # The compatibility macro must consume those options rather than
