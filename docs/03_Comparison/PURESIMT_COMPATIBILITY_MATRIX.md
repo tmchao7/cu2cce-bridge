@@ -189,7 +189,8 @@ commit：6fdb330
 当前调用链为：
 
 ```text
-CMake → cmake_cce → CUDA shim → nvcc_entry → mock_nvcc → cucc → ccec
+CMake configure → cmake_cce → CUDA shim → nvcc_entry → mock_nvcc；
+推荐 build → cmake_cce --build → make_cce/ninja_cce → CUDA shim nvcc → cucc → ccec
 ```
 
 | Capability | Status | Evidence / boundary |

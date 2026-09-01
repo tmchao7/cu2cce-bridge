@@ -174,7 +174,8 @@ CUDA::cudart)` 照常工作；另有 `cu2cce::runtime` 原生包（区分"桥"�
 
 ## 5. 一次真实构建的命令 trace（真机）
 
-configure 后 `cmake --build`，`.cu.o` 规则实际执行（`CU2CCE_DEBUG` 可见）：
+configure 后推荐用 `cmake_cce --build`，`.cu.o` 规则实际执行（`CU2CCE_DEBUG` 可见）；
+普通 `cmake --build` 仍可借持久 shim 工作，但不会主动执行 wrapper 的第二阶段 dispatch：
 
 ```text
 cucc -c vector_add.cu -o CMakeFiles/demo.dir/vector_add.cu.o \

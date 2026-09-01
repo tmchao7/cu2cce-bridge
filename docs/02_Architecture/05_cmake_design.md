@@ -35,13 +35,14 @@
 ```bash
 # ① 推荐入口（自动布置 shim + override）
 bash tools/cmake_cce -S <工程根> -B build
-cmake --build build -j
+bash tools/cmake_cce --build build --parallel
 
 # ② 自定义安装前缀
 CUCC_PATH=/opt/cu2cce bash tools/cmake_cce -S <工程> -B build
 
 # ③ 大型项目常用组合
 CU2CCE_LIBC_MODE=system bash tools/cmake_cce -S <工程> -B build -DCMAKE_BUILD_TYPE=Release
+bash tools/cmake_cce --build build --parallel
 ```
 
 CMakeLists 本身保持原样（`project(... LANGUAGES CXX CUDA)`、

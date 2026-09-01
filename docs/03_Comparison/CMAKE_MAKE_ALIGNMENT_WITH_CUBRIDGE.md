@@ -66,7 +66,7 @@ configure 脚本用 `pre_makefile` 包裹；Python 库安装不管（FAQ Q7）�
 | 机制 | cu-bridge | 本桥 | 状态 |
 |---|---|---|---|
 | 用户入口 | cmake_maca（查询透传/目标检查/分流） | cmake_cce（查询透传/注入/shim） | 已对齐 |
-| 双阶段：configure=mock、build=真 cucc | cmake_mock + make_maca 重建 CUDA_DIR | **cmake_cce --build 分流**：刷新 shim `nvcc→cucc` 后 exec cmake --build | 已对齐（2026-08-28 起） |
+| 双阶段：configure=mock、build=真 cucc | cmake_mock + make_maca 重建 CUDA_DIR | **cmake_cce --build 分流**：刷新 shim `nvcc→cucc` 后分发 `make_cce/ninja_cce` | 已对齐（2026-09-01，server build 强制验证） |
 | cmake --build 分流 | deal_build_param → make_maca/ninja_maca（按 build.ninja） | **第五批次补齐**：cmake_cce --build 解析 --target/--parallel/-- 后分发 make_cce/ninja_cce | 已对齐（2026-08-30） |
 | 探测应答 | mock_nvcc.py 四分支（子串嗅探） | mock_nvcc.py 五分支（多 `--simple-preprocess`，支持 CMake≥3.24） | 已对齐+扩展 |
 | ABI 探针 | 宿主 g++ 现编 CMakeCUDACompilerABI.cpp（保留 INFO 串） | **第五批次补齐同款**：shipped 替身源码现编（可执行形态真链接、运行报无设备），占位仅作回退 | 已对齐（2026-08-30，无预编译工件） |
