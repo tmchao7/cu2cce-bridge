@@ -2,7 +2,7 @@
 
 Reference: `6ab1076` (3.8.0)
 Reference path: `/Users/tmchao7/repos/09_expLearn/cu-bridge-muxi`
-Implementation: `c2edcad`
+Implementation: `30e27c1`
 
 ## cmake_make
 
@@ -53,3 +53,10 @@ Implementation: `c2edcad`
 Full profile 对 `examples/build_compat/cmake` 同时运行 Unix Makefiles 与 Ninja，
 使用同构的 `.o/.a/.so/ELF` artifact contract，并检查 Ninja 的
 `CMakeFiles/rules.ninja` compiler metadata；direct `ninja_cce` 会再次验证该产物。
+
+## Latest artifact evidence
+
+Full profile 对 `examples/build_compat/cmake` 同时运行 Unix Makefiles 与 Ninja，
+使用 `cmake_build_compat_ninja` contract 对照同构的 `.o/.a/.so/ELF` 产物，
+并检查 `CMakeFiles/rules.ninja` 中的 CUDA compiler shim；direct `ninja_cce`
+会再次验证该产物。
