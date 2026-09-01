@@ -1206,25 +1206,25 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
                 str(ROOT / "tools/build_shim_tree.py"),
                 "--cuda-dir", str(cuda_dir),
                 "--cucc-path", str(cucc),
-                "--nvcc-target", str(cucc / "bin/cucc"),
+                "--nvcc-target", str((cucc / "bin/cucc").resolve()),
                 "--hostcc-bin-dir", str(hostbin),
                 "--hostcc-mode", "wrapper",
             ], capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr)
 
             self.assertTrue((cuda_dir / "include/cuda_runtime.h").is_file())
-            self.assertEqual(os.readlink(cuda_dir / "bin/nvcc"), str(cucc / "bin/cucc"))
-            self.assertEqual(os.readlink(cuda_dir / "bin/cucc"), str(cucc / "bin/cucc"))
-            self.assertEqual(os.readlink(hostbin / "g++"), str(cucc / "tools/hostcc_cce"))
-            self.assertEqual(os.readlink(hostbin / "gfortran"), str(cucc / "tools/gfortran_cce"))
-            self.assertEqual(os.readlink(hostbin / "mpicc"), str(cucc / "tools/mpi_cce"))
-            self.assertEqual(os.readlink(hostbin / "mpicxx"), str(cucc / "tools/mpi_cce"))
+            self.assertEqual(os.readlink(cuda_dir / "bin/nvcc"), str((cucc / "bin/cucc").resolve()))
+            self.assertEqual(os.readlink(cuda_dir / "bin/cucc"), str((cucc / "bin/cucc").resolve()))
+            self.assertEqual(os.readlink(hostbin / "g++"), str((cucc / "tools/hostcc_cce").resolve()))
+            self.assertEqual(os.readlink(hostbin / "gfortran"), str((cucc / "tools/gfortran_cce").resolve()))
+            self.assertEqual(os.readlink(hostbin / "mpicc"), str((cucc / "tools/mpi_cce").resolve()))
+            self.assertEqual(os.readlink(hostbin / "mpicxx"), str((cucc / "tools/mpi_cce").resolve()))
             self.assertEqual(os.readlink(cuda_dir / "lib64/libcudart.so"),
-                             str(cucc / "lib/libcce_bridge_runtime.so"))
+                             str((cucc / "lib/libcce_bridge_runtime.so").resolve()))
             self.assertEqual(os.readlink(cuda_dir / "lib64/libcublas.so"),
-                             str(cucc / "lib/libcce_bridge_runtime.so"))
+                             str((cucc / "lib/libcce_bridge_runtime.so").resolve()))
             self.assertEqual(os.readlink(cuda_dir / "lib64/stubs/libcuda.so.1"),
-                             str(cucc / "lib/libcce_bridge_runtime.so"))
+                             str((cucc / "lib/libcce_bridge_runtime.so").resolve()))
             self.assertTrue((cuda_dir / "version.txt").read_text(encoding="utf-8").startswith("CUDA Version 11.6"))
             self.assertTrue((cuda_dir / "lib64/cmake/CUDAToolkit/CUDAToolkitConfig.cmake").is_file())
             self.assertTrue((cuda_dir / "extras/CUPTI/include").is_dir())
@@ -1241,7 +1241,7 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
                 str(ROOT / "tools/build_shim_tree.py"),
                 "--cuda-dir", str(cuda_dir),
                 "--cucc-path", str(cucc),
-                "--nvcc-target", str(cucc / "bin/cucc"),
+                "--nvcc-target", str((cucc / "bin/cucc").resolve()),
                 "--quiet",
             ], capture_output=True, text=True)
             self.assertEqual(repaired.returncode, 0, repaired.stderr)
@@ -1254,11 +1254,11 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
                 str(ROOT / "tools/build_shim_tree.py"),
                 "--cuda-dir", str(cuda_dir),
                 "--cucc-path", str(cucc),
-                "--nvcc-target", str(cucc / "tools/nvcc_entry.sh"),
+                "--nvcc-target", str((cucc / "tools/nvcc_entry.sh").resolve()),
                 "--quiet",
             ], capture_output=True, text=True)
             self.assertEqual(rerun.returncode, 0, rerun.stderr)
-            self.assertEqual(os.readlink(cuda_dir / "bin/nvcc"), str(cucc / "tools/nvcc_entry.sh"))
+            self.assertEqual(os.readlink(cuda_dir / "bin/nvcc"), str((cucc / "tools/nvcc_entry.sh").resolve()))
             self.assertTrue((cuda_dir / "lib64/libcudart.so").is_symlink())
 
     def test_mock_abi_probe_compiles_shipped_stand_in(self) -> None:
