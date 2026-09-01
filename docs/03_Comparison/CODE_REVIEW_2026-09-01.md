@@ -201,10 +201,16 @@ gitcode 更新失败会输出明确 FAIL 并立即退出，避免产生 stale-co
 再执行 fast-forward pull，并对两步都 fail-closed。这样服务器使用的 checkout
 和远端 `gitcode` 分支状态是可审计的。
 
+### [P2] fake toolkit `version.txt` 与 cucc/mock 版本语义漂移 — 已修复（`4d02803`）
+
+`CUCC_CUDA_VERSION` 原先只影响 driver banner、宏和 mock probe，manifest
+生成的 `version.txt` 仍固定为 11.6.0。现在共享 builder 使用同一变量生成
+toolkit 版本元数据，CMake 探测和直接 cucc 的兼容版本保持一致。
+
 ## 本轮验证
 
 ```text
-179 tests OK
+180 tests OK
 cucc rules validator PASS
 Python py_compile PASS
 bash -n 所有入口脚本 PASS
