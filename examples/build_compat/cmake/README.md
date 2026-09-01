@@ -8,6 +8,6 @@ objects are placed in one static archive.
 
 ```bash
 cmake_cce -S examples/build_compat/cmake -B /tmp/cu2cce-build-compat
-cmake --build /tmp/cu2cce-build-compat
+cmake_cce --build /tmp/cu2cce-build-compat
 /tmp/cu2cce-build-compat/build_compat_app
 ```

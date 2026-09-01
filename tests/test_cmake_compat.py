@@ -109,6 +109,17 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         self.assertIn("$<INSTALL_INTERFACE:include>", cmake)
         self.assertIn("cu2cceTargets.cmake", config)
 
+    def test_cmake_example_readmes_use_real_cmake_cce_build_entry(self) -> None:
+        for relative in (
+            "examples/cmake_demo/README.md",
+            "examples/cmake_compat/README.md",
+            "examples/large_project/README.md",
+            "examples/build_compat/cmake/README.md",
+        ):
+            text = (ROOT / relative).read_text(encoding="utf-8")
+            self.assertIn("cmake_cce --build", text, relative)
+            self.assertNotIn("cmake --build", text, relative)
+
     def test_examples_cover_build_systems(self) -> None:
         self.assertTrue((ROOT / "examples/build_compat/cmake/CMakeLists.txt").is_file())
         self.assertTrue((ROOT / "examples/build_compat/make/Makefile").is_file())

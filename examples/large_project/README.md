@@ -3,7 +3,7 @@
 #
 # Build through the bridge (on the server):
 #   cmake_cce -S examples/large_project -B build/large_project
-#   cmake --build build/large_project
+#   cmake_cce --build build/large_project
 #   ./build/large_project/large_project_app
 #
 # Structure:
