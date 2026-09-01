@@ -45,6 +45,21 @@ def _substitute(value: str, variables: Dict[str, str]) -> str:
     return value
 
 
+def cuda_version_display() -> str:
+    """Format CUCC_CUDA_VERSION for the toolkit-shaped version.txt."""
+    raw = os.environ.get("CUCC_CUDA_VERSION", "11060")
+    try:
+        value = int(raw)
+        major = value // 1000
+        minor = (value // 10) % 100
+        build = value % 10
+        if major < 0 or minor < 0 or build < 0:
+            raise ValueError
+        return f"{major}.{minor}.{build}"
+    except ValueError:
+        return "11.6.0"
+
+
 def _replace_symlink(link: Path, target: str) -> None:
     """Create or replace a symbolic link without touching the target."""
     if link.is_symlink() or link.exists():
@@ -118,6 +133,7 @@ def build_shim(
         "CANN_BASE": cann_base,
         "HOST_TRIPLE": host_triple(),
         "NVCC_TARGET": str(nvcc_target),
+        "CUCC_CUDA_VERSION_DISPLAY": cuda_version_display(),
     }
 
     notes: List[str] = []

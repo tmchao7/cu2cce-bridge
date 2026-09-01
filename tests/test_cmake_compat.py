@@ -1167,6 +1167,38 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
             self.assertIn("CUDA source", text)
             self.assertIn('exec "$compiler" "$@"', text)
 
+    def test_shim_builder_version_file_matches_cucc_version_environment(self) -> None:
+        import subprocess as sp
+        import sys
+
+        with tempfile.TemporaryDirectory() as tmp_name:
+            tmp = Path(tmp_name)
+            cucc = tmp / "install"
+            (cucc / "bin").mkdir(parents=True)
+            (cucc / "include").mkdir()
+            (cucc / "include/cuda_runtime.h").touch()
+            (cucc / "lib").mkdir()
+            (cucc / "lib/libcce_bridge_runtime.so").touch()
+            (cucc / "tools").mkdir()
+            (cucc / "tools/hostcc_cce").write_text("#!/bin/sh\n", encoding="utf-8")
+            (cucc / "tools/hostcc_cce").chmod(0o755)
+            (cucc / "bin/cucc").write_text("#!/bin/sh\n", encoding="utf-8")
+            (cucc / "bin/cucc").chmod(0o755)
+            env = dict(os.environ)
+            env["CUCC_CUDA_VERSION"] = "12020"
+            result = sp.run([
+                sys.executable, str(ROOT / "tools/build_shim_tree.py"),
+                "--cuda-dir", str(tmp / "shim"),
+                "--cucc-path", str(cucc),
+                "--nvcc-target", str(cucc / "bin/cucc"),
+                "--quiet",
+            ], env=env, capture_output=True, text=True, check=False)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(
+                (tmp / "shim/version.txt").read_text(encoding="utf-8"),
+                "CUDA Version 12.2.0\n",
+            )
+
     def test_shim_builder_resolves_relative_cli_paths(self) -> None:
         import os
         import subprocess as sp
