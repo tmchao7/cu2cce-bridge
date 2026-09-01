@@ -2,7 +2,7 @@
 
 Reference: `6ab1076` (3.8.0)
 Reference path: `/Users/tmchao7/repos/09_expLearn/cu-bridge-muxi`
-Implementation: `8ec6f8f`
+Implementation: `73d08ca`
 
 ## cmake_make
 
@@ -53,3 +53,5 @@ Implementation: `8ec6f8f`
 Full profile 对 `examples/build_compat/cmake` 同时运行 Unix Makefiles 与 Ninja，
 使用同构的 `.o/.a/.so/ELF` artifact contract，并检查 Ninja 的
 `CMakeFiles/rules.ninja` compiler metadata；direct `ninja_cce` 会再次验证该产物。
+CMake 的每个 build case 先通过 `cmake_cce --build` 完成第二阶段切换，再检查
+`CUDA_DIR/bin/nvcc -> cucc`，避免 mock-only build 被误报为真实产物 PASS。

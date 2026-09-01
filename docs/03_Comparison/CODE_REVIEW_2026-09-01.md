@@ -99,6 +99,22 @@ manifest-owned symlink path 若被旧版本/中断构建留下真实目录，
 路径统一只打印 12 行 tail 并保留完整日志路径；回归开始时用 `find` 清除 OUT
 下的文件和目录，外部 source/build cache 仍按设计保留。
 
+### [P1] CMake 回归原先可能只走 mock_nvcc，未证明 build 阶段执行真实 cucc — 已修复（`73d08ca`）
+
+`server_cmd.txt` 的 configure 阶段本来使用 mock 是正确的，但后续普通
+`cmake --build` 会继续调用 configure shim；这会让 CMake PASS 只证明
+`mock_nvcc.py` 可用，而不能证明真实 `cucc -> ccec` 产物链路。现在所有
+CMake、multi-cu diagnostic 和 external samples build 都通过 `cmake_cce --build`，
+并在 artifact contract 前验证 build 日志包含第二阶段切换、且
+`CUDA_DIR/bin/nvcc` 的最终 symlink 指向真实 `cucc`。
+
+### [P1] response/options file 中的控制选项未进入 CLI 控制面 — 已修复（`6561a99`）
+
+此前 `@file` 或 `--options-file` 中的 `--dryrun`、`-V` 会在主入口检测之后
+才展开，可能被当作普通编译参数或丢给 ccec。现在统一安全展开一次，
+控制 flag、普通规则管线和 trace provenance 共享同一份 argv；仍然不执行
+文件内容。
+
 ## 本轮验证
 
 ```text
