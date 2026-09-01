@@ -150,6 +150,19 @@ class ArtifactVerifierTest(unittest.TestCase):
             result = module.verify_case(root, contract["cases"]["unit"], contract)
             self.assertTrue(result.ok, result.format_details())
 
+    def test_verifier_rejects_malformed_metadata_contract_entries(self) -> None:
+        module = self.load_module()
+        with tempfile.TemporaryDirectory() as tmp_name:
+            tmp = Path(tmp_name)
+            contract = tmp / "bad.json"
+            contract.write_text(json.dumps({
+                "schema_version": 1,
+                "cases": {"bad": {"required": [], "metadata": ["not-an-object"]}},
+            }), encoding="utf-8")
+            log = tmp / "bad.log"
+            with self.assertRaises(module.ContractError):
+                module.verify_contract(contract, "bad", tmp, log)
+
     def test_verifier_reports_missing_and_forbidden_artifacts(self) -> None:
         module = self.load_module()
         with tempfile.TemporaryDirectory() as tmp_name:

@@ -49,8 +49,32 @@ def load_contract(path: Path) -> Dict[str, Any]:
     for name, case in data["cases"].items():
         if not isinstance(case, dict):
             raise ContractError(f"cases.{name}: must be an object")
-        if not isinstance(case.get("required", []), list):
+        required = case.get("required", [])
+        if not isinstance(required, list):
             raise ContractError(f"cases.{name}.required: must be a list")
+        for index, spec in enumerate(required):
+            if not isinstance(spec, dict) or not isinstance(spec.get("path"), str) or not spec["path"]:
+                raise ContractError(f"cases.{name}.required[{index}]: requires a non-empty path")
+            for field_name in ("required_needed", "required_rpath"):
+                values = spec.get(field_name, [])
+                if not isinstance(values, list) or not all(isinstance(value, str) for value in values):
+                    raise ContractError(
+                        f"cases.{name}.required[{index}].{field_name}: must be a string list"
+                    )
+        metadata = case.get("metadata", [])
+        if not isinstance(metadata, list):
+            raise ContractError(f"cases.{name}.metadata: must be a list")
+        for index, entry in enumerate(metadata):
+            if not isinstance(entry, dict) or not isinstance(entry.get("path"), str) or not entry["path"]:
+                raise ContractError(f"cases.{name}.metadata[{index}]: requires a non-empty path")
+            contains = entry.get("contains", [])
+            if not isinstance(contains, list) or not all(isinstance(value, str) for value in contains):
+                raise ContractError(
+                    f"cases.{name}.metadata[{index}].contains: must be a string list"
+                )
+        case_forbidden = case.get("forbidden_suffixes", [])
+        if not isinstance(case_forbidden, list) or not all(isinstance(value, str) for value in case_forbidden):
+            raise ContractError(f"cases.{name}.forbidden_suffixes: must be a string list")
     return data
 
 
