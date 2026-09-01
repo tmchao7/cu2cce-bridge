@@ -722,6 +722,26 @@ elif [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$CMAKE_CCE" ]; then
     if [ "$CMAKE_PASS" -eq 1 ]; then
         LARGE_PROJECT_PASS=1
     fi
+    if profile_runs "full" && [ "${CMAKE_PASS:-0}" -eq 1 ]; then
+        rm -rf "$OUT/cmake-large-project-install"
+        if cmake --install "$OUT/cmake-large-project-build" \
+            --prefix "$OUT/cmake-large-project-install" >"$OUT/cmake-large-project-install.log" 2>&1; then
+            if artifact_check cmake_large_project_install "$OUT/cmake-large-project-install"; then
+                echo '[PASS] large_project install/export smoke'
+            else
+                echo '[FAIL] large_project install/export artifact contract'
+                CMAKE_PASS=0
+            fi
+        else
+            echo '[FAIL] large_project install/export smoke (log: $OUT/cmake-large-project-install.log)'
+            tail -n 30 "$OUT/cmake-large-project-install.log" 2>/dev/null || true
+            CMAKE_PASS=0
+        fi
+    elif ! profile_runs "full"; then
+        echo "[SKIP] large_project install/export smoke (profile=$REGRESSION_PROFILE)"
+    else
+        echo '[SKIP] large_project install/export smoke: configure/build prerequisite failed'
+    fi
 
     # Diagnostic-only: multi-.cu static library boundary. A duplicate
     # eager-registration symbol here is an expected backend limitation; the

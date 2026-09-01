@@ -218,6 +218,15 @@
         }
       ]
     },
+    "cmake_large_project_install": {
+      "build_system": "cmake-install-export",
+      "required": [
+        {
+          "path": "lib/cmake/large_project/largeProjectTargets.cmake",
+          "kind": "file"
+        }
+      ]
+    },
     "cmake_build_compat": {
       "build_system": "cmake-makefiles",
       "required": [

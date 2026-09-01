@@ -42,6 +42,7 @@ class ArtifactVerifierTest(unittest.TestCase):
             "make_compat",
             "make_gxx_link",
             "cmake_build_compat_install",
+            "cmake_large_project_install",
         ):
             self.assertIn(case, data["cases"])
 
@@ -112,7 +113,7 @@ class ArtifactVerifierTest(unittest.TestCase):
         self.assertIn("verify_artifacts.py", server)
         for case in (
             "cucc_direct", "cmake_demo", "cmake_compat",
-            "cmake_compat_legacy", "cmake_large_project",
+            "cmake_compat_legacy", "cmake_large_project", "cmake_large_project_install",
             "cmake_build_compat", "cmake_build_compat_ninja", "cmake_ninja",
             "make_compat", "make_gxx_link", "cmake_build_compat_install",
         ):
