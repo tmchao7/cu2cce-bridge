@@ -285,6 +285,55 @@ class PreparedCommand:
     source_is_cuda: bool
 
 
+def expand_response_files(
+    args: Sequence[str], response_files: Optional[List[str]] = None, depth: int = 0
+) -> List[str]:
+    """Safely expand nvcc options/response files without executing content.
+
+    ``response_files`` is shared with recursive calls so the CLI can inspect
+    control flags (``--dryrun``, ``-V``) before constructing a RuleDriver while
+    still preserving the file provenance in the eventual trace.
+    """
+    if depth > 16:
+        raise DriverError("response-file nesting exceeds 16 levels")
+    if response_files is None:
+        response_files = []
+    expanded: List[str] = []
+    i = 0
+    while i < len(args):
+        arg = args[i]
+        if arg in ("--options-file", "-options-file"):
+            if i + 1 >= len(args):
+                raise DriverError(f"{arg} requires a file path")
+            path = Path(args[i + 1]).expanduser()
+            if not path.is_file():
+                raise DriverError(f"options file not found: {path}")
+            try:
+                content = path.read_text(encoding="utf-8")
+                nested = shlex.split(content, posix=True)
+            except (OSError, ValueError) as exc:
+                raise DriverError(f"cannot parse options file {path}: {exc}") from exc
+            response_files.append(str(path.resolve()))
+            expanded.extend(expand_response_files(nested, response_files, depth + 1))
+            i += 2
+            continue
+        if arg.startswith("@") and len(arg) > 1:
+            path = Path(arg[1:]).expanduser()
+            if not path.is_file():
+                raise DriverError(f"response file not found: {path}")
+            try:
+                nested = shlex.split(path.read_text(encoding="utf-8"), posix=True)
+            except (OSError, ValueError) as exc:
+                raise DriverError(f"cannot parse response file {path}: {exc}") from exc
+            response_files.append(str(path.resolve()))
+            expanded.extend(expand_response_files(nested, response_files, depth + 1))
+            i += 1
+            continue
+        expanded.append(arg)
+        i += 1
+    return expanded
+
+
 class RuleDriver:
     def __init__(self, env: Optional[Mapping[str, str]] = None,
                  rules_file: Optional[Path] = None,
@@ -414,42 +463,7 @@ class RuleDriver:
         )
 
     def _expand_response_files(self, args: Sequence[str], depth: int = 0) -> List[str]:
-        if depth > 16:
-            raise DriverError("response-file nesting exceeds 16 levels")
-        expanded: List[str] = []
-        i = 0
-        while i < len(args):
-            arg = args[i]
-            if arg in ("--options-file", "-options-file"):
-                if i + 1 >= len(args):
-                    raise DriverError(f"{arg} requires a file path")
-                path = Path(args[i + 1]).expanduser()
-                if not path.is_file():
-                    raise DriverError(f"options file not found: {path}")
-                try:
-                    content = path.read_text(encoding="utf-8")
-                    nested = shlex.split(content, posix=True)
-                except (OSError, ValueError) as exc:
-                    raise DriverError(f"cannot parse options file {path}: {exc}") from exc
-                self.response_files.append(str(path.resolve()))
-                expanded.extend(self._expand_response_files(nested, depth + 1))
-                i += 2
-                continue
-            if arg.startswith("@") and len(arg) > 1:
-                path = Path(arg[1:]).expanduser()
-                if not path.is_file():
-                    raise DriverError(f"response file not found: {path}")
-                try:
-                    nested = shlex.split(path.read_text(encoding="utf-8"), posix=True)
-                except (OSError, ValueError) as exc:
-                    raise DriverError(f"cannot parse response file {path}: {exc}") from exc
-                self.response_files.append(str(path.resolve()))
-                expanded.extend(self._expand_response_files(nested, depth + 1))
-                i += 1
-                continue
-            expanded.append(arg)
-            i += 1
-        return expanded
+        return expand_response_files(args, self.response_files, depth)
 
     @staticmethod
     def _match(pattern: Any, argument: str) -> bool:
@@ -1512,8 +1526,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     if args and args[0] == "--":
         args = args[1:]
     try:
+        response_files: List[str] = []
+        args = expand_response_files(args, response_files)
         if hostcc_mode:
-            return RuleDriver(cmake_identity=False).run_hostcc(args, hostcc_name, proxy_mode=proxy_mode)
+            driver = RuleDriver(cmake_identity=False)
+            driver.response_files.extend(response_files)
+            return driver.run_hostcc(args, hostcc_name, proxy_mode=proxy_mode)
         if "--version" in args or "-V" in args:
             # Banner carries the parseable "compatible with release" token
             # (cu-bridge's -V banner does the same) so scripts probing
@@ -1536,6 +1554,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         if dryrun:
             args = [arg for arg in args if arg not in {"--dryrun", "-dryrun"}]
         driver = RuleDriver(cmake_identity=cmake_identity)
+        driver.response_files.extend(response_files)
         prepared = driver.prepare(args)
         if dryrun:
             print(shlex.join([prepared.compiler, *prepared.args]))

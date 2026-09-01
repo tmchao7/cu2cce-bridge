@@ -315,6 +315,28 @@ class CuccRuleDriverTest(unittest.TestCase):
         ])
         self.assertNotIn(str(shim_lib), prepared.args)
 
+    def test_cli_honors_control_flags_inside_response_files(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        response = Path(self.tmp.name) / "control.rsp"
+        response.write_text("--dryrun -c main.cu -I 'path with spaces'\n", encoding="utf-8")
+        env = dict(os.environ)
+        env.update({"CUCC_PATH": str(root), "CU2CCE_NPU_ARCH": "dav-c310-vec"})
+        dryrun = subprocess.run(
+            [str(root / "bin/cucc"), f"@{response}"],
+            env=env, capture_output=True, text=True, check=False,
+        )
+        self.assertEqual(dryrun.returncode, 0, dryrun.stderr)
+        self.assertIn("'path with spaces'", dryrun.stdout)
+
+        version = Path(self.tmp.name) / "version.rsp"
+        version.write_text("-V\n", encoding="utf-8")
+        result = subprocess.run(
+            [str(root / "bin/cucc"), f"@{version}"],
+            env=env, capture_output=True, text=True, check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("compatible with release 11.6.0", result.stdout)
+
     def test_response_file_uses_shell_quoting(self) -> None:
         response = Path(self.tmp.name) / "options.rsp"
         response.write_text('-I "path with spaces" -DVALUE=7\n', encoding="utf-8")

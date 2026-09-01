@@ -623,7 +623,7 @@ run_cmake_case() {
         echo "[PASS] [$name] CMake run: $(grep -F "$expected" "$run_log" | tail -n 1)"
     else
         echo "[FAIL] [$name] CMake run (log: $run_log)"
-        cat "$run_log" 2>/dev/null || true
+        tail -n 30 "$run_log" 2>/dev/null || true
         CMAKE_PASS=0
         return 0
     fi
@@ -843,7 +843,7 @@ if [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$MAKE_CCE" ]; then
             fi
         else
             echo '[FAIL] make_gxx_link run'
-            cat "$OUT/make_gxx_link.run.log" 2>/dev/null
+            tail -n 30 "$OUT/make_gxx_link.run.log" 2>/dev/null || true
             BUILD_COMPAT_PASS=0
         fi
     else
@@ -964,7 +964,7 @@ elif [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$EXTERNAL_FETCH" ] && [ -x "$CMAKE_CCE
                         echo "[PASS] external [$sample]: $(grep -F "$expect" "$run_log" | tail -n 1) (details: $run_log)"
                     else
                         echo "[FAIL] external [$sample] run (log: $run_log)"
-                        cat "$run_log" 2>/dev/null
+                        tail -n 30 "$run_log" 2>/dev/null || true
                         CUDA_SAMPLES_PASS=0
                     fi
                 done

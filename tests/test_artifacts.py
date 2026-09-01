@@ -68,6 +68,18 @@ class ArtifactVerifierTest(unittest.TestCase):
         )
         self.assertIn("CMakeFiles/rules.ninja", {entry["path"] for entry in ninja_case["metadata"]})
 
+    def test_optional_blas_harness_clears_output_directories_too(self) -> None:
+        blas = (ROOT / "tools/real_test/blas_regression.sh").read_text(encoding="utf-8")
+        self.assertIn('find "$OUT" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +', blas)
+        self.assertNotIn('rm -f "$OUT"/*', blas)
+
+    def test_server_failure_paths_do_not_cat_unbounded_run_logs(self) -> None:
+        server = (ROOT / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
+        self.assertNotIn('cat "$run_log"', server)
+        self.assertNotIn('cat "$OUT/make_gxx_link.run.log"', server)
+        self.assertIn('tail -n 30 "$run_log"', server)
+        self.assertIn('tail -n 30 "$OUT/make_gxx_link.run.log"', server)
+
     def test_server_harness_clears_previous_output_directories(self) -> None:
         server = (ROOT / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
         self.assertIn('find "$OUT" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +', server)

@@ -13,7 +13,9 @@ printf 'BLAS_HEAD=' && git log -1 --oneline
 
 OUT="$PWD/build/real_test/blas"
 mkdir -p "$OUT"
-rm -f "$OUT"/*
+# Remove stale per-run files and directories while keeping no external cache in
+# this optional output root.
+find "$OUT" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +
 FAIL=0
 DEVICE_HEALTHY=0
 DEVICE_ACCESS_DENIED=0
