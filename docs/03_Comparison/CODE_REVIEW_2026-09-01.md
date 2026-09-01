@@ -239,6 +239,20 @@ prefix-relative destination；`bin/nvcc` 仍由 install-time CODE 创建。
 `libcce_bridge_runtime.so`、`cucc`/`nvcc`、CMake package/export、FindCUDA
 模块和 rules 配置，确保交付的安装树不只是“构建命令成功”。
 
+### [P1] 顶层 CMake 的绝对 `DESTINATION` 破坏自定义安装前缀 — 已修复（`b428ca0`）
+
+顶层 bridge 工程原先把安装路径拼成 `${CMAKE_INSTALL_PREFIX}/...`；
+这会使 `cmake --install <build> --prefix <staging-dir>` 不能可靠重定位，
+并可能触碰默认 `/usr/local`。现在所有安装目标使用 prefix-relative
+`lib`/`bin`/`include`/`tools` 等路径，`bin/nvcc` 仍由 install-time CODE
+创建；新增 `bridge_install` contract 验证安装树。
+
+### [P2] `cmake_cce` 缺少 attached build/target/job 参数形式 — 已修复（`b428ca0`）
+
+补齐 `--build=<dir>`、`--target=<name>`、`-t=<name>`、`-j=<jobs>`、
+`--config=<cfg>` 等命令行形式，保持 generator dispatch 到 Make/Ninja；
+新增 argv 级测试，避免 CMake wrapper 与参考 `deal_build_param` 语义漂移。
+
 ## 本轮验证
 
 ```text
