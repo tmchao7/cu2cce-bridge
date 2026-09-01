@@ -595,6 +595,60 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
                 str(ROOT / "bin/cucc"),
             )
 
+    def test_cmake_cce_accepts_attached_parallel_forms(self) -> None:
+        # CMake accepts both --parallel=4 and -j4. The wrapper must preserve
+        # the requested parallelism when dispatching to make_cce/ninja_cce.
+        with tempfile.TemporaryDirectory() as tmp_name:
+            tmp = Path(tmp_name)
+            fake_bin = tmp / "bin"
+            fake_bin.mkdir()
+            cann_bin = tmp / "cann/bin"
+            cann_bin.mkdir(parents=True)
+            (cann_bin / "ccec").write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+            (cann_bin / "ccec").chmod(0o755)
+            install = tmp / "install"
+            (install / "bin").mkdir(parents=True)
+            (install / "tools").mkdir()
+            (install / "bin/cucc").write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+            (install / "bin/cucc").chmod(0o755)
+            (install / "tools/fake_toolkit_env.sh").write_text(
+                (ROOT / "tools/fake_toolkit_env.sh").read_text(encoding="utf-8"),
+                encoding="utf-8",
+            )
+            (install / "tools/device_arch.sh").write_text(
+                (ROOT / "tools/device_arch.sh").read_text(encoding="utf-8"),
+                encoding="utf-8",
+            )
+            (install / "tools/device_arch.sh").chmod(0o755)
+            log = tmp / "generator.log"
+            fake_make = install / "bin/make_cce"
+            fake_make.write_text(
+                "#!/bin/sh\n"
+                "for arg in \"$@\"; do printf 'ARG=%s\n' \"$arg\" >> \"$GENERATOR_LOG\"; done\n",
+                encoding="utf-8",
+            )
+            fake_make.chmod(0o755)
+            build_dir = tmp / "build with spaces"
+            build_dir.mkdir()
+            env = dict(os.environ)
+            env.update({
+                "CUCC_PATH": str(install),
+                "CANN_BASE": str(tmp / "cann"),
+                "ASCEND_TOOLKIT_HOME": str(tmp / "ascend"),
+                "CU2CCE_CMAKE_SHIM_DIR": str(tmp / "shim"),
+                "CU2CCE_NPU_ARCH": "dav-c310-vec",
+                "GENERATOR_LOG": str(log),
+                "PATH": f"{fake_bin}{os.pathsep}{env.get('PATH', '')}",
+            })
+            for parallel in ("--parallel=4", "-j4"):
+                log.unlink(missing_ok=True)
+                result = subprocess.run(
+                    [str(ROOT / "tools/cmake_cce"), "--build", str(build_dir), parallel],
+                    env=env, capture_output=True, text=True, check=False,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(log.read_text(encoding="utf-8").splitlines(), ["ARG=-j", "ARG=4"])
+
     def test_cmake_cce_build_dispatches_to_real_make_or_ninja_wrapper(self) -> None:
         # Exercise the wrapper boundary without CANN: fake ccec only satisfies
         # the entry gate, while fake make/ninja records the argv it receives.
@@ -981,6 +1035,24 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
                 output.read_text(encoding="utf-8").splitlines(),
                 ["alpha beta", "$(printf unsafe)"],
             )
+
+    def test_pre_cce_preserves_wrapped_exit_status(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_name:
+            tmp = Path(tmp_name)
+            command = tmp / "fail.sh"
+            command.write_text("#!/bin/sh\nexit 37\n", encoding="utf-8")
+            command.chmod(0o755)
+            env = dict(os.environ)
+            env.update({
+                "CUCC_PATH": str(ROOT),
+                "CU2CCE_HOME": str(tmp / "shim-home"),
+                "CANN_BASE": str(tmp / "cann"),
+            })
+            result = subprocess.run(
+                [str(ROOT / "tools/pre_cce"), str(command)],
+                env=env, capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(result.returncode, 37, result.stderr)
 
     def test_cubridge_parity_tools_are_shipped(self) -> None:
         # Third alignment batch: multi_target/get_device_arch -> device_arch,

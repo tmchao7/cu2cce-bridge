@@ -101,6 +101,12 @@ if [ "$build_phase" -eq 1 ]; then
                     index=$((index + 1))
                 done
                 ;;
+            --parallel=*)
+                build_jobs+=("-j" "${arg#*=}")
+                ;;
+            -j[0-9]*)
+                build_jobs+=("-j" "${arg#-j}")
+                ;;
             --parallel|-j)
                 next="${args[$((index + 1))]:-}"
                 case "$next" in
