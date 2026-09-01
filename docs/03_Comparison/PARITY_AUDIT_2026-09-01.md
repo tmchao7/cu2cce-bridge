@@ -2,7 +2,7 @@
 
 Reference: `6ab1076` (3.8.0)
 Reference path: `/Users/tmchao7/repos/09_expLearn/cu-bridge-muxi`
-Implementation: `43727a7`
+Implementation: `c2edcad`
 
 ## cmake_make
 
@@ -45,10 +45,11 @@ Implementation: `43727a7`
 
 2026-09-01 起，parity 不再只记录入口和参数机制；`server_cmd.txt` 的 full profile
 还对 cucc/CMake/Make/Ninja 的实际输出运行 artifact contract。契约检查产物类别、
-相对路径、ELF/archive 类型、`.d`、CMake/Ninja metadata、`NEEDED`、RPATH/RUNPATH
-以及禁止的 NVIDIA/MACA 中间产物。Ascend 与 MACA 的 device binary、runtime
-库名和 host linker 不要求字节级相同，差异必须落在 NPU-aware 说明中。
+相对路径、ELF/archive 类型、`.d`、CMake/Ninja metadata、CMake Makefiles 的
+`link.txt`、`NEEDED`、RPATH/RUNPATH 以及禁止的 NVIDIA/MACA 中间产物。Ascend
+与 MACA 的 device binary、runtime 库名和 host linker 不要求字节级相同，差异必须
+落在 NPU-aware 说明中。
 
-Full profile 额外对 `examples/build_compat/cmake` 运行 Ninja 版本，使用
-`cmake_build_compat_ninja` contract 对照 Makefiles 版本的 `.o/.a/.so/ELF` 产物，
-并检查 `CMakeFiles/rules.ninja` 中的 CUDA compiler shim。
+Full profile 对 `examples/build_compat/cmake` 同时运行 Unix Makefiles 与 Ninja，
+使用同构的 `.o/.a/.so/ELF` artifact contract，并检查 Ninja 的
+`CMakeFiles/rules.ninja` compiler metadata；direct `ninja_cce` 会再次验证该产物。
