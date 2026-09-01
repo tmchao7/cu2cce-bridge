@@ -137,10 +137,26 @@ def _check_kind(path: Path, spec: Mapping[str, Any], description: str) -> List[s
     errors: List[str] = []
     if kind == "dependency":
         try:
-            if not path.read_text(encoding="utf-8", errors="replace").strip():
-                errors.append(f"dependency artifact is empty: {path}")
+            text = path.read_text(encoding="utf-8", errors="replace")
         except OSError as exc:
             errors.append(f"cannot read dependency artifact {path}: {exc}")
+            return errors
+        if not text.strip():
+            errors.append(f"dependency artifact is empty: {path}")
+        else:
+            # -MD/-MF output is a make-style dependency graph. A non-empty
+            # compiler diagnostic or arbitrary placeholder must not satisfy
+            # the artifact contract merely by existing. Continuation lines are
+            # allowed; only require a target and a dependency after ':'.
+            make_rule = any(
+                ":" in line
+                and line.split(":", 1)[0].strip()
+                and line.split(":", 1)[1].strip()
+                for line in text.splitlines()
+                if line.strip() and not line.lstrip().startswith("#")
+            )
+            if not make_rule:
+                errors.append(f"dependency artifact is not a make-style rule: {path}")
         return errors
     if kind == "file":
         return errors

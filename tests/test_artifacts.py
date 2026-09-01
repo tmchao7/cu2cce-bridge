@@ -161,6 +161,23 @@ class ArtifactVerifierTest(unittest.TestCase):
             result = module.verify_case(root, contract["cases"]["unit"], contract)
             self.assertTrue(result.ok, result.format_details())
 
+    def test_verifier_rejects_non_makefile_dependency_artifacts(self) -> None:
+        module = self.load_module()
+        with tempfile.TemporaryDirectory() as tmp_name:
+            root = Path(tmp_name)
+            dependency = root / "bad.d"
+            dependency.write_text("compiler diagnostics only\n", encoding="utf-8")
+            contract = {
+                "schema_version": 1,
+                "forbidden_suffixes": [],
+                "cases": {"unit": {
+                    "required": [{"path": "bad.d", "kind": "dependency"}]
+                }},
+            }
+            result = module.verify_case(root, contract["cases"]["unit"], contract)
+            self.assertFalse(result.ok)
+            self.assertIn("dependency", result.format_details())
+
     def test_verifier_rejects_malformed_metadata_contract_entries(self) -> None:
         module = self.load_module()
         with tempfile.TemporaryDirectory() as tmp_name:
