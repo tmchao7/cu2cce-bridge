@@ -175,10 +175,17 @@ Make/CMake/Ninja wrapper 通过 `device_arch.sh` 时以 `CUCC_TARGETS_FROM_DEVIC
 dispatch 和真实 cucc symlink 校验。现在 CMake 示例统一使用 `cmake_cce --build`，
 并由文档契约测试锁定。
 
+### [P2] CMake mock `__cmake_determine_cuda` 硬编码 x86 target — 已修复（`eaaefb7`）
+
+`mock_nvcc.py` 原先总是输出 `targets/x86_64-linux`，在 aarch64 Ascend 主机上
+会与 manifest 的 `${HOST_TRIPLE}` 不一致，可能使 CMake toolkit root/target
+探测失真。现在使用 `CU2CCE_HOST_TRIPLE` 或实际 host platform 生成目标路径，
+并由 `cmake_cce` 传递该值。
+
 ## 本轮验证
 
 ```text
-175 tests OK
+176 tests OK
 cucc rules validator PASS
 Python py_compile PASS
 bash -n 所有入口脚本 PASS
