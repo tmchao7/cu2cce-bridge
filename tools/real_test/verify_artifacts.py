@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -205,12 +206,28 @@ def _check_dynamic(path: Path, spec: Mapping[str, Any]) -> List[str]:
     dynamic = _readelf_dynamic(path)
     if not dynamic:
         return [f"readelf -d unavailable for dynamic contract: {path}"]
+
+    # Parse the bracketed readelf values instead of using substring matching:
+    # `libfoo.so.fake` must not satisfy `libfoo.so`, and `/lib/path-extra`
+    # must not satisfy a required `/lib/path` suffix. Contract rpaths are often
+    # relative suffixes, so accept an exact entry or an absolute entry ending
+    # in `/<required>`.
+    needed_entries = set(re.findall(
+        r"(?:\(\s*NEEDED\s*\)|NEEDED)[^\[]*\[([^\]]+)\]", dynamic, re.IGNORECASE
+    ))
+    rpath_entries: set[str] = set()
+    for value in re.findall(
+        r"(?:\(\s*(?:RPATH|RUNPATH)\s*\)|RPATH|RUNPATH)[^\[]*\[([^\]]*)\]",
+        dynamic, re.IGNORECASE,
+    ):
+        rpath_entries.update(part for part in value.split(":") if part)
+
     errors: List[str] = []
     for library in needed:
-        if library not in dynamic:
+        if library not in needed_entries:
             errors.append(f"missing NEEDED {library}: {path}")
     for rpath in rpaths:
-        if rpath not in dynamic:
+        if not any(entry == rpath or entry.endswith("/" + rpath) for entry in rpath_entries):
             errors.append(f"missing RPATH/RUNPATH {rpath}: {path}")
     return errors
 

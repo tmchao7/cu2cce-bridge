@@ -191,6 +191,50 @@ class ArtifactVerifierTest(unittest.TestCase):
             with self.assertRaises(module.ContractError):
                 module.verify_contract(contract, "bad", tmp, log)
 
+    def test_verifier_requires_exact_dynamic_dependency_and_rpath_entries(self) -> None:
+        module = self.load_module()
+        with tempfile.TemporaryDirectory() as tmp_name:
+            root = Path(tmp_name)
+            tools = root / "tools"
+            tools.mkdir()
+            fake_file = tools / "file"
+            fake_file.write_text("#!/bin/sh\necho 'ELF 64-bit LSB pie executable, x86-64'\n", encoding="utf-8")
+            fake_readelf = tools / "readelf"
+            fake_readelf.write_text(
+                "#!/bin/sh\n"
+                "if [ \"$1\" = \"-h\" ]; then\n"
+                "  echo 'Type: EXEC (Executable file)'\n"
+                "elif [ \"$1\" = \"-d\" ]; then\n"
+                "  echo 'NEEDED [libcce_bridge_runtime.so.fake]'\n"
+                "  echo 'RUNPATH [/opt/bridge/library-extra]'\n"
+                "fi\n",
+                encoding="utf-8",
+            )
+            for tool in (fake_file, fake_readelf):
+                tool.chmod(tool.stat().st_mode | stat.S_IXUSR)
+            (root / "app").write_bytes(b"elf")
+            contract = {
+                "schema_version": 1,
+                "forbidden_suffixes": [],
+                "cases": {"unit": {
+                    "required": [{
+                        "path": "app",
+                        "kind": "executable",
+                        "required_needed": ["libcce_bridge_runtime.so"],
+                        "required_rpath": ["/opt/bridge/library"],
+                    }]
+                }},
+            }
+            old_path = os.environ.get("PATH", "")
+            os.environ["PATH"] = f"{tools}{os.pathsep}{old_path}"
+            try:
+                result = module.verify_case(root, contract["cases"]["unit"], contract)
+            finally:
+                os.environ["PATH"] = old_path
+            self.assertFalse(result.ok)
+            self.assertIn("missing NEEDED", result.format_details())
+            self.assertIn("missing RPATH/RUNPATH", result.format_details())
+
     def test_verifier_reports_missing_and_forbidden_artifacts(self) -> None:
         module = self.load_module()
         with tempfile.TemporaryDirectory() as tmp_name:
