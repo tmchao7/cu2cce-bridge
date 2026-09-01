@@ -207,10 +207,15 @@ gitcode 更新失败会输出明确 FAIL 并立即退出，避免产生 stale-co
 生成的 `version.txt` 仍固定为 11.6.0。现在共享 builder 使用同一变量生成
 toolkit 版本元数据，CMake 探测和直接 cucc 的兼容版本保持一致。
 
+### [P3] CMake install 失败路径仍会无界输出日志 — 已修复（`15e55b3`）
+
+为保持 server 终端 compact output，CMake install/export 失败分支现在只输出
+最近 30 行并保留完整日志路径，不再将整个 install log 直接 `cat` 到终端。
+
 ## 本轮验证
 
 ```text
-180 tests OK
+181 tests OK
 cucc rules validator PASS
 Python py_compile PASS
 bash -n 所有入口脚本 PASS
