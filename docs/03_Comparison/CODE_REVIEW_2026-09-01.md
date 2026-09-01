@@ -141,10 +141,16 @@ build binary，未执行 install，也未检查导出的 target graph。现在 f
 会安装 `large_project`，并验证 `largeProjectTargets.cmake` 存在且包含
 `large_project_app`、`large_kernel_lib`、`large_util_lib`。
 
+### [P2] `.d` 产物只检查非空，可能把诊断/占位文本当作依赖图 — 已修复（`654f50d`）
+
+artifact contract 原先只验证 dependency 文件非空；现在要求至少存在合法的
+make-style `target: dependency` 规则，既覆盖 `-MD/-MF` 产物形状，也避免
+placeholder 或编译错误文本误报为可用依赖文件。
+
 ## 本轮验证
 
 ```text
-169 tests OK
+170 tests OK
 cucc rules validator PASS
 Python py_compile PASS
 bash -n 所有入口脚本 PASS
