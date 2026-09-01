@@ -147,6 +147,8 @@ def build_report(repo: Path, reference: Path) -> Dict[str, Any]:
     ninja = _read(repo / "tools/ninja_cce")
     pre = _read(repo / "tools/pre_cce")
     hostcc = _read(repo / "tools/hostcc_cce")
+    fortran = _read(repo / "tools/gfortran_cce")
+    mpi = _read(repo / "tools/mpi_cce")
     driver = _read(repo / "tools/cu2cce_driver.py")
     cmake_ref = _read(reference / "tools/cmake_maca")
     cmake_mock_ref = _read(reference / "tools/cmake_mock")
@@ -230,10 +232,10 @@ def build_report(repo: Path, reference: Path) -> Dict[str, Any]:
             ),
             _item(
                 "low_frequency_wrappers",
-                "MISSING",
+                "EQUIVALENT_NPU" if fortran and mpi else "MISSING",
                 "conf_bazel.json, conf_gfortran.json, MPI/Fortran wrappers",
-                "No Bazel/gfortran/MPI wrapper",
-                "Audit-only gap; implement only safe detection/diagnostic or explicit NPU rejection.",
+                "gfortran_cce/mpi_cce host-only carriers; no Bazel wrapper",
+                "Fortran/MPI host work is delegated safely; CUDA sources are rejected; Bazel remains a separate gap.",
             ),
             _item(
                 "shim_manifest",
@@ -287,10 +289,17 @@ def build_report(repo: Path, reference: Path) -> Dict[str, Any]:
                 "puresimt produces Ascend code through ccec and has no NVIDIA artifact path.",
             ),
             _item(
+                "cucc_openmp_mode",
+                "EQUIVALENT_NPU" if "CUCC_USE_GOPENMP" in driver else "MISSING",
+                "CUCC_USE_GOPENMP -> -fopenmp/-fopenmp=libgomp",
+                "CUCC_USE_GOPENMP -> ccec/clang -fopenmp/-fopenmp=libomp",
+                "The runtime name changes for the Ascend clang backend; real CANN link acceptance remains a server probe.",
+            ),
+            _item(
                 "cucc_low_frequency_modes",
                 "MISSING",
-                "CUCC_USE_GOPENMP, CUCC_USE_PYTHON, Bazel/gfortran condition paths",
-                "Python driver is native; no Bazel/gfortran/MPI dispatch",
+                "CUCC_USE_PYTHON, Bazel/TF condition paths",
+                "Python driver is native; no Bazel/TF dispatch",
                 "The safe NPU plan is explicit diagnostics/rejection, not MACA compiler forwarding.",
             ),
             _item(

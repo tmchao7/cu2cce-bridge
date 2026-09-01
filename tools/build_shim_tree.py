@@ -145,6 +145,24 @@ def build_shim(
             _atomic_symlink(hostcc_bin_dir / name, target)
             notes.append(f"hostcc {name} -> {target}")
 
+        # Low-frequency cu-bridge carriers are separate from hostcc_cce:
+        # Fortran/MPI stay host-only and reject CUDA device sources instead of
+        # pretending that Ascend ccec or an MPI wrapper is their frontend.
+        for entry in layout.get("host_tool_wrappers", []):
+            names = entry.get("names", [])
+            if isinstance(names, str):
+                names = [names]
+            wrapper_target = _substitute(str(entry.get("target", "")), variables)
+            for name in names:
+                if hostcc_mode == "wrapper" and wrapper_target and Path(wrapper_target).is_file():
+                    target = wrapper_target
+                elif Path(f"/usr/bin/{name}").exists():
+                    target = f"/usr/bin/{name}"
+                else:
+                    continue
+                _atomic_symlink(hostcc_bin_dir / name, target)
+                notes.append(f"host tool {name} -> {target}")
+
     alias_target = _substitute(layout.get("alias_target", ""), variables)
     for alias_dir in layout.get("alias_dirs", []):
         base = cuda_dir / _substitute(alias_dir, variables)

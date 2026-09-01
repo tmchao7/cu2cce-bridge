@@ -77,5 +77,22 @@
       "path": "lib64/cmake/CUDAToolkit/CUDAToolkitConfig.cmake",
       "content": "include(\"${CMAKE_CURRENT_LIST_DIR}/FindCUDAToolkit.cmake\")\n"
     }
+  ],
+  "host_tool_wrappers": [
+    {
+      "names": [
+        "gfortran"
+      ],
+      "target": "${CUCC_PATH}/tools/gfortran_cce",
+      "comment": "host-only Fortran carrier; rejects CUDA sources"
+    },
+    {
+      "names": [
+        "mpicc",
+        "mpicxx"
+      ],
+      "target": "${CUCC_PATH}/tools/mpi_cce",
+      "comment": "host-only MPI carrier; rejects CUDA sources"
+    }
   ]
 }
