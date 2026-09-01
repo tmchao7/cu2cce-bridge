@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "comment": "NPU-aware output contract for cucc/CMake/Make/Ninja. Paths are relative to --root. ELF/NEEDED/RPATH checks run on the Ascend server; local unit tests may use require_elf=false.",
+  "comment": "NPU-aware output contract for cucc/CMake/Make/Ninja. Paths are relative to --root. ELF/NEEDED/RPATH and CMake link.txt/rules.ninja checks run on the Ascend server; local unit tests may use require_elf=false.",
   "forbidden_suffixes": [
     ".cce",
     ".ptx",
@@ -72,6 +72,12 @@
           "contains": [
             "nvcc"
           ]
+        },
+        {
+          "path": "CMakeFiles/cmake_vector_add.dir/link.txt",
+          "contains": [
+            "libcce_bridge_runtime"
+          ]
         }
       ]
     },
@@ -117,6 +123,12 @@
           "contains": [
             "nvcc"
           ]
+        },
+        {
+          "path": "CMakeFiles/cmake_compat_app.dir/link.txt",
+          "contains": [
+            "libcce_bridge_runtime"
+          ]
         }
       ]
     },
@@ -149,6 +161,12 @@
           "path": "CMakeFiles/legacy_vector_add.dir/build.make",
           "contains": [
             "nvcc"
+          ]
+        },
+        {
+          "path": "CMakeFiles/legacy_vector_add.dir/link.txt",
+          "contains": [
+            "libcce_bridge_runtime"
           ]
         }
       ]
@@ -190,6 +208,12 @@
           "path": "comp/CMakeFiles/large_kernel_lib.dir/build.make",
           "contains": [
             "nvcc"
+          ]
+        },
+        {
+          "path": "CMakeFiles/large_project_app.dir/link.txt",
+          "contains": [
+            "libcce_bridge_runtime"
           ]
         }
       ]
@@ -235,6 +259,12 @@
           "path": "CMakeFiles/build_compat_app.dir/build.make",
           "contains": [
             "nvcc"
+          ]
+        },
+        {
+          "path": "CMakeFiles/build_compat_app.dir/link.txt",
+          "contains": [
+            "libcce_bridge_runtime"
           ]
         }
       ]

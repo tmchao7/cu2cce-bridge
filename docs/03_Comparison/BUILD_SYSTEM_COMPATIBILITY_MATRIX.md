@@ -22,7 +22,7 @@
 | response file | `EXPERIMENTAL` | `tests/test_cucc_rules.py` | 构建系统组合仍需扩大 |
 | dependency generation `-M/-MM/-MD/-MF/-MT` | `DIAGNOSTIC_ONLY` until device proof | driver phase tests | ccec 真实依赖输出需真机确认 |
 | cucc direct output contract | `SUPPORTED` for validated shape | `config/artifact_contract.json`, `verify_artifacts.py`, full server profile | `.o/.d/ELF executable/.so`; no `.cce/.ptx/.cubin/.fatbin/.maca` |
-| CMake output contract | `SUPPORTED` for validated core | CMake cases + artifact verifier | `.o/.a/.so/ELF`, build metadata, export file, NPU runtime dependencies |
+| CMake output contract | `SUPPORTED` for validated core | CMake cases + artifact verifier | `.o/.a/.so/ELF`, `CMakeCache.txt`/`build.make`/`link.txt`, export file, NPU runtime dependencies |
 | Make output contract | `SUPPORTED` for validated smoke | `examples/build_compat/make`, `make_gxx_link` + artifact verifier | `.o/.d/.a/.so/ELF`, plain g++ carrier, explicit Ascend runtime link |
 | Ninja output contract | `SUPPORTED` for validated smoke | CMake Ninja case + direct `ninja_cce` + artifact verifier | `build.ninja`, same output categories as Makefiles; no mock/intermediate artifact |
 | query `--version/-V/--help` | `SUPPORTED` for driver | local unit tests | 输出是 cu2cce compatibility identity |

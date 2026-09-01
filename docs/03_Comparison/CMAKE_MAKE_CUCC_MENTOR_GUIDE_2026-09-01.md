@@ -492,6 +492,7 @@ Ninja      -> build.ninja/rules.ninja + 与 CMake Makefiles 同类别的最终�
 对齐标准是 NPU-aware 的结构契约，而不是 MACA 字节级复制：
 
 - `.o`、`.a`、`.so`、ELF executable 和 `.d` 的类别与用户可见路径保持稳定；
+- Unix Makefiles 的 `link.txt` 和 Ninja 的 `CMakeFiles/rules.ninja` 必须能回放出 bridge/compiler 选择；
 - `readelf` 验证最终 ELF 的类型、`NEEDED` 和 `RPATH/RUNPATH`；
 - Ascend 产物需要 bridge/CANN runtime，常见为 `libcce_bridge_runtime.so`、
   `libascendcl.so`、`libruntime.so`，不能改成 MACA 的 `libmcruntime.so`；
