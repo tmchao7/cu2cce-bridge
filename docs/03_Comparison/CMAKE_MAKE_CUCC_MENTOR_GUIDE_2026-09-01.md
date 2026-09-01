@@ -1,6 +1,6 @@
 # cu2cce-bridge：CMake / Make / cucc 原理讲解与 cu-bridge 对齐指南
 
-**参考实现：** `/Users/tmchao7/repos/09_expLearn/cu-bridge`，commit `6ab1076`，version `3.8.0`
+**参考实现：** `/Users/tmchao7/repos/09_expLearn/cu-bridge-muxi`，commit `6ab1076`，version `3.8.0`
 
 **目标后端：** Ascend 950 / CANN 9.x / ccec SIMT
 

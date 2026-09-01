@@ -1,6 +1,6 @@
 # cu-bridge CMake/Make 设计原理剖析与借鉴决策（第五对齐批次，2026-08-30）
 
-> 参考仓库：`/Users/tmchao7/repos/09_expLearn/cu-bridge`（沐曦 MetaX，SDK 3.8.0，只读）。
+> 参考仓库：`/Users/tmchao7/repos/09_expLearn/cu-bridge-muxi`（沐曦 MetaX，SDK 3.8.0，只读）。
 > 本文是第五对齐批次的决策记录：先完整剖析 cu-bridge 在 CMake/Make 上的设计原理，
 > 再逐项决定"借鉴 / 有意不做"，并记录 NPU（ccec puresimt）后端带来的适配差异。
 > 配套阅读：`CMAKE_MAKE_ALIGNMENT_WITH_CUBRIDGE.md`（逐项对齐表）、

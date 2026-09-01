@@ -70,3 +70,7 @@ bash tools/real_test/server_cmd.txt
 ```
 
 6. 如果本地无法运行 CANN/NPU 回归，必须明确说明服务器仍需执行上述命令，不能把本地 mock/syntax/test 结果冒充真机通过。
+
+## cu-bridge 对比基线
+
+当前唯一有效的沐曦参考仓库为 `/Users/tmchao7/repos/09_expLearn/cu-bridge-muxi`，远端为 `https://gitee.com/metax-maca/cu-bridge.git`，当前冻结基线为 `master` / `6ab1076` / `3.8.0`。旧的 `/Users/tmchao7/repos/09_expLearn/cu-bridge` 暂不作为比对基线。运行 `python3 tools/compare_cubridge_parity.py` 时默认使用 `../cu-bridge-muxi`，如需其他版本必须显式传 `--reference`。

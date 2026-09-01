@@ -1,7 +1,8 @@
 # cu-bridge parity audit
 
 Reference: `6ab1076` (3.8.0)
-Implementation: `ff2ac86`
+Reference path: `/Users/tmchao7/repos/09_expLearn/cu-bridge-muxi`
+Implementation: `3f77b4f`
 
 ## cmake_make
 

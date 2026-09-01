@@ -11,6 +11,19 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class CMakeCompatibilityContractTest(unittest.TestCase):
+    def test_cubridge_parity_audit_defaults_to_muxi_reference_checkout(self) -> None:
+        audit = (ROOT / "tools/compare_cubridge_parity.py").read_text(encoding="utf-8")
+        self.assertIn("cu-bridge-muxi", audit)
+        result = subprocess.run(
+            ["python3", str(ROOT / "tools/compare_cubridge_parity.py"), "--format", "json"],
+            capture_output=True, text=True, check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        import json
+        report = json.loads(result.stdout)
+        self.assertTrue(report["reference"]["path"].endswith("/cu-bridge-muxi"))
+        self.assertEqual(report["reference"]["commit"], "6ab1076")
+
     def test_cubridge_parity_audit_reports_backend_aware_sections(self) -> None:
         # Stage-0 baseline: compare the checked-in cu-bridge reference assets
         # with the NPU implementation without treating MACA-only mappings as
@@ -20,7 +33,7 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         result = subprocess.run(
             [
                 "python3", str(audit),
-                "--reference", str(ROOT.parent / "cu-bridge"),
+                "--reference", str(ROOT.parent / "cu-bridge-muxi"),
                 "--format", "json",
             ],
             capture_output=True, text=True, check=False,

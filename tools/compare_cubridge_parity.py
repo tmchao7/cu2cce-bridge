@@ -349,6 +349,7 @@ def markdown(report: Mapping[str, Any]) -> str:
         "# cu-bridge parity audit",
         "",
         f"Reference: `{report['reference']['commit']}` ({report['reference']['version']})",
+        f"Reference path: `{report['reference']['path']}`",
         f"Implementation: `{report['implementation']['commit']}`",
         "",
     ]
@@ -366,11 +367,20 @@ def markdown(report: Mapping[str, Any]) -> str:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--reference", type=Path, required=True, help="cu-bridge checkout")
-    parser.add_argument("--repo", type=Path, default=Path(__file__).resolve().parents[1])
+    repo = Path(__file__).resolve().parents[1]
+    parser.add_argument(
+        "--reference", type=Path,
+        help="cu-bridge reference checkout (default: ../cu-bridge-muxi)",
+    )
+    parser.add_argument("--repo", type=Path, default=repo)
     parser.add_argument("--format", choices=("json", "markdown"), default="json")
     args = parser.parse_args()
-    report = build_report(args.repo.resolve(), args.reference.resolve())
+    reference = args.reference or (args.repo / ".." / "cu-bridge-muxi")
+    if not reference.is_dir():
+        parser.error(
+            f"reference checkout not found: {reference}; pass --reference explicitly"
+        )
+    report = build_report(args.repo.resolve(), reference.resolve())
     if args.format == "markdown":
         print(markdown(report), end="")
     else:
