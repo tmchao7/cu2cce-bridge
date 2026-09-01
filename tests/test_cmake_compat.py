@@ -1044,6 +1044,17 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         self.assertNotIn("USE_CMAKE_MACA", (ROOT / "tools/cmake_cce").read_text(encoding="utf-8"))
         self.assertIn("ccec", (ROOT / "tools/cmake_cce").read_text(encoding="utf-8"))
 
+    def test_server_cmd_external_success_paths_use_compact_terminal_summaries(self) -> None:
+        server = (ROOT / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
+        # Detailed external/diagnostic output is already redirected to per-case
+        # logs. Successful cases must print status plus a log pointer, not dump
+        # ACL/wcuda traces into the terminal. Failure branches may still tail
+        # logs for diagnosis.
+        self.assertIn("[DIAG-PASS] [$sample]", server)
+        self.assertNotIn('cat "$diag_log"', server)
+        self.assertIn("details: $diag_log", server)
+        self.assertIn("details: $run_log", server)
+
     def test_round9_query_arch_and_options_probes_are_wired_into_the_harness(self) -> None:
         server_cmd = (ROOT / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
         self.assertIn("-E query passthrough", server_cmd)

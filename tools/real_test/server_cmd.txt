@@ -841,7 +841,7 @@ elif [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$EXTERNAL_FETCH" ] && [ -x "$CMAKE_CCE
                     if [ "$sample" = matrixMul ]; then expect='Result = PASS'; fi
                     echo "[INFO] external [$sample] run (timeout=${EXTERNAL_RUN_TIMEOUT}s)"
                     if [ -x "$binary" ] && run_with_timeout "$EXTERNAL_RUN_TIMEOUT" "$binary" >"$run_log" 2>&1 && grep -Fq "$expect" "$run_log"; then
-                        echo "[PASS] external [$sample]: $(grep -F "$expect" "$run_log" | tail -n 1)"
+                        echo "[PASS] external [$sample]: $(grep -F "$expect" "$run_log" | tail -n 1) (details: $run_log)"
                     else
                         echo "[FAIL] external [$sample] run (log: $run_log)"
                         cat "$run_log" 2>/dev/null
@@ -886,8 +886,7 @@ elif [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$EXTERNAL_FETCH" ] && [ -x "$CMAKE_CCE
                     WCUDA_DEBUG=1 run_with_timeout "$EXTERNAL_RUN_TIMEOUT" "$binary" >"$diag_log" 2>&1
                     diag_status=$?
                     if [ "$diag_status" -eq 0 ]; then
-                        echo "[DIAG-PASS] [$sample] (unexpectedly passed; re-classify or investigate API surface)"
-                        cat "$diag_log" 2>/dev/null
+                        echo "[DIAG-PASS] [$sample] completed (unexpectedly passed; re-classify or investigate API surface; details: $diag_log)"
                     else
                         echo "[DIAG-ONLY] [$sample] failed, exit=$diag_status (log tail:)"
                         tail -n 60 "$diag_log" 2>/dev/null || true
