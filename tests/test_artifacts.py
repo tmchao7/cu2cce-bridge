@@ -68,6 +68,11 @@ class ArtifactVerifierTest(unittest.TestCase):
         )
         self.assertIn("CMakeFiles/rules.ninja", {entry["path"] for entry in ninja_case["metadata"]})
 
+    def test_server_harness_clears_previous_output_directories(self) -> None:
+        server = (ROOT / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
+        self.assertIn('find "$OUT" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +', server)
+        self.assertNotIn('rm -f "$OUT"/*', server)
+
     def test_server_diagnostic_logs_stay_compact_on_terminal(self) -> None:
         server = (ROOT / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
         self.assertIn('tail -n 12 "$diag_log"', server)

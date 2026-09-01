@@ -46,7 +46,9 @@ git pull --ff-only gitcode "$REGRESSION_BRANCH" && git log -1 --oneline
 
 OUT="$PWD/build/real_test/puresimt"
 mkdir -p "$OUT"
-rm -f "$OUT"/*
+# Remove prior files and per-case directories as well as stale artifact logs;
+# external source/build caches live outside OUT and are intentionally retained.
+find "$OUT" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +
 ARTIFACT_CONTRACT="$PWD/config/artifact_contract.json"
 ARTIFACT_LOG_DIR="$OUT/artifacts"
 mkdir -p "$ARTIFACT_LOG_DIR"
