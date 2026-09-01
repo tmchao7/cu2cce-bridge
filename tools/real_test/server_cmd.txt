@@ -798,7 +798,7 @@ elif [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$CMAKE_CCE" ]; then
             fi
         else
             echo '[FAIL] CMake install/export smoke'
-            cat "$OUT/cmake-install.log" 2>/dev/null
+            tail -n 30 "$OUT/cmake-install.log" 2>/dev/null || true
             CMAKE_PASS=0
         fi
     elif ! profile_runs "full"; then

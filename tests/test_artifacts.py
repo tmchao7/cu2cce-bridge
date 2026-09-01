@@ -100,6 +100,11 @@ class ArtifactVerifierTest(unittest.TestCase):
         self.assertIn('if ! git fetch gitcode "$REGRESSION_BRANCH"; then', server)
         self.assertIn('if ! git pull --ff-only gitcode "$REGRESSION_BRANCH"; then', server)
 
+    def test_server_install_failure_output_is_bounded(self) -> None:
+        server = (ROOT / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
+        self.assertNotIn('cat "$OUT/cmake-install.log"', server)
+        self.assertIn('tail -n 30 "$OUT/cmake-install.log"', server)
+
     def test_server_harness_does_not_run_stale_checkout_after_git_update_failure(self) -> None:
         server = (ROOT / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
         self.assertIn('if ! git pull --ff-only gitcode "$REGRESSION_BRANCH"; then', server)
