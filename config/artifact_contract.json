@@ -111,6 +111,12 @@
           "contains": [
             "CMAKE_CUDA_COMPILER"
           ]
+        },
+        {
+          "path": "CMakeFiles/cmake_compat_app.dir/build.make",
+          "contains": [
+            "nvcc"
+          ]
         }
       ]
     },
@@ -130,6 +136,20 @@
         {
           "path": "CMakeFiles/legacy_vector_add.dir/*.o",
           "kind": "object"
+        }
+      ],
+      "metadata": [
+        {
+          "path": "CMakeCache.txt",
+          "contains": [
+            "CMAKE_CUDA_COMPILER"
+          ]
+        },
+        {
+          "path": "CMakeFiles/legacy_vector_add.dir/build.make",
+          "contains": [
+            "nvcc"
+          ]
         }
       ]
     },
@@ -165,6 +185,12 @@
           "contains": [
             "CMAKE_CUDA_COMPILER"
           ]
+        },
+        {
+          "path": "comp/CMakeFiles/large_kernel_lib.dir/build.make",
+          "contains": [
+            "nvcc"
+          ]
         }
       ]
     },
@@ -196,6 +222,20 @@
         {
           "path": "CMakeFiles/build_compat_shared.dir/*.o",
           "kind": "object"
+        }
+      ],
+      "metadata": [
+        {
+          "path": "CMakeCache.txt",
+          "contains": [
+            "CMAKE_CUDA_COMPILER"
+          ]
+        },
+        {
+          "path": "CMakeFiles/build_compat_app.dir/build.make",
+          "contains": [
+            "nvcc"
+          ]
         }
       ]
     },
@@ -282,7 +322,8 @@
           "path": "build/app",
           "kind": "executable",
           "required_needed": [
-            "libcce_bridge_runtime.so"
+            "libcce_bridge_runtime.so",
+            "libruntime.so"
           ],
           "required_rpath": [
             "build/real_test/install/lib"
@@ -296,6 +337,51 @@
         {
           "path": "lib/cmake/build_compat/buildCompatTargets.cmake",
           "kind": "file"
+        }
+      ]
+    },
+    "cmake_build_compat_ninja": {
+      "build_system": "cmake-ninja",
+      "required": [
+        {
+          "path": "build_compat_app",
+          "kind": "executable",
+          "required_needed": [
+            "libcce_bridge_runtime.so"
+          ],
+          "required_rpath": [
+            "build/real_test/install/lib"
+          ]
+        },
+        {
+          "path": "libbuild_compat_static.a",
+          "kind": "archive"
+        },
+        {
+          "path": "libbuild_compat_shared.so",
+          "kind": "shared"
+        },
+        {
+          "path": "CMakeFiles/build_compat_static.dir/*.o",
+          "kind": "object"
+        },
+        {
+          "path": "CMakeFiles/build_compat_shared.dir/*.o",
+          "kind": "object"
+        }
+      ],
+      "metadata": [
+        {
+          "path": "build.ninja",
+          "contains": [
+            "build_compat_app"
+          ]
+        },
+        {
+          "path": "CMakeFiles/rules.ninja",
+          "contains": [
+            "nvcc"
+          ]
         }
       ]
     }

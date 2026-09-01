@@ -486,7 +486,7 @@ Reference: cu-bridge 6ab1076 / 3.8.0
 cucc       -> .o / .d / executable / .so
 CMake      -> CMakeFiles / build.make / build.ninja / .o / .a / .so / executable
 Make       -> .o / .d / .a / .so / executable
-Ninja      -> build.ninja + 与 CMake Makefiles 同类别的最终产物
+Ninja      -> build.ninja/rules.ninja + 与 CMake Makefiles 同类别的最终产物
 ```
 
 对齐标准是 NPU-aware 的结构契约，而不是 MACA 字节级复制：
@@ -504,3 +504,8 @@ Ninja      -> build.ninja + 与 CMake Makefiles 同类别的最终产物
 ```text
 build/real_test/puresimt/artifacts/
 ```
+
+Ninja 产物对照使用 `examples/build_compat/cmake`：它与 Makefile 版本使用相同的
+static/shared/executable 拓扑，分别验证 `.o`、`.a`、`.so` 和最终 ELF，并检查
+`CMakeFiles/rules.ninja` 中的 CUDA compiler shim；这比只验证一个最小 executable
+更能证明 CMake/Ninja 与 Make 的产物形状一致。

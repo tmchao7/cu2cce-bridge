@@ -37,12 +37,23 @@ class ArtifactVerifierTest(unittest.TestCase):
             "cmake_compat_legacy",
             "cmake_large_project",
             "cmake_build_compat",
+            "cmake_build_compat_ninja",
             "cmake_ninja",
             "make_compat",
             "make_gxx_link",
             "cmake_build_compat_install",
         ):
             self.assertIn(case, data["cases"])
+
+    def test_ninja_build_compatibility_case_matches_makefile_artifact_shape(self) -> None:
+        contract = json.loads((ROOT / "config/artifact_contract.json").read_text(encoding="utf-8"))
+        make_case = contract["cases"]["cmake_build_compat"]
+        ninja_case = contract["cases"]["cmake_build_compat_ninja"]
+        self.assertEqual(
+            sorted((entry["path"], entry["kind"]) for entry in make_case["required"]),
+            sorted((entry["path"], entry["kind"]) for entry in ninja_case["required"]),
+        )
+        self.assertIn("CMakeFiles/rules.ninja", {entry["path"] for entry in ninja_case["metadata"]})
 
     def test_server_artifact_failure_prints_one_summary_and_log_tail(self) -> None:
         server = (ROOT / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
@@ -66,10 +77,13 @@ class ArtifactVerifierTest(unittest.TestCase):
         for case in (
             "cucc_direct", "cmake_demo", "cmake_compat",
             "cmake_compat_legacy", "cmake_large_project",
-            "cmake_build_compat", "cmake_ninja",
+            "cmake_build_compat", "cmake_build_compat_ninja", "cmake_ninja",
             "make_compat", "make_gxx_link", "cmake_build_compat_install",
         ):
             self.assertIn('--case "$case_name"', server, case)
+        self.assertIn("examples/build_compat/cmake", server)
+        self.assertIn("cmake_build_compat_ninja", server)
+        self.assertIn("direct ninja_cce build-compat artifact shape matches CMake Makefiles", server)
         self.assertIn("ARTIFACT_CONTRACT_REGRESSION_PASS", server)
         self.assertIn("ARTIFACT_CONTRACT_REGRESSION_FAIL", server)
 

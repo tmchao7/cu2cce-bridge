@@ -765,6 +765,13 @@ elif [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$CMAKE_CCE" ]; then
 
     if profile_runs "full" && command -v ninja >/dev/null 2>&1; then
         run_cmake_case \
+            cmake_build_compat_ninja \
+            examples/build_compat/cmake \
+            "$OUT/cmake-build-compat-ninja-build" \
+            "$OUT/cmake-build-compat-ninja-build/build_compat_app" \
+            'make_cce build_compat OK' \
+            -G Ninja
+        run_cmake_case \
             cmake_ninja \
             examples/cmake_demo \
             "$OUT/cmake-ninja-build" \
@@ -852,6 +859,18 @@ if [ "${BUILD_COMPAT_PASS:-0}" -eq 1 ] && [ "${CMAKE_PASS:-0}" -eq 1 ] && comman
         echo '[PASS] direct ninja_cce wrapper + persistent shim rebuild'
         if ! artifact_check cmake_ninja "$OUT/cmake-ninja-build"; then
             BUILD_COMPAT_PASS=0
+        fi
+        if [ -d "$OUT/cmake-build-compat-ninja-build" ]; then
+            if CUCC_PATH="$PWD/build/real_test/install" "$NINJA_CCE" -C "$OUT/cmake-build-compat-ninja-build" \
+                >"$OUT/ninja_cce_build_compat.log" 2>&1 &&
+               grep -Fq 'ninja_cce: build phase: shim nvcc ->' "$OUT/ninja_cce_build_compat.log" &&
+               artifact_check cmake_build_compat_ninja "$OUT/cmake-build-compat-ninja-build"; then
+                echo '[PASS] direct ninja_cce build-compat artifact shape matches CMake Makefiles'
+            else
+                echo '[FAIL] direct ninja_cce build-compat artifact contract'
+                tail -n 60 "$OUT/ninja_cce_build_compat.log" 2>/dev/null || true
+                BUILD_COMPAT_PASS=0
+            fi
         fi
     else
         echo '[FAIL] ninja_cce wrapper'

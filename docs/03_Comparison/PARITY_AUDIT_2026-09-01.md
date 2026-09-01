@@ -48,3 +48,9 @@ Implementation: `e0016e0`
 相对路径、ELF/archive 类型、`.d`、CMake/Ninja metadata、`NEEDED`、RPATH/RUNPATH
 以及禁止的 NVIDIA/MACA 中间产物。Ascend 与 MACA 的 device binary、runtime
 库名和 host linker 不要求字节级相同，差异必须落在 NPU-aware 说明中。
+
+## Latest artifact evidence
+
+Full profile 新增 `cmake_build_compat_ninja`：使用 Ninja 构建与 Makefile/CMake
+版本同构的 static/shared/host executable 工程，并复用 artifact contract 检查 `.o`、
+`.a`、`.so`、ELF 和 Ninja `rules.ninja` compiler metadata。
