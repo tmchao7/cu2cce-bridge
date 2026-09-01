@@ -42,6 +42,68 @@ ccec 的 `--cce-aicore-arch`。现在缓存、环境变量和 target alias 都�
 `CUCC_TARGETS_FROM_DEVICE=sm_80` 时吞掉 `device_arch.sh` 的失败并回退
 `dav-c310-vec`。现在两种 target alias 都走显式校验，错误会阻止 wrapper 继续构建。
 
+## 第二轮 review findings（commit `4de3898`，已修复）
+
+### [P1] CMake build wrapper 丢失 `--verbose` 与无值 `--parallel` 语义 — 已修复
+
+`cmake_cce --build` 的 generator dispatch 原先丢弃 `--verbose`，并把无值
+`--parallel` 原样变成 Ninja 的裸 `-j`；Ninja 会直接报
+`option requires an argument -- j`。现在 Makefiles 映射为 `VERBOSE=1`/裸 `-j`，
+Ninja 映射为 `-v`/`-j 0`，并增加 argv 级测试。
+
+### [P1] CMake/Make/Ninja 自定义 shim 与相对安装路径可能漂移 — 已修复
+
+`cmake_cce` 在进入 build directory 后执行 generator wrapper；相对
+`CUCC_PATH` 会因此失效，`CU2CCE_CMAKE_SHIM_DIR` 也可能导致 Make/Ninja
+重新生成另一棵 shim。现在各入口在跨目录前解析安装路径，并把已解析的
+shim root 传递给 Make/Ninja/pre wrapper，确保 configure/build 使用同一份
+CUDA-shaped toolkit。
+
+### [P1] legacy FindCUDA `cuda_compile` 会把 `OPTIONS` 当作源文件 — 已修复
+
+参考 `FindCUDA` 的 `cuda_compile(... OPTIONS ...)` 调用在当前实现中会将
+`OPTIONS` 和其参数返还给 CMake，生成错误的源文件/构建规则。现在统一复用
+legacy source/options parser；`cuda_wrap_srcs` 同时去除 helper-only 的
+`PHONY` marker，并对 PTX/CUBIN/FATBIN format 明确 FATAL_ERROR。
+
+### [P2] CUDA shim library path 过滤不支持非 x86 与 `--library-path` 形式 — 已修复
+
+原逻辑硬编码 `targets/x86_64-linux/lib`，且只在输入已经是 `-L` 时过滤；
+ARM/aarch64 的 CMake/Make 产物可能将临时 CUDA alias 路径带入最终链接。
+现在按 `targets/<triple>/lib` 结构识别，并对 `--library-path` 的替换结果再次
+应用路径策略。
+
+### [P2] response file 缺失、规则 value 缺失与 dry-run quoting 不安全/不诚实 — 已修复
+
+`@missing.rsp` 原先会静默透传；值参数在末尾会静默吞掉；`--dryrun` 用空格
+拼接导致带空格路径不可重放。现在缺失值明确报错，缺失 response file 明确
+报错，dry-run 使用 `shlex.join`，且 trace 仍不包含 options/source 文件内容。
+
+### [P2] 版本与 device policy 在不同调用形态下不一致 — 已修复
+
+`CUCC_CUDA_VERSION` 原先只影响宏注入，不影响 `cucc --version` banner；
+FP64 preflight 也只覆盖 `-c` 而遗漏直接 `.cu -> executable`。现在版本 banner
+与宏使用同一环境值，`compile_and_link` 也执行相同的 Ascend device-side FP64
+策略。
+
+### [P3] shim builder 损坏目录无法自愈 — 已修复
+
+manifest-owned symlink path 若被旧版本/中断构建留下真实目录，
+`Path.unlink()` 会失败。builder 现在在生成 fake toolkit 内移除 stale directory
+后重建 symlink，并有真实复现回归测试。
+
+## 本轮验证
+
+```text
+158 tests OK
+cucc rules validator PASS
+Python py_compile PASS
+bash -n 所有入口脚本 PASS
+mock ACL syntax PASS=3 FAIL=0
+parity audit MISSING=0
+git diff --check PASS
+```
+
 ## Simplifier 结果
 
 - `device_arch.sh` 的 dav 架构格式校验收敛到 `is_valid_dav_arch()`；
