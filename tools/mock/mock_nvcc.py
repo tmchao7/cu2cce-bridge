@@ -8,10 +8,28 @@ from pathlib import Path
 from typing import List
 
 
+def _cuda_version_parts() -> tuple[int, int, int]:
+    """Return the configured CUDA-compat release for CMake probes."""
+    raw = os.environ.get("CUCC_CUDA_VERSION", "11060")
+    try:
+        value = int(raw)
+        major = value // 1000
+        minor = (value // 10) % 100
+        build = value % 10
+        if major < 0 or minor < 0 or build < 0:
+            raise ValueError
+        return major, minor, build
+    except ValueError:
+        return 11, 6, 0
+
+
 def version() -> str:
-    return """nvcc: NVIDIA (R) Cuda compiler driver
-Cuda compilation tools, release 11.6, V11.6.0
-"""
+    major, minor, build = _cuda_version_parts()
+    release = f"{major}.{minor}.{build}"
+    return (
+        "nvcc: NVIDIA (R) Cuda compiler driver\n"
+        f"Cuda compilation tools, release {major}.{minor}, V{release}\n"
+    )
 
 
 def determine_cuda() -> str:
@@ -38,10 +56,12 @@ def _simple_preprocess_response() -> str:
     CMake runs `nvcc --simple-preprocess -x cu ...` and greps for the CUDA
     version string. The shim replies with a fragment CMake parses into the
     configured CUDA-compat version; nothing is compiled."""
-    return """#define __CUDACC_VER_MAJOR__ 11
-#define __CUDACC_VER_MINOR__ 6
-#define __CUDACC_VER_BUILD__ 0
-"""
+    major, minor, build = _cuda_version_parts()
+    return (
+        f"#define __CUDACC_VER_MAJOR__ {major}\n"
+        f"#define __CUDACC_VER_MINOR__ {minor}\n"
+        f"#define __CUDACC_VER_BUILD__ {build}\n"
+    )
 
 
 def _is_abi_probe(args: List[str]) -> bool:

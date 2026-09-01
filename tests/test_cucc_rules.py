@@ -562,6 +562,19 @@ class CuccRuleDriverTest(unittest.TestCase):
         self.assertIn("__CUDACC_VER_MAJOR__ 11", preprocess)
         self.assertIn("__CUDACC_VER_MINOR__ 6", preprocess)
 
+        previous = os.environ.get("CUCC_CUDA_VERSION")
+        os.environ["CUCC_CUDA_VERSION"] = "12020"
+        try:
+            self.assertIn("release 12.2, V12.2.0", module.version())
+            configured = module._simple_preprocess_response()
+            self.assertIn("__CUDACC_VER_MAJOR__ 12", configured)
+            self.assertIn("__CUDACC_VER_MINOR__ 2", configured)
+        finally:
+            if previous is None:
+                os.environ.pop("CUCC_CUDA_VERSION", None)
+            else:
+                os.environ["CUCC_CUDA_VERSION"] = previous
+
         cwd = Path(self.tmp.name)
         abi_obj = cwd / "abi.o"
         code = module._handle_abi_probe([
