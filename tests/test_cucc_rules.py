@@ -637,6 +637,16 @@ class CuccRuleDriverTest(unittest.TestCase):
                 "-c", "main.cu", "-o", "main.o",
             ])
 
+    def test_target_alias_precedence_matches_device_arch_wrapper(self) -> None:
+        env = dict(self.env)
+        env.pop("CU2CCE_NPU_ARCH")
+        env.update({
+            "CUCC_TARGETS": "dav-c100-vec",
+            "CUCC_TARGETS_FROM_DEVICE": "dav-c310-vec",
+        })
+        driver = RuleDriver(env=env)
+        self.assertEqual(driver.npu_arch, "dav-c310-vec")
+
     def test_cucc_targets_accepts_one_ascend_architecture_only(self) -> None:
         env = dict(self.env)
         env.pop("CU2CCE_NPU_ARCH")

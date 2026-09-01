@@ -424,9 +424,12 @@ class RuleDriver:
                     "target; CUDA sm_*/compute_* values cannot select ccec"
                 )
             return explicit
+        # Keep the same precedence as tools/device_arch.sh, which is also
+        # what the Make/CMake/Ninja wrappers source: the device-derived alias
+        # wins over the generic compatibility alias when both are present.
         raw_targets = (
-            self.env.get("CUCC_TARGETS", "")
-            or self.env.get("CUCC_TARGETS_FROM_DEVICE", "")
+            self.env.get("CUCC_TARGETS_FROM_DEVICE", "")
+            or self.env.get("CUCC_TARGETS", "")
         ).replace(",", " ")
         targets = raw_targets.split()
         if not targets:
