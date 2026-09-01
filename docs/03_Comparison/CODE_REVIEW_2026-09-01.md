@@ -134,10 +134,17 @@ required artifact、动态依赖、metadata、forbidden suffix 均在加载阶�
 构建命令会解析到另一位置。现在 Make、Ninja、pre wrapper 在目录切换前
 将 shim root 锚定为绝对路径，并有 Make/Ninja wrapper 级测试。
 
+### [P2] `large_project` 的 install/export 没有进入 blocking artifact contract — 已修复（`aa3da05`、`783a04f`）
+
+工程本身声明了 `install(EXPORT largeProjectTargets)`，但 harness 原先只运行
+build binary，未执行 install，也未检查导出的 target graph。现在 full profile
+会安装 `large_project`，并验证 `largeProjectTargets.cmake` 存在且包含
+`large_project_app`、`large_kernel_lib`、`large_util_lib`。
+
 ## 本轮验证
 
 ```text
-168 tests OK
+169 tests OK
 cucc rules validator PASS
 Python py_compile PASS
 bash -n 所有入口脚本 PASS
