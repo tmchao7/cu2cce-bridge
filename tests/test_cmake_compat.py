@@ -37,7 +37,7 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         self.assertGreater(statuses["ALIGNED"], 0)
         self.assertGreater(statuses["MISSING"], 0)
         self.assertGreater(report["reference_assets"]["cuda_library_aliases"], 0)
-        self.assertTrue(report["reference_assets"]["missing_findcuda_macros"])
+        self.assertFalse(report["reference_assets"]["missing_findcuda_macros"])
         self.assertTrue(report["reference_assets"]["missing_link_names"])
 
     def test_cmake_entrypoints_are_installed(self) -> None:
@@ -1017,6 +1017,54 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
             self.assertIn(macro, findcuda)
         self.assertIn("no validated Ascend equivalent", findcuda)
         self.assertIn("CUDA_LIBRARIES", findcuda)
+
+    def test_findcuda_helpers_preserve_common_configuration_values(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_name:
+            tmp = Path(tmp_name)
+            script = tmp / "helpers.cmake"
+            dep = tmp / "cuda-deps.cmake"
+            script.write_text(
+                f'include("{ROOT / "cmake_modules/FindCUDA.cmake"}")\n'
+                'set(CUDA_configuration_types Debug Release)\n'
+                'CUDA_PARSE_NVCC_OPTIONS(_opts DEBUG -O0 RELEASE -O2)\n'
+                'CUDA_BUILD_SHARED_LIBRARY(_shared)\n'
+                f'CUDA_INCLUDE_NVCC_DEPENDENCIES("{dep}")\n'
+                'CUDA_COMPUTE_BUILD_PATH("/tmp/path with spaces/file.o" _build)\n'
+                'message(STATUS "opts_debug=${_opts_DEBUG}")\n'
+                'message(STATUS "opts_release=${_opts_RELEASE}")\n'
+                'message(STATUS "shared=${_shared}")\n'
+                'message(STATUS "build=${_build}")\n',
+                encoding="utf-8",
+            )
+            result = subprocess.run(
+                ["cmake", "-P", str(script)],
+                capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("opts_debug=-O0", result.stdout)
+            self.assertIn("opts_release=-O2", result.stdout)
+            self.assertIn("shared=STATIC", result.stdout)
+            self.assertTrue(dep.is_file())
+
+    def test_findcuda_covers_remaining_reference_helper_names_with_npu_guards(self) -> None:
+        findcuda = (ROOT / "cmake_modules/FindCUDA.cmake").read_text(encoding="utf-8")
+        for helper in (
+            "macro(CUDA_FIND_HELPER_FILE",
+            "macro(CUDA_INCLUDE_NVCC_DEPENDENCIES",
+            "macro(cuda_find_library_local_first_with_path_ext",
+            "macro(cuda_find_library_local_first",
+            "macro(find_library_local_first",
+            "macro(CUDA_PARSE_NVCC_OPTIONS",
+            "function(CUDA_ADD_CUDA_INCLUDE_ONCE",
+            "function(CUDA_BUILD_SHARED_LIBRARY",
+            "function(CUDA_COMPUTE_BUILD_PATH",
+            "function(_cuda_get_important_host_flags",
+            "function(CUDA_COMPUTE_SEPARABLE_COMPILATION_OBJECT_FILE_NAME",
+            "function(CUDA_LINK_SEPARABLE_COMPILATION_OBJECTS",
+        ):
+            self.assertIn(helper, findcuda)
+        self.assertIn("CUDA_SEPARABLE_COMPILATION OFF", findcuda)
+        self.assertIn("unsupported on Ascend puresimt", findcuda)
 
     def test_findcuda_uses_shared_legacy_helpers(self) -> None:
         # Keep the legacy CMake surface easy to audit: repeated CUDA-language

@@ -1,7 +1,7 @@
 # cu-bridge parity audit
 
 Reference: `6ab1076` (3.8.0)
-Implementation: `97b10ba`
+Implementation: `17399c5`
 
 ## cmake_make
 
@@ -14,7 +14,7 @@ Implementation: `97b10ba`
 | pre_wrapper | ALIGNED | pre_makefile prepares CUDA environment | pre_cce prepares CUDA-shaped Ascend environment | Direct argv execution is safer than reference eval string reconstruction. |
 | host_link_carrier | EQUIVALENT_NPU | bin/gnu links through mxcc and MACA libraries | hostcc_cce keeps g++ and injects bridge/CANN libraries | Literal mxcc copying is invalid on Ascend. |
 | system_cmake_replacement | NOT_APPLICABLE_NPU | USE_CMAKE_MACA=1 replaces system cmake | No system replacement; cmake_cce remains explicit | Avoids root requirement, global mutation, and restore failure risk. |
-| legacy_findcuda_surface | MISSING | 29 reference FindCUDA commands | 22 current FindCUDA commands | Missing reference commands: _cuda_get_important_host_flags, cuda_add_cuda_include_once, cuda_build_shared_library, cuda_compute_build_path, cuda_compute_separable_compilation_object_file_name, cuda_find_helper_file, cuda_find_library_local_first, cuda_find_library_local_first_with_path_ext, cuda_include_nvcc_dependencies, cuda_link_separable_compilation_objects, cuda_parse_nvcc_options, find_library_local_first. |
+| legacy_findcuda_surface | ALIGNED | 29 reference FindCUDA commands | 34 current FindCUDA commands | Missing reference commands: none. |
 | low_frequency_wrappers | EQUIVALENT_NPU | conf_bazel.json, conf_gfortran.json, MPI/Fortran wrappers | gfortran_cce/mpi_cce host-only carriers; no Bazel wrapper | Fortran/MPI host work is delegated safely; CUDA sources are rejected; Bazel remains a separate gap. |
 | shim_manifest | ALIGNED | link.json + stub_link.json | config/shim_layout.json + build_shim_tree.py | Reference CUDA alias entries: 48; current manifest aliases: 9; 37 reference names are not aliases in the NPU shim and require policy/validation rather than blind copying. |
 
@@ -34,8 +34,8 @@ Implementation: `97b10ba`
 
 ## Summary
 
-- `ALIGNED`: 9
+- `ALIGNED`: 10
 - `EQUIVALENT_NPU`: 6
 - `NOT_APPLICABLE_NPU`: 2
-- `MISSING`: 2
+- `MISSING`: 1
 - `DIAGNOSTIC_ONLY`: 0

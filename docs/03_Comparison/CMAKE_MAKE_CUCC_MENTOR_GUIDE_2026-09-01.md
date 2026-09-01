@@ -425,7 +425,7 @@ cu2cce 不能根据库名直接生成：
 
 这就是“同样的兼容层机制”，但不是“同样的后端库名替换”。
 
-## 八、低频 Fortran/MPI 入口如何处理
+## 八、CMake legacy helper 如何处理
 
 `cu-bridge` 还提供 `gfortran`、`mpicc`、`mpicxx` 等 host carrier。cu2cce 不把它们接到 ccec device frontend，而是通过：
 
@@ -436,7 +436,7 @@ tools/mpi_cce
 
 保留普通 host-only 编译，同时对 `.cu/.cuh` 直接报错并提示使用 `cucc`。这是对 `cu-bridge` 入口机制的安全等价实现，不是声称 Ascend 已支持 Fortran CUDA 或 MPI device compilation。Bazel/TF 仍需单独的项目级 wrapper 设计。
 
-## 九、当前真实差距
+## 十、当前真实差距
 
 当前审计基线为：
 
@@ -459,7 +459,7 @@ Reference: cu-bridge 6ab1076 / 3.8.0
 /Users/tmchao7/repos/09_expLearn/cu2cce-bridge/docs/03_Comparison/PARITY_AUDIT_2026-09-01.md
 ```
 
-## 十、向 mentor 汇报时的推荐表达
+## 十一、向 mentor 汇报时的推荐表达
 
 可以按下面的顺序讲：
 
