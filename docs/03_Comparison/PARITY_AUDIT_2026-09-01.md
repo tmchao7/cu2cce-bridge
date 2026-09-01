@@ -1,7 +1,7 @@
 # cu-bridge parity audit
 
 Reference: `6ab1076` (3.8.0)
-Implementation: `190a93e`
+Implementation: `97b10ba`
 
 ## cmake_make
 
@@ -15,7 +15,7 @@ Implementation: `190a93e`
 | host_link_carrier | EQUIVALENT_NPU | bin/gnu links through mxcc and MACA libraries | hostcc_cce keeps g++ and injects bridge/CANN libraries | Literal mxcc copying is invalid on Ascend. |
 | system_cmake_replacement | NOT_APPLICABLE_NPU | USE_CMAKE_MACA=1 replaces system cmake | No system replacement; cmake_cce remains explicit | Avoids root requirement, global mutation, and restore failure risk. |
 | legacy_findcuda_surface | MISSING | 29 reference FindCUDA commands | 22 current FindCUDA commands | Missing reference commands: _cuda_get_important_host_flags, cuda_add_cuda_include_once, cuda_build_shared_library, cuda_compute_build_path, cuda_compute_separable_compilation_object_file_name, cuda_find_helper_file, cuda_find_library_local_first, cuda_find_library_local_first_with_path_ext, cuda_include_nvcc_dependencies, cuda_link_separable_compilation_objects, cuda_parse_nvcc_options, find_library_local_first. |
-| low_frequency_wrappers | MISSING | conf_bazel.json, conf_gfortran.json, MPI/Fortran wrappers | No Bazel/gfortran/MPI wrapper | Audit-only gap; implement only safe detection/diagnostic or explicit NPU rejection. |
+| low_frequency_wrappers | EQUIVALENT_NPU | conf_bazel.json, conf_gfortran.json, MPI/Fortran wrappers | gfortran_cce/mpi_cce host-only carriers; no Bazel wrapper | Fortran/MPI host work is delegated safely; CUDA sources are rejected; Bazel remains a separate gap. |
 | shim_manifest | ALIGNED | link.json + stub_link.json | config/shim_layout.json + build_shim_tree.py | Reference CUDA alias entries: 48; current manifest aliases: 9; 37 reference names are not aliases in the NPU shim and require policy/validation rather than blind copying. |
 
 ## cucc
@@ -24,17 +24,18 @@ Implementation: `190a93e`
 |---|---|---|---|---|
 | options_file | ALIGNED | --options-file recursive expansion | safe shlex response/options expansion | No shell evaluation; nesting is depth-limited. |
 | query_skipstring | ALIGNED | 13 reference skipstring queries | 12 configured queries plus driver banner handling | -E is a query passthrough rule; -V remains an honest cu2cce driver banner. |
-| rule_pipeline | EQUIVALENT_NPU | 68 filters / 209 replacer pairs | 146 drops / 14 replacements plus NPU policy | Rules preserve semantics where ccec has an equivalent and reject/drop the rest honestly. |
+| rule_pipeline | EQUIVALENT_NPU | 68 filters / 209 replacer pairs | 145 drops / 22 replacements plus NPU policy | Rules preserve semantics where ccec has an equivalent and reject/drop the rest honestly. |
 | architecture_policy | EQUIVALENT_NPU | CUCC_TARGETS -> --offload-arch for MACA | CU2CCE_NPU_ARCH/device_arch.sh -> --cce-aicore-arch=dav-* | sm_* is metadata or compatibility macro input, never a ccec target. |
 | library_policy | EQUIVALENT_NPU | CUDA libraries map to MACA library names | validated bridge/CANN mapping, experimental cublas, map_to diagnostics | No unvalidated CUDA library is presented as an Ascend equivalent. |
 | device_artifacts | NOT_APPLICABLE_NPU | PTX/CUBIN/FATBIN and MACA device-link paths | explicit reject for NVIDIA artifacts and unvalidated RDC/device-link | puresimt produces Ascend code through ccec and has no NVIDIA artifact path. |
-| cucc_low_frequency_modes | MISSING | CUCC_USE_GOPENMP, CUCC_USE_PYTHON, Bazel/gfortran condition paths | Python driver is native; no Bazel/gfortran/MPI dispatch | The safe NPU plan is explicit diagnostics/rejection, not MACA compiler forwarding. |
+| cucc_openmp_mode | EQUIVALENT_NPU | CUCC_USE_GOPENMP -> -fopenmp/-fopenmp=libgomp | CUCC_USE_GOPENMP -> ccec/clang -fopenmp/-fopenmp=libomp | The runtime name changes for the Ascend clang backend; real CANN link acceptance remains a server probe. |
+| cucc_low_frequency_modes | MISSING | CUCC_USE_PYTHON, Bazel/TF condition paths | Python driver is native; no Bazel/TF dispatch | The safe NPU plan is explicit diagnostics/rejection, not MACA compiler forwarding. |
 | observability | ALIGNED | debug echo and generated command trace | CU2CCE_DEBUG, CU2CCE_TRACE_FILE, --dryrun, --proxy-mode | Trace records argv decisions without source contents. |
 
 ## Summary
 
 - `ALIGNED`: 9
-- `EQUIVALENT_NPU`: 4
+- `EQUIVALENT_NPU`: 6
 - `NOT_APPLICABLE_NPU`: 2
-- `MISSING`: 3
+- `MISSING`: 2
 - `DIAGNOSTIC_ONLY`: 0

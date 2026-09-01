@@ -474,33 +474,6 @@
         "reason": "nvcc forwarding control is not needed by ccec"
       },
       {
-        "pattern": "--pre-include",
-        "takes_value": true,
-        "reason": "ccec uses the driver-injected -include instead"
-      },
-      {
-        "pattern": "--pre-include=*",
-        "reason": "ccec uses the driver-injected -include instead"
-      },
-      {
-        "pattern": "--include-path",
-        "takes_value": true,
-        "reason": "ccec uses -I include paths"
-      },
-      {
-        "pattern": "--include-path=*",
-        "reason": "ccec uses -I include paths"
-      },
-      {
-        "pattern": "--library-path",
-        "takes_value": true,
-        "reason": "ccec uses -L library paths"
-      },
-      {
-        "pattern": "--library-path=*",
-        "reason": "ccec uses -L library paths"
-      },
-      {
         "pattern": "-Wl,-Bstatic",
         "reason": "cudart static library control is not needed; cu2cce injects the bridge runtime"
       },
@@ -659,11 +632,6 @@
         "reason": "PTX embedding is not part of the puresimt path"
       },
       {
-        "pattern": "--linker-options",
-        "takes_value": true,
-        "reason": "nvcc linker-forwarding channel has no ccec equivalent; use -Wl, directly"
-      },
-      {
         "pattern": "--libdevice-directory",
         "takes_value": true,
         "reason": "libdevice does not exist on the puresimt path; bridge headers supply intrinsics"
@@ -712,6 +680,33 @@
       {
         "pattern": "-x=*",
         "reason": "single-token language selector is normalized; cu2cce selects asc for CUDA sources"
+      },
+      {
+        "pattern": "--threads",
+        "takes_value": true,
+        "reason": "nvcc host-compile parallelism is meaningless for one ccec invocation"
+      },
+      {
+        "pattern": "-t",
+        "takes_value": true,
+        "reason": "nvcc host-compile parallelism is meaningless for one ccec invocation"
+      },
+      {
+        "pattern": "--nvlink-options",
+        "takes_value": true,
+        "reason": "nvlink options are not part of the Ascend ccec toolchain"
+      },
+      {
+        "pattern": "--nvlink-options=*",
+        "reason": "nvlink options are not part of the Ascend ccec toolchain"
+      },
+      {
+        "pattern": "-fno-lifetime-dse",
+        "reason": "gcc-specific lifetime DSE control is not accepted by the ccec/clang backend"
+      },
+      {
+        "pattern": "-Wdefault-stream-launch",
+        "reason": "nvcc-specific warning name is not accepted by ccec"
       }
     ],
     "replace": [
@@ -806,6 +801,74 @@
         "to": [
           "-Werror=implicit-fallthrough"
         ]
+      },
+      {
+        "pattern": "--linker-options",
+        "takes_value": true,
+        "preserve_value": true,
+        "to": [
+          "-Xlinker"
+        ],
+        "reason": "cu-bridge --linker-options parity; ccec accepts -Xlinker <arg>"
+      },
+      {
+        "pattern": "--linker-options=*",
+        "preserve_value": true,
+        "to": [
+          "-Xlinker"
+        ],
+        "reason": "cu-bridge --linker-options=<arg> parity; ccec accepts -Xlinker <arg>"
+      },
+      {
+        "pattern": "--pre-include",
+        "takes_value": true,
+        "preserve_value": true,
+        "to": [
+          "-include"
+        ],
+        "reason": "nvcc pre-include spelling maps to ccec -include"
+      },
+      {
+        "pattern": "--pre-include=*",
+        "preserve_value": true,
+        "to": [
+          "-include"
+        ],
+        "reason": "nvcc pre-include spelling maps to ccec -include"
+      },
+      {
+        "pattern": "--include-path",
+        "takes_value": true,
+        "preserve_value": true,
+        "to": [
+          "-I"
+        ],
+        "reason": "nvcc include-path spelling maps to ccec -I"
+      },
+      {
+        "pattern": "--include-path=*",
+        "preserve_value": true,
+        "to": [
+          "-I"
+        ],
+        "reason": "nvcc include-path spelling maps to ccec -I"
+      },
+      {
+        "pattern": "--library-path",
+        "takes_value": true,
+        "preserve_value": true,
+        "to": [
+          "-L"
+        ],
+        "reason": "nvcc library-path spelling maps to ccec -L"
+      },
+      {
+        "pattern": "--library-path=*",
+        "preserve_value": true,
+        "to": [
+          "-L"
+        ],
+        "reason": "nvcc library-path spelling maps to ccec -L"
       }
     ],
     "reject": [
@@ -890,6 +953,14 @@
       }
     ],
     "inject": [
+      {
+        "tokens": [
+          "-fopenmp",
+          "-fopenmp=libomp"
+        ],
+        "when": "use_gopenmp",
+        "reason": "CUCC_USE_GOPENMP=1 maps cu-bridge OpenMP request to ccec/clang libomp"
+      },
       {
         "tokens": [
           "-I",

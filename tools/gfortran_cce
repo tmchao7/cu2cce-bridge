@@ -1,0 +1,21 @@
+#!/bin/bash
+# gfortran_cce —— host-only Fortran carrier for cu-bridge parity.
+# Ascend puresimt does not provide a Fortran CUDA frontend. Keep ordinary
+# Fortran host builds usable, but refuse CUDA device sources explicitly.
+set -euo pipefail
+
+for arg in "$@"; do
+    case "$arg" in
+        *.cu|*.cuh)
+            echo "gfortran_cce: CUDA source '$arg' cannot be compiled by the host-only Fortran wrapper; use cucc" >&2
+            exit 2
+            ;;
+    esac
+done
+
+compiler="${CU2CCE_FORTRAN_COMPILER:-/usr/bin/gfortran}"
+if [ ! -x "$compiler" ]; then
+    echo "gfortran_cce: Fortran compiler not found at $compiler" >&2
+    exit 1
+fi
+exec "$compiler" "$@"

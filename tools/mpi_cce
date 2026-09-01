@@ -1,0 +1,30 @@
+#!/bin/bash
+# mpi_cce —— host-only MPI carrier for cu-bridge parity.
+# MPI wrappers may compile/link host code, but they are not CUDA device
+# frontends on Ascend. CUDA sources must go through cucc first.
+set -euo pipefail
+
+name="$(basename "$0")"
+case "$name" in
+    mpicc) compiler="${CU2CCE_MPICC_COMPILER:-/usr/bin/mpicc}" ;;
+    mpicxx|mpic++) compiler="${CU2CCE_MPICXX_COMPILER:-/usr/bin/mpicxx}" ;;
+    *)
+        echo "mpi_cce: unsupported wrapper name '$name'; use mpicc or mpicxx" >&2
+        exit 1
+        ;;
+esac
+
+for arg in "$@"; do
+    case "$arg" in
+        *.cu|*.cuh)
+            echo "mpi_cce: CUDA source '$arg' cannot be compiled by the host-only MPI wrapper; use cucc" >&2
+            exit 2
+            ;;
+    esac
+done
+
+if [ ! -x "$compiler" ]; then
+    echo "mpi_cce: MPI compiler not found at $compiler" >&2
+    exit 1
+fi
+exec "$compiler" "$@"

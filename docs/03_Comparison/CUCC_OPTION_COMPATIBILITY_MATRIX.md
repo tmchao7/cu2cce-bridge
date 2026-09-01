@@ -11,8 +11,8 @@ Rules are implemented by `config/cu2cce_rules.json` and shared by `cucc` and the
 | `-std=` | equal | compile | FORWARD | `SUPPORTED` for tested C++17 | ccec receives gnu++17 baseline |
 | `-W*` | prefix | all | FORWARD | `EXPERIMENTAL` | warning spelling may be backend-specific |
 | `-L/-l` | separate/equal | link | FORWARD | `EXPERIMENTAL` | unvalidated CUDA libraries warn and remain unmodified |
-| `-Xcompiler/--compiler-options` | separate/equal | compile/link | REPLACE | `EXPERIMENTAL` | shell-split host flags |
-| `-Xlinker` | separate/equal | link | DROP | `DIAGNOSTIC_ONLY` | nvcc linker forwarding is not needed |
+| `-Xcompiler/--compiler-options` | separate/equal | compile/link | REPLACE | `EXPERIMENTAL` | `shlex`/comma-split host flags, per-flag NPU filtering |
+| `-Xlinker` / `--linker-options` | separate/equal | link | FORWARD/REPLACE | `SUPPORTED` for command shape | `--linker-options <arg>` maps to `-Xlinker <arg>`; actual ccec link semantics require real proof |
 | `-gencode/--generate-code` | separate/equal | compile | DROP | `DIAGNOSTIC_ONLY` | never mapped to fake Ascend architecture |
 | `-arch/--gpu-architecture` | separate/equal | compile | DROP | `DIAGNOSTIC_ONLY` | `CU2CCE_NPU_ARCH` selects ccec target |
 | `--ptxas-options/-Xptxas` | separate/equal | compile | DROP | `DIAGNOSTIC_ONLY` | ptxas is not used |
@@ -40,7 +40,7 @@ Rules are implemented by `config/cu2cce_rules.json` and shared by `cucc` and the
 | `-Wl,-Bstatic/-Bdynamic/--start-group/--end-group` | exact | link | DROP | `DIAGNOSTIC_ONLY` | cudart static grouping not needed |
 | `--resource-usage` | exact | compile | DROP | `DIAGNOSTIC_ONLY` | not part of ccec toolchain |
 | `--forward-unknown-to-host-compiler=*` | equal | all | DROP | `DIAGNOSTIC_ONLY` | nvcc forwarding control not needed |
-| `--pre-include/--include-path/--library-path` | separate/equal | compile | DROP | `DIAGNOSTIC_ONLY` | ccec uses -include/-I/-L |
+| `--pre-include/--include-path/--library-path` | separate/equal | compile | REPLACE | `SUPPORTED` for command shape | preserve the value and map to ccec `-include`/`-I`/`-L` |
 | `--ptx/--cubin/--fatbin` | exact | compile | REJECT | `UNSUPPORTED` | puresimt consumes CUDA source directly |
 | `-lcudart` | exact | link | DROP + runtime inject | `SUPPORTED` for bridge path | uses `libcce_bridge_runtime.so` |
 | `-lcublas/-lcufft/-lcusparse` | exact | link | WARN_FORWARD | `EXPERIMENTAL`/`UNSUPPORTED` | no blanket CANN replacement |

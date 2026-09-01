@@ -736,6 +736,24 @@ class CuccRuleDriverTest(unittest.TestCase):
             env=env, capture_output=True, text=True)
         self.assertNotIn("[cu2cce]", quiet.stderr)
 
+    def test_validator_rejects_invalid_replace_value_policy(self) -> None:
+        import validate_cucc_rules  # noqa: PLC0415
+        rules = Path(self.tmp.name) / "bad-replace.json"
+        rules.write_text(json.dumps({
+            "schema_version": 1,
+            "frontend": {},
+            "all": {"forward": [], "drop": [], "replace": [
+                {"pattern": "--bad", "preserve_value": "yes", "to": "-I"}
+            ], "reject": []},
+            "compile": {"inject": []},
+            "link": {"inject": []},
+            "compile_and_link": {"inject": []},
+            "capabilities": {},
+            "diagnostics": {},
+        }), encoding="utf-8")
+        errors = validate_cucc_rules.validate(rules)
+        self.assertTrue(any("preserve_value" in error for error in errors))
+
     def test_validator_rejects_invalid_capability_policy(self) -> None:
         import validate_cucc_rules  # noqa: PLC0415
         rules = Path(self.tmp.name) / "bad-capability.json"
@@ -811,6 +829,48 @@ class CuccRuleDriverTest(unittest.TestCase):
         prepared = self.driver().prepare(["--share", "main.cu", "-o", "libmain.so"])
         self.assertIn("-shared", prepared.args)
         self.assertNotIn("--share", prepared.args)
+
+    def test_nvcc_path_options_preserve_values_with_ccec_spellings(self) -> None:
+        prepared = self.driver().prepare([
+            "-c", "main.cu",
+            "--pre-include", "compat.h",
+            "--include-path=/opt/include",
+            "--library-path", "/opt/lib",
+            "-o", "main.o",
+        ])
+        for pair in (("-include", "compat.h"), ("-I", "/opt/include"), ("-L", "/opt/lib")):
+            matches = [
+                index for index, value in enumerate(prepared.args[:-1])
+                if value == pair[0] and prepared.args[index + 1] == pair[1]
+            ]
+            self.assertTrue(matches, pair)
+        for original in ("--pre-include", "--include-path=/opt/include", "--library-path"):
+            self.assertNotIn(original, prepared.args)
+
+    def test_linker_options_preserve_value_as_xlinker_pair(self) -> None:
+        prepared = self.driver().prepare([
+            "main.o", "--linker-options", "-z,now", "-o", "app",
+        ])
+        self.assertIn("-Xlinker", prepared.args)
+        index = prepared.args.index("-Xlinker")
+        self.assertEqual(prepared.args[index + 1], "-z,now")
+        self.assertNotIn("--linker-options", prepared.args)
+
+    def test_cubridge_non_ccec_flags_are_explicitly_dropped(self) -> None:
+        prepared = self.driver().prepare([
+            "-c", "main.cu", "-fno-lifetime-dse",
+            "--nvlink-options", "--foo", "-o", "main.o",
+        ])
+        self.assertNotIn("-fno-lifetime-dse", prepared.args)
+        self.assertNotIn("--nvlink-options", prepared.args)
+        self.assertNotIn("--foo", prepared.args)
+
+    def test_cucc_use_gopenmp_enables_clang_openmp_runtime(self) -> None:
+        prepared = self.driver(CUCC_USE_GOPENMP="1").prepare([
+            "-c", "main.cu", "-o", "main.o",
+        ])
+        self.assertIn("-fopenmp", prepared.args)
+        self.assertIn("-fopenmp=libomp", prepared.args)
 
     def test_xlinker_pair_is_forwarded_to_ccec(self) -> None:
         # cu-bridge forwards -Xlinker to the clang-based backend; dropping

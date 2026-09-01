@@ -736,6 +736,70 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
             self.assertIn("CU2CCE_SHIM_ISOLATE", text, entry)
             self.assertIn('"1"', text)
 
+    def test_host_only_fortran_and_mpi_wrappers_reject_cuda_sources(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_name:
+            tmp = Path(tmp_name)
+            compiler = tmp / "host-compiler"
+            log = tmp / "compiler.args"
+            compiler.write_text(
+                "#!/bin/sh\n"
+                "printf '%s\n' \"$@\" > \"$COMPILER_LOG\"\n",
+                encoding="utf-8",
+            )
+            compiler.chmod(0o755)
+            env = dict(os.environ)
+            env["COMPILER_LOG"] = str(log)
+
+            result = subprocess.run(
+                [str(ROOT / "tools/gfortran_cce"), "-c", "hello.f90"],
+                env={**env, "CU2CCE_FORTRAN_COMPILER": str(compiler)},
+                capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(log.read_text(encoding="utf-8").splitlines(), ["-c", "hello.f90"])
+            rejected = subprocess.run(
+                [str(ROOT / "tools/gfortran_cce"), "kernel.cu"],
+                env={**env, "CU2CCE_FORTRAN_COMPILER": str(compiler)},
+                capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(rejected.returncode, 2)
+            self.assertIn("CUDA source", rejected.stderr)
+
+            mpicc = tmp / "mpicc"
+            mpicc.symlink_to(ROOT / "tools/mpi_cce")
+            result = subprocess.run(
+                [str(mpicc), "-c", "hello.c"],
+                env={**env, "CU2CCE_MPICC_COMPILER": str(compiler)},
+                capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(log.read_text(encoding="utf-8").splitlines(), ["-c", "hello.c"])
+            rejected = subprocess.run(
+                [str(mpicc), "kernel.cu"],
+                env={**env, "CU2CCE_MPICC_COMPILER": str(compiler)},
+                capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(rejected.returncode, 2)
+            self.assertIn("CUDA source", rejected.stderr)
+
+    def test_shim_manifest_supports_host_only_fortran_and_mpi_wrappers(self) -> None:
+        # cu-bridge exposes gfortran/mpicc/mpicxx entries. The Ascend version
+        # must expose them without pretending those host tools can compile CUDA
+        # device code; the wrapper will reject .cu and delegate host-only work.
+        layout = (ROOT / "config/shim_layout.json").read_text(encoding="utf-8")
+        builder = (ROOT / "tools/build_shim_tree.py").read_text(encoding="utf-8")
+        self.assertIn('"host_tool_wrappers"', layout)
+        self.assertIn("host_tool_wrappers", builder)
+        for name in ("gfortran_cce", "mpi_cce"):
+            self.assertTrue((ROOT / "tools" / name).is_file())
+        cmake = (ROOT / "CMakeLists.txt").read_text(encoding="utf-8")
+        self.assertIn("tools/gfortran_cce", cmake)
+        self.assertIn("tools/mpi_cce", cmake)
+        for script in (ROOT / "tools/gfortran_cce", ROOT / "tools/mpi_cce"):
+            text = script.read_text(encoding="utf-8")
+            self.assertIn("CUDA source", text)
+            self.assertIn('exec "$compiler" "$@"', text)
+
     def test_shim_builder_is_idempotent_and_produces_the_manifest_layout(self) -> None:
         # Functional check of the shared builder (no CANN/ccec needed): the
         # produced tree must carry the toolkit shape, the CUDA-named alias
@@ -762,6 +826,8 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
             (cucc / "cmake_modules/FindCUDAToolkit.cmake").write_text("", encoding="utf-8")
             (cucc / "tools").mkdir()
             (cucc / "tools/hostcc_cce").write_text("#!/bin/sh\n", encoding="utf-8")
+            (cucc / "tools/gfortran_cce").write_text("#!/bin/sh\n", encoding="utf-8")
+            (cucc / "tools/mpi_cce").write_text("#!/bin/sh\n", encoding="utf-8")
             (cucc / "bin/cucc").write_text("#!/bin/sh\n", encoding="utf-8")
 
             cuda_dir = tmp / "cuda"
@@ -781,6 +847,9 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
             self.assertEqual(os.readlink(cuda_dir / "bin/nvcc"), str(cucc / "bin/cucc"))
             self.assertEqual(os.readlink(cuda_dir / "bin/cucc"), str(cucc / "bin/cucc"))
             self.assertEqual(os.readlink(hostbin / "g++"), str(cucc / "tools/hostcc_cce"))
+            self.assertEqual(os.readlink(hostbin / "gfortran"), str(cucc / "tools/gfortran_cce"))
+            self.assertEqual(os.readlink(hostbin / "mpicc"), str(cucc / "tools/mpi_cce"))
+            self.assertEqual(os.readlink(hostbin / "mpicxx"), str(cucc / "tools/mpi_cce"))
             self.assertEqual(os.readlink(cuda_dir / "lib64/libcudart.so"),
                              str(cucc / "lib/libcce_bridge_runtime.so"))
             self.assertEqual(os.readlink(cuda_dir / "lib64/libcublas.so"),
@@ -1136,6 +1205,7 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         self.assertIn("--options-file", server_cmd)
         self.assertIn("CUCC_TARGETS=dav-c310-vec", server_cmd)
         self.assertIn("direct ninja_cce", server_cmd)
+        self.assertIn("CUCC_USE_GOPENMP=1", server_cmd)
         self.assertIn("response_files", (ROOT / "tools/cu2cce_driver.py").read_text(encoding="utf-8"))
 
     def test_round8_machinery_probes_are_wired_into_the_harness(self) -> None:

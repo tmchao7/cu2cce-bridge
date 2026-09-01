@@ -90,6 +90,7 @@ install(PROGRAMS tools/nvcc_entry.sh tools/cu2cce_driver.py tools/validate_cucc_
         tools/compare_cubridge_parity.py
         DESTINATION ${CMAKE_INSTALL_PREFIX}/tools)
 install(PROGRAMS tools/device_arch.sh tools/pre_cce tools/hostcc_cce tools/build_shim_tree.py
+        tools/gfortran_cce tools/mpi_cce
         DESTINATION ${CMAKE_INSTALL_PREFIX}/tools)
 install(PROGRAMS tools/fake_toolkit_env.sh
         DESTINATION ${CMAKE_INSTALL_PREFIX}/tools)

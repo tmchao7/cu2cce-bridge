@@ -36,6 +36,10 @@ def validate_rule(rule: Any, action: str, path: str, errors: List[str]) -> None:
         fail(errors, f"{path}: reject requires reason")
     if "takes_value" in rule and not isinstance(rule["takes_value"], bool):
         fail(errors, f"{path}: takes_value must be boolean")
+    if "preserve_value" in rule and not isinstance(rule["preserve_value"], bool):
+        fail(errors, f"{path}: preserve_value must be boolean")
+    if rule.get("preserve_value") and "to" not in rule:
+        fail(errors, f"{path}: preserve_value requires to")
     if "when" in rule and not isinstance(rule["when"], str):
         fail(errors, f"{path}: when must be string")
 

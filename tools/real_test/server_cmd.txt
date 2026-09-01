@@ -312,6 +312,19 @@ if profile_runs "full"; then
         FAIL=$((FAIL + 1))
         CUCC_RULES_PASS=0
     fi
+
+    if CUCC_USE_GOPENMP=1 CUCC_PATH="$PWD/build/real_test/install" \
+        "$CUCC_BIN" --dryrun -c examples/puresimt/vectorAdd_minimal.cu \
+        -o "$OUT/openmp_probe.o" >"$CUCC_PROBE_CMD" 2>/dev/null &&
+        grep -Fq -- '-fopenmp' "$CUCC_PROBE_CMD" &&
+        grep -Fq -- '-fopenmp=libomp' "$CUCC_PROBE_CMD"; then
+        echo '[PASS] CUCC_USE_GOPENMP -> ccec/clang libomp 参数'
+    else
+        echo '[FAIL] CUCC_USE_GOPENMP probe'
+        cat "$CUCC_PROBE_CMD"
+        FAIL=$((FAIL + 1))
+        CUCC_RULES_PASS=0
+    fi
 fi
 
 if [ "$CUCC_RULES_PASS" -eq 1 ]; then

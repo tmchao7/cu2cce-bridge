@@ -591,6 +591,8 @@ class RuleDriver:
                     break
         shared_link = any(arg == "-shared" or arg.startswith("-shared=") for arg in args)
         user_has_std = any(arg.startswith("-std=") for arg in args)
+        has_openmp = any(arg == "-fopenmp" or arg.startswith("-fopenmp=") for arg in args)
+        use_gopenmp = self.env.get("CUCC_USE_GOPENMP", "") == "1" and not has_openmp
         explicit_cuda_arch = bool(self.env.get("CU2CCE_CUDA_ARCH", "").strip())
         return {
             "shared_link_without_pic": shared_link and not has_pic,
@@ -625,6 +627,7 @@ class RuleDriver:
             # over the injected -std=gnu++17 (avoids duplicate -std flags on
             # the final ccec command line).
             "no_user_std": not user_has_std,
+            "use_gopenmp": use_gopenmp,
         }
 
     def _resolve_simt_root(self) -> None:
@@ -1059,8 +1062,17 @@ class RuleDriver:
                     value = expanded[i + 1]
                     if replace.get("split_value"):
                         values = self._split_forwarded(value)
+                    elif replace.get("preserve_value"):
+                        raw_to = replace.get("to", [])
+                        prefix = raw_to if isinstance(raw_to, list) else [raw_to]
+                        values = [str(token) for token in prefix] + [value]
                     else:
-                        values = [str(replace.get("to", value))]
+                        raw_to = replace.get("to", value)
+                        values = [str(raw_to)] if not isinstance(raw_to, list) else [str(x) for x in raw_to]
+                elif replace.get("preserve_value") and "=" in argument:
+                    raw_to = replace.get("to", [])
+                    prefix = raw_to if isinstance(raw_to, list) else [raw_to]
+                    values = [str(token) for token in prefix] + [argument.split("=", 1)[1]]
                 elif replace.get("split_value") and "=" in argument:
                     values = self._split_forwarded(argument.split("=", 1)[1])
                 else:
