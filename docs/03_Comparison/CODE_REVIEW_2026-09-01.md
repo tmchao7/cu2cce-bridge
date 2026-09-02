@@ -272,6 +272,21 @@ parity audit MISSING=0
 git diff --check PASS
 ```
 
+### [P1] 服务器 Python 3.7 不支持 `shlex.join`，导致所有后续 dryrun 探针级联失败 — 已修复
+
+真实服务器的 `cu2cce_driver.py` 在 `--dryrun`/proxy 输出路径调用了 Python 3.8
+才提供的 `shlex.join`，首个探针抛出 `AttributeError` 后，options-file、`-E`、
+`CUCC_TARGETS`、OpenMP 等后续检查全部被误报为失败。现在统一使用基于
+`shlex.quote` 的兼容 formatter，并加入缺少 `shlex.join` 的回归测试。
+
+### [P2] CMake artifact metadata 把实现细节误当成固定产物 — 已修复
+
+CMake 的 build metadata 在 configure/build 两阶段可能记录持久化 `nvcc` shim 或
+真实 `cucc`，不能只匹配其中一个；而 bridge runtime 的真实证明是最终 ELF 的
+`NEEDED`/RPATH，不要求每个 generator 的 `link.txt` 直接出现库名。artifact
+contract 现在用 `contains_any: [cucc, nvcc]` 验证 compiler 选择，并继续对最终
+ELF 做严格 runtime 依赖检查。
+
 ### Simplifier 收口（`8bd3dbe`）
 
 删除 `RuleDriver` 中未使用的 `_HOST_FLAG_ALLOWED` 常量和死字段
@@ -302,7 +317,7 @@ git diff --check PASS
 回归确认。当前验证包括：
 
 ```text
-Python unittest 全量
+Python unittest 全量（188 tests）
 cucc rules validator
 Python py_compile
 bash -n 所有入口脚本

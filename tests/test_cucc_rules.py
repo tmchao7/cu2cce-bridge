@@ -11,6 +11,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
+import cu2cce_driver  # noqa: E402
 from cu2cce_driver import DriverError, RuleDriver, scan_device_double_usage  # noqa: E402
 
 
@@ -234,6 +235,20 @@ class CuccRuleDriverTest(unittest.TestCase):
         source.write_text("__global__ void k(double value) { double x = value; }\n", encoding="utf-8")
         with self.assertRaises(DriverError):
             self.driver().prepare([str(source), "-o", "app"])
+
+    def test_proxy_dryrun_does_not_require_python38_shlex_join(self) -> None:
+        # The Ascend server may ship Python 3.7, where shlex.join does not
+        # exist. The command formatter must remain usable on that runtime.
+        import contextlib
+        import io
+        from unittest import mock
+
+        output = io.StringIO()
+        with mock.patch.object(cu2cce_driver.shlex, "join", None, create=True):
+            with contextlib.redirect_stdout(output):
+                result = self.driver().run_hostcc(["main.o", "-DVALUE=path with spaces"], "g++", proxy_mode=True)
+        self.assertEqual(result, 0)
+        self.assertIn("'-DVALUE=path with spaces'", output.getvalue())
 
     def test_dryrun_uses_shell_quoting_for_argument_boundaries(self) -> None:
         env = dict(self.env)

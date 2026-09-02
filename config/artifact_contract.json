@@ -110,14 +110,16 @@
         },
         {
           "path": "CMakeFiles/cmake_vector_add.dir/build.make",
-          "contains": [
+          "contains_any": [
+            "cucc",
             "nvcc"
           ]
         },
         {
           "path": "CMakeFiles/cmake_vector_add.dir/link.txt",
-          "contains": [
-            "libcce_bridge_runtime"
+          "contains_any": [
+            "cucc",
+            "nvcc"
           ]
         }
       ]
@@ -161,14 +163,16 @@
         },
         {
           "path": "CMakeFiles/cmake_compat_app.dir/build.make",
-          "contains": [
+          "contains_any": [
+            "cucc",
             "nvcc"
           ]
         },
         {
           "path": "CMakeFiles/cmake_compat_app.dir/link.txt",
-          "contains": [
-            "libcce_bridge_runtime"
+          "contains_any": [
+            "cucc",
+            "nvcc"
           ]
         }
       ]
@@ -200,14 +204,16 @@
         },
         {
           "path": "CMakeFiles/legacy_vector_add.dir/build.make",
-          "contains": [
+          "contains_any": [
+            "cucc",
             "nvcc"
           ]
         },
         {
           "path": "CMakeFiles/legacy_vector_add.dir/link.txt",
-          "contains": [
-            "libcce_bridge_runtime"
+          "contains_any": [
+            "cucc",
+            "nvcc"
           ]
         }
       ]
@@ -247,14 +253,16 @@
         },
         {
           "path": "comp/CMakeFiles/large_kernel_lib.dir/build.make",
-          "contains": [
+          "contains_any": [
+            "cucc",
             "nvcc"
           ]
         },
         {
           "path": "CMakeFiles/large_project_app.dir/link.txt",
-          "contains": [
-            "libcce_bridge_runtime"
+          "contains_any": [
+            "cucc",
+            "nvcc"
           ]
         }
       ]
@@ -317,14 +325,16 @@
         },
         {
           "path": "CMakeFiles/build_compat_app.dir/build.make",
-          "contains": [
+          "contains_any": [
+            "cucc",
             "nvcc"
           ]
         },
         {
           "path": "CMakeFiles/build_compat_app.dir/link.txt",
-          "contains": [
-            "libcce_bridge_runtime"
+          "contains_any": [
+            "cucc",
+            "nvcc"
           ]
         }
       ]
@@ -356,7 +366,8 @@
         },
         {
           "path": "CMakeFiles/rules.ninja",
-          "contains": [
+          "contains_any": [
+            "cucc",
             "nvcc"
           ]
         }

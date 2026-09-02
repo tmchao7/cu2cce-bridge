@@ -48,6 +48,16 @@ _ARCH_VALUE_FLAGS = {
 }
 
 
+def _shell_join(arguments: Sequence[str]) -> str:
+    """Render argv safely on Python versions predating :func:`shlex.join`.
+
+    The server CANN image may provide Python 3.7, while ``shlex.join`` was
+    added in Python 3.8.  Keep dry-run/proxy output deterministic without
+    requiring a newer interpreter.
+    """
+    return " ".join(shlex.quote(str(argument)) for argument in arguments)
+
+
 def _cuda_arch_macro_value(digits: str) -> int:
     """CUDA __CUDA_ARCH__ numeric value for a two/three digit sm_ token.
 
@@ -1463,7 +1473,7 @@ class RuleDriver:
             # semantics untouched. Link output is allowed to use the compiler's
             # default `a.out`; runtime injection must not depend on -o.
             if proxy_mode:
-                print(shlex.join([compiler, *args]))
+                print(_shell_join([compiler, *args]))
                 return 0
             os.execv(compiler, [compiler, *args])
 
@@ -1482,7 +1492,7 @@ class RuleDriver:
                 injections.extend(values)
                 self._record(" ".join(values), "inject", rule.get("reason", "hostcc link inject"))
         if proxy_mode:
-            print(shlex.join([compiler, *args, *injections]))
+            print(_shell_join([compiler, *args, *injections]))
             return 0
         os.execv(compiler, [compiler, *args, *injections])
 
@@ -1544,13 +1554,13 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         driver.response_files.extend(response_files)
         prepared = driver.prepare(args)
         if dryrun:
-            print(shlex.join([prepared.compiler, *prepared.args]))
+            print(_shell_join([prepared.compiler, *prepared.args]))
             return 0
         if proxy_mode:
             # Emit the prepared command as a single shell-quoted line without
             # executing ccec. The parent wrapper (mock_nvcc or a test harness)
             # decides whether and how to execute the real compile.
-            print(shlex.join([prepared.compiler, *prepared.args]))
+            print(_shell_join([prepared.compiler, *prepared.args]))
             return 0
         return driver.run_prepared(prepared)
     except DriverError as exc:

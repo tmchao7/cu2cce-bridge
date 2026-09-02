@@ -68,11 +68,12 @@ def load_contract(path: Path) -> Dict[str, Any]:
         for index, entry in enumerate(metadata):
             if not isinstance(entry, dict) or not isinstance(entry.get("path"), str) or not entry["path"]:
                 raise ContractError(f"cases.{name}.metadata[{index}]: requires a non-empty path")
-            contains = entry.get("contains", [])
-            if not isinstance(contains, list) or not all(isinstance(value, str) for value in contains):
-                raise ContractError(
-                    f"cases.{name}.metadata[{index}].contains: must be a string list"
-                )
+            for field_name in ("contains", "contains_any"):
+                values = entry.get(field_name, [])
+                if not isinstance(values, list) or not all(isinstance(value, str) for value in values):
+                    raise ContractError(
+                        f"cases.{name}.metadata[{index}].{field_name}: must be a string list"
+                    )
         case_forbidden = case.get("forbidden_suffixes", [])
         if not isinstance(case_forbidden, list) or not all(isinstance(value, str) for value in case_forbidden):
             raise ContractError(f"cases.{name}.forbidden_suffixes: must be a string list")
@@ -245,8 +246,12 @@ def _check_metadata(root: Path, entries: Sequence[Mapping[str, Any]]) -> Tuple[L
             errors.append(f"missing metadata artifact: {root / pattern}")
             continue
         contains = entry.get("contains", [])
+        contains_any = entry.get("contains_any", [])
         if not isinstance(contains, list):
             errors.append(f"metadata contains must be a list: {pattern}")
+            continue
+        if not isinstance(contains_any, list):
+            errors.append(f"metadata contains_any must be a list: {pattern}")
             continue
         for path in matches:
             checked.append(str(path))
@@ -258,6 +263,10 @@ def _check_metadata(root: Path, entries: Sequence[Mapping[str, Any]]) -> Tuple[L
             for token in contains:
                 if str(token) not in text:
                     errors.append(f"metadata token {token!r} missing from {path}")
+            if contains_any and not any(str(token) in text for token in contains_any):
+                errors.append(
+                    f"one of metadata tokens {contains_any!r} missing from {path}"
+                )
     return errors, checked
 
 

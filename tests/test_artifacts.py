@@ -65,18 +65,21 @@ class ArtifactVerifierTest(unittest.TestCase):
         self.assertIn("lib/cmake/cu2cce-bridge/cu2cceTargets.cmake", metadata)
         self.assertIn("cu2cce::runtime", " ".join(metadata["lib/cmake/cu2cce-bridge/cu2cceTargets.cmake"]))
 
-    def test_cmake_makefile_cases_check_link_txt_for_bridge_runtime(self) -> None:
+    def test_cmake_metadata_accepts_configured_cucc_or_nvcc_shim(self) -> None:
         contract = json.loads((ROOT / "config/artifact_contract.json").read_text(encoding="utf-8"))
-        for case_name, link_path in (
-            ("cmake_demo", "CMakeFiles/cmake_vector_add.dir/link.txt"),
-            ("cmake_compat", "CMakeFiles/cmake_compat_app.dir/link.txt"),
-            ("cmake_compat_legacy", "CMakeFiles/legacy_vector_add.dir/link.txt"),
-            ("cmake_large_project", "CMakeFiles/large_project_app.dir/link.txt"),
-            ("cmake_build_compat", "CMakeFiles/build_compat_app.dir/link.txt"),
+        for case_name, build_path, link_path in (
+            ("cmake_demo", "CMakeFiles/cmake_vector_add.dir/build.make", "CMakeFiles/cmake_vector_add.dir/link.txt"),
+            ("cmake_compat", "CMakeFiles/cmake_compat_app.dir/build.make", "CMakeFiles/cmake_compat_app.dir/link.txt"),
+            ("cmake_compat_legacy", "CMakeFiles/legacy_vector_add.dir/build.make", "CMakeFiles/legacy_vector_add.dir/link.txt"),
+            ("cmake_large_project", "comp/CMakeFiles/large_kernel_lib.dir/build.make", "CMakeFiles/large_project_app.dir/link.txt"),
+            ("cmake_build_compat", "CMakeFiles/build_compat_app.dir/build.make", "CMakeFiles/build_compat_app.dir/link.txt"),
         ):
-            metadata = {entry["path"]: entry.get("contains", []) for entry in contract["cases"][case_name]["metadata"]}
+            metadata = {entry["path"]: entry for entry in contract["cases"][case_name]["metadata"]}
+            self.assertIn(build_path, metadata, case_name)
+            self.assertEqual(sorted(metadata[build_path]["contains_any"]), ["cucc", "nvcc"], case_name)
             self.assertIn(link_path, metadata, case_name)
-            self.assertIn("libcce_bridge_runtime", " ".join(metadata[link_path]), case_name)
+            self.assertEqual(sorted(metadata[link_path]["contains_any"]), ["cucc", "nvcc"], case_name)
+            self.assertNotIn("libcce_bridge_runtime", metadata[link_path].get("contains", []), case_name)
 
     def test_install_export_contracts_check_exported_target_names(self) -> None:
         data = json.loads((ROOT / "config/artifact_contract.json").read_text(encoding="utf-8"))
@@ -168,11 +171,11 @@ class ArtifactVerifierTest(unittest.TestCase):
     def test_ninja_contract_checks_rules_file_for_cuda_compiler(self) -> None:
         contract = json.loads((ROOT / "config/artifact_contract.json").read_text(encoding="utf-8"))
         metadata = contract["cases"]["cmake_ninja"]["metadata"]
-        entries = {entry["path"]: entry.get("contains", []) for entry in metadata}
+        entries = {entry["path"]: entry for entry in metadata}
         self.assertIn("build.ninja", entries)
         self.assertIn("CMakeFiles/rules.ninja", entries)
-        self.assertIn("nvcc", entries["CMakeFiles/rules.ninja"])
-        self.assertNotIn("nvcc", entries["build.ninja"])
+        self.assertEqual(sorted(entries["CMakeFiles/rules.ninja"]["contains_any"]), ["cucc", "nvcc"])
+        self.assertNotIn("nvcc", entries["build.ninja"].get("contains", []))
 
     def test_server_harness_wires_blocking_artifact_checks_for_all_build_systems(self) -> None:
         server = (ROOT / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
@@ -312,6 +315,32 @@ class ArtifactVerifierTest(unittest.TestCase):
             details = result.format_details()
             self.assertIn("missing required artifact", details)
             self.assertIn("forbidden artifact", details)
+
+    def test_verifier_supports_any_of_metadata_tokens(self) -> None:
+        module = self.load_module()
+        with tempfile.TemporaryDirectory() as tmp_name:
+            root = Path(tmp_name)
+            metadata_file = root / "build.make"
+            metadata_file.write_text("/opt/cu2cce/bin/cucc -c kernel.cu\n", encoding="utf-8")
+            contract = {
+                "schema_version": 1,
+                "forbidden_suffixes": [],
+                "cases": {
+                    "unit": {
+                        "required": [],
+                        "metadata": [{
+                            "path": "build.make",
+                            "contains_any": ["cucc", "nvcc"],
+                        }],
+                    }
+                },
+            }
+            result = module.verify_case(root, contract["cases"]["unit"], contract)
+            self.assertTrue(result.ok, result.format_details())
+            metadata_file.write_text("/usr/bin/clang -c kernel.cu\n", encoding="utf-8")
+            result = module.verify_case(root, contract["cases"]["unit"], contract)
+            self.assertFalse(result.ok)
+            self.assertIn("one of metadata tokens", result.format_details())
 
     def test_verifier_can_validate_fake_elf_metadata_with_tool_overrides(self) -> None:
         module = self.load_module()
