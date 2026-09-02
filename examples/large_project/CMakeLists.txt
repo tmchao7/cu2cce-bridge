@@ -30,6 +30,7 @@ target_include_directories(large_project_app PRIVATE
   "${CMAKE_CURRENT_SOURCE_DIR}/app")
 
 install(TARGETS large_project_app
+  EXPORT largeProjectTargets
   RUNTIME DESTINATION bin
 )
 install(EXPORT largeProjectTargets

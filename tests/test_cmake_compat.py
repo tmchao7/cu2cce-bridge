@@ -447,6 +447,10 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         for pattern in ("add_subdirectory(comp)", "add_subdirectory(util)",
                         "install(TARGETS", "install(EXPORT largeProjectTargets"):
             self.assertIn(pattern, top)
+        self.assertIn(
+            "install(TARGETS large_project_app\n  EXPORT largeProjectTargets",
+            top,
+        )
         self.assertTrue((ROOT / "examples/large_project/comp/kernel.cu").is_file())
         self.assertTrue((ROOT / "examples/large_project/app/main.cpp").is_file())
         # The app links the CUDA kernel library and CUDA::cudart so the host

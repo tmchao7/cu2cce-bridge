@@ -295,6 +295,14 @@ ELF 做严格 runtime 依赖检查。
 应从 host app 的 `link.txt` 和最终 ELF 分别验证。contract 已按 target boundary
 拆分检查，避免把 host-only link 当作 CUDA compiler 缺失。
 
+### [P1] large_project 安装导出遗漏顶层 executable — 已修复
+
+`examples/large_project` 原先只把子目录中的 `large_kernel_lib` 和
+`large_util_lib` 加入 `largeProjectTargets`，顶层 `large_project_app` 虽然安装到
+`bin`，却没有加入 export 集合，导致安装后的 `largeProjectTargets.cmake` 缺少
+`large_project_app`，从而触发 artifact contract 失败。现在顶层安装声明使用
+`EXPORT largeProjectTargets`，并由 CMake compatibility test 锁定该 target graph。
+
 ### Simplifier 收口（`8bd3dbe`）
 
 删除 `RuleDriver` 中未使用的 `_HOST_FLAG_ALLOWED` 常量和死字段
