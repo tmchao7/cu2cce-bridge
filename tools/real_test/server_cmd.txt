@@ -1,6 +1,7 @@
 # server_cmd.txt —— main / puresimt 官方 CUDA Samples 回归
 #
-# 维护分支：由当前 git 分支决定；实时远端：gitcode（不要 push origin/GitHub）。
+# 维护分支：由当前 git 分支决定；远端名称自动解析：优先 gitcode，兼容 GitCode
+# checkout 常见的 origin；也可用 CU2CCE_REGRESSION_REMOTE 显式指定。
 # 目标：用原始 NVIDIA CUDA Samples 源文件验证 puresimt 的零改写链路。
 #
 # 维护样例如下：
@@ -19,8 +20,12 @@
 #
 # 真机复制执行：
 #   cd /home/t50063365/workspace/repos/cu2cce-bridge
-#   git pull --ff-only gitcode "$REGRESSION_BRANCH"
-#   bash tools/real_test/server_cmd.txt
+#   git switch main
+#   git fetch origin main       # 若 remote 名为 gitcode，则改为 gitcode
+#   git pull --ff-only origin main
+#   bash tools/real_test/clean.sh
+#   CU2CCE_REGRESSION_PROFILE=full bash tools/real_test/server_cmd.txt
+# server_cmd.txt 自身也会自动选择 gitcode/origin 并再次 fail-closed 更新。
 #
 # 回归画像（环境变量 CU2CCE_REGRESSION_PROFILE）：
 #   fast（默认）：设备门禁 + bridge 重编 + cucc 直通 + puresimt 核心子集
@@ -41,13 +46,39 @@ ulimit -c 0 2>/dev/null || true
 cd /home/t50063365/workspace/repos/cu2cce-bridge
 REGRESSION_BRANCH="${CU2CCE_REGRESSION_BRANCH:-$(git branch --show-current)}"
 if [ -z "$REGRESSION_BRANCH" ]; then REGRESSION_BRANCH=main; fi
-printf 'BRANCH=%s HEAD=' "$REGRESSION_BRANCH"
-if ! git fetch gitcode "$REGRESSION_BRANCH"; then
-    echo "[FAIL] gitcode fetch failed; refusing to run regression on stale checkout"
+
+resolve_regression_remote() {
+    local requested="${CU2CCE_REGRESSION_REMOTE:-}"
+    if [ -n "$requested" ]; then
+        if git remote get-url "$requested" >/dev/null 2>&1; then
+            printf '%s\n' "$requested"
+            return 0
+        fi
+        echo "[FAIL] requested regression remote '$requested' does not exist" >&2
+        return 1
+    fi
+    if git remote get-url gitcode >/dev/null 2>&1; then
+        printf '%s\n' gitcode
+        return 0
+    fi
+    if git remote get-url origin >/dev/null 2>&1; then
+        printf '%s\n' origin
+        return 0
+    fi
+    echo '[FAIL] no usable git remote named gitcode or origin' >&2
+    return 1
+}
+
+REGRESSION_REMOTE="$(resolve_regression_remote)" || exit 1
+REGRESSION_REMOTE_URL="$(git remote get-url "$REGRESSION_REMOTE")"
+printf 'BRANCH=%s REMOTE=%s URL=%s HEAD=' \
+    "$REGRESSION_BRANCH" "$REGRESSION_REMOTE" "$REGRESSION_REMOTE_URL"
+if ! git fetch "$REGRESSION_REMOTE" "$REGRESSION_BRANCH"; then
+    echo "[FAIL] $REGRESSION_REMOTE fetch failed; refusing to run regression on stale checkout"
     exit 1
 fi
-if ! git pull --ff-only gitcode "$REGRESSION_BRANCH"; then
-    echo "[FAIL] gitcode update failed; refusing to run regression on stale checkout"
+if ! git pull --ff-only "$REGRESSION_REMOTE" "$REGRESSION_BRANCH"; then
+    echo "[FAIL] $REGRESSION_REMOTE update failed; refusing to run regression on stale checkout"
     exit 1
 fi
 git log -1 --oneline

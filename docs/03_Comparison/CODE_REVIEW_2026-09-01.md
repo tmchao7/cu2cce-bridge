@@ -253,10 +253,17 @@ prefix-relative destination；`bin/nvcc` 仍由 install-time CODE 创建。
 `--config=<cfg>` 等命令行形式，保持 generator dispatch 到 Make/Ninja；
 新增 argv 级测试，避免 CMake wrapper 与参考 `deal_build_param` 语义漂移。
 
+### [P1] server checkout 远端名称硬编码为 `gitcode`，与服务器实际 `origin` 不兼容 — 已修复（remote fallback patch）
+
+服务器仓库可以合法地将 GitCode URL 配置为 `origin`，此时硬编码
+`git fetch gitcode main` 会在回归开始前失败。`server_cmd.txt` 现在优先使用
+`gitcode`，不存在时回退到 `origin`，也支持 `CU2CCE_REGRESSION_REMOTE`
+显式指定；fetch/pull 仍然都 fail-closed，不会使用 stale checkout。
+
 ## 本轮验证
 
 ```text
-184 tests OK
+186 tests OK
 cucc rules validator PASS
 Python py_compile PASS
 bash -n 所有入口脚本 PASS

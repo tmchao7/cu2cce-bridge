@@ -114,10 +114,27 @@ class ArtifactVerifierTest(unittest.TestCase):
         server = (ROOT / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
         self.assertIn("if profile_runs \"fast,full\"; then\n        echo 'PURESIMT_REGRESSION_PASS'", server)
 
+    def test_server_harness_usage_comment_is_valid_for_origin_checkout(self) -> None:
+        server = (ROOT / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
+        self.assertIn("git fetch origin main", server)
+        self.assertIn("git pull --ff-only origin main", server)
+        self.assertIn("bash tools/real_test/clean.sh", server)
+        self.assertNotIn("git fetch gitcode main   #", server)
+
+    def test_server_harness_resolves_gitcode_or_origin_remote(self) -> None:
+        server = (ROOT / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
+        self.assertIn('CU2CCE_REGRESSION_REMOTE', server)
+        self.assertIn('git remote get-url gitcode', server)
+        self.assertIn('git remote get-url origin', server)
+        self.assertIn('git fetch "$REGRESSION_REMOTE" "$REGRESSION_BRANCH"', server)
+        self.assertIn('git pull --ff-only "$REGRESSION_REMOTE" "$REGRESSION_BRANCH"', server)
+
     def test_server_harness_fetches_before_fast_forward_pull(self) -> None:
         server = (ROOT / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
-        self.assertIn('if ! git fetch gitcode "$REGRESSION_BRANCH"; then', server)
-        self.assertIn('if ! git pull --ff-only gitcode "$REGRESSION_BRANCH"; then', server)
+        self.assertLess(
+            server.index('git fetch "$REGRESSION_REMOTE" "$REGRESSION_BRANCH"'),
+            server.index('git pull --ff-only "$REGRESSION_REMOTE" "$REGRESSION_BRANCH"'),
+        )
 
     def test_server_install_failure_output_is_bounded(self) -> None:
         server = (ROOT / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
@@ -126,7 +143,9 @@ class ArtifactVerifierTest(unittest.TestCase):
 
     def test_server_harness_does_not_run_stale_checkout_after_git_update_failure(self) -> None:
         server = (ROOT / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
-        self.assertIn('if ! git pull --ff-only gitcode "$REGRESSION_BRANCH"; then', server)
+        self.assertIn('if ! git fetch "$REGRESSION_REMOTE" "$REGRESSION_BRANCH"; then', server)
+        self.assertIn('if ! git pull --ff-only "$REGRESSION_REMOTE" "$REGRESSION_BRANCH"; then', server)
+        self.assertIn('refusing to run regression on stale checkout', server)
         self.assertIn('exit 1', server)
 
     def test_server_harness_clears_previous_output_directories(self) -> None:
