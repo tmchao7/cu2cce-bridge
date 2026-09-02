@@ -14,7 +14,7 @@ DEVICE_HEALTHY=1
 TEST_BLOCKED_BY_DEVICE=0
 ```
 
-服务器证据以 `tools/real_test/server_cmd.txt` 的 full profile 输出为准；本机 macOS 不能替代 CANN/NPU 验证；本轮本地静态/mock 全量测试为 214 tests。
+服务器证据以 `tools/real_test/server_cmd.txt` 的 full profile 输出为准；本机 macOS 不能替代 CANN/NPU 验证；本轮本地静态/mock 全量测试为 221 tests。
 
 ## 四层对齐结果
 

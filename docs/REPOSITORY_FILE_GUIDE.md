@@ -437,6 +437,7 @@ git diff --check
 | `docs/02_Architecture/07_cucc_adaptability.md` | 当前架构、驱动、shadow header 或 CMake 原理说明 |
 | `docs/03_Comparison/BLAS_COMPATIBILITY_MATRIX.md` | cu-bridge 对比、兼容矩阵、产物和 code review 证据 |
 | `docs/03_Comparison/BUILD_SYSTEM_COMPATIBILITY_MATRIX.md` | cu-bridge 对比、兼容矩阵、产物和 code review 证据 |
+| `docs/03_Comparison/CUDA_OPERATOR_API_SUPPORT_MATRIX.md` | 已验证算子、Kernel 写法、Runtime/API 映射和构建支持总表 |
 | `docs/03_Comparison/CMAKE_MAKE_ALIGNMENT_WITH_CUBRIDGE.md` | cu-bridge 对比、兼容矩阵、产物和 code review 证据 |
 | `docs/03_Comparison/CMAKE_MAKE_CUCC_MENTOR_GUIDE_2026-09-01.md` | cu-bridge 对比、兼容矩阵、产物和 code review 证据 |
 | `docs/03_Comparison/CODE_REVIEW_2026-08-31.md` | cu-bridge 对比、兼容矩阵、产物和 code review 证据 |

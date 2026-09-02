@@ -17,7 +17,7 @@
 7. `02_Architecture/02_deep_dive.md`：运行时深度解析（BRIDGE_INIT/默认流语义/事件注册表/launch 路径/平台事实清单）。
 8. `03_Scope/SUPPORTED_SCOPE.md`：支持范围总览（能力正面清单）。
 9. `03_Scope/LIMITS_AND_BOUNDARIES.md`：边界与限制（反面清单唯一权威入口，含证据与"为什么不绕过"）。
-10. `03_Comparison/`：各能力矩阵、发布前收口审计（PURESIMT / BUILD_SYSTEM / CUCC_OPTION / BLAS / mapping / CURRENT_STATE / RELEASE_READINESS）。
+10. `03_Comparison/`：各能力矩阵、算子/API/构建总表、发布前收口审计（PURESIMT / CUDA_OPERATOR_API_SUPPORT / BUILD_SYSTEM / CUCC_OPTION / BLAS / mapping / CURRENT_STATE / RELEASE_READINESS）。
 11. `01_Design/ASCEND_RESEARCH_NOTES.md`：CANN/SIMT/runtime 事实库。
 12. `reference/asc-devkit-simt/`：Ascend SIMT API 参考头和示例。
 13. `REPOSITORY_FILE_GUIDE.md`：当前每个 Git 跟踪文件的职责、调用链和定位方法。
@@ -41,6 +41,7 @@ docs/
 - `03_Scope/` 面向"能用/不能用"（汇总层，逐项证据指向 03_Comparison 矩阵）。
 - `03_Comparison/` 面向功能状态、产物证据、真机结论和发布审计。
 - `REPOSITORY_FILE_GUIDE.md` 面向维护者的文件级导航；每次新增/移动文件必须同步更新。
+- `03_Comparison/CUDA_OPERATOR_API_SUPPORT_MATRIX.md` 是当前算子、Kernel 写法、API 映射和构建能力总表。
 - 已完成的大项目与 review 计划归档在 `docs/archive/`，例如
   `docs/archive/CUDA_LARGE_PROJECT_COMPATIBILITY_PLAN.md`。
 - `01_Design/ASCEND_RESEARCH_NOTES.md` 面向底层事实和 API 核查。

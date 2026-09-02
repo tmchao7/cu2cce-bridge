@@ -604,6 +604,8 @@ build/real_test/puresimt/artifacts/
   构建与产物矩阵；
 - [`docs/03_Comparison/CUCC_OPTION_COMPATIBILITY_MATRIX.md`](docs/03_Comparison/CUCC_OPTION_COMPATIBILITY_MATRIX.md)：
   cucc 参数矩阵。
+- [`docs/03_Comparison/CUDA_OPERATOR_API_SUPPORT_MATRIX.md`](docs/03_Comparison/CUDA_OPERATOR_API_SUPPORT_MATRIX.md)：
+  当前支持算子、Kernel 写法、API 映射和 CMake/Make/Ninja 支持边界总表。
 
 ## 本地验证（维护者）
 

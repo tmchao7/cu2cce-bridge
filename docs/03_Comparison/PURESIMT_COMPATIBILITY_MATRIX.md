@@ -1,9 +1,11 @@
 # CUDA → Ascend puresimt Compatibility Matrix
 
-更新时间：2026-08-25
+更新时间：2026-09-02
 分支：`main`
 目标设备：Ascend 950 / CANN 9.2.0 / `Ascend950DT_9582`
 唯一真机入口：`tools/real_test/server_cmd.txt`
+算子、Kernel 写法、API 映射和 CMake/Make/Ninja 总表：
+`CUDA_OPERATOR_API_SUPPORT_MATRIX.md`
 
 ## 1. 评审结论
 
@@ -14,7 +16,7 @@
 | 编译参数 | `-x asc --enable-simt --cce-aicore-arch=dav-c310-vec` |
 | Host runtime | `cuda* → wcuda* → aclrt*` |
 | Kernel lowering | main 不使用 Python converter，不生成中间 `.cce`/`__simt_vf__` wrapper |
-| 真机验收 | 23 个用例、`cucc` 直通检查、`PURESIMT_REGRESSION_PASS` |
+| 真机验收 | 24 个 kernel/operator 用例、`cucc` 直通检查、`PURESIMT_REGRESSION_PASS` |
 | BLAS | `cublas→aclblas` 保留为 experimental secondary capability，不阻塞 puresimt |
 
 ### 状态定义
@@ -47,7 +49,7 @@
 > 编译可通过 ≠ `SUPPORTED`；头文件有声明 ≠ `SUPPORTED`；返回 `ACL_SUCCESS` 的
 > no-op ≠ `SUPPORTED`。
 
-## 2. 23 个真机验证用例
+## 2. 24 个真机验证用例
 
 证据来源统一为：
 
@@ -55,7 +57,7 @@
 bash tools/real_test/server_cmd.txt
 ```
 
-最后确认的稳定基线：2026-08-24，`PURESIMT_REGRESSION_PASS`。
+当前服务器 full profile 由维护者报告 `FAIL=0`；本表的历史逐用例基线为 2026-08-24。
 
 | # | 测试用例 | 类别 | CUDA API / 语义 | 数据类型 | 内存模型 | 线程模型 | 预期输出 | 状态 |
 |---:|---|---|---|---|---|---|---|---|
@@ -73,15 +75,16 @@ bash tools/real_test/server_cmd.txt
 | 12 | `stencil_minimal.cu` | 邻域算子 | halo load + shared tile | FP32 | global + shared | 多 block 1D | `stencil_minimal OK` | `SUPPORTED` |
 | 13 | `core_ops_minimal.cu` | 基础完备性 | 四则、位逻辑、比较、选择、转换、load/store | INT32/FP32 | global + shared + local | 单 block 1D | `core_ops_minimal OK` | `SUPPORTED` |
 | 14 | `math_minimal.cu` | 数学 | `fmaf`, `sqrtf`, `sinf`, `cosf`, `expf`, `logf`, `floorf`, `ceilf` | FP32 | global | 单 block 1D | `math_minimal OK` | `SUPPORTED` |
-| 15 | `event_minimal.cu` | Runtime/event | event create/record/query/sync/elapsed | FP32 | global | 显式 stream | `event_minimal OK` | `SUPPORTED` |
-| 16 | `pitchedMemcpy_minimal.cu` | Pitch/2D copy | `cudaMallocPitch`, `cudaMemcpy2D` | FP32 | pitched global | 2D grid/block | `pitchedMemcpy_minimal OK` | `SUPPORTED` |
-| 17 | `multiKernel_minimal.cu` | Pipeline | async H2D/D2H + ordered kernels | INT32 | global | 显式 stream | `multiKernel_minimal OK` | `SUPPORTED` |
-| 18 | `atomicVariants_minimal.cu` | 原子扩展 | `atomicSub`, `atomicExch`, shared `atomicAdd` | INT32 | global + shared | 单 block 1D | `atomicVariants_minimal OK` | `SUPPORTED` |
-| 19 | `dynamicShared_minimal.cu` | 动态 shared | `extern __shared__`, dynamic shared bytes | INT32 | global + dynamic shared | 单 block 1D | `dynamicShared_minimal OK` | `SUPPORTED` |
-| 20 | `index3D_minimal.cu` | 索引 | x/y/z flattening | INT32 | global | 3D grid/block | `index3D_minimal OK` | `SUPPORTED` |
-| 21 | `threadFence_minimal.cu` | 内存顺序 | `__threadfence` + atomic publication | INT32 | global | 单 block 1D | `threadFence_minimal OK` | `SUPPORTED` |
-| 22 | `half_minimal.cu` | 精度类型 | `__half`, `__half2`, conversion round-trip | FP16 | register/local + global output | 单 block 1D | `half_minimal OK` | `SUPPORTED` |
-| 23 | `bf16x2_minimal.cu` | 精度类型 | `__nv_bfloat16`, BF16x2 conversion | BF16/BF16x2 | register/local + global output | 单 block 1D | `bf16x2_minimal OK` | `SUPPORTED` |
+| 15 | `device_math_minimal.cu` | device 数学 | 独立 `__device__` helper + `expf/logf/sqrtf/sinf/cosf/tanhf/powf/fmin/fmax/fabsf` | FP32 | global | 单 block 1D | `device_math_minimal OK` | `SUPPORTED`（验证形状） |
+| 16 | `event_minimal.cu` | Runtime/event | event create/record/query/sync/elapsed | FP32 | global | 显式 stream | `event_minimal OK` | `SUPPORTED` |
+| 17 | `pitchedMemcpy_minimal.cu` | Pitch/2D copy | `cudaMallocPitch`, `cudaMemcpy2D` | FP32 | pitched global | 2D grid/block | `pitchedMemcpy_minimal OK` | `SUPPORTED` |
+| 18 | `multiKernel_minimal.cu` | Pipeline | async H2D/D2H + ordered kernels | INT32 | global | 显式 stream | `multiKernel_minimal OK` | `SUPPORTED` |
+| 19 | `atomicVariants_minimal.cu` | 原子扩展 | `atomicSub`, `atomicExch`, shared `atomicAdd` | INT32 | global + shared | 单 block 1D | `atomicVariants_minimal OK` | `SUPPORTED` |
+| 20 | `dynamicShared_minimal.cu` | 动态 shared | `extern __shared__`, dynamic shared bytes | INT32 | global + dynamic shared | 单 block 1D | `dynamicShared_minimal OK` | `SUPPORTED` |
+| 21 | `index3D_minimal.cu` | 索引 | x/y/z flattening | INT32 | global | 3D grid/block | `index3D_minimal OK` | `SUPPORTED` |
+| 22 | `threadFence_minimal.cu` | 内存顺序 | `__threadfence` + atomic publication | INT32 | global | 单 block 1D | `threadFence_minimal OK` | `SUPPORTED` |
+| 23 | `half_minimal.cu` | 精度类型 | `__half`, `__half2`, conversion round-trip | FP16 | register/local + global output | 单 block 1D | `half_minimal OK` | `SUPPORTED` |
+| 24 | `bf16x2_minimal.cu` | 精度类型 | `__nv_bfloat16`, BF16x2 conversion | BF16/BF16x2 | register/local + global output | 单 block 1D | `bf16x2_minimal OK` | `SUPPORTED` |
 
 ## 3. 按语义维度汇总
 

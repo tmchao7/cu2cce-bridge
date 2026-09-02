@@ -45,6 +45,19 @@ class RepositoryHygieneTest(unittest.TestCase):
         ):
             self.assertIn(item, text)
 
+    def test_operator_api_matrix_covers_supported_and_unsupported_surfaces(self) -> None:
+        matrix = ROOT / "docs/03_Comparison/CUDA_OPERATOR_API_SUPPORT_MATRIX.md"
+        self.assertTrue(matrix.is_file())
+        text = matrix.read_text(encoding="utf-8")
+        for item in (
+            "vectorAdd_minimal.cu", "atomicAdd_minimal.cu", "dynamicShared_minimal.cu",
+            "__global__", "__shared__", "__shfl_down_sync", "atomicAdd",
+            "cudaMalloc", "wcudaMalloc", "aclrtMalloc", "cudaMemcpy3D", "cudaMallocAsync",
+            "cublasSgemm", "cmake_cce", "make_cce", "ninja_cce", ".o", ".a", ".so",
+            "PTX / CUBIN / FATBIN", "CUDA Graph API", "CUDA::cudart", "DIAGNOSTIC_ONLY",
+        ):
+            self.assertIn(item, text)
+
     def test_repository_file_guide_covers_maintenance_entrypoints(self) -> None:
         guide = ROOT / "docs/REPOSITORY_FILE_GUIDE.md"
         self.assertTrue(guide.is_file())
@@ -103,6 +116,7 @@ class RepositoryHygieneTest(unittest.TestCase):
             "docs/03_Comparison/RELEASE_READINESS_2026-09-02.md",
             "docs/03_Comparison/BUILD_SYSTEM_COMPATIBILITY_MATRIX.md",
             "docs/03_Comparison/CUCC_OPTION_COMPATIBILITY_MATRIX.md",
+            "docs/03_Comparison/CUDA_OPERATOR_API_SUPPORT_MATRIX.md",
             "tools/real_test/server_cmd.txt",
         ):
             self.assertIn(link, readme)
