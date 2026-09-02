@@ -349,7 +349,7 @@ generated/prelude.cu` 这类合法 host 参数可能触发 CUDA/SIMT 注入。�
 `docs/03_Comparison/RELEASE_READINESS_2026-09-02.md`。当前验证包括：
 
 ```text
-Python unittest 全量（213 tests）
+Python unittest 全量（214 tests）
 cucc rules validator
 Python py_compile
 bash -n 所有入口脚本

@@ -20,6 +20,10 @@ class RepositoryHygieneTest(unittest.TestCase):
             (ROOT / "docs/README.md").read_text(encoding="utf-8"),
         )
 
+    def test_personal_tool_configuration_is_not_part_of_release_tree(self) -> None:
+        self.assertFalse((ROOT / ".claude").exists())
+        self.assertIn(".claude/", (ROOT / ".gitignore").read_text(encoding="utf-8"))
+
     def test_gitignore_covers_release_and_runtime_outputs(self) -> None:
         ignore = (ROOT / ".gitignore").read_text(encoding="utf-8")
         for pattern in (".DS_Store", "/build/", ".mimosa/", ".worktrees/", "*.log", "*.py[cod]"):

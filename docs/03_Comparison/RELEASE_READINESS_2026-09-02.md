@@ -14,7 +14,7 @@ DEVICE_HEALTHY=1
 TEST_BLOCKED_BY_DEVICE=0
 ```
 
-服务器证据以 `tools/real_test/server_cmd.txt` 的 full profile 输出为准；本机 macOS 不能替代 CANN/NPU 验证；本轮本地静态/mock 全量测试为 213 tests。
+服务器证据以 `tools/real_test/server_cmd.txt` 的 full profile 输出为准；本机 macOS 不能替代 CANN/NPU 验证；本轮本地静态/mock 全量测试为 214 tests。
 
 ## 四层对齐结果
 
@@ -58,8 +58,8 @@ docs/                 架构、范围、对比、参考和归档文档
 
 - `docs/03_Comparison/` 记录机制差异、产物证据和真机结论。
 - `docs/archive/` 保存已完成计划和历史设计，不在顶层创建新的 `plans/` 目录。
-- `build/`、`.cu2cce-cache/`、`.mimosa/`、`.worktrees/` 及日志均为本地/运行时内容，
-  不进入版本库。
+- `build/`、`.cu2cce-cache/`、`.mimosa/`、`.worktrees/`、`.claude/` 及日志均为
+  本地/运行时内容，不进入版本库；可移植的维护约束保留在 `CLAUDE.md`。
 - `README.md` 面向项目入口，`QUICKSTART.md` 面向用户操作，`docs/README.md` 面向
   文档导航；不要把临时服务器命令另存为新的版本文件。
 
