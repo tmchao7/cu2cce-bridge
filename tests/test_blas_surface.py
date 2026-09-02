@@ -64,7 +64,7 @@ class BlasSurfaceContractTest(unittest.TestCase):
             self.assertTrue((ROOT / example).is_file(), example)
 
     def test_blas_matrix_documents_new_surface(self) -> None:
-        matrix = (ROOT / "docs/03_Comparison/BLAS_COMPATIBILITY_MATRIX.md").read_text(encoding="utf-8")
+        matrix = (ROOT / "docs/02_能力清单/BLAS_COMPATIBILITY_MATRIX.md").read_text(encoding="utf-8")
         self.assertIn("cublasGemmEx", matrix)
         self.assertIn("(16F,16F,32F)", matrix)
         self.assertIn("cublas_gemmex_experimental OK", matrix)

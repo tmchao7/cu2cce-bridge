@@ -15,6 +15,6 @@
 # Backend boundary exercised: exactly one .cu per linked library target. The
 # kernel library is the single CUDA translation unit; everything else is host
 # C++ so the multi-directory graph stays within ccec's duplicate
-# eager-registration constraint (see docs/03_Comparison/BUILD_SYSTEM_COMPATIBILITY_MATRIX.md).
+# eager-registration constraint (see docs/02_能力清单/BUILD_SYSTEM_COMPATIBILITY_MATRIX.md).
 #
 # Expected run output marker: "large_project OK (multi-dir, cross-target deps, install/export)"

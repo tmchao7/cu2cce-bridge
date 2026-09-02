@@ -1,54 +1,93 @@
-# cu2cce-bridge 文档导航
+# cu2cce-bridge 文档中心
+
+本目录是 `cu2cce-bridge` 的中文技术文档中心。项目把 CUDA `.cu` 源码、常用 CUDA Runtime
+API 以及 CMake/Make/Ninja 构建入口适配到昇腾 NPU 的 CANN `ccec` + SIMT 路线。
+
+> **文档原则**：文档正文使用中文；`cucc`、`ccec`、`CUDA`、`CANN`、`Ascend`、API、命令行
+> 选项、文件名和代码符号保留原文，确保可以直接复制执行或在代码中搜索。
 
 ## 推荐阅读顺序
 
-**新手**：仓库根 `README.md`（二进制安装树和入口）→ `QUICKSTART.md`（完整操作步骤）。
-发布前先看 `03_Comparison/RELEASE_READINESS_2026-09-02.md`；维护定位先看
-[`REPOSITORY_FILE_GUIDE.md`](REPOSITORY_FILE_GUIDE.md)。
+### 使用者
 
-**进阶**（按序）：
+1. 根目录 [`README.md`](../README.md)：项目定位、安装树和边界。
+2. 根目录 [`QUICKSTART.md`](../QUICKSTART.md)：从准备 CANN 到运行 CUDA 示例的操作步骤。
+3. [`02_能力清单/README.md`](02_能力清单/README.md)：判断 CUDA Kernel、API、库和构建系统是否支持。
 
-1. `02_Architecture/01_global_overview.md`：架构全局认知（10 分钟全景图 + 仓库地图）。
-2. `02_Architecture/03_cucc_driver.md`：cucc 编译驱动详解（五阶段/规则五动作/注入链/FP64 策略/CLI 模式）。
-3. `02_Architecture/04_shadow_headers.md`：shadow 头机制与 libc 双模式（含 crt 前向层与两个宿主/设备同名陷阱）。
-4. `02_Architecture/05_cmake_design.md`：CMake 设计及其能力（三层漏斗/能力矩阵/设计要点）。
-5. `02_Architecture/06_cmake_principle_flow.md`：CMake 原理与完整工作流（一次 configure 的逐层拆解 + 真实命令 trace + 失败模式表）。
-6. `02_Architecture/07_cucc_adaptability.md`：cucc 能力现状与反硬编码论证（三层适配模型：153 条 JSON 规则 / 策略层清单 / 开关层全表；"新增 flag 零代码"实操）。
-7. `02_Architecture/02_deep_dive.md`：运行时深度解析（BRIDGE_INIT/默认流语义/事件注册表/launch 路径/平台事实清单）。
-8. `03_Scope/SUPPORTED_SCOPE.md`：支持范围总览（能力正面清单）。
-9. `03_Scope/LIMITS_AND_BOUNDARIES.md`：边界与限制（反面清单唯一权威入口，含证据与"为什么不绕过"）。
-10. `03_Comparison/`：各能力矩阵、算子/API/构建总表、发布前收口审计（PURESIMT / CUDA_OPERATOR_API_SUPPORT / BUILD_SYSTEM / CUCC_OPTION / BLAS / mapping / CURRENT_STATE / RELEASE_READINESS）。
-11. `01_Design/ASCEND_RESEARCH_NOTES.md`：CANN/SIMT/runtime 事实库。
-12. `reference/asc-devkit-simt/`：Ascend SIMT API 参考头和示例。
-13. `REPOSITORY_FILE_GUIDE.md`：当前每个 Git 跟踪文件的职责、调用链和定位方法。
-14. `tools/real_test/diag/`：历史 runtime context 排障工具和案例。
+### 维护者
+
+1. [`01_架构设计/README.md`](01_架构设计/README.md)：了解编译、头文件、运行时和构建适配的原理。
+2. [`03_文件目录/README.md`](03_文件目录/README.md)：按问题定位到代码、脚本、配置和测试。
+3. [`03_文件目录/REPOSITORY_FILE_GUIDE.md`](03_文件目录/REPOSITORY_FILE_GUIDE.md)：逐文件职责和调用链。
+4. [`04_对比与验证/README.md`](04_对比与验证/README.md)：查看与沐曦 `cu-bridge` 的机制对比、审计和真机证据。
 
 ## 目录结构
 
 ```text
 docs/
-├── 01_Design/            ASCEND_RESEARCH_NOTES（事实库）、CUDA_TO_CCE_PORTING_PLAN（历史方案）
-├── 02_Architecture/      架构五篇（全局/深度/驱动/shadow/cmake）← 架构认知权威入口
-├── 03_Scope/             支持范围总览 + 边界与限制 ← 范围/边界权威入口
-├── 03_Comparison/        能力矩阵与对比（真机证据）
-├── archive/              已完成计划、review 记录与 v1 设计文档存档
-└── reference/            Ascend SIMT API 参考
+├── README.md              本文件：中文导航、术语和维护规则
+├── 01_架构设计/           编译链、cucc、CMake、Runtime、兼容头和 CANN 原理
+├── 02_能力清单/           Kernel/API/库/cuсc/CMake/Make/Ninja/产物的支持边界
+├── 03_文件目录/           仓库文件职责、调用链和故障定位
+├── 04_对比与验证/         cu-bridge 对比、产物审计、review、真机回归结论
+└── 99_归档/               已完成计划、旧版设计和外部参考资料
 ```
 
-## 文档边界
+## 文档权威关系
 
-- `02_Architecture/` 面向原理、机制与内部实现（当前权威版本；v1 存档在 archive/）。
-- `03_Scope/` 面向"能用/不能用"（汇总层，逐项证据指向 03_Comparison 矩阵）。
-- `03_Comparison/` 面向功能状态、产物证据、真机结论和发布审计。
-- `REPOSITORY_FILE_GUIDE.md` 面向维护者的文件级导航；每次新增/移动文件必须同步更新。
-- `03_Comparison/CUDA_OPERATOR_API_SUPPORT_MATRIX.md` 是当前算子、Kernel 写法、API 映射和构建能力总表。
-- 已完成的大项目与 review 计划归档在 `docs/archive/`，例如
-  `docs/archive/CUDA_LARGE_PROJECT_COMPATIBILITY_PLAN.md`。
-- `01_Design/ASCEND_RESEARCH_NOTES.md` 面向底层事实和 API 核查。
+| 问题 | 唯一优先入口 |
+|---|---|
+| 项目如何工作 | `01_架构设计/` 中的架构与机制文档 |
+| 某个 CUDA Kernel/API 能不能用 | `02_能力清单/CUDA_OPERATOR_API_SUPPORT_MATRIX.md` |
+| cucc 参数如何处理 | `02_能力清单/CUCC_OPTION_COMPATIBILITY_MATRIX.md`、`01_架构设计/03_cucc_driver.md` |
+| CMake/Make/Ninja 能力和产物 | `02_能力清单/BUILD_SYSTEM_COMPATIBILITY_MATRIX.md` |
+| 明确不支持的能力 | `02_能力清单/LIMITS_AND_BOUNDARIES.md` |
+| 某个文件应该改哪里 | `03_文件目录/REPOSITORY_FILE_GUIDE.md` |
+| 与 cu-bridge 的差异和验证证据 | `04_对比与验证/`（入口：[`README.md`](04_对比与验证/README.md)） |
+| 历史方案为什么没有继续 | `99_归档/` |
 
-## 发布卫生
+## 当前正式技术路线
 
-顶层不保留临时 `plans/` 目录；已完成计划归档到 `docs/archive/`。`build/`、日志、
-`.mimosa/`、`.worktrees/` 和 `.cu2cce-cache/` 只属于本地或真机运行时，均由
-`.gitignore` 排除。新增功能文档先更新本导航，再更新根 `README.md` 或
-`QUICKSTART.md`，避免出现多个互相矛盾的入口。
+```text
+CUDA .cu
+  → bin/cucc / tools/cmake_cce / tools/make_cce / tools/ninja_cce
+  → tools/cu2cce_driver.py + config/cu2cce_rules.json
+  → ccec -x asc --enable-simt --cce-aicore-arch=dav-*
+  → CUDA 兼容头 + libcce_bridge_runtime.so + CANN runtime
+  → Ascend NPU
+```
+
+CMake 的 configure 阶段使用 fake toolkit 和 `mock_nvcc.py` 满足 CMake 探测，build 阶段仍然
+调用真实 `cucc`；Make/Ninja/pre wrapper 复用 `fake_toolkit_env.sh` 和
+`build_shim_tree.py`。这是对齐 `cu-bridge` 的机制，而不是复制 MACA 的库名和设备产物。
+
+## 状态和证据规则
+
+- `SUPPORTED`：主线实现并有对应测试或真机证据。
+- `EXPERIMENTAL`：实现存在，验证范围或 API 形状有限，不能扩大承诺。
+- `DIAGNOSTIC_ONLY`：用于暴露后端差异，不阻塞主线验收。
+- `UNSUPPORTED`：明确拒绝、返回不支持或没有安全等价物。
+- 文档不得把本地 mock 结果写成 CANN/NPU 真机结果；真机入口是
+  `tools/real_test/server_cmd.txt`。
+- 不为实现“表面 parity”伪造 `mxcc`、MACA runtime、PTX/CUBIN/FATBIN、RDC/device-link
+  或未验证的 CUDA 库。
+
+历史计划示例：`docs/99_归档/CUDA_LARGE_PROJECT_COMPATIBILITY_PLAN.md`。
+
+## 维护规则
+
+1. 改变代码能力时，先更新 `02_能力清单/` 对应矩阵，再补测试和实现说明。
+2. 改变构建入口或产物时，同时更新构建矩阵、文件目录和真机验证说明。
+3. 新增或移动文件时，更新 `03_文件目录/REPOSITORY_FILE_GUIDE.md` 和本导航。
+4. 历史计划保留在 `99_归档/`，不要重新创建顶层 `plans/`、临时日志或构建目录。
+5. 每次可交付改动完成后，按仓库约定提交并推送 `gitcode/main`；服务器上先同步、清理，再执行
+   `tools/real_test/server_cmd.txt`。
+
+## 术语约定
+
+- **puresimt**：让 `ccec` 直接解析 CUDA SIMT 写法的当前正式路线。
+- **bridge runtime**：`libcce_bridge_runtime.so` 及其对 CANN runtime 的封装。
+- **fake toolkit/shim**：只提供 CUDA 形状的目录、入口和库别名，供构建系统探测或转发；不等同于
+  完整 CUDA Toolkit。
+- **产物对齐**：对齐 `.o`、`.d`、`.a`、`.so`、ELF executable、构建元数据和动态依赖的类别与语义，
+  不要求 Ascend 与 MACA 的 ELF 字节级一致。

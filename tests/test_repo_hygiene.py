@@ -13,10 +13,10 @@ class RepositoryHygieneTest(unittest.TestCase):
     def test_release_documentation_has_one_canonical_plan_location(self) -> None:
         self.assertFalse((ROOT / "plans").exists())
         self.assertTrue(
-            (ROOT / "docs/archive/CUDA_LARGE_PROJECT_COMPATIBILITY_PLAN.md").is_file()
+            (ROOT / "docs/99_归档/CUDA_LARGE_PROJECT_COMPATIBILITY_PLAN.md").is_file()
         )
         self.assertIn(
-            "docs/archive/CUDA_LARGE_PROJECT_COMPATIBILITY_PLAN.md",
+            "docs/99_归档/CUDA_LARGE_PROJECT_COMPATIBILITY_PLAN.md",
             (ROOT / "docs/README.md").read_text(encoding="utf-8"),
         )
 
@@ -30,14 +30,14 @@ class RepositoryHygieneTest(unittest.TestCase):
             self.assertIn(pattern, ignore)
 
     def test_repository_file_guide_lists_all_tracked_paths(self) -> None:
-        guide = ROOT / "docs/REPOSITORY_FILE_GUIDE.md"
+        guide = ROOT / "docs/03_文件目录/REPOSITORY_FILE_GUIDE.md"
         text = guide.read_text(encoding="utf-8")
-        tracked = subprocess.check_output(["git", "ls-files"], cwd=ROOT, text=True).splitlines()
+        tracked = subprocess.check_output(["git", "-c", "core.quotePath=false", "ls-files"], cwd=ROOT, text=True).splitlines()
         missing = [path for path in tracked if f"`{path}`" not in text]
         self.assertEqual(missing, [])
 
     def test_repository_file_guide_records_cu_bridge_name_mapping(self) -> None:
-        text = (ROOT / "docs/REPOSITORY_FILE_GUIDE.md").read_text(encoding="utf-8")
+        text = (ROOT / "docs/03_文件目录/REPOSITORY_FILE_GUIDE.md").read_text(encoding="utf-8")
         for item in (
             "cmake_maca", "cmake_cce", "make_maca", "make_cce",
             "ninja_maca", "ninja_cce", "pre_makefile", "pre_cce",
@@ -46,7 +46,7 @@ class RepositoryHygieneTest(unittest.TestCase):
             self.assertIn(item, text)
 
     def test_operator_api_matrix_covers_supported_and_unsupported_surfaces(self) -> None:
-        matrix = ROOT / "docs/03_Comparison/CUDA_OPERATOR_API_SUPPORT_MATRIX.md"
+        matrix = ROOT / "docs/02_能力清单/CUDA_OPERATOR_API_SUPPORT_MATRIX.md"
         self.assertTrue(matrix.is_file())
         text = matrix.read_text(encoding="utf-8")
         for item in (
@@ -59,7 +59,7 @@ class RepositoryHygieneTest(unittest.TestCase):
             self.assertIn(item, text)
 
     def test_repository_file_guide_covers_maintenance_entrypoints(self) -> None:
-        guide = ROOT / "docs/REPOSITORY_FILE_GUIDE.md"
+        guide = ROOT / "docs/03_文件目录/REPOSITORY_FILE_GUIDE.md"
         self.assertTrue(guide.is_file())
         text = guide.read_text(encoding="utf-8")
         for item in (
@@ -113,10 +113,10 @@ class RepositoryHygieneTest(unittest.TestCase):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         for link in (
             "QUICKSTART.md",
-            "docs/03_Comparison/RELEASE_READINESS_2026-09-02.md",
-            "docs/03_Comparison/BUILD_SYSTEM_COMPATIBILITY_MATRIX.md",
-            "docs/03_Comparison/CUCC_OPTION_COMPATIBILITY_MATRIX.md",
-            "docs/03_Comparison/CUDA_OPERATOR_API_SUPPORT_MATRIX.md",
+            "docs/04_对比与验证/RELEASE_READINESS_2026-09-02.md",
+            "docs/02_能力清单/BUILD_SYSTEM_COMPATIBILITY_MATRIX.md",
+            "docs/02_能力清单/CUCC_OPTION_COMPATIBILITY_MATRIX.md",
+            "docs/02_能力清单/CUDA_OPERATOR_API_SUPPORT_MATRIX.md",
             "tools/real_test/server_cmd.txt",
         ):
             self.assertIn(link, readme)
@@ -126,7 +126,7 @@ class RepositoryHygieneTest(unittest.TestCase):
         files = [
             ROOT / "README.md", ROOT / "QUICKSTART.md", ROOT / "CLAUDE.md",
             ROOT / "examples/README.md", ROOT / "docs/README.md",
-            ROOT / "docs/03_Comparison/mapping.md",
+            ROOT / "docs/04_对比与验证/mapping.md",
         ]
         text = "\n".join(path.read_text(encoding="utf-8") for path in files)
         self.assertNotIn("PROJECT_ARCHITECTURE.md", text)

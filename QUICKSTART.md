@@ -20,8 +20,8 @@ CU2CCE_REGRESSION_PROFILE=external bash tools/real_test/server_cmd.txt   # 外�
 CU2CCE_REGRESSION_PROFILE=full     bash tools/real_test/server_cmd.txt   # 全量，≈3min
 ```
 
-> 文档地图：**支持范围与限制** → `docs/03_Scope/`；**架构原理五篇** →
-> `docs/02_Architecture/`；阶段汇报 → `docs/03_Comparison/MENTOR_REPORT_2026-08-28.md`。
+> 文档地图：**支持范围与限制** → `docs/02_能力清单/`；**架构原理五篇** →
+> `docs/01_架构设计/`；阶段汇报 → `docs/04_对比与验证/MENTOR_REPORT_2026-08-28.md`。
 
 ---
 
@@ -489,7 +489,7 @@ shim nvcc 走 mock（应答探测 + 编译器自检真编译回退）；用
 shim 的 `lib64/` 提供 libcudart/libcuda → 桥运行时软链，纯 g++ 链接的
 Make 工程也能解析 `-lcudart`。
 
-**能力现状（详见 `docs/02_Architecture/05_cmake_design.md` 与构建矩阵）**：
+**能力现状（详见 `docs/01_架构设计/05_cmake_design.md` 与构建矩阵）**：
 真机验证覆盖 `project(... LANGUAGES CUDA)`、多目录 `add_subdirectory`、
 多个 `.cu`、静态/动态 CUDA library、host+CUDA 混合、
 `find_package(CUDAToolkit)` + `CUDA::cudart/toolkit/cudart_static/cudadevrt`
@@ -500,7 +500,7 @@ Make 工程也能解析 `-lcudart`。
 仍不承诺：完整 CUDA device-link/RDC、separable compilation、
 PTX/CUBIN/FATBIN、`CUDA::cublas` package target（cuBLAS 走独立实验线，
 `CU2CCE_BLAS_TEST=1`），以及 multi-`.cu` 静态库（后端注册符号聚合缺口，
-见 `docs/03_Scope/LIMITS_AND_BOUNDARIES.md`）。
+见 `docs/02_能力清单/LIMITS_AND_BOUNDARIES.md`）。
 
 大型项目建议：`export CU2CCE_LIBC_MODE=system`（系统 glibc 头）；
 上游/项目自设的 `CUDA_ARCHITECTURES sm_XX` 会被强制回 OFF（NVIDIA 架构

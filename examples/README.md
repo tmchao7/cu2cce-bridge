@@ -29,12 +29,12 @@ The complete list and expected output strings are maintained in
 
 
 完整测试分类、API、数据类型、内存模型和支持状态见
-`docs/03_Comparison/PURESIMT_COMPATIBILITY_MATRIX.md`。
+`docs/02_能力清单/PURESIMT_COMPATIBILITY_MATRIX.md`。
 
 
 项目整体原理和测试设计哲学见
-`docs/02_Architecture/01_global_overview.md`；发布前状态见
-`docs/03_Comparison/RELEASE_READINESS_2026-09-02.md`。
+`docs/01_架构设计/01_global_overview.md`；发布前状态见
+`docs/04_对比与验证/RELEASE_READINESS_2026-09-02.md`。
 
 ## CMake compatibility examples
 

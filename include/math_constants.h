@@ -7,7 +7,7 @@
  * literals every conforming toolchain agrees on (no backend-specific
  * semantics). FP64 constants are provided for HOST-side use; remember the
  * Ascend device side has no double arithmetic (see
- * docs/03_Scope/LIMITS_AND_BOUNDARIES.md) — using the double constants in
+ * docs/02_能力清单/LIMITS_AND_BOUNDARIES.md) — using the double constants in
  * device code fails at the FP64 type policy exactly like any other double.
  */
 

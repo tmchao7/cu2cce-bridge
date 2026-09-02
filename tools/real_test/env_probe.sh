@@ -5,7 +5,7 @@
 # 职责：
 #   1. 定位 CANN：ASCEND_TOOLKIT_HOME / ASCEND_HOME / setenv.bash
 #   2. 定位工具链：bisheng 编译器、ACL 头/库、acl_cblas、simt_api SIMT 头、npu-smi
-#   3. 只读核对 docs/03_Comparison/CURRENT_STATE.md 的"待真机确认项"
+#   3. 只读核对 docs/04_对比与验证/CURRENT_STATE.md 的"待真机确认项"
 #      （grep 头文件签名，不调用任何昇腾运行时 API）
 #   4. 核对目标架构 --cce-aicore-arch=dav-c310-vec（950 系列 puresimt）：
 #      dump __NPU_ARCH__ 宏值、比对 simt_api 门控、最小 SIMT kernel 实测编译
@@ -255,7 +255,7 @@ else
 fi
 
 # ---------------- 6. API 签名只读核对（对照 CURRENT_STATE.md） ----------------
-log "== 6. API 签名只读核对（grep 头文件，对照 docs/03_Comparison/CURRENT_STATE.md §3/§5） =="
+log "== 6. API 签名只读核对（grep 头文件，对照 docs/04_对比与验证/CURRENT_STATE.md §3/§5） =="
 ACL_RT_H="$ATH/include/acl/acl_rt.h"
 ACL_BASE_H="$ATH/include/acl/acl_base.h"
 ACL_CBLAS_H="$ATH/include/acl/ops/acl_cblas.h"

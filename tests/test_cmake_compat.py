@@ -255,7 +255,7 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         self.assertIn("db3eea23946bca2e90a75eca2b5b3e07158a9e11", profile)
         self.assertIn("CUDA_SAMPLES_SOURCE_DIR", fetch)
         self.assertIn("checkout --detach", fetch)
-        self.assertTrue((ROOT / "docs/archive/CUDA_LARGE_PROJECT_COMPATIBILITY_PLAN.md").is_file())
+        self.assertTrue((ROOT / "docs/99_归档/CUDA_LARGE_PROJECT_COMPATIBILITY_PLAN.md").is_file())
         # Diagnostic samples must be compiled by the harness before any run
         # attempt: earlier server runs printed empty [DIAG-ONLY] tails because
         # only vectorAdd/matrixMul were in the required "--target" list.
@@ -496,14 +496,14 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         self.assertIn("INTERFACE_LINK_LIBRARIES CUDA::cudart", module)
 
     def test_matrix_records_multi_cu_diagnostic_evidence(self) -> None:
-        matrix = ROOT / "docs/03_Comparison/BUILD_SYSTEM_COMPATIBILITY_MATRIX.md"
+        matrix = ROOT / "docs/02_能力清单/BUILD_SYSTEM_COMPATIBILITY_MATRIX.md"
         text = matrix.read_text(encoding="utf-8")
         self.assertIn("multiple definition of", text)
         self.assertIn("BishengLaunchKernelWithHostArgs", text)
         self.assertIn("CU2CCE_CMAKE_NO_OVERRIDE", text)
 
     def test_build_matrix_exists(self) -> None:
-        matrix = ROOT / "docs/03_Comparison/BUILD_SYSTEM_COMPATIBILITY_MATRIX.md"
+        matrix = ROOT / "docs/02_能力清单/BUILD_SYSTEM_COMPATIBILITY_MATRIX.md"
         text = matrix.read_text(encoding="utf-8")
         for item in ("CMake", "Makefiles", "Ninja", "device-link", "CUDA::cudart"):
             self.assertIn(item, text)
@@ -1610,18 +1610,18 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         self.assertIn("CUDART_INF_F", mc)
         self.assertIn("HOST-side use", mc)  # double constants carry the FP64 warning
         # parity audit document exists and records the three comparison tables
-        audit = (ROOT / "docs/03_Comparison/PARITY_AUDIT_2026-08-28.md").read_text(encoding="utf-8")
+        audit = (ROOT / "docs/04_对比与验证/PARITY_AUDIT_2026-08-28.md").read_text(encoding="utf-8")
         self.assertIn("-dc", audit)
         self.assertIn("libsymbol_cu", audit)
         self.assertIn("thrust", audit)
 
     def test_alignment_doc_records_cubridge_mechanism_and_reading_map(self) -> None:
-        doc = (ROOT / "docs/03_Comparison/CMAKE_MAKE_ALIGNMENT_WITH_CUBRIDGE.md").read_text(encoding="utf-8")
+        doc = (ROOT / "docs/04_对比与验证/CMAKE_MAKE_ALIGNMENT_WITH_CUBRIDGE.md").read_text(encoding="utf-8")
         for section in ("cmake_maca", "cmake_mock", "cmake_assist", "link.json",
                         "USE_CMAKE_MACA", "预编译真 ELF", "双阶段协议",
                         "逐项对齐表", "代码导读", "剩余差距"):
             self.assertIn(section, doc)
-        self.assertIn("docs/02_Architecture/06_cmake_principle_flow.md", doc)
+        self.assertIn("docs/01_架构设计/06_cmake_principle_flow.md", doc)
 
     def test_findcuda_does_not_define_case_colliding_recursive_aliases(self) -> None:
         # CMake command names are case-insensitive. Defining CUDA_ADD_EXECUTABLE

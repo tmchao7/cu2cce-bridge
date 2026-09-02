@@ -37,10 +37,10 @@ Ascend kernel 包装源文件。
 
 仓库目录和每个 Git 跟踪文件的职责见：
 
-- [`docs/REPOSITORY_FILE_GUIDE.md`](docs/REPOSITORY_FILE_GUIDE.md)：文件级职责、调用链、
+- [`docs/03_文件目录/REPOSITORY_FILE_GUIDE.md`](docs/03_文件目录/REPOSITORY_FILE_GUIDE.md)：文件级职责、调用链、
   cu-bridge 命名映射和故障定位顺序；
 - [`docs/README.md`](docs/README.md)：文档导航；
-- [`docs/03_Comparison/RELEASE_READINESS_2026-09-02.md`](docs/03_Comparison/RELEASE_READINESS_2026-09-02.md)：
+- [`docs/04_对比与验证/RELEASE_READINESS_2026-09-02.md`](docs/04_对比与验证/RELEASE_READINESS_2026-09-02.md)：
   code review、目录卫生和发布前审计。
 
 当前目录职责保持与 `cu-bridge` 接近，但保留 Ascend 命名：
@@ -546,10 +546,10 @@ link 阶段按规则注入 bridge/CANN runtime。`.cu` 源必须交给 `cucc`，
 
 当前支持状态和证据：
 
-- [`PURESIMT_COMPATIBILITY_MATRIX.md`](docs/03_Comparison/PURESIMT_COMPATIBILITY_MATRIX.md)
-- [`BUILD_SYSTEM_COMPATIBILITY_MATRIX.md`](docs/03_Comparison/BUILD_SYSTEM_COMPATIBILITY_MATRIX.md)
-- [`CUCC_OPTION_COMPATIBILITY_MATRIX.md`](docs/03_Comparison/CUCC_OPTION_COMPATIBILITY_MATRIX.md)
-- [`RELEASE_READINESS_2026-09-02.md`](docs/03_Comparison/RELEASE_READINESS_2026-09-02.md)
+- [`PURESIMT_COMPATIBILITY_MATRIX.md`](docs/02_能力清单/PURESIMT_COMPATIBILITY_MATRIX.md)
+- [`BUILD_SYSTEM_COMPATIBILITY_MATRIX.md`](docs/02_能力清单/BUILD_SYSTEM_COMPATIBILITY_MATRIX.md)
+- [`CUCC_OPTION_COMPATIBILITY_MATRIX.md`](docs/02_能力清单/CUCC_OPTION_COMPATIBILITY_MATRIX.md)
+- [`RELEASE_READINESS_2026-09-02.md`](docs/04_对比与验证/RELEASE_READINESS_2026-09-02.md)
 
 ## 真机回归（维护者）
 
@@ -594,17 +594,19 @@ build/real_test/puresimt/artifacts/
 
 ## 相关文档
 
+- [`docs/README.md`](docs/README.md)：中文文档中心与架构/能力/文件目录导航；
+
 - [`QUICKSTART.md`](QUICKSTART.md)：从零开始的用户操作手册；
-- [`docs/REPOSITORY_FILE_GUIDE.md`](docs/REPOSITORY_FILE_GUIDE.md)：逐文件维护/故障定位；
-- [`docs/02_Architecture/03_cucc_driver.md`](docs/02_Architecture/03_cucc_driver.md)：cucc 驱动；
-- [`docs/02_Architecture/05_cmake_design.md`](docs/02_Architecture/05_cmake_design.md)：CMake 机制；
-- [`docs/03_Comparison/CMAKE_MAKE_ALIGNMENT_WITH_CUBRIDGE.md`](docs/03_Comparison/CMAKE_MAKE_ALIGNMENT_WITH_CUBRIDGE.md)：
+- [`docs/03_文件目录/REPOSITORY_FILE_GUIDE.md`](docs/03_文件目录/REPOSITORY_FILE_GUIDE.md)：逐文件维护/故障定位；
+- [`docs/01_架构设计/03_cucc_driver.md`](docs/01_架构设计/03_cucc_driver.md)：cucc 驱动；
+- [`docs/01_架构设计/05_cmake_design.md`](docs/01_架构设计/05_cmake_design.md)：CMake 机制；
+- [`docs/04_对比与验证/CMAKE_MAKE_ALIGNMENT_WITH_CUBRIDGE.md`](docs/04_对比与验证/CMAKE_MAKE_ALIGNMENT_WITH_CUBRIDGE.md)：
   与 cu-bridge 的 CMake/Make/Ninja 对齐；
-- [`docs/03_Comparison/BUILD_SYSTEM_COMPATIBILITY_MATRIX.md`](docs/03_Comparison/BUILD_SYSTEM_COMPATIBILITY_MATRIX.md)：
+- [`docs/02_能力清单/BUILD_SYSTEM_COMPATIBILITY_MATRIX.md`](docs/02_能力清单/BUILD_SYSTEM_COMPATIBILITY_MATRIX.md)：
   构建与产物矩阵；
-- [`docs/03_Comparison/CUCC_OPTION_COMPATIBILITY_MATRIX.md`](docs/03_Comparison/CUCC_OPTION_COMPATIBILITY_MATRIX.md)：
+- [`docs/02_能力清单/CUCC_OPTION_COMPATIBILITY_MATRIX.md`](docs/02_能力清单/CUCC_OPTION_COMPATIBILITY_MATRIX.md)：
   cucc 参数矩阵。
-- [`docs/03_Comparison/CUDA_OPERATOR_API_SUPPORT_MATRIX.md`](docs/03_Comparison/CUDA_OPERATOR_API_SUPPORT_MATRIX.md)：
+- [`docs/02_能力清单/CUDA_OPERATOR_API_SUPPORT_MATRIX.md`](docs/02_能力清单/CUDA_OPERATOR_API_SUPPORT_MATRIX.md)：
   当前支持算子、Kernel 写法、API 映射和 CMake/Make/Ninja 支持边界总表。
 
 ## 本地验证（维护者）

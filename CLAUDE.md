@@ -33,7 +33,7 @@ cu2cce-bridge 是 CUDA→昇腾 NPU 的兼容层，目标是让用户保留原�
 - `third_party/nvidia_cuda_samples/`：官方 helper 头，只作为 include 依赖。
 - `tools/real_test/server_cmd.txt`：main 唯一真机回归入口。
 - `tools/real_test/diag/`：非主线 ACL/runtime 排障资产。
-- `docs/reference/asc-devkit-simt/`：Ascend SIMT API 参考资料，不是转换模板。
+- `docs/99_归档/参考资料/asc-devkit-simt/`：Ascend SIMT API 参考资料，不是转换模板。
 
 ## 工作纪律
 
