@@ -14,7 +14,7 @@ DEVICE_HEALTHY=1
 TEST_BLOCKED_BY_DEVICE=0
 ```
 
-服务器证据以 `tools/real_test/server_cmd.txt` 的 full profile 输出为准；本机 macOS 不能替代 CANN/NPU 验证；本轮本地静态/mock 全量测试为 210 tests。
+服务器证据以 `tools/real_test/server_cmd.txt` 的 full profile 输出为准；本机 macOS 不能替代 CANN/NPU 验证；本轮本地静态/mock 全量测试为 213 tests。
 
 ## 四层对齐结果
 
@@ -38,6 +38,8 @@ TEST_BLOCKED_BY_DEVICE=0
   三套手工软链逻辑漂移。
 - 直接 `cucc` 与构建 wrapper 共用 `device_arch.sh`；host-only 编译的
   `-I/-include` 值不会误触发 CUDA phase；缺失 `-Xlinker` value 明确报错。
+- CMake 默认 shim 以 canonical build directory 生成稳定 key；增量构建会优先读取
+  既有 `CMakeCache.txt` 中记录的 `CUDA_DIR/bin/nvcc`，兼容发布前已经配置的旧 build tree。
 - artifact verifier 只检查实际 target boundary：`.cu` target 验证 compiler，host app
   验证 bridge runtime，避免把合法 host link metadata 当成 CUDA compiler 缺失。
 
@@ -85,6 +87,7 @@ CU2CCE_REGRESSION_REMOTE=origin CU2CCE_REGRESSION_PROFILE=full \
 ```
 
 `multi_cu_diagnostic` 的 duplicate registration 仍属于预期的 Ascend backend
-`DIAGNOSTIC_ONLY`，不应通过链接器选项伪装为支持。默认 CMake shim 为兼容历史
-入口保留持久目录；并发或多 bridge 版本构建应显式设置不同的
-`CU2CCE_CMAKE_SHIM_DIR`，或设置 `CU2CCE_SHIM_ISOLATE=1`，避免共享状态互相覆盖。
+`DIAGNOSTIC_ONLY`，不应通过链接器选项伪装为支持。未显式指定时，CMake 默认 shim
+按 canonical build directory 自动隔离；显式指定同一个 `CU2CCE_CMAKE_SHIM_DIR` 的
+多个并发构建仍会共享状态，此时必须为每个项目使用不同目录，或设置
+`CU2CCE_SHIM_ISOLATE=1`。

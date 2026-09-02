@@ -27,7 +27,39 @@ ASCEND_TOOLKIT_HOME="${ASCEND_TOOLKIT_HOME:-/usr/local/Ascend/ascend-toolkit/lat
 CANN_BASE="${CANN_BASE:-/usr/local/Ascend/latest}"
 CU2CCE_HOME="${CU2CCE_HOME:-${WCUDA_HOME:-${CUBRIDGE_HOME:-$HOME}}}"
 CU2CCE_NPU_ARCH="$(cu2cce_resolve_npu_arch)" || exit 1
-SHIM_ROOT="${CU2CCE_CMAKE_SHIM_DIR:-${CU2CCE_HOME:-${WCUDA_HOME:-${CUBRIDGE_HOME:-$HOME}}}/cu2cce-bridge/cmake-shim}"
+build_dir_hint="$PWD"
+args=("$@")
+index=0
+while [ "$index" -lt "${#args[@]}" ]; do
+    case "${args[$index]}" in
+        -C)
+            index=$((index + 1))
+            if [ "$index" -lt "${#args[@]}" ]; then build_dir_hint="${args[$index]}"; fi
+            ;;
+        -C*) build_dir_hint="${args[$index]#-C}" ;;
+        --directory=*) build_dir_hint="${args[$index]#--directory=}" ;;
+        --directory)
+            index=$((index + 1))
+            if [ "$index" -lt "${#args[@]}" ]; then build_dir_hint="${args[$index]}"; fi
+            ;;
+    esac
+    index=$((index + 1))
+done
+if [ -n "${CU2CCE_CMAKE_SHIM_DIR:-}" ]; then
+    SHIM_ROOT="$CU2CCE_CMAKE_SHIM_DIR"
+elif SHIM_ROOT="$(cu2cce_cmake_cache_shim_root "$build_dir_hint" 2>/dev/null)"; then
+    # Preserve the compiler shim recorded by this existing CMake tree.
+    :
+else
+    # Direct ninja invocation has no CMake wrapper to provide a shim path.
+    # Derive the same persistent build-keyed root as cmake_cce from the
+    # current directory or Ninja's -C/--directory argument.
+    SHIM_BASE="${CU2CCE_HOME:-${WCUDA_HOME:-${CUBRIDGE_HOME:-$HOME}}}/cu2cce-bridge"
+    SHIM_ROOT="$(cu2cce_shim_root_for_build "$SHIM_BASE" "$build_dir_hint")" || {
+        echo "ninja_cce: cannot derive stable shim root for build directory $build_dir_hint" >&2
+        exit 1
+    }
+fi
 if [[ "$SHIM_ROOT" != /* ]]; then
     # Ninja may receive -C <build>; resolve the shim before that directory
     # switch so it remains identical to the configure invocation.
@@ -47,6 +79,7 @@ if [ ! -e "$CUDA_DIR/bin/nvcc" ]; then
     exit 1
 fi
 
+export CU2CCE_CMAKE_SHIM_DIR="$SHIM_ROOT"
 export CUDA_PATH="$CUDA_DIR"
 export CUDA_HOME="$CUDA_DIR"
 export ASCEND_TOOLKIT_HOME

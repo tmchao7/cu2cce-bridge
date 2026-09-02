@@ -83,6 +83,42 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn(str(explicit_ccec), (tmp / "cmake.log").read_text(encoding="utf-8"))
 
+    def test_cmake_default_shim_is_scoped_by_build_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_name:
+            tmp = Path(tmp_name)
+            fake_bin = tmp / "bin"
+            fake_bin.mkdir()
+            fake_cmake = fake_bin / "cmake"
+            fake_cmake.write_text(
+                "#!/bin/sh\nprintf '%s\n' \"$CU2CCE_CMAKE_SHIM_DIR\" >> \"$SHIM_LOG\"\n",
+                encoding="utf-8",
+            )
+            fake_cmake.chmod(0o755)
+            ccec = tmp / "cann/bin/ccec"
+            ccec.parent.mkdir(parents=True)
+            ccec.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+            ccec.chmod(0o755)
+            env = dict(os.environ)
+            env.update({
+                "PATH": f"{fake_bin}{os.pathsep}{env.get('PATH', '')}",
+                "CUCC_PATH": str(ROOT),
+                "CCEC_PATH": str(ccec),
+                "CANN_BASE": str(tmp / "cann"),
+                "ASCEND_TOOLKIT_HOME": str(tmp / "ascend"),
+                "CU2CCE_NPU_ARCH": "dav-c310-vec",
+                "SHIM_LOG": str(tmp / "shim.log"),
+                "HOME": str(tmp / "home"),
+            })
+            for name in ("build-a", "build-b"):
+                result = subprocess.run(
+                    [str(ROOT / "tools/cmake_cce"), "-S", str(tmp), "-B", str(tmp / name)],
+                    env=env, capture_output=True, text=True, check=False,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+            roots = (tmp / "shim.log").read_text(encoding="utf-8").splitlines()
+            self.assertEqual(len(roots), 2, roots)
+            self.assertNotEqual(roots[0], roots[1])
+
     def test_cmake_cce_query_modes_bypass_cann_environment_checks(self) -> None:
         # The reference cmake_maca forwards --version/-E/--help directly to
         # cmake. cmake_cce must do the same before requiring an Ascend install,
@@ -607,9 +643,11 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         cmake_cce = (ROOT / "tools/cmake_cce").read_text(encoding="utf-8")
         self.assertIn('cmake_cce: build phase: shim nvcc ->', cmake_cce)
         self.assertIn('ln -sfn "$CUCC_PATH/bin/cucc" "$CUDA_DIR/bin/nvcc"', cmake_cce)
-        # Persistent shim default (their CUBRIDGE_HOME semantics) is what
-        # makes the build-phase re-point effective across processes.
-        self.assertIn('${CU2CCE_HOME:-${WCUDA_HOME:-${CUBRIDGE_HOME:-$HOME}}}/cu2cce-bridge/cmake-shim', cmake_cce)
+        # The build-phase re-point remains persistent, but the default root is
+        # keyed by the canonical build directory so separate projects do not
+        # overwrite one another. Explicit CU2CCE_CMAKE_SHIM_DIR still wins.
+        self.assertIn('cu2cce_shim_root_for_build', cmake_cce)
+        self.assertIn('cmake-shim-', (ROOT / "tools/fake_toolkit_env.sh").read_text(encoding="utf-8"))
         # Configure phase binds the shim nvcc to the mock through the shared
         # helper (re-pointing here makes repeated configure/build cycles on
         # one persistent shim deterministic). Since the seventh batch the
@@ -757,6 +795,43 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
             text = (ROOT / name).read_text(encoding="utf-8")
             self.assertIn("cu2cce_resolve_npu_arch", text, name)
             self.assertNotIn("|| echo dav-c310-vec", text, name)
+
+    def test_direct_ninja_preserves_existing_cmake_shim_from_cache(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_name:
+            tmp = Path(tmp_name)
+            fake_bin = tmp / "bin"
+            fake_bin.mkdir()
+            fake_ninja = fake_bin / "ninja"
+            fake_ninja.write_text(
+                "#!/bin/sh\nprintf '%s\n' \"$CU2CCE_CMAKE_SHIM_DIR\" > \"$NINJA_LOG\"\n",
+                encoding="utf-8",
+            )
+            fake_ninja.chmod(0o755)
+            build = tmp / "old-build"
+            build.mkdir()
+            old_shim = tmp / "old-shim"
+            old_shim.mkdir()
+            (old_shim / "CUDA_DIR/bin").mkdir(parents=True)
+            (build / "CMakeCache.txt").write_text(
+                f"CMAKE_CUDA_COMPILER:FILEPATH={old_shim}/CUDA_DIR/bin/nvcc\n",
+                encoding="utf-8",
+            )
+            (build / "build.ninja").write_text("# fake\n", encoding="utf-8")
+            log = tmp / "ninja.log"
+            env = dict(os.environ)
+            env.update({
+                "PATH": f"{fake_bin}{os.pathsep}{env.get('PATH', '')}",
+                "CUCC_PATH": str(ROOT),
+                "CU2CCE_NPU_ARCH": "dav-c310-vec",
+                "CU2CCE_HOME": str(tmp / "home"),
+                "NINJA_LOG": str(log),
+            })
+            result = subprocess.run(
+                [str(ROOT / "tools/ninja_cce"), "-C", str(build)],
+                env=env, capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(log.read_text(encoding="utf-8").strip(), str(old_shim))
 
     def test_ninja_cce_rebuilds_the_same_persistent_npu_shim(self) -> None:
         # The shared builder materializes <shim-root>/CUDA_DIR. Direct ninja
@@ -1634,6 +1709,13 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
             self.assertIn("shared=STATIC", result.stdout)
             self.assertTrue(dep.is_file())
 
+    def test_findcuda_uses_cmake_compatibility_conditions(self) -> None:
+        findcuda = (ROOT / "cmake_modules/FindCUDA.cmake").read_text(encoding="utf-8")
+        # IS_EXECUTABLE was added in CMake 3.29; this project supports older
+        # CMake releases, so discovery must use portable file conditions.
+        self.assertNotIn("IS_EXECUTABLE", findcuda)
+        self.assertIn("IS_DIRECTORY", findcuda)
+
     def test_findcuda_rejects_missing_bridge_install_when_required(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_name:
             tmp = Path(tmp_name)
@@ -1739,7 +1821,9 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
             self.assertIn(honest, findcuda)
 
         ninja = (ROOT / "tools/ninja_cce").read_text(encoding="utf-8")
-        self.assertIn('CU2CCE_CMAKE_SHIM_DIR:-${CU2CCE_HOME:-${WCUDA_HOME:-${CUBRIDGE_HOME:-$HOME}}}/cu2cce-bridge/cmake-shim', ninja)
+        self.assertIn('CU2CCE_CMAKE_SHIM_DIR', ninja)
+        self.assertIn('cu2cce_shim_root_for_build', ninja)
+        self.assertIn('cmake-shim-', (ROOT / "tools/fake_toolkit_env.sh").read_text(encoding="utf-8"))
         self.assertIn("ninja_cce: build phase: shim nvcc ->", ninja)
         self.assertIn('cu2cce_prepare_fake_toolkit', ninja)
         self.assertIn('"$CUCC_PATH/bin/cucc"', ninja)

@@ -466,9 +466,8 @@ export CU2CCE_BRIDGE=/home/t50063365/workspace/repos/cu2cce-bridge
 export CUCC_PATH=$CU2CCE_BRIDGE/build/real_test/install
 export CUDA_PATH=$CUCC_PATH
 export PATH=$CUCC_PATH/bin:$CUCC_PATH/tools:$PATH
-# 可选：shim 目录默认持久在 ~/cu2cce-bridge/cmake-shim（与 cu-bridge 的
-# CUBRIDGE_HOME 同构：configure 与 build 共享一个 shim，双阶段协议依赖
-# 此持久性）；如需自定义位置再设置下面这行。
+# shim 默认持久且按 build 目录隔离：~/cu2cce-bridge/cmake-shim-<build-key>。
+# configure 与 build 共享同一 shim；如需固定位置或跨工具共享，再设置下面这行。
 # export CU2CCE_CMAKE_SHIM_DIR=/tmp/cu2cce-cmake-shim
 
 cmake_cce -S /home/t50063365/workspace/repos/cu2cce-bridge/examples/cmake_demo \

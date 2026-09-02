@@ -47,38 +47,80 @@ fi
 export CCEC_PATH
 CU2CCE_NPU_ARCH="$(cu2cce_resolve_npu_arch)" || exit 1
 
-# Shim directory resolution + two-phase protocol. The DEFAULT shim root is
-# persistent under the user's home — same semantics as cu-bridge's
-# CUBRIDGE_HOME ($HOME/cu-bridge): the two-phase protocol (configure via
-# mock, build via real cucc) requires configure and build to share one shim,
-# and build.make records the configured compiler path.
+# Detect build/configure mode and the build directory before selecting the
+# shim. The same stable build key is recomputed by cmake_cce --build and
+# ninja_cce, while an explicit CU2CCE_CMAKE_SHIM_DIR always wins.
+build_phase=0
+build_dir_hint=""
+args=("$@")
+count=${#args[@]}
+index=0
+while [ "$index" -lt "$count" ]; do
+    arg="${args[$index]}"
+    case "$arg" in
+        --build=*)
+            build_phase=1
+            build_dir_hint="${arg#--build=}"
+            ;;
+        --build)
+            build_phase=1
+            index=$((index + 1))
+            if [ "$index" -lt "$count" ]; then build_dir_hint="${args[$index]}"; fi
+            ;;
+        --install|--install=*) build_phase=1 ;;
+        -B=*)
+            [ "$build_phase" -eq 0 ] && build_dir_hint="${arg#-B=}"
+            ;;
+        -B)
+            if [ "$build_phase" -eq 0 ]; then
+                index=$((index + 1))
+                if [ "$index" -lt "$count" ]; then build_dir_hint="${args[$index]}"; fi
+            fi
+            ;;
+        -B*)
+            [ "$build_phase" -eq 0 ] && build_dir_hint="${arg#-B}"
+            ;;
+    esac
+    index=$((index + 1))
+done
+if [ "$build_phase" -eq 0 ] && [ -z "$build_dir_hint" ]; then
+    build_dir_hint="$PWD"
+fi
+if [ "$build_phase" -eq 1 ] && [ -z "$build_dir_hint" ] && [[ "$*" == *--build* ]]; then
+    echo "cmake_cce: --build requires a build directory" >&2
+    exit 1
+fi
+
+# Shim directory resolution + two-phase protocol. The default is now keyed by
+# build directory rather than globally shared, preventing cross-project
+# overwrite while preserving the explicit legacy fallback string.
 if [ -n "${CU2CCE_CMAKE_SHIM_DIR:-}" ]; then
     SHIM_ROOT="$CU2CCE_CMAKE_SHIM_DIR"
+elif [ "$build_phase" -eq 1 ] && [ -n "$build_dir_hint" ] && \
+    SHIM_ROOT="$(cu2cce_cmake_cache_shim_root "$build_dir_hint" 2>/dev/null)"; then
+    # Preserve the path recorded by an older or explicitly configured CMake
+    # tree; the build still repoints that shim to this cucc installation.
+    :
 else
-    SHIM_ROOT="${CU2CCE_HOME:-${WCUDA_HOME:-${CUBRIDGE_HOME:-$HOME}}}/cu2cce-bridge/cmake-shim"
+    SHIM_BASE="${CU2CCE_HOME:-${WCUDA_HOME:-${CUBRIDGE_HOME:-$HOME}}}/cu2cce-bridge"
+    SHIM_ROOT="$(cu2cce_shim_root_for_build "$SHIM_BASE" "$build_dir_hint")" || {
+        echo "cmake_cce: cannot derive stable shim root for build directory $build_dir_hint" >&2
+        exit 1
+    }
 fi
 # Keep a relative user-provided shim path stable across the build-phase cd.
 if [[ "$SHIM_ROOT" != /* ]]; then
     SHIM_ROOT="$PWD/$SHIM_ROOT"
 fi
-# Parallel-build isolation (cu-bridge USE_WCUDA_FOR_MULTI_JOB parity): give
-# each top-level job its own shim when concurrent cmake_cce runs would race.
-if [ "${CU2CCE_SHIM_ISOLATE:-0}" = "1" ]; then
+# Explicit build-directory scoping already provides cross-process isolation;
+# retain the PPID suffix for invocations without a build directory.
+if [ "${CU2CCE_SHIM_ISOLATE:-0}" = "1" ] && [ -z "${CU2CCE_CMAKE_SHIM_DIR:-}" ] && [ "$build_dir_hint" = "$PWD" ]; then
     SHIM_ROOT="${SHIM_ROOT}-${PPID}"
 fi
 # Pass the resolved root to the generator wrapper so Make/Ninja rebuild the
 # same shim that CMake used during configure, including custom roots.
 export CU2CCE_CMAKE_SHIM_DIR="$SHIM_ROOT"
 CUDA_DIR="$SHIM_ROOT/CUDA_DIR"
-
-# Build/install phase: re-point the shim nvcc at the real cucc (cu-bridge's
-# make_maca rebuilds CUDA_DIR the same way), then hand over.
-build_phase=0
-for arg in "$@"; do
-    case "$arg" in
-        --build|--build=*|--install|--install=*) build_phase=1 ;;
-    esac
-done
 if [ "$build_phase" -eq 1 ]; then
     if [ -e "$CUDA_DIR/bin/nvcc" ]; then
         ln -sfn "$CUCC_PATH/bin/cucc" "$CUDA_DIR/bin/nvcc"
@@ -90,7 +132,7 @@ if [ "$build_phase" -eq 1 ]; then
     # through make_cce/ninja_cce so Make/Ninja get the same environment
     # preparation (ASCEND vars, device arch, PATH) as direct make_cce runs.
     # cmake --build remains the fallback for odd argument shapes.
-    build_dir=""
+    build_dir="${build_dir_hint:-}"
     build_target=()
     build_jobs=()
     build_unbounded_parallel=0

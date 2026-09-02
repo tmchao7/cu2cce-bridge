@@ -82,7 +82,7 @@ configure 脚本用 `pre_makefile` 包裹；Python 库安装不管（FAQ Q7）�
 | 宿主编译器劫持 | bin/gnu 包装器（链接走 mxcc） | hostcc_cce（第五批次规则化：`cu2cce_driver.py --hostcc-mode` 消费 rules `hostcc.link.inject`）；链接器保持 g++（语义由桥运行时承接） | 已对齐（规则面 2026-08-30；链接器保留 NPU 适配） |
 | Make 入口 | make_maca（假目录+PATH+make；make.log 哨兵） | make_cce（同构 + manifest 化布局；clean 目标词元匹配修复 `cleanpack` 误删） | 已对齐 |
 | 并行隔离 | USE_WCUDA_FOR_MULTI_JOB（$PPID 后缀） | **第五批次补齐**：`CU2CCE_SHIM_ISOLATE=1`（cmake_cce/make_cce/pre_cce 统一） | 已对齐（2026-08-30） |
-| 假工具包默认持久化 | CUBRIDGE_HOME=$HOME（持久，configure/build 共享） | **默认持久**：`${CU2CCE_HOME:-${CUBRIDGE_HOME:-$HOME}}/cu2cce-bridge/cmake-shim`（CU2CCE_CMAKE_SHIM_DIR 显式覆盖） | 已对齐（2026-08-28 静态补齐：双阶段的 build 切换依赖持久 shim） |
+| 假工具包默认持久化 | CUBRIDGE_HOME=$HOME（持久，configure/build 共享） | **默认持久且按 build 目录隔离**：`${CU2CCE_HOME:-${CUBRIDGE_HOME:-$HOME}}/cu2cce-bridge/cmake-shim-<build-key>`（CU2CCE_CMAKE_SHIM_DIR 显式覆盖） | 已对齐（2026-09-02：双阶段共享同一 shim，同时避免跨项目覆盖） |
 | configure 包裹器 | pre_makefile（configure 脚本包裹，FAQ Q5） | **pre_cce**（同构 + hostcc_cce 统一——第五批次前是身份软链，纯 g++ 链接拿不到注入） | 已对齐（2026-08-28；2026-08-30 统一 hostcc） |
 | 设备架构探测助手 | multi_target.sh + get_device_arch.sh（CUCC_TARGETS → mx-smi → 提示） | **tools/device_arch.sh**（CU2CCE_NPU_ARCH/CUCC_NPU_ARCH/CUCC_TARGETS/CUCC_TARGETS_FROM_DEVICE → npu-smi 表映射 → cache → default + tip），cmake_cce/make_cce/ninja_cce/pre_cce 接线 | 已对齐（2026-09-01，NPU 单 dav-* target 约束） |
 | CUPTI 路径布局 | 虚拟目录含 extras/CUPTI/{include,lib64} | shim_layout.json 同款空目录布局（路径探测兼容） | 已对齐（2026-08-28） |
@@ -99,7 +99,7 @@ configure 脚本用 `pre_makefile` 包裹；Python 库安装不管（FAQ Q7）�
 | | cu-bridge | 本桥 |
 |---|---|---|
 | 用户工程内 | 标准 `.o`/目标产物，无中间件 | 同 |
-| 桥临时物 | `$CUBRIDGE_HOME/_nvcc/`（命令脚本）、`~/cu-bridge`（假工具包） | shim 目录（默认 `~/cu2cce-bridge/cmake-shim`，持久；或 `CU2CCE_CMAKE_SHIM_DIR`）、`$CU2CCE_HOME/cu2cce-bridge/`（make 假工具包） |
+| 桥临时物 | `$CUBRIDGE_HOME/_nvcc/`（命令脚本）、`~/cu-bridge`（假工具包） | shim 目录（默认 `~/cu2cce-bridge/cmake-shim-<build-key>`，持久按 build 隔离；或 `CU2CCE_CMAKE_SHIM_DIR`）、`$CU2CCE_HOME/cu2cce-bridge/`（make 假工具包） |
 | 链接执行者 | mxcc | g++（+ 桥运行时 .so） |
 | 安装树 | bin/include/extras/cmake_module/tools + 库装进 `$MACA_PATH/lib` | bin/include/lib/config/cmake_modules/tools（自包含前缀）+ `bin/nvcc` 软链 |
 

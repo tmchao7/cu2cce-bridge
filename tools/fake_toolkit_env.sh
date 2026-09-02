@@ -12,6 +12,43 @@
 # Sourcing contract: $CUCC_PATH must be set (validated by the callers); the
 # helpers honour $CANN_BASE with the usual default.
 
+# Derive a stable per-build shim root. CMake caches the CUDA compiler path, so
+# keying the default directory by the canonical build directory prevents two
+# projects (or two bridge installs) from overwriting one another. Explicit
+# CU2CCE_CMAKE_SHIM_DIR remains authoritative for callers that need a fixed path.
+cu2cce_shim_root_for_build() {
+    local base="$1" build_dir="$2" canonical parent digest
+    if [[ "$build_dir" != /* ]]; then
+        build_dir="$PWD/$build_dir"
+    fi
+    if [ -d "$build_dir" ]; then
+        canonical="$(cd "$build_dir" && pwd -P)" || return 1
+    else
+        parent="$(cd "$(dirname "$build_dir")" && pwd -P)" || return 1
+        canonical="$parent/$(basename "$build_dir")"
+    fi
+    digest="$(printf '%s' "$canonical" | cksum | awk '{print $1}')"
+    [ -n "$digest" ] || return 1
+    printf '%s/cmake-shim-%s\n' "${base%/}" "$digest"
+}
+
+# Recover a shim root recorded by an existing CMake build tree. This keeps
+# incremental builds compatible with trees configured before build-keyed default
+# isolation was introduced. It only accepts CMake's own CUDA_DIR/bin/nvcc shape.
+cu2cce_cmake_cache_shim_root() {
+    local build_dir="$1" compiler root
+    [ -f "$build_dir/CMakeCache.txt" ] || return 1
+    compiler="$(sed -n 's#^CMAKE_CUDA_COMPILER:[^=]*=##p' \
+        "$build_dir/CMakeCache.txt" | tail -n 1)"
+    case "$compiler" in
+        */CUDA_DIR/bin/nvcc)
+            root="${compiler%/CUDA_DIR/bin/nvcc}"
+            [ -d "$root" ] && printf '%s\n' "$root"
+            ;;
+        *) return 1 ;;
+    esac
+}
+
 # Resolve the CUDA-shaped host triple for display purposes. build_shim_tree.py
 # computes the authoritative triple for the targets/ layout — keep the mapping
 # identical (amd64/arm64 normalization).
