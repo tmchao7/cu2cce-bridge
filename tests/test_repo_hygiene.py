@@ -29,6 +29,44 @@ class RepositoryHygieneTest(unittest.TestCase):
         for pattern in (".DS_Store", "/build/", ".mimosa/", ".worktrees/", "*.log", "*.py[cod]"):
             self.assertIn(pattern, ignore)
 
+    def test_repository_file_guide_lists_all_tracked_paths(self) -> None:
+        guide = ROOT / "docs/REPOSITORY_FILE_GUIDE.md"
+        text = guide.read_text(encoding="utf-8")
+        tracked = subprocess.check_output(["git", "ls-files"], cwd=ROOT, text=True).splitlines()
+        missing = [path for path in tracked if f"`{path}`" not in text]
+        self.assertEqual(missing, [])
+
+    def test_repository_file_guide_records_cu_bridge_name_mapping(self) -> None:
+        text = (ROOT / "docs/REPOSITORY_FILE_GUIDE.md").read_text(encoding="utf-8")
+        for item in (
+            "cmake_maca", "cmake_cce", "make_maca", "make_cce",
+            "ninja_maca", "ninja_cce", "pre_makefile", "pre_cce",
+            "bin/gnu", "hostcc_cce", "link.json", "shim_layout.json",
+        ):
+            self.assertIn(item, text)
+
+    def test_repository_file_guide_covers_maintenance_entrypoints(self) -> None:
+        guide = ROOT / "docs/REPOSITORY_FILE_GUIDE.md"
+        self.assertTrue(guide.is_file())
+        text = guide.read_text(encoding="utf-8")
+        for item in (
+            "bin/cucc", "tools/cu2cce_driver.py", "tools/cmake_cce",
+            "tools/make_cce", "tools/ninja_cce", "tools/pre_cce",
+            "config/cu2cce_rules.json", "config/shim_layout.json",
+            "config/artifact_contract.json", "tools/real_test/server_cmd.txt",
+            "multi_cu_diagnostic", "DIAGNOSTIC_ONLY",
+        ):
+            self.assertIn(item, text)
+
+    def test_readme_explains_binary_install_tree_usage(self) -> None:
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        for item in (
+            "二进制安装树", "CUCC_PATH", "build/real_test/install",
+            "cucc --version", "cucc -c", "cmake_cce --build",
+            "CANN/NPU",
+        ):
+            self.assertIn(item, readme)
+
     def test_readme_points_to_current_release_status_and_entrypoints(self) -> None:
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         for link in (

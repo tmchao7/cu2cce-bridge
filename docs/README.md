@@ -2,9 +2,9 @@
 
 ## 推荐阅读顺序
 
-**新手**：仓库根 `QUICKSTART.md`（拿到项目 → 构建产物 → 产物在哪 → cucc
-跑单文件 → cmake_cce 跑大项目）。发布前先看
-`03_Comparison/RELEASE_READINESS_2026-09-02.md`。
+**新手**：仓库根 `README.md`（二进制安装树和入口）→ `QUICKSTART.md`（完整操作步骤）。
+发布前先看 `03_Comparison/RELEASE_READINESS_2026-09-02.md`；维护定位先看
+[`REPOSITORY_FILE_GUIDE.md`](REPOSITORY_FILE_GUIDE.md)。
 
 **进阶**（按序）：
 
@@ -20,7 +20,8 @@
 10. `03_Comparison/`：各能力矩阵、发布前收口审计（PURESIMT / BUILD_SYSTEM / CUCC_OPTION / BLAS / mapping / CURRENT_STATE / RELEASE_READINESS）。
 11. `01_Design/ASCEND_RESEARCH_NOTES.md`：CANN/SIMT/runtime 事实库。
 12. `reference/asc-devkit-simt/`：Ascend SIMT API 参考头和示例。
-13. `tools/real_test/diag/`：历史 runtime context 排障工具和案例。
+13. `REPOSITORY_FILE_GUIDE.md`：当前每个 Git 跟踪文件的职责、调用链和定位方法。
+14. `tools/real_test/diag/`：历史 runtime context 排障工具和案例。
 
 ## 目录结构
 
@@ -39,6 +40,7 @@ docs/
 - `02_Architecture/` 面向原理、机制与内部实现（当前权威版本；v1 存档在 archive/）。
 - `03_Scope/` 面向"能用/不能用"（汇总层，逐项证据指向 03_Comparison 矩阵）。
 - `03_Comparison/` 面向功能状态、产物证据、真机结论和发布审计。
+- `REPOSITORY_FILE_GUIDE.md` 面向维护者的文件级导航；每次新增/移动文件必须同步更新。
 - 已完成的大项目与 review 计划归档在 `docs/archive/`，例如
   `docs/archive/CUDA_LARGE_PROJECT_COMPATIBILITY_PLAN.md`。
 - `01_Design/ASCEND_RESEARCH_NOTES.md` 面向底层事实和 API 核查。

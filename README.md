@@ -19,7 +19,7 @@ Ascend 950 的 AI Core 支持 SIMT。main 不再走 Python kernel 转换或新�
 main 不生成 `__simt_vf__`、`__global__[aicore]`、`cce::async_invoke` 包装源文件。
 `include/bridge/kernel/simt_adaptor.h` 只提供必要的 SIMT 原语别名。
 
-## 发布前状态（2026-09-02）
+## 当前状态（2026-09-02）
 
 - main 使用 puresimt 直通：`cucc` 不调用 Python kernel converter，不生成
   `.cce/.ptx/.cubin/.fatbin` 等中间产物；CUDA `.cu` 直接进入
@@ -31,6 +31,69 @@ main 不生成 `__simt_vf__`、`__global__[aicore]`、`cce::async_invoke` 包装
   [`server_cmd.txt`](tools/real_test/server_cmd.txt) 输出为准。
 - 本机 macOS 只执行静态/mock 测试，不能替代 CANN/NPU 验证。BLAS bridge 仍是
   experimental secondary capability，不改变主线回归结论。
+
+## 二进制安装树：使用者优先
+
+如果你只是要使用 CUDA 代码，不需要理解本仓库的全部源码。先在一台装有 CANN 和
+Ascend NPU 的 Linux 机器上构建一次 bridge，得到可复制的二进制安装树：
+
+```bash
+cd /home/t50063365/workspace/repos/cu2cce-bridge
+source /usr/local/Ascend/latest/bin/setenv.bash  # 或该 CANN 版本提供的 set_env.sh
+bash tools/real_test/env_probe.sh
+bash tools/real_test/build_bridge.sh --prefix /opt/cu2cce-bridge
+```
+
+构建完成后，`/opt/cu2cce-bridge` 就是使用者侧的 SDK 前缀。它至少包含：
+
+```text
+/opt/cu2cce-bridge/
+├── bin/cucc             # 直接编译/链接 CUDA .cu
+├── bin/cmake_cce       # CMake 入口
+├── bin/make_cce        # Make 入口
+├── bin/ninja_cce       # Ninja 入口
+├── lib/libcce_bridge_runtime.so
+├── include/             # CUDA/SIMT/runtime 兼容头
+├── cmake_modules/       # FindCUDA/FindCUDAToolkit 兼容模块
+├── config/              # cucc 规则、shim 和 artifact 契约
+└── tools/               # driver、shim builder 和 host wrapper
+```
+
+在另一台**相同 CPU 架构、兼容 CANN 版本和 Ascend NPU**的机器上使用时，只需要复制这个
+安装树，并设置 CANN 与 bridge 环境：
+
+```bash
+source /usr/local/Ascend/latest/bin/setenv.bash
+export CUCC_PATH=/opt/cu2cce-bridge
+export CUDA_PATH=$CUCC_PATH
+export CANN_BASE=/usr/local/Ascend/latest
+export PATH=$CUCC_PATH/bin:$CUCC_PATH/tools:$PATH
+export LD_LIBRARY_PATH="$CUCC_PATH/lib:$CANN_BASE/lib64:$CANN_BASE/runtime/lib64${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+
+cucc --version
+mkdir -p build
+cucc -c vector_add.cu -MD -MF build/vector_add.d -o build/vector_add.o
+cucc build/vector_add.o -o build/vector_add
+./build/vector_add
+```
+
+`cucc` 会将 CUDA `.cu` 直接交给 Ascend `ccec`，生成标准 `.o`/ELF 产物，不生成
+`.cce`、`.ptx`、`.cubin` 或 `.fatbin`。二进制安装树不是完整 NVIDIA CUDA Toolkit，
+仍然需要目标机安装匹配的 CANN 和可用 NPU；`sm_*` 不是 Ascend 架构，目标由
+`CU2CCE_NPU_ARCH`/`dav-*` 规则选择。
+
+已有 CMake/Make/Ninja 工程可以直接使用安装树中的入口：
+
+```bash
+cmake_cce -S . -B build
+cmake_cce --build build --parallel
+make_cce -C . -j
+ninja_cce -C build
+```
+
+CMake 的 configure/build、Make/Ninja 产物和限制见
+[`docs/REPOSITORY_FILE_GUIDE.md`](docs/REPOSITORY_FILE_GUIDE.md) 与
+[`QUICKSTART.md`](QUICKSTART.md)。
 
 ## 项目原理与设计文档
 
@@ -182,6 +245,7 @@ CUDA cuBLAS to CANN ACL CBLAS development is maintained separately on
 - `tools/build_shim_tree.py` + `config/shim_layout.json`：假 CUDA SDK 目录的单一清单与构建器。
 - `docs/03_Comparison/BUILD_SYSTEM_COMPATIBILITY_MATRIX.md`：大型项目构建兼容矩阵。
 - `docs/03_Comparison/RELEASE_READINESS_2026-09-02.md`：发布前 code review、产物和仓库卫生收口。
+- `docs/REPOSITORY_FILE_GUIDE.md`：目录/文件职责、调用链和问题定位地图。
 - `examples/external/cuda_samples_project/`：固定版本 NVIDIA CUDA Samples 的 CMake 外部工程 harness。
 - `examples/puresimt/`：维护中的 CUDA examples。
 - `tools/real_test/server_cmd.txt`：唯一主线真机回归入口。
