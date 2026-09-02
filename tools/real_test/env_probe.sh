@@ -233,8 +233,14 @@ DEVICE_QUERY="0"
 if [ -f "$PROBE_SRC" ] && command -v g++ >/dev/null 2>&1 && [ -n "$ATH" ]; then
     if g++ "$PROBE_SRC" -o "$PROBE_BIN" -I "$ATH/include" -L "$ATH/lib64" \
            -lascendcl -lpthread -ldl >>"$PROBE_LOG" 2>&1; then
-        if LD_LIBRARY_PATH="$ATH/lib64:$ASCEND_HOME/driver/lib64:${LD_LIBRARY_PATH:-}" \
-           "$PROBE_BIN" >>"$PROBE_LOG" 2>&1; then
+        if [ -n "${LD_LIBRARY_PATH:-}" ]; then
+            LD_LIBRARY_PATH="$ATH/lib64:$ASCEND_HOME/driver/lib64:$LD_LIBRARY_PATH" \
+                "$PROBE_BIN" >>"$PROBE_LOG" 2>&1
+        else
+            LD_LIBRARY_PATH="$ATH/lib64:$ASCEND_HOME/driver/lib64" \
+                "$PROBE_BIN" >>"$PROBE_LOG" 2>&1
+        fi
+        if [ "$?" -eq 0 ]; then
             DEVICE_QUERY="1"
             ok "运行时设备查询成功（有可用 NPU，输出见 probe.log）"
         else

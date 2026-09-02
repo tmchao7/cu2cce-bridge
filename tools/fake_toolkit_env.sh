@@ -24,6 +24,51 @@ cu2cce_host_triple() {
     printf '%s-%s\n' "$arch" "$os"
 }
 
+# Resolve the actual ccec binary without assuming one CANN installation layout.
+# Explicit CCEC_PATH wins; otherwise accept CANN_BASE/ASCEND_TOOLKIT_HOME and
+# versioned /usr/local/Ascend/cann-* trees. The result is absolute because
+# cmake_cce may change directory before the build phase.
+cu2cce_resolve_ccec() {
+    local requested="${CCEC_PATH:-}" candidate directory
+    if [ -n "$requested" ]; then
+        if [ ! -x "$requested" ]; then
+            echo "cu2cce: requested CCEC_PATH is not executable: $requested" >&2
+            return 1
+        fi
+        directory="$(cd "$(dirname "$requested")" && pwd -P)" || return 1
+        printf '%s/%s\n' "$directory" "$(basename "$requested")"
+        return 0
+    fi
+    local candidates=(
+        "${CANN_BASE:-/usr/local/Ascend/latest}/bin/ccec"
+        "${ASCEND_TOOLKIT_HOME:-/usr/local/Ascend/ascend-toolkit/latest}/bin/ccec"
+        "/usr/local/Ascend/latest/bin/ccec"
+    )
+    shopt -s nullglob
+    candidates+=(/usr/local/Ascend/cann-*/bin/ccec)
+    shopt -u nullglob
+    for candidate in "${candidates[@]}"; do
+        if [ -x "$candidate" ]; then
+            directory="$(cd "$(dirname "$candidate")" && pwd -P)" || return 1
+            printf '%s/%s\n' "$directory" "$(basename "$candidate")"
+            return 0
+        fi
+    done
+    return 1
+}
+
+# Prepend library directories without creating a trailing ':' when the caller
+# did not inherit LD_LIBRARY_PATH. Empty path entries make the dynamic loader
+# search the current directory and are unsafe for build wrappers.
+cu2cce_prepend_ld_library_path() {
+    local prefix="$1" existing="${LD_LIBRARY_PATH:-}"
+    if [ -n "$existing" ]; then
+        printf '%s:%s\n' "$prefix" "$existing"
+    else
+        printf '%s\n' "$prefix"
+    fi
+}
+
 # Resolve one Ascend architecture for all build wrappers. CUCC_TARGETS is the
 # cu-bridge-compatible alias, but unlike MACA's multi-target list the current
 # ccec puresimt path accepts exactly one dav-* target. Explicit invalid input

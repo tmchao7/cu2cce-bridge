@@ -53,6 +53,36 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         self.assertFalse(report["reference_assets"]["missing_findcuda_macros"])
         self.assertTrue(report["reference_assets"]["missing_link_names"])
 
+    def test_cmake_cce_accepts_explicit_ccec_path_without_cann_base_bin(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_name:
+            tmp = Path(tmp_name)
+            fake_bin = tmp / "bin"
+            fake_bin.mkdir()
+            fake_cmake = fake_bin / "cmake"
+            fake_cmake.write_text("#!/bin/sh\nprintf '%s\n' \"CCEC_PATH=$CCEC_PATH\" > \"$CMAKE_LOG\"\n", encoding="utf-8")
+            fake_cmake.chmod(0o755)
+            explicit_ccec = tmp / "versioned-cann/bin/ccec"
+            explicit_ccec.parent.mkdir(parents=True)
+            explicit_ccec.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+            explicit_ccec.chmod(0o755)
+            env = dict(os.environ)
+            env.update({
+                "PATH": f"{fake_bin}{os.pathsep}{env.get('PATH', '')}",
+                "CUCC_PATH": str(ROOT),
+                "CCEC_PATH": str(explicit_ccec),
+                "CANN_BASE": str(tmp / "missing-cann"),
+                "ASCEND_TOOLKIT_HOME": str(tmp / "ascend"),
+                "CU2CCE_NPU_ARCH": "dav-c310-vec",
+                "CU2CCE_CMAKE_SHIM_DIR": str(tmp / "shim"),
+                "CMAKE_LOG": str(tmp / "cmake.log"),
+            })
+            result = subprocess.run(
+                [str(ROOT / "tools/cmake_cce"), "-S", str(tmp), "-B", str(tmp / "build")],
+                env=env, capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn(str(explicit_ccec), (tmp / "cmake.log").read_text(encoding="utf-8"))
+
     def test_cmake_cce_query_modes_bypass_cann_environment_checks(self) -> None:
         # The reference cmake_maca forwards --version/-E/--help directly to
         # cmake. cmake_cce must do the same before requiring an Ascend install,
@@ -189,7 +219,7 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         self.assertIn("db3eea23946bca2e90a75eca2b5b3e07158a9e11", profile)
         self.assertIn("CUDA_SAMPLES_SOURCE_DIR", fetch)
         self.assertIn("checkout --detach", fetch)
-        self.assertTrue((ROOT / "plans/cuda-large-project-compatibility.md").is_file())
+        self.assertTrue((ROOT / "docs/archive/CUDA_LARGE_PROJECT_COMPATIBILITY_PLAN.md").is_file())
         # Diagnostic samples must be compiled by the harness before any run
         # attempt: earlier server runs printed empty [DIAG-ONLY] tails because
         # only vectorAdd/matrixMul were in the required "--target" list.
@@ -1137,6 +1167,52 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
             self.assertTrue(make_lines[0].endswith("/make"), make_lines)
             self.assertEqual(make_lines[1:], ["ARG=-j", "ARG=3", "ARG=app"])
 
+    def test_cmake_cce_forwards_config_and_clean_first_for_ninja(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_name:
+            tmp = Path(tmp_name)
+            fake_bin = tmp / "bin"
+            fake_bin.mkdir()
+            fake_ninja = fake_bin / "ninja"
+            fake_ninja.write_text(
+                "#!/bin/sh\nprintf 'RUN\n' >> \"$GENERATOR_LOG\"\n"
+                "for arg in \"$@\"; do printf 'ARG=%s\n' \"$arg\" >> \"$GENERATOR_LOG\"; done\n",
+                encoding="utf-8",
+            )
+            fake_ninja.chmod(0o755)
+            cann_bin = tmp / "cann/bin"
+            cann_bin.mkdir(parents=True)
+            ccec = cann_bin / "ccec"
+            ccec.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+            ccec.chmod(0o755)
+            build = tmp / "build"
+            build.mkdir()
+            (build / "build.ninja").write_text("# fake\n", encoding="utf-8")
+            (build / "build-Release.ninja").write_text("# fake config\n", encoding="utf-8")
+            log = tmp / "generator.log"
+            env = dict(os.environ)
+            env.update({
+                "PATH": f"{fake_bin}{os.pathsep}{env.get('PATH', '')}",
+                "CUCC_PATH": str(ROOT),
+                "CANN_BASE": str(tmp / "cann"),
+                "ASCEND_TOOLKIT_HOME": str(tmp / "ascend"),
+                "CCEC_PATH": str(ccec),
+                "CU2CCE_NPU_ARCH": "dav-c310-vec",
+                "CU2CCE_CMAKE_SHIM_DIR": str(tmp / "shim"),
+                "GENERATOR_LOG": str(log),
+            })
+            result = subprocess.run(
+                [str(ROOT / "tools/cmake_cce"), "--build", str(build),
+                 "--config", "Release", "--clean-first", "--target", "app"],
+                env=env, capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            lines = log.read_text(encoding="utf-8").splitlines()
+            self.assertEqual(lines[:2], ["RUN", "ARG=-t"], lines)
+            self.assertIn("ARG=clean", lines)
+            self.assertIn("ARG=-f", lines)
+            self.assertIn("ARG=build-Release.ninja", lines)
+            self.assertIn("ARG=app", lines)
+
     def test_cmake_cce_build_phase_dispatches_to_make_ninja_entries(self) -> None:
         # deal_build_param parity (cu-bridge cmake_mock:64-131): cmake_cce
         # --build must route through make_cce/ninja_cce (generator chosen by
@@ -1558,6 +1634,47 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
             self.assertIn("shared=STATIC", result.stdout)
             self.assertTrue(dep.is_file())
 
+    def test_findcuda_rejects_missing_bridge_install_when_required(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_name:
+            tmp = Path(tmp_name)
+            script = tmp / "probe.cmake"
+            script.write_text(
+                f"set(ENV{{CUCC_PATH}} \"{tmp / 'missing'}\")\n"
+                f"set(CUDA_FIND_REQUIRED TRUE)\ninclude(\"{ROOT / 'cmake_modules/FindCUDA.cmake'}\")\n",
+                encoding="utf-8",
+            )
+            result = subprocess.run(
+                ["cmake", "-P", str(script)], capture_output=True, text=True, check=False
+            )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("bridge", result.stderr.lower())
+
+    def test_findcuda_exports_common_legacy_compatibility_variables(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_name:
+            tmp = Path(tmp_name)
+            install = tmp / "install"
+            (install / "bin").mkdir(parents=True)
+            (install / "include").mkdir()
+            (install / "lib").mkdir()
+            (install / "bin/cucc").write_text("#!/bin/sh\n", encoding="utf-8")
+            (install / "bin/cucc").chmod(0o755)
+            (install / "lib/libcce_bridge_runtime.so").write_bytes(b"bridge")
+            script = tmp / "probe.cmake"
+            script.write_text(
+                f"set(ENV{{CUCC_PATH}} \"{install}\")\n"
+                f"include(\"{ROOT / 'cmake_modules/FindCUDA.cmake'}\")\n"
+                "if(NOT DEFINED CUDA_VERSION_STRING OR NOT DEFINED CUDA_HAS_FP16 OR "
+                "NOT DEFINED CUDA_CUDART_LIBRARY_VAR OR NOT DEFINED CUDA_SDK_ROOT_DIR OR "
+                "NOT DEFINED CUDA_cudart_static_LIBRARY OR NOT DEFINED CUDA_cudadevrt_LIBRARY)\n"
+                "message(FATAL_ERROR \"missing legacy CUDA compatibility variable\")\n"
+                "endif()\n",
+                encoding="utf-8",
+            )
+            result = subprocess.run(
+                ["cmake", "-P", str(script)], capture_output=True, text=True, check=False
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_findcuda_covers_remaining_reference_helper_names_with_npu_guards(self) -> None:
         findcuda = (ROOT / "cmake_modules/FindCUDA.cmake").read_text(encoding="utf-8")
         for helper in (
@@ -1634,6 +1751,35 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         self.assertIn("-L$(CUDA_PATH)/lib64 -lcudart", makefile)
         server_cmd = (ROOT / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
         self.assertIn("make_gxx_link: plain-g++ link with -lcudart -> bridge runtime", server_cmd)
+
+    def test_wrappers_export_consistent_nonempty_library_environment(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_name:
+            tmp = Path(tmp_name)
+            recorder = tmp / "record-env.sh"
+            recorder.write_text(
+                "#!/bin/sh\nprintf 'LD_LIBRARY_PATH=%s\nCUDA_HOME=%s\nCUDA_PATH=%s\n' \"$LD_LIBRARY_PATH\" \"$CUDA_HOME\" \"$CUDA_PATH\" > \"$ENV_LOG\"\n",
+                encoding="utf-8",
+            )
+            recorder.chmod(0o755)
+            env = dict(os.environ)
+            env.update({
+                "CUCC_PATH": str(ROOT),
+                "CU2CCE_HOME": str(tmp / "shim-home"),
+                "CANN_BASE": str(tmp / "cann"),
+                "ASCEND_TOOLKIT_HOME": str(tmp / "ascend"),
+                "CU2CCE_NPU_ARCH": "dav-c310-vec",
+                "ENV_LOG": str(tmp / "env.log"),
+            })
+            env.pop("LD_LIBRARY_PATH", None)
+            result = subprocess.run(
+                [str(ROOT / "tools/pre_cce"), str(recorder)],
+                env=env, capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            values = dict(line.split("=", 1) for line in (tmp / "env.log").read_text().splitlines())
+            self.assertTrue(values["LD_LIBRARY_PATH"])
+            self.assertFalse(values["LD_LIBRARY_PATH"].endswith(":"))
+            self.assertEqual(values["CUDA_HOME"], values["CUDA_PATH"])
 
     def test_pre_cce_preserves_argument_boundaries(self) -> None:
         # pre_cce receives an argv vector and must not reconstruct it through

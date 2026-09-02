@@ -228,3 +228,24 @@ cu-bridge 机制变化（升级 mock 分支/link.json 结构/新增入口）时�
 
 成功路径只在终端打印一行 artifact summary，详细结果写入
 `build/real_test/puresimt/artifacts/`；失败路径输出有限 tail，不隐藏产物检查原因。
+
+## 2026-09-02 发布前收口
+
+本轮在不复制 MACA 后端能力的前提下补齐了几项机制边界：
+
+- `cmake_cce` 接受显式 `CCEC_PATH`，并兼容版本化 CANN 安装目录；`--config` 在
+  Ninja Multi-Config 存在 `build-<config>.ninja` 时传为 `-f`，`--clean-first` 先执行
+  generator clean。
+- Make/Ninja/pre/CMake 的 `LD_LIBRARY_PATH` 拼接不再产生尾部空路径；Make/pre 同样
+  导出 `CUDA_HOME` 和 `runtime/lib64`，保证各入口环境一致。
+- 直接 `cucc` 与 wrapper 复用 `device_arch.sh`；`.cu.cc`、`-code=sm_*` 和绝对 CUDA
+  toolkit/stub library 路径按 CUDA 输入/过滤策略处理，不能泄漏给 Ascend ccec。
+- artifact verifier 的 `kind: file` 要求普通文件或有效 symlink；legacy FindCUDA
+  在 `REQUIRED` 发现阶段校验最小 bridge，并提供常用版本/runtime 兼容变量。
+- 顶层 README/Quickstart/文档导航只保留单一操作入口；已完成计划和 review spec
+  统一归档到 `docs/archive/`，构建/扫描状态由 `.gitignore` 排除。
+
+仍有意保留的限制：默认 persistent shim 是历史兼容行为；并发或多 bridge 版本构建
+必须通过 `CU2CCE_CMAKE_SHIM_DIR` 或 `CU2CCE_SHIM_ISOLATE=1` 隔离。Ascend 多 `.cu`
+静态库重复 registration、PTX/CUBIN/FATBIN、RDC/device-link 和未验证 CUDA library
+不会因 parity 目标被伪装成已支持能力。

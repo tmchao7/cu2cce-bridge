@@ -85,4 +85,4 @@ CMakeLists 本身保持原样（`project(... LANGUAGES CXX CUDA)`、
 ## 6. 历史文档
 
 本文件取代 `docs/archive/BUILD_COMPATIBILITY_MODEL_v1.md`；override 机制
-的设计过程记录在 `docs/archive/` 与 `plans/cuda-large-project-compatibility.md`。
+的设计过程记录在 `docs/archive/` 与 `docs/archive/CUDA_LARGE_PROJECT_COMPATIBILITY_PLAN.md`。

@@ -5,11 +5,10 @@
 
 # macOS
 .DS_Store
-**/.DS_Store
 
 # 构建产物
 /build/
-build/
+**/build/
 build_out/
 *.o
 *.obj
@@ -29,6 +28,8 @@ Makefile
 !examples/build_compat/make/Makefile
 !examples/build_compat/make_gxx_link/Makefile
 CMakePresets.json.local
+CMakeUserPresets.json
+compile_commands.json
 
 # cucc/make_cce 临时工作目录（对应 cu-bridge 的 CUBRIDGE_HOME）
 # 默认 ~/cu2cce-bridge，若在仓库内运行 make_cce 会生成
@@ -92,6 +93,7 @@ tools/real_test/SERVER_STEPS_*.txt
 *.bak
 *.tmp
 
-# Mimosa 安全扫描状态（本地工具产物，不提交）
+# 本地工具/运行时状态（不提交）
 .mimosa/
+.worktrees/
 .cu2cce-cache/

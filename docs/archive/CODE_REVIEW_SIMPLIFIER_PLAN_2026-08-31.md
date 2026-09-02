@@ -8,7 +8,7 @@
 
 **Tech Stack:** Bash, Python 3, CMake language modules, JSON rule data, Python `unittest`.
 
-**Spec:** `docs/superpowers/specs/2026-08-31-code-review-simplifier-design.md`
+**Spec:** `docs/archive/CODE_REVIEW_SIMPLIFIER_SPEC_2026-08-31.md`
 
 ## Global Constraints
 

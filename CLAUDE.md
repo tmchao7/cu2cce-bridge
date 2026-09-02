@@ -42,21 +42,26 @@ cu2cce-bridge 是 CUDA→昇腾 NPU 的兼容层，目标是让用户保留原�
 3. 只 push `gitcode`，不要 push GitHub `origin`。
 4. 代码修改后执行 `git diff --check`、`bash -n`；能运行时再执行
    `bash tests/mock_acl/syntax_check.sh`。
-5. main 的回归标准是 `PURESIMT_REGRESSION_PASS`；BLAS experimental 失败不改变
-   puresimt 主线结论。
+5. full profile 的回归标准同时包含 `FAIL=0`、设备健康、CMake/Make/Ninja/cuсc
+   和 artifact contract 标志；BLAS experimental 失败不改变主线结论。
 
 ## 真机主线命令
 
 ```bash
 cd /home/t50063365/workspace/repos/cu2cce-bridge
-git pull --ff-only gitcode main
-bash tools/real_test/server_cmd.txt
+REMOTE="${CU2CCE_REGRESSION_REMOTE:-origin}"
+git fetch "$REMOTE" main
+git pull --ff-only "$REMOTE" main
+bash tools/real_test/clean.sh
+CU2CCE_REGRESSION_REMOTE="$REMOTE" CU2CCE_REGRESSION_PROFILE=full \
+  bash tools/real_test/server_cmd.txt
 ```
 
 ## 交付与真机回归纪律
 
 1. 每次对仓库做出实际代码、测试或文档修改后，必须先完成本地可行验证，再创建 git commit。
-2. 提交完成后必须推送到 `gitcode` 远端；默认主线为 `gitcode/main`，不要只停留在本地或只推 `origin`。
+2. 提交完成后必须推送到 `gitcode` 远端的 `main`；服务器 checkout 的 fetch remote
+   可以命名为 `origin`，但不能指向 GitHub。
 3. 每次对话交付时，必须明确告诉用户服务器执行步骤，至少包括：切换到目标分支、从 `gitcode` 更新/拉取、执行 `tools/real_test/clean.sh`、最后执行 `tools/real_test/server_cmd.txt`。
 4. 服务器命令应使用当前实际提交对应的分支和提交号；如不是 `main`，不得把 `main` 命令写成默认回归命令。
 5. 服务器回归命令模板：
@@ -64,7 +69,8 @@ bash tools/real_test/server_cmd.txt
 ```bash
 cd /home/t50063365/workspace/repos/cu2cce-bridge
 git switch <目标分支>
-git pull --ff-only gitcode <目标分支>
+git fetch <remote> <目标分支>
+git pull --ff-only <remote> <目标分支>
 bash tools/real_test/clean.sh
 bash tools/real_test/server_cmd.txt
 ```

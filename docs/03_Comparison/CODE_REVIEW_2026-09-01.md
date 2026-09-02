@@ -345,7 +345,8 @@ generated/prelude.cu` 这类合法 host 参数可能触发 CUDA/SIMT 注入。�
 ## 验证
 
 本机 macOS 无 CANN/NPU，因此只执行静态、mock 和契约验证；真实产物与设备语义仍需服务器
-回归确认。当前验证包括：
+回归确认。2026-09-02 的发布前新增审计与目录卫生约定见
+`docs/03_Comparison/RELEASE_READINESS_2026-09-02.md`。当前验证包括：
 
 ```text
 Python unittest 全量（191 tests）

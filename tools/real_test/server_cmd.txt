@@ -210,7 +210,11 @@ REPO_LIB="$PWD/build/real_test/install/lib"
 if [ ! -e "$REPO_LIB/libcce_bridge_runtime.so" ]; then
     REPO_LIB="$PWD/build/core/lib"
 fi
-export LD_LIBRARY_PATH="$REPO_LIB:$CANN_BASE/lib64:${LD_LIBRARY_PATH:-}"
+if [ -n "${LD_LIBRARY_PATH:-}" ]; then
+    export LD_LIBRARY_PATH="$REPO_LIB:$CANN_BASE/lib64:$LD_LIBRARY_PATH"
+else
+    export LD_LIBRARY_PATH="$REPO_LIB:$CANN_BASE/lib64"
+fi
 echo "REPO_INC=$REPO_INC"
 echo "NVIDIA_COMMON=$NVIDIA_COMMON"
 echo "REPO_LIB=$REPO_LIB"
@@ -235,7 +239,11 @@ fi
 if [ -e "$PWD/build/real_test/install/lib/libcce_bridge_runtime.so" ]; then
     REPO_LIB="$PWD/build/real_test/install/lib"
 fi
-export LD_LIBRARY_PATH="$REPO_LIB:$CANN_BASE/lib64:${LD_LIBRARY_PATH:-}"
+if [ -n "${LD_LIBRARY_PATH:-}" ]; then
+    export LD_LIBRARY_PATH="$REPO_LIB:$CANN_BASE/lib64:$LD_LIBRARY_PATH"
+else
+    export LD_LIBRARY_PATH="$REPO_LIB:$CANN_BASE/lib64"
+fi
 mark_timing env_bridge_rebuild
 
 # 补齐依据（只读、非门禁）：枚举本机 CANN simt_api 头与声明符号。
@@ -453,8 +461,13 @@ printf '\n===== [3/7] puresimt CUDA Samples + operator tests 编译 + 运行 ===
 if [ "$REGRESSION_PROFILE" = fast ]; then
     echo '[INFO] puresimt core subset (profile=fast): vectorAdd matrixMul event/multiKernel/atomic/math minimal；其余 17 个用例由 full 画像覆盖'
 fi
-CCEC="$CANN_BASE/bin/ccec"
-PS_FLAGS="-x asc --cce-aicore-arch=dav-c310-vec --enable-simt -std=c++17"
+CCEC="${CCEC_PATH:-$CANN_BASE/bin/ccec}"
+if [ -z "${CU2CCE_NPU_ARCH:-}" ]; then
+    CU2CCE_NPU_ARCH="$(bash tools/device_arch.sh 2>/dev/null)"
+fi
+CU2CCE_NPU_ARCH="${CU2CCE_NPU_ARCH:-dav-c310-vec}"
+export CU2CCE_NPU_ARCH
+PS_FLAGS="-x asc --cce-aicore-arch=$CU2CCE_NPU_ARCH --enable-simt -std=c++17"
 for pair in \
     'vectorAdd/vectorAdd.cu|Test PASSED' \
     'matrixMul/matrixMul.cu|Result = PASS' \

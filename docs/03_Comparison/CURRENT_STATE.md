@@ -1,10 +1,10 @@
 # 当前状态（main / puresimt）
 
-更新时间：2026-08-24
+更新时间：2026-09-02
 
 ## 结论
 
-详细项目原理文档：[`PROJECT_ARCHITECTURE.md`](../01_Design/PROJECT_ARCHITECTURE.md)。
+详细项目原理文档：[`docs/02_Architecture/01_global_overview.md`](../02_Architecture/01_global_overview.md)；文档总导航见 [`docs/README.md`](../README.md)。
 
 main 已锁定 puresimt：用户写原始 CUDA `.cu`，ccec 通过
 `--enable-simt --cce-aicore-arch=dav-c310-vec` 直接编译，host API 通过
@@ -13,16 +13,25 @@ main 已锁定 puresimt：用户写原始 CUDA `.cu`，ccec 通过
 
 ## 真机基线
 
-`tools/real_test/server_cmd.txt` 是唯一验收入口，当前包含 23 个真机用例和 cucc
-直通检查，并通过 `CU2CCE_REGRESSION_PROFILE` 支持三档画像：`fast`（默认，
+`tools/real_test/server_cmd.txt` 是唯一验收入口，当前包含 puresimt、cucc 直通、
+CMake/Make/Ninja 和产物契约检查，并通过 `CU2CCE_REGRESSION_PROFILE` 支持三档画像：`fast`（默认，
 核心子集：官方两样例 + event/multiKernel/atomic/math minimal + CMake 两代表
 案例）、`external`（bridge 重编 + 全部外部 NVIDIA 样本，含诊断样本）、
 `full`（历史全量）。跳过段输出 `[SKIP]` 与汇总 `*_SECTION_SKIPPED`，不计
 FAIL 也不冒充 PASS；验收标志在 full 或 fast 执行段内语义不变。验收标志：
 
 ```text
-FAIL=0 DEVICE_HEALTHY=1 PURESIMT_REGRESSION_PASS
+FAIL=0 DEVICE_HEALTHY=1 TEST_BLOCKED_BY_DEVICE=0
+PURESIMT_REGRESSION_PASS CMAKE_CCE_REGRESSION_PASS
+BUILD_COMPATIBILITY_REGRESSION_PASS CUCC_RULES_REGRESSION_PASS
+LARGE_PROJECT_REGRESSION_PASS CUDA_SAMPLES_CMAKE_REGRESSION_PASS
+ARTIFACT_CONTRACT_REGRESSION_PASS
 ```
+
+发布前最新服务器 full profile 由维护者报告 `FAIL=0`、`DEVICE_HEALTHY=1`、
+`TEST_BLOCKED_BY_DEVICE=0`；本机只做静态/mock 验证。四层命令与产物说明见：
+`docs/03_Comparison/RELEASE_READINESS_2026-09-02.md`。并发/多版本 CMake 构建应显式
+设置 `CU2CCE_CMAKE_SHIM_DIR` 或 `CU2CCE_SHIM_ISOLATE=1`。
 
 完整逐用例和 API 状态见：
 [PURESIMT_COMPATIBILITY_MATRIX.md](PURESIMT_COMPATIBILITY_MATRIX.md)。

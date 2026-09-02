@@ -112,8 +112,8 @@ exec "$@"
 - `tests/test_cucc_rules.py`
 - `docs/03_Comparison/CUBRIDGE_CMAKE_MAKE_DESIGN_ANALYSIS.md`
 - `docs/03_Comparison/CODE_REVIEW_2026-08-31.md`
-- `docs/superpowers/specs/2026-08-31-code-review-simplifier-design.md`
-- `docs/superpowers/plans/2026-08-31-code-review-simplifier.md`
+- `docs/archive/CODE_REVIEW_SIMPLIFIER_SPEC_2026-08-31.md`
+- `docs/archive/CODE_REVIEW_SIMPLIFIER_PLAN_2026-08-31.md`
 
 ## 验证证据
 

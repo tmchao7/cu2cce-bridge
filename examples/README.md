@@ -33,7 +33,8 @@ The complete list and expected output strings are maintained in
 
 
 项目整体原理和测试设计哲学见
-`docs/01_Design/PROJECT_ARCHITECTURE.md`。
+`docs/02_Architecture/01_global_overview.md`；发布前状态见
+`docs/03_Comparison/RELEASE_READINESS_2026-09-02.md`。
 
 ## CMake compatibility examples
 

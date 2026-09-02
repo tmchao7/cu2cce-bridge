@@ -12,7 +12,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 import cu2cce_driver  # noqa: E402
-from cu2cce_driver import DriverError, RuleDriver, scan_device_double_usage  # noqa: E402
+from cu2cce_driver import DriverError, RuleDriver, main, scan_device_double_usage  # noqa: E402
 
 
 class CuccRuleDriverTest(unittest.TestCase):
@@ -266,6 +266,21 @@ class CuccRuleDriverTest(unittest.TestCase):
         with self.assertRaises(DriverError):
             self.driver().prepare(["main.o", "-Xlinker"])
 
+    def test_value_bearing_filter_rejects_another_option_as_its_value(self) -> None:
+        with self.assertRaises(DriverError):
+            self.driver().prepare(["-c", "main.cu", "--cuda-path", "-o", "main.o"])
+
+    def test_driver_without_cucc_path_does_not_inject_repository_runtime(self) -> None:
+        env = dict(self.env)
+        env.pop("CUCC_PATH", None)
+        prepared = RuleDriver(env=env).prepare(["-c", "main.cu", "-o", "main.o"])
+        self.assertNotIn("-lcce_bridge_runtime", prepared.args)
+        self.assertNotIn("./include", prepared.args)
+
+    def test_hostcc_name_requires_a_value(self) -> None:
+        result = main(["--proxy-mode", "--hostcc-mode", "--hostcc-name"])
+        self.assertNotEqual(result, 0)
+
     def test_value_bearing_rule_rejects_missing_value(self) -> None:
         for flag in ("-ccbin", "-Xcompiler", "--library-path"):
             with self.subTest(flag=flag), self.assertRaises(DriverError):
@@ -279,6 +294,15 @@ class CuccRuleDriverTest(unittest.TestCase):
         self.assertFalse(prepared.source_is_cuda)
         self.assertNotIn("-x", prepared.args)
         self.assertNotIn("--enable-simt", prepared.args)
+
+    def test_cuda_cc_suffix_uses_the_cuda_phase(self) -> None:
+        (self.cucc / "include/cuda_runtime.h").touch()
+        prepared = self.driver().prepare(["-c", "kernel.cu.cc", "-o", "kernel.o"])
+        self.assertTrue(prepared.source_is_cuda)
+        self.assertIn("-x", prepared.args)
+        self.assertIn("asc", prepared.args)
+        self.assertIn("--enable-simt", prepared.args)
+        self.assertIn("cuda_runtime.h", " ".join(prepared.args))
 
     def test_source_without_c_is_compile_and_link(self) -> None:
         prepared = self.driver().prepare(["main.cu", "-o", "app"])
@@ -297,10 +321,21 @@ class CuccRuleDriverTest(unittest.TestCase):
         # stray -dlink/--device-link must not hard-crash configure. The flag
         # is dropped by the rules and the phase degrades to a normal link.
         prepared = self.driver().prepare(["main.cu", "-o", "app", "-dlink"])
-        self.assertEqual(prepared.phase, "device_link")
+        self.assertEqual(prepared.phase, "link")
         self.assertEqual(prepared.mode, "link")
+        self.assertIn("-lcce_bridge_runtime", prepared.args)
+        self.assertIn("-lascendcl", prepared.args)
         self.assertNotIn("-dlink", prepared.args)
         self.assertNotIn("--device-link", prepared.args)
+
+    def test_code_architecture_flag_is_dropped_and_can_feed_arch_macro(self) -> None:
+        prepared = self.driver(CU2CCE_ARCH_MACRO="auto").prepare([
+            "-c", "main.cu", "-code=sm_80", "-o", "main.o",
+        ])
+        self.assertNotIn("-code=sm_80", prepared.args)
+        self.assertIn("__CUDA_ARCH__=800", " ".join(prepared.args))
+        actions = [a for a in prepared.actions if a.argument == "-code=sm_80"]
+        self.assertEqual([a.action for a in actions], ["drop"])
 
     def test_new_large_project_flags_are_dropped(self) -> None:
         for flag in ("-maxrregcount", "-maxrregcount=128",
@@ -334,6 +369,17 @@ class CuccRuleDriverTest(unittest.TestCase):
         missing = Path(self.tmp.name) / "missing.rsp"
         with self.assertRaises(DriverError):
             self.driver().prepare([f"@{missing}", "-c", "main.cu", "-o", "main.o"])
+
+    def test_absolute_cuda_stub_library_path_is_dropped(self) -> None:
+        for stub in (
+            "/usr/local/cuda/lib64/stubs/libcudart.so",
+            "/usr/local/cuda/lib64/stubs/libcuda.so.1",
+        ):
+            with self.subTest(stub=stub):
+                prepared = self.driver().prepare(["main.o", stub, "-o", "app"])
+                self.assertNotIn(stub, prepared.args)
+                actions = [a for a in prepared.actions if a.argument == stub]
+                self.assertEqual([a.action for a in actions], ["drop"])
 
     def test_library_path_spelling_drops_cuda_shim_paths(self) -> None:
         cuda_path = self.cucc / "CUDA_DIR"
@@ -919,6 +965,33 @@ class CuccRuleDriverTest(unittest.TestCase):
             [str(driver), "--proxy-mode", "-c", "main.cu", "-o", "main.o"],
             env=env, capture_output=True, text=True)
         self.assertNotIn("[cu2cce]", quiet.stderr)
+
+    def test_validator_rejects_invalid_optional_value_policy(self) -> None:
+        import importlib.util
+        validator_path = Path(__file__).resolve().parents[1] / "tools/validate_cucc_rules.py"
+        spec = importlib.util.spec_from_file_location("validate_cucc_rules", validator_path)
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        with tempfile.TemporaryDirectory() as tmp_name:
+            path = Path(tmp_name) / "rules.json"
+            path.write_text(json.dumps({
+                "schema_version": 1,
+                "frontend": {},
+                "all": {
+                    "forward": [], "drop": [{
+                        "pattern": "--bad", "optional_value": True,
+                    }],
+                    "replace": [], "reject": [],
+                },
+                "compile": {"inject": []},
+                "link": {"inject": []},
+                "compile_and_link": {"inject": []},
+                "capabilities": {}, "diagnostics": {},
+            }), encoding="utf-8")
+            errors = module.validate(path)
+            self.assertTrue(any("optional_value requires" in error for error in errors), errors)
 
     def test_validator_rejects_invalid_replace_value_policy(self) -> None:
         import validate_cucc_rules  # noqa: PLC0415

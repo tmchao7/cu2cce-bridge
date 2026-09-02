@@ -6,11 +6,18 @@
 
 1. 设备健康门禁；
 2. CANN 环境与 bridge 重建；
-3. 官方 NVIDIA CUDA Samples 与最小 CUDA operator 编译、链接、运行；
-4. `PURESIMT_REGRESSION_PASS` 汇总。
+3. cucc 直通、CMake/Make/Ninja 构建和 artifact contract；
+4. 官方 NVIDIA CUDA Samples 与最小 CUDA operator 编译、链接、运行；
+5. 按 profile 输出主线/诊断汇总。
 
 ```bash
-bash tools/real_test/server_cmd.txt
+cd /home/t50063365/workspace/repos/cu2cce-bridge
+REMOTE="${CU2CCE_REGRESSION_REMOTE:-origin}"
+git fetch "$REMOTE" main
+git pull --ff-only "$REMOTE" main
+bash tools/real_test/clean.sh
+CU2CCE_REGRESSION_REMOTE="$REMOTE" CU2CCE_REGRESSION_PROFILE=full \
+  bash tools/real_test/server_cmd.txt
 ```
 
 ## 支持脚本
@@ -52,15 +59,16 @@ The CMake path is tested on the CMake compatibility branch with these projects:
 
 ```bash
 cmake_cce -S examples/cmake_demo -B /tmp/cu2cce-cmake-build
-cmake --build /tmp/cu2cce-cmake-build
+cmake_cce --build /tmp/cu2cce-cmake-build
 /tmp/cu2cce-cmake-build/cmake_vector_add
 ```
 
 The core integration is validated on Ascend. The smoke test passed the standard,
 multi-CUDA/static/shared, `CUDA::cudart`, legacy `FindCUDA`, and Ninja projects on
-2026-08-25. Advanced CUDA device-link, PTX/CUBIN/FATBIN, and unvalidated CUDA library
-packages remain experimental or unsupported. Set
-`CU2CCE_CMAKE_SHIM_DIR` to keep the compiler shim in a persistent directory.
+2026-09-02. Advanced CUDA device-link, PTX/CUBIN/FATBIN, and unvalidated CUDA library
+packages remain experimental or unsupported. Set `CU2CCE_CMAKE_SHIM_DIR` to keep the compiler shim in a persistent directory; use a
+different directory per concurrent project. The artifact contract additionally checks
+`.o/.a/.so/ELF`, `.d`, `NEEDED`, RPATH/RUNPATH and forbidden NVIDIA intermediates.
 
 ## cucc rule diagnostics
 

@@ -163,6 +163,19 @@
         "reason": "NVIDIA GPU code generation is not used by Ascend ccec"
       },
       {
+        "pattern": "code=*",
+        "reason": "NVIDIA code-generation architecture is not used by Ascend ccec"
+      },
+      {
+        "pattern": "-code=*",
+        "reason": "NVIDIA code-generation architecture is not used by Ascend ccec"
+      },
+      {
+        "pattern": "-code",
+        "takes_value": true,
+        "reason": "NVIDIA code-generation architecture is not used by Ascend ccec"
+      },
+      {
         "pattern": "-gencode",
         "takes_value": true,
         "reason": "NVIDIA GPU code generation is not used by Ascend ccec"
@@ -355,7 +368,8 @@
       {
         "pattern": "-maxrregcount",
         "takes_value": true,
-        "reason": "NVIDIA register-count control is not used by the Ascend SIMT backend"
+        "reason": "NVIDIA register-count control is not used by the Ascend SIMT backend",
+        "optional_value": true
       },
       {
         "pattern": "-maxrregcount=*",
@@ -364,7 +378,8 @@
       {
         "pattern": "--maxrregcount",
         "takes_value": true,
-        "reason": "NVIDIA register-count control is not used by the Ascend SIMT backend"
+        "reason": "NVIDIA register-count control is not used by the Ascend SIMT backend",
+        "optional_value": true
       },
       {
         "pattern": "--maxrregcount=*",
@@ -389,7 +404,8 @@
       {
         "pattern": "--machine",
         "takes_value": true,
-        "reason": "host machine type is fixed by the ccec toolchain"
+        "reason": "host machine type is fixed by the ccec toolchain",
+        "optional_value": true
       },
       {
         "pattern": "--machine=*",
@@ -416,7 +432,8 @@
       {
         "pattern": "--fmad",
         "takes_value": true,
-        "reason": "NVIDIA fmad control is not part of the ccec policy"
+        "reason": "NVIDIA fmad control is not part of the ccec policy",
+        "optional_value": true
       },
       {
         "pattern": "--fmad=*",
@@ -425,7 +442,8 @@
       {
         "pattern": "--prec-div",
         "takes_value": true,
-        "reason": "NVIDIA precision control is not part of the ccec policy"
+        "reason": "NVIDIA precision control is not part of the ccec policy",
+        "optional_value": true
       },
       {
         "pattern": "--prec-div=*",
@@ -434,7 +452,8 @@
       {
         "pattern": "--prec-sqrt",
         "takes_value": true,
-        "reason": "NVIDIA precision control is not part of the ccec policy"
+        "reason": "NVIDIA precision control is not part of the ccec policy",
+        "optional_value": true
       },
       {
         "pattern": "--prec-sqrt=*",
@@ -443,7 +462,8 @@
       {
         "pattern": "--ftz",
         "takes_value": true,
-        "reason": "NVIDIA flush-to-zero control is not part of the ccec policy"
+        "reason": "NVIDIA flush-to-zero control is not part of the ccec policy",
+        "optional_value": true
       },
       {
         "pattern": "--ftz=*",

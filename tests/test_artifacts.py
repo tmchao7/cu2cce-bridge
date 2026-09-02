@@ -174,6 +174,12 @@ class ArtifactVerifierTest(unittest.TestCase):
         self.assertIn('refusing to run regression on stale checkout', server)
         self.assertIn('exit 1', server)
 
+    def test_server_harness_uses_device_arch_and_avoids_empty_library_path(self) -> None:
+        server = (ROOT / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
+        self.assertIn('CU2CCE_NPU_ARCH="$(bash tools/device_arch.sh 2>/dev/null)"', server)
+        self.assertNotIn('PS_FLAGS="-x asc --cce-aicore-arch=dav-c310-vec', server)
+        self.assertNotIn('export LD_LIBRARY_PATH="$REPO_LIB:$CANN_BASE/lib64:${LD_LIBRARY_PATH:-}"', server)
+
     def test_server_harness_clears_previous_output_directories(self) -> None:
         server = (ROOT / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
         self.assertIn('find "$OUT" -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +', server)
@@ -318,6 +324,28 @@ class ArtifactVerifierTest(unittest.TestCase):
             self.assertFalse(result.ok)
             self.assertIn("missing NEEDED", result.format_details())
             self.assertIn("missing RPATH/RUNPATH", result.format_details())
+
+    def test_verifier_file_kind_requires_a_regular_file_or_valid_symlink(self) -> None:
+        module = self.load_module()
+        with tempfile.TemporaryDirectory() as tmp_name:
+            root = Path(tmp_name)
+            (root / "directory").mkdir()
+            (root / "dangling").symlink_to(root / "missing")
+            contract = {
+                "schema_version": 1,
+                "forbidden_suffixes": [],
+                "cases": {
+                    "unit": {
+                        "required": [
+                            {"path": "directory", "kind": "file"},
+                            {"path": "dangling", "kind": "file"},
+                        ]
+                    }
+                },
+            }
+            result = module.verify_case(root, contract["cases"]["unit"], contract)
+            self.assertFalse(result.ok)
+            self.assertIn("regular file", result.format_details())
 
     def test_verifier_reports_missing_and_forbidden_artifacts(self) -> None:
         module = self.load_module()

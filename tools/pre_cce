@@ -71,12 +71,14 @@ fi
 CUDA_DIR="$(cu2cce_prepare_fake_toolkit "$DST_WCUDA" "$CUCC_PATH/bin/cucc" "$DST_WCUDA/bin" wrapper)" || exit 1
 
 export CUDA_PATH="$CUDA_DIR"
+export CUDA_HOME="$CUDA_DIR"
 export PATH="$DST_WCUDA/bin:$CUDA_DIR/bin:$PATH"
 export ASCEND_TOOLKIT_HOME
 export CANN_BASE="${CANN_BASE:-/usr/local/Ascend/latest}"
 CU2CCE_NPU_ARCH="$(cu2cce_resolve_npu_arch)" || exit 1
 export CU2CCE_NPU_ARCH
-export LD_LIBRARY_PATH="${CUCC_PATH}/lib:${CANN_BASE}/lib64:${LD_LIBRARY_PATH:-}"
+export LD_LIBRARY_PATH="$(cu2cce_prepend_ld_library_path \
+    "$CUCC_PATH/lib:$CANN_BASE/lib64:$CANN_BASE/runtime/lib64")"
 
 # clean 目标词元匹配（与 make_cce 相同：按目标名而非整串子串）。
 for arg in "$@"; do

@@ -19,16 +19,18 @@ Ascend 950 的 AI Core 支持 SIMT。main 不再走 Python kernel 转换或新�
 main 不生成 `__simt_vf__`、`__global__[aicore]`、`cce::async_invoke` 包装源文件。
 `include/bridge/kernel/simt_adaptor.h` 只提供必要的 SIMT 原语别名。
 
-## 当前进度（2026-08-24）
+## 发布前状态（2026-09-02）
 
-- main 已切换为 puresimt 直通：`cucc` 不再调用 Python kernel converter，不生成
-  legacy `.cce`/kernel wrapper；直通检查已在真机通过。
-- 当前已验证通过 23 个 CUDA/runtime/SIMT 用例，覆盖算术、逻辑、比较、转换、
-  shared/global memory、原子、归约、warp、vote、scan、transpose、stencil、event、
-  pitched copy、multi-kernel pipeline、3D indexing、动态 shared memory、fence、
-  FP16/half2 与 BF16/BF16x2。
-- 当前唯一验收标志仍是 `PURESIMT_REGRESSION_PASS`；BLAS bridge 保留为 experimental
-  secondary capability，不阻塞 puresimt。
+- main 使用 puresimt 直通：`cucc` 不调用 Python kernel converter，不生成
+  `.cce/.ptx/.cubin/.fatbin` 等中间产物；CUDA `.cu` 直接进入
+  `ccec -x asc --enable-simt --cce-aicore-arch=dav-*`。
+- `cucc`、CMake、Make、Ninja 已统一到规则驱动参数适配、manifest fake toolkit、
+  persistent shim 和 Ascend-aware artifact contract。
+- 最新 Ascend 服务器 full profile 由维护者报告：`FAIL=0`、
+  `DEVICE_HEALTHY=1`、`TEST_BLOCKED_BY_DEVICE=0`；详细证据以
+  [`server_cmd.txt`](tools/real_test/server_cmd.txt) 输出为准。
+- 本机 macOS 只执行静态/mock 测试，不能替代 CANN/NPU 验证。BLAS bridge 仍是
+  experimental secondary capability，不改变主线回归结论。
 
 ## 项目原理与设计文档
 
@@ -37,134 +39,19 @@ main 不生成 `__simt_vf__`、`__global__[aicore]`、`cce::async_invoke` 包装
 
 ## 兼容性矩阵
 
-完整的 CUDA→Ascend puresimt 证据矩阵、23 个真机用例、API 状态和 BLAS 边界见：
+完整的 CUDA→Ascend puresimt 证据矩阵、API 状态和 BLAS 边界见：
 [PURESIMT_COMPATIBILITY_MATRIX.md](docs/03_Comparison/PURESIMT_COMPATIBILITY_MATRIX.md)。
 
-## Quickstart：运行你自己的 `.cu`
+构建系统、cucc 参数和实际产物的对齐证据见：
+[BUILD_SYSTEM_COMPATIBILITY_MATRIX.md](docs/03_Comparison/BUILD_SYSTEM_COMPATIBILITY_MATRIX.md)、
+[CUCC_OPTION_COMPATIBILITY_MATRIX.md](docs/03_Comparison/CUCC_OPTION_COMPATIBILITY_MATRIX.md)
+和[发布前收口审计](docs/03_Comparison/RELEASE_READINESS_2026-09-02.md)。
 
-下面示例假设你在 Ascend 真机上工作。建议把自己的工程放在仓库外，避免和
-`examples/puresimt/` 的回归样例混在一起，例如：
+## 用户 Quickstart
 
-```text
-/home/t50063365/workspace/repos/cu2cce-demo/
-├── vector_add.cu
-└── build/
-```
-
-### 1. 准备源码
-
-`vector_add.cu` 保持普通 CUDA 写法，不需要添加 ACL、Ascend C、`__simt_vf__`
-或 `cce::async_invoke`：
-
-```cpp
-#include <cuda_runtime.h>
-#include <stdio.h>
-
-#define N 1024
-
-__global__ void vectorAdd(const float *a, const float *b, float *c, int n) {
-    int i = blockIdx.x * blockDim.x + threadIdx.x;
-    if (i < n) c[i] = a[i] + b[i];
-}
-
-int main(void) {
-    float hA[N], hB[N], hC[N];
-    for (int i = 0; i < N; ++i) {
-        hA[i] = (float)i;
-        hB[i] = 2.0f;
-    }
-
-    float *dA = nullptr, *dB = nullptr, *dC = nullptr;
-    cudaMalloc((void **)&dA, sizeof(hA));
-    cudaMalloc((void **)&dB, sizeof(hB));
-    cudaMalloc((void **)&dC, sizeof(hC));
-    cudaMemcpy(dA, hA, sizeof(hA), cudaMemcpyHostToDevice);
-    cudaMemcpy(dB, hB, sizeof(hB), cudaMemcpyHostToDevice);
-
-    vectorAdd<<<(N + 255) / 256, 256>>>(dA, dB, dC, N);
-    if (cudaGetLastError() != cudaSuccess) return 1;
-    if (cudaDeviceSynchronize() != cudaSuccess) return 1;
-    if (cudaMemcpy(hC, dC, sizeof(hC), cudaMemcpyDeviceToHost) != cudaSuccess) return 1;
-
-    for (int i = 0; i < N; ++i) {
-        if (hC[i] != (float)i + 2.0f) return 1;
-    }
-    printf("user vectorAdd OK (N=%d)\n", N);
-    cudaFree(dA); cudaFree(dB); cudaFree(dC);
-    cudaDeviceReset();
-    return 0;
-}
-```
-
-### 2. 拉取、准备 CANN 和构建 bridge
-
-```bash
-cd /home/t50063365/workspace/repos
-
-git clone git@gitcode.com:tmchao7/cu2cce-bridge.git
-cd cu2cce-bridge
-git checkout main
-
-export ASCEND_TOOLKIT_HOME=/usr/local/Ascend/ascend-toolkit/latest
-export ASCEND_HOME_PATH=/usr/local/Ascend/latest
-source /usr/local/Ascend/latest/set_env.sh
-export ASCEND_OPP_PATH=/usr/local/Ascend/cann-9.2.0/opp
-
-bash tools/real_test/env_probe.sh
-bash tools/real_test/build_bridge.sh
-```
-
-如果仓库已经存在，只需：
-
-```bash
-cd /home/t50063365/workspace/repos/cu2cce-bridge
-git pull --ff-only gitcode main
-source /usr/local/Ascend/latest/set_env.sh
-bash tools/real_test/build_bridge.sh
-```
-
-### 3. 用 `cucc` 编译和链接
-
-推荐使用两步法。第一步使用 `-c` 只编译并生成 `.o` 目标文件，第二步才链接生成
-最终可执行文件：
-
-```bash
-export CUCC_PATH=/home/t50063365/workspace/repos/cu2cce-bridge/build/real_test/install
-export CUDA_PATH=$CUCC_PATH
-export PATH=$CUCC_PATH/bin:$PATH
-
-mkdir -p /home/t50063365/workspace/repos/cu2cce-demo/build
-
-cucc -c /home/t50063365/workspace/repos/cu2cce-demo/vector_add.cu \
-    -o /home/t50063365/workspace/repos/cu2cce-demo/build/vector_add.o
-
-cucc /home/t50063365/workspace/repos/cu2cce-demo/build/vector_add.o \
-    -o /home/t50063365/workspace/repos/cu2cce-demo/build/vector_add
-```
-
-也不要把 `.o` 目标文件当作最终程序运行。`cucc` 会自动注入 CUDA 兼容头、CANN SIMT 头、运行库和 rpath；`.cu` 会直接
-交给 ccec，不会生成 Python converter 或 Ascend kernel 包装源文件。
-
-### 4. 运行
-
-```bash
-/home/t50063365/workspace/repos/cu2cce-demo/build/vector_add
-```
-
-预期输出：
-
-```text
-user vectorAdd OK (N=1024)
-```
-
-### 5. 用户代码的边界
-
-- 可以继续使用 CUDA `.cu`、CUDA runtime API、CUDA kernel 语法和 `<<<>>>`。
-- 不要在用户源码中直接调用 `acl*`、书写 `__simt_vf__`、`__global__[aicore]`
-  或 `cce::async_invoke`。
-- 修改 bridge 的 `src/` 或 `include/` 后，需要重新执行 `build_bridge.sh`。
-- `tools/real_test/clean.sh` 只清理仓库的 `build/real_test`，不会删除仓库外的
-  `cu2cce-demo`。
+用户工程目录、CANN 环境准备、bridge 构建、`cucc` 编译/链接/运行步骤统一维护在：
+[QUICKSTART.md](QUICKSTART.md)。README 只保留项目定位、状态、能力边界和入口，避免
+两份操作手册产生漂移。
 
 ## 真机回归
 
@@ -172,8 +59,12 @@ user vectorAdd OK (N=1024)
 
 ```bash
 cd /home/t50063365/workspace/repos/cu2cce-bridge
-git pull --ff-only gitcode main
-bash tools/real_test/server_cmd.txt
+REMOTE="${CU2CCE_REGRESSION_REMOTE:-origin}"
+git fetch "$REMOTE" main
+git pull --ff-only "$REMOTE" main
+bash tools/real_test/clean.sh
+CU2CCE_REGRESSION_REMOTE="$REMOTE" CU2CCE_REGRESSION_PROFILE=full \
+  bash tools/real_test/server_cmd.txt
 ```
 
 回归画像（`CU2CCE_REGRESSION_PROFILE`，默认 `fast`）：
@@ -204,15 +95,22 @@ CU2CCE_REGRESSION_PROFILE=full bash tools/real_test/server_cmd.txt
 - shared-memory tree reduction + cross-block atomic add
 - FP16/half2 and BF16/BF16x2 conversion round-trips
 
-成功标志：
+完整 full profile 的主线标志：
 
 ```text
 FAIL=0
 DEVICE_HEALTHY=1
+TEST_BLOCKED_BY_DEVICE=0
 PURESIMT_REGRESSION_PASS
+CMAKE_CCE_REGRESSION_PASS
+BUILD_COMPATIBILITY_REGRESSION_PASS
+CUCC_RULES_REGRESSION_PASS
+LARGE_PROJECT_REGRESSION_PASS
+CUDA_SAMPLES_CMAKE_REGRESSION_PASS
+ARTIFACT_CONTRACT_REGRESSION_PASS
 ```
 
-## CMake integration (experimental)
+## CMake / Make / Ninja integration (Ascend-aware)
 
 核心 CUDA CMake 工程可通过 `cmake_cce` 使用 cucc/ccec，目标是不修改用户
 `CMakeLists.txt` 和 `.cu` 源码：
@@ -221,15 +119,16 @@ PURESIMT_REGRESSION_PASS
 export CUCC_PATH=/path/to/cu2cce-bridge/build/real_test/install
 export CUDA_PATH=$CUCC_PATH
 export PATH=$CUCC_PATH/bin:$PATH
-# 可选：将 CMake shim 保存在持久目录，避免 /tmp 清理影响后续 cmake --build。
+# 可选：将 CMake shim 保存在持久目录，避免 /tmp 清理影响后续构建。
 export CU2CCE_CMAKE_SHIM_DIR=/tmp/cu2cce-cmake-shim
 cmake_cce -S examples/cmake_demo -B /tmp/cu2cce-cmake-build
-cmake --build /tmp/cu2cce-cmake-build
+cmake_cce --build /tmp/cu2cce-cmake-build
 /tmp/cu2cce-cmake-build/cmake_vector_add
 ```
 
-当前状态：核心 CMake 路径已在 Ascend 真机验证通过，扩展 CUDA 工具链能力仍为
-`EXPERIMENTAL`。2026-08-25 的 `tools/real_test/server_cmd.txt` 已通过：
+当前状态：核心 CMake、Make、Ninja 路径和已声明的产物契约已纳入 full profile；
+扩展 CUDA 工具链能力仍按 `SUPPORTED/EXPERIMENTAL/UNSUPPORTED` 分层。
+2026-09-02 的服务器 full profile 报告通过：
 
 - 标准 CUDA CMake 工程（`project(... LANGUAGES CUDA)`）；
 - 多 `.cu`、静态/动态 CUDA library 和 host+CUDA 混合工程 smoke；
@@ -249,6 +148,18 @@ target_link_libraries(app PRIVATE cu2cce::runtime)
 ```
 
 `cu2cce::runtime` 只表示 cu2cce-bridge 的桥接运行库，不代表完整 CUDA Toolkit。
+
+## 四层命令与产物对齐
+
+| 层 | 推荐入口 | 主要产物 | 关键验证 |
+|---|---|---|---|
+| cucc | `cucc -c` / `cucc <obj>` | `.o`、`.d`、ELF executable/shared object | `ccec` 命令、`NEEDED`、RPATH/RUNPATH |
+| CMake | `cmake_cce -S/-B`、`cmake_cce --build` | `.o`、`.a`、`.so`、ELF、install/export | Makefiles/Ninja metadata 与 target graph |
+| Make | `make_cce` | `.o`、`.d`、`.a`、`.so`、ELF | fake toolkit 生命周期、clean/cleanpack |
+| Ninja | `ninja_cce` | `build.ninja`、`rules.ninja` 及同类最终产物 | configure/build 共用 `CUDA_DIR` |
+
+Ascend 侧不伪造 MACA 的 `mxcc`、`symbol_cu.so`、device-link/RDC 或 PTX/CUBIN/FATBIN；
+多 `.cu` 静态库的重复 registration helper 是已知 `DIAGNOSTIC_ONLY` 后端边界。
 
 ## Experimental BLAS branch
 
@@ -270,6 +181,7 @@ CUDA cuBLAS to CANN ACL CBLAS development is maintained separately on
 - `tools/hostcc_cce`：宿主编译器包装器（链接自动补桥运行时，规则驱动）。
 - `tools/build_shim_tree.py` + `config/shim_layout.json`：假 CUDA SDK 目录的单一清单与构建器。
 - `docs/03_Comparison/BUILD_SYSTEM_COMPATIBILITY_MATRIX.md`：大型项目构建兼容矩阵。
+- `docs/03_Comparison/RELEASE_READINESS_2026-09-02.md`：发布前 code review、产物和仓库卫生收口。
 - `examples/external/cuda_samples_project/`：固定版本 NVIDIA CUDA Samples 的 CMake 外部工程 harness。
 - `examples/puresimt/`：维护中的 CUDA examples。
 - `tools/real_test/server_cmd.txt`：唯一主线真机回归入口。
@@ -278,11 +190,6 @@ CUDA cuBLAS to CANN ACL CBLAS development is maintained separately on
 - `docs/02_Architecture/`：架构五篇（全局认知/深度解析/cucc 驱动/shadow 头/CMake 设计）。
 - `docs/03_Scope/`：支持范围总览与边界限制。
 - `docs/reference/asc-devkit-simt/`：Ascend SIMT API 参考资料。
-
-## 用户 Quickstart
-
-面向用户的 `.cu` 工程目录、CANN 环境、bridge 构建、`cucc` 编译、链接和运行示例见：
-[QUICKSTART.md](QUICKSTART.md)。
 
 ## 构建要求
 

@@ -49,8 +49,12 @@ examples/blas/cublas_gemv.cu   → cublas_gemv_experimental OK (FP32 identity Sg
 
 ```bash
 cd /home/t50063365/workspace/repos/cu2cce-bridge
-git pull --ff-only gitcode main
-CU2CCE_BLAS_TEST=1 bash tools/real_test/server_cmd.txt
+REMOTE="${CU2CCE_REGRESSION_REMOTE:-origin}"
+git fetch "$REMOTE" main
+git pull --ff-only "$REMOTE" main
+bash tools/real_test/clean.sh
+CU2CCE_REGRESSION_REMOTE="$REMOTE" CU2CCE_BLAS_TEST=1 \
+  bash tools/real_test/server_cmd.txt
 ```
 
 Expected success marker:

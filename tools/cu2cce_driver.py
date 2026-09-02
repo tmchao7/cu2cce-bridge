@@ -44,7 +44,7 @@ _CUDA_ARCH_TOKEN_RE = re.compile(r"(?:compute|sm)_([0-9]{2,3})\b")
 # =-joined form is caught by the token regex directly).
 _ARCH_VALUE_FLAGS = {
     "-gencode", "--generate-code", "-arch", "--gpu-architecture",
-    "--gpu-code", "--cuda-gpu-arch", "--offload-arch",
+    "--gpu-code", "--cuda-gpu-arch", "--offload-arch", "-code", "code",
 }
 
 # Options whose next argv token is a value rather than a source/object.  This
@@ -55,13 +55,40 @@ _INPUT_VALUE_OPTIONS = frozenset({
     "-o", "--output-file", "-MF", "-MT", "--dependency-output",
     "-I", "-L", "-l", "-D", "-U", "-include", "-isystem", "-x",
     "-ccbin", "--compiler-bindir", "--cuda-path", "--cudart",
-    "-arch", "--gpu-architecture", "--gpu-code", "-gencode",
+    "-arch", "--gpu-architecture", "--gpu-code", "-gencode", "-code",
     "--generate-code", "--ptxas-options", "-Xptxas", "-Xcompiler",
     "--compiler-options", "-Xlinker", "--linker-options", "-Xcudafe",
     "-Xnvlink", "--nvlink-options", "--threads", "-t", "--pre-include",
     "--include-path", "--library-path", "--machine", "-m",
     "--maxrregcount",
 })
+
+# These options intentionally accept a value beginning with ``-`` (for
+# example ``-Xlinker -z,now`` and ``-Xcompiler -fPIC``). Other value-bearing
+# options treat a following option token as a missing value instead of
+# consuming it and corrupting the remaining argv.
+_VALUE_OPTIONS_ALLOW_DASH = frozenset({
+    "-Xcompiler", "--compiler-options", "-Xlinker", "--linker-options",
+    "-Xptxas", "--ptxas-options", "-Xcudafe", "-Xnvlink",
+    "--nvlink-options",
+})
+
+# These nvcc options are accepted without a value by common build systems,
+# while a following non-option token is still their optional value. Keeping
+# this distinction avoids swallowing a later ``-o``/``-I`` token.
+_OPTIONAL_VALUE_OPTIONS = frozenset({
+    "-maxrregcount", "--maxrregcount", "--machine",
+    "--fmad", "--prec-div", "--prec-sqrt", "--ftz",
+})
+_REQUIRED_VALUE_OPTIONS = frozenset(
+    _INPUT_VALUE_OPTIONS - _OPTIONAL_VALUE_OPTIONS
+)
+
+
+def _is_cuda_source_path(path: str) -> bool:
+    """Return whether *path* uses a CUDA source suffix accepted by nvcc."""
+    name = Path(path).name.lower()
+    return name.endswith(".cu") or name.endswith(".cu.cc")
 
 
 def _shell_join(arguments: Sequence[str]) -> str:
@@ -366,7 +393,10 @@ class RuleDriver:
                  cmake_identity: bool = False) -> None:
         self.env = dict(os.environ if env is None else env)
         self.repo_root = Path(__file__).resolve().parents[1]
-        self.cucc_path = Path(self.env.get("CUCC_PATH", "")).expanduser()
+        raw_cucc_path = self.env.get("CUCC_PATH", "").strip()
+        self.cucc_path: Optional[Path] = (
+            Path(raw_cucc_path).expanduser() if raw_cucc_path else None
+        )
         self.ascend_toolkit_home = self.env.get(
             "ASCEND_TOOLKIT_HOME", "/usr/local/Ascend/ascend-toolkit/latest"
         )
@@ -455,10 +485,9 @@ class RuleDriver:
             # device_arch.sh themselves; reusing the installed helper here
             # prevents a direct compile on (for example) Ascend 910B from
             # silently falling back to the 950 default.
-            helper_candidates = [
-                self.cucc_path / "tools" / "device_arch.sh",
-                self.repo_root / "tools" / "device_arch.sh",
-            ]
+            helper_candidates = [self.repo_root / "tools" / "device_arch.sh"]
+            if self.cucc_path is not None:
+                helper_candidates.insert(0, self.cucc_path / "tools" / "device_arch.sh")
             for helper in helper_candidates:
                 if not helper.is_file():
                     continue
@@ -503,7 +532,7 @@ class RuleDriver:
             candidates.append(explicit.expanduser())
         if self.env.get("CU2CCE_RULES_FILE"):
             candidates.append(Path(self.env["CU2CCE_RULES_FILE"]).expanduser())
-        if str(self.cucc_path):
+        if self.cucc_path is not None:
             candidates.append(self.cucc_path / "config" / "cu2cce_rules.json")
         candidates.append(self.repo_root / "config" / "cu2cce_rules.json")
         for candidate in candidates:
@@ -613,7 +642,7 @@ class RuleDriver:
                 has_object = True
                 inputs.append(arg)
             elif not arg.startswith("-"):
-                if arg.endswith((".cu", ".cpp", ".cc", ".cxx", ".c")):
+                if arg.endswith((".cu", ".cu.cc", ".cpp", ".cc", ".cxx", ".c")):
                     inputs.append(arg)
             i += 1
         return inputs, output, compile_only, has_object, explicit_language
@@ -621,14 +650,13 @@ class RuleDriver:
     @staticmethod
     def _phase(args: Sequence[str]) -> Tuple[str, str, List[str], Optional[str], bool]:
         inputs, output, compile_only, has_object, explicit_language = RuleDriver._scan_inputs(args)
-        source_is_cuda = any(Path(path).suffix == ".cu" for path in inputs) or explicit_language in ("cuda", "cu", "c++-cuda")
+        source_is_cuda = any(_is_cuda_source_path(path) for path in inputs) or explicit_language in ("cuda", "cu", "c++-cuda")
         if "--device-link" in args or "-dlink" in args:
-            # Device-link is handled at link time through the injected
-            # -lcce_bridge_runtime target; the cucc CMake layer forces
-            # CUDA_SEPARABLE_COMPILATION OFF, so a stray -dlink phase is
-            # downgraded to a normal link instead of a hard error. The rules
-            # file rejects the flags explicitly with a diagnostic reason.
-            return "device_link", "link", inputs, output, source_is_cuda
+            # Ascend has no validated CUDA device-link/RDC equivalent. The
+            # compatibility policy drops this stray marker and deliberately
+            # treats the invocation as an ordinary host link, so the normal
+            # bridge/CANN runtime and RPATH injections still apply.
+            return "link", "link", inputs, output, source_is_cuda
         if "-E" in args:
             return "preprocess", "preprocess", inputs, output, source_is_cuda
         if "-M" in args or "-MM" in args:
@@ -731,7 +759,7 @@ class RuleDriver:
         simt_root = self.env.get("SIMT_API_ROOT", "")
         ver_major, ver_minor, ver_build, ver_legacy = _cuda_version_parts(self.cucc_cuda_version)
         return {
-            "CUCC_PATH": str(self.cucc_path),
+            "CUCC_PATH": str(self.cucc_path) if self.cucc_path is not None else "",
             "ASCEND_TOOLKIT_HOME": self.ascend_toolkit_home,
             "CANN_BASE": self.cann_base,
             "CUCC_CUDA_VERSION": self.cucc_cuda_version,
@@ -792,6 +820,64 @@ class RuleDriver:
             if value.startswith(target_prefix) and value.endswith("/lib"):
                 return True
         return "cu2cce-cmake-shim-" in value and "/cuda/" in value
+
+    @staticmethod
+    def _validate_option_values(expanded: Sequence[str]) -> None:
+        for index, argument in enumerate(expanded):
+            if argument not in _REQUIRED_VALUE_OPTIONS or "=" in argument:
+                continue
+            if index + 1 >= len(expanded):
+                raise DriverError(f"{argument} requires a value")
+            value = expanded[index + 1]
+            if value == "--" or (
+                value.startswith("-") and argument not in _VALUE_OPTIONS_ALLOW_DASH
+            ):
+                raise DriverError(f"{argument} requires a value; got option {value}")
+
+    def _is_cuda_shim_library_file(self, argument: str) -> bool:
+        """Identify absolute CUDA toolkit/stub libraries that must not reach ccec."""
+        if argument.startswith("-"):
+            return False
+        path = os.path.normpath(argument.strip('"'))
+        basename = os.path.basename(path).lower()
+        if not (basename.endswith((".so", ".a")) or ".so." in basename):
+            return False
+        if not os.path.isabs(path):
+            return False
+        cuda_root = self.env.get("CUDA_PATH", "").strip('"')
+        roots = [root for root in (cuda_root, "/usr/local/cuda") if root]
+        under_cuda_root = any(path == root or path.startswith(root.rstrip(os.sep) + os.sep) for root in roots)
+        if not under_cuda_root and "/lib64/stubs/" not in path:
+            return False
+        return basename.startswith((
+            "libcuda", "libcudart", "libcudadevrt", "libcublas", "libcufft",
+            "libcudnn", "libcusparse", "libcurand", "libnccl", "libnv",
+            "libnpp", "libgomp",
+        ))
+
+    @staticmethod
+    def _optional_value_consumed(
+        expanded: Sequence[str], index: int, argument: str
+    ) -> int:
+        if index + 1 >= len(expanded):
+            return 1
+        value = expanded[index + 1]
+        if value == "--" or (
+            value.startswith("-") and argument not in _VALUE_OPTIONS_ALLOW_DASH
+        ):
+            return 1
+        return 2
+
+    def _require_option_value(
+        self, expanded: Sequence[str], index: int, argument: str
+    ) -> None:
+        if index + 1 >= len(expanded):
+            raise DriverError(f"{argument} requires a value")
+        value = expanded[index + 1]
+        if value == "--" or (
+            value.startswith("-") and argument not in _VALUE_OPTIONS_ALLOW_DASH
+        ):
+            raise DriverError(f"{argument} requires a value; got option {value}")
 
     def _handle_library_policy(self, argument: str) -> bool:
         if not argument.startswith("-l"):
@@ -1072,6 +1158,10 @@ class RuleDriver:
                 self._record(argument, "drop", "temporary CUDA shim library path")
                 i += 1
                 continue
+            if self._is_cuda_shim_library_file(argument):
+                self._record(argument, "drop", "absolute CUDA toolkit/stub library path")
+                i += 1
+                continue
 
             if argument == "--Werror":
                 # nvcc's double-dash --Werror consumes a warning NAME as the
@@ -1126,12 +1216,15 @@ class RuleDriver:
 
             replace = self._find_rule("replace", phase, argument)
             if replace:
-                if replace.get("takes_value") and "=" not in argument and i + 1 >= len(expanded):
-                    raise DriverError(f"{argument} requires a value")
+                if replace.get("takes_value") and "=" not in argument:
+                    if replace.get("optional_value"):
+                        consumed = self._optional_value_consumed(expanded, i, argument)
+                    else:
+                        self._require_option_value(expanded, i, argument)
+                        consumed = 2
                 reason = replace.get("reason", "rule replacement")
                 values: List[str] = []
-                if replace.get("takes_value") and i + 1 < len(expanded):
-                    consumed = 2
+                if replace.get("takes_value") and i + 1 < len(expanded) and consumed == 2:
                     value = expanded[i + 1]
                     if replace.get("split_value"):
                         values = self._split_forwarded(value)
@@ -1180,11 +1273,13 @@ class RuleDriver:
 
             drop = self._find_rule("drop", phase, argument)
             if drop:
-                if drop.get("takes_value") and "=" not in argument and i + 1 >= len(expanded):
-                    raise DriverError(f"{argument} requires a value")
+                if drop.get("takes_value") and "=" not in argument:
+                    if drop.get("optional_value"):
+                        consumed = self._optional_value_consumed(expanded, i, argument)
+                    else:
+                        self._require_option_value(expanded, i, argument)
+                        consumed = 2
                 reason = drop.get("reason", "filtered by cu2cce rule")
-                if drop.get("takes_value") and i + 1 < len(expanded):
-                    consumed = 2
                 self._warn(f"ignored {argument}: {reason}")
                 self._record(argument, "drop", reason)
                 i += consumed
@@ -1295,6 +1390,7 @@ class RuleDriver:
 
     def prepare(self, argv: Sequence[str]) -> PreparedCommand:
         expanded = self._expand_response_files(list(argv))
+        self._validate_option_values(expanded)
         # --cmake-identity is accepted for compatibility but is now a no-op:
         # the __CUDACC__/__CUDACC_VER_* macro set moved into the rules-file
         # inject section (source_is_cuda, values derived from
@@ -1395,7 +1491,7 @@ class RuleDriver:
         any_findings = False
         for path_text in inputs:
             path = Path(path_text)
-            if path.suffix != ".cu":
+            if not _is_cuda_source_path(path_text):
                 continue
             try:
                 source = path.read_text(encoding="utf-8", errors="replace")
@@ -1479,7 +1575,7 @@ class RuleDriver:
         if not name:
             name = "g++"
         for argument in args:
-            if not argument.startswith("-") and Path(argument).suffix == ".cu":
+            if not argument.startswith("-") and _is_cuda_source_path(argument):
                 print(
                     f"cu2cce hostcc: '{argument}' is a CUDA source; compile it "
                     "with cucc (device code never goes through the host compiler)",
@@ -1548,7 +1644,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             hostcc_mode = True
             args = args[1:]
         elif args[0] == "--hostcc-name":
-            hostcc_name = args[1] if len(args) > 1 else ""
+            if len(args) < 2:
+                print("cu2cce: error: --hostcc-name requires a value", file=sys.stderr)
+                return 2
+            hostcc_name = args[1]
             args = args[2:]
         else:
             break

@@ -161,6 +161,8 @@ def _check_kind(path: Path, spec: Mapping[str, Any], description: str) -> List[s
                 errors.append(f"dependency artifact is not a make-style rule: {path}")
         return errors
     if kind == "file":
+        if not path.is_file():
+            errors.append(f"expected regular file or valid symlink, got {description or 'non-file'}: {path}")
         return errors
     if kind == "archive":
         try:

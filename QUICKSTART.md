@@ -62,10 +62,13 @@ git checkout main
 
 ```bash
 cd /home/t50063365/workspace/repos/cu2cce-bridge
-git pull --ff-only gitcode main
+REMOTE="${CU2CCE_REGRESSION_REMOTE:-origin}"
+git fetch "$REMOTE" main
+git pull --ff-only "$REMOTE" main
 ```
 
-> 项目实时开发远端是 `gitcode`。不要使用 GitHub `origin` 更新本项目。
+> GitCode URL 在不同 checkout 中可能命名为 `origin` 或 `gitcode`；使用
+> `CU2CCE_REGRESSION_REMOTE` 指定实际 remote，不要把它改成 GitHub 地址。
 
 ---
 
@@ -187,7 +190,9 @@ bash tools/real_test/build_bridge.sh
 
 ```bash
 cd /home/t50063365/workspace/repos/cu2cce-bridge
-git pull --ff-only gitcode main
+REMOTE="${CU2CCE_REGRESSION_REMOTE:-origin}"
+git fetch "$REMOTE" main
+git pull --ff-only "$REMOTE" main
 CU2CCE_REGRESSION_PROFILE=fast bash tools/real_test/server_cmd.txt     # 日常，≈40s
 # external（官方样本，≈30s）/ full（全量，≈3min）按需切换 PROFILE
 ```

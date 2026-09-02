@@ -62,7 +62,11 @@ if [ -f "$ASCEND_TOOLKIT_HOME/bin/setenv.bash" ]; then
 else
     echo "⚠️  无 $ASCEND_TOOLKIT_HOME/bin/setenv.bash，依赖当前 shell 已有 PATH/LD_LIBRARY_PATH"
 fi
-export LD_LIBRARY_PATH="$ASCEND_LIB:$CUCC_PATH/lib:${LD_LIBRARY_PATH:-}"
+if [ -n "${LD_LIBRARY_PATH:-}" ]; then
+    export LD_LIBRARY_PATH="$ASCEND_LIB:$CUCC_PATH/lib:$LD_LIBRARY_PATH"
+else
+    export LD_LIBRARY_PATH="$ASCEND_LIB:$CUCC_PATH/lib"
+fi
 
 # 预检：CMakeLists.txt 直接引用这两个 .so 文件名，缺则构建必失败
 echo "== 链接库预检（CMakeLists.txt 第 48-49 行直接引用） =="

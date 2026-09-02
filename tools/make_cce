@@ -72,6 +72,9 @@ export PATH="$DST_WCUDA/bin:$CUDA_DIR/bin:$PATH"
 # 让 bisheng 能找到 ACL 头/库
 export ASCEND_TOOLKIT_HOME
 export CANN_BASE="${CANN_BASE:-/usr/local/Ascend/latest}"
+export CUDA_HOME="$CUDA_DIR"
+export LD_LIBRARY_PATH="$(cu2cce_prepend_ld_library_path \
+    "$CUCC_PATH/lib:$CANN_BASE/lib64:$CANN_BASE/runtime/lib64")"
 export CU2CCE_NPU_ARCH="${CU2CCE_NPU_ARCH:-${CUCC_NPU_ARCH:-dav-c310-vec}}"
 
 # -x cce 由 cucc 识别（cucc 已内置）

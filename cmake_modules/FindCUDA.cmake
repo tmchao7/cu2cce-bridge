@@ -16,20 +16,51 @@
 include(CMakeParseArguments)
 
 set(_CU2CCE_PREFIX "$ENV{CUCC_PATH}")
+if(NOT _CU2CCE_PREFIX AND DEFINED CUCC_PATH)
+  # Legacy projects often set CUCC_PATH as a CMake variable rather than an
+  # environment variable; honor both forms.
+  set(_CU2CCE_PREFIX "${CUCC_PATH}")
+endif()
 if(NOT _CU2CCE_PREFIX)
   get_filename_component(_CU2CCE_PREFIX "${CMAKE_CURRENT_LIST_DIR}/.." ABSOLUTE)
 endif()
 
-set(CUDA_FOUND TRUE)
+# Fail during required discovery rather than reporting a green legacy configure
+# that can only fail later at generation/link time. Non-required standalone
+# includes still define the helper macros, which keeps configuration-only
+# FindCUDA consumers usable on a development host.
+set(_CU2CCE_RUNTIME "${_CU2CCE_PREFIX}/lib/libcce_bridge_runtime.so")
+set(_CU2CCE_COMPILER "${_CU2CCE_PREFIX}/bin/cucc")
+set(_CU2CCE_INCLUDE "${_CU2CCE_PREFIX}/include")
+set(_CU2CCE_BRIDGE_VALID TRUE)
+if(NOT EXISTS "${_CU2CCE_RUNTIME}" OR
+   NOT EXISTS "${_CU2CCE_INCLUDE}" OR
+   NOT IS_EXECUTABLE "${_CU2CCE_COMPILER}")
+  set(_CU2CCE_BRIDGE_VALID FALSE)
+  if(CUDA_FIND_REQUIRED)
+    message(FATAL_ERROR
+      "cu2cce: legacy FindCUDA requires an installed bridge with executable "
+      "${_CU2CCE_COMPILER}, include directory ${_CU2CCE_INCLUDE}, and runtime "
+      "${_CU2CCE_RUNTIME}")
+  endif()
+endif()
+
+set(CUDA_FOUND ${_CU2CCE_BRIDGE_VALID})
 set(CUDA_VERSION "11.6")
 set(CUDA_VERSION_MAJOR 11)
 set(CUDA_VERSION_MINOR 6)
 set(CUDA_VERSION_PATCH 0)
+set(CUDA_VERSION_STRING "${CUDA_VERSION}")
+set(CUDA_HAS_FP16 TRUE)
+set(CUDA_CUDART_LIBRARY_VAR CUDA_CUDART_LIBRARY)
+set(CUDA_SDK_ROOT_DIR "${_CU2CCE_PREFIX}")
 set(CUDA_TOOLKIT_ROOT_DIR "${_CU2CCE_PREFIX}")
 set(CUDA_INCLUDE_DIRS "${_CU2CCE_PREFIX}/include")
-set(CUDA_NVCC_EXECUTABLE "${_CU2CCE_PREFIX}/bin/cucc")
-set(CUDA_LIBRARIES "${_CU2CCE_PREFIX}/lib/libcce_bridge_runtime.so")
+set(CUDA_NVCC_EXECUTABLE "${_CU2CCE_COMPILER}")
+set(CUDA_LIBRARIES "${_CU2CCE_RUNTIME}")
 set(CUDA_CUDART_LIBRARY "${CUDA_LIBRARIES}")
+set(CUDA_cudart_static_LIBRARY "${_CU2CCE_RUNTIME}")
+set(CUDA_cudadevrt_LIBRARY "${_CU2CCE_RUNTIME}")
 set(CUDA_TOOLKIT_INCLUDE "${CUDA_INCLUDE_DIRS}")
 set(CUDA_TOOLKIT_LIBRARY_ROOT "${_CU2CCE_PREFIX}")
 

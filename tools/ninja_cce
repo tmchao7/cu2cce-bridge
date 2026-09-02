@@ -53,7 +53,8 @@ export ASCEND_TOOLKIT_HOME
 export CANN_BASE
 export CU2CCE_NPU_ARCH="${CU2CCE_NPU_ARCH:-${CUCC_NPU_ARCH:-dav-c310-vec}}"
 export CUCC_NPU_ARCH="$CU2CCE_NPU_ARCH"
-export LD_LIBRARY_PATH="$CUCC_PATH/lib:$CANN_BASE/lib64:$CANN_BASE/runtime/lib64:${LD_LIBRARY_PATH:-}"
+export LD_LIBRARY_PATH="$(cu2cce_prepend_ld_library_path \
+    "$CUCC_PATH/lib:$CANN_BASE/lib64:$CANN_BASE/runtime/lib64")"
 export PATH="$SHIM_ROOT/bin:$CUDA_DIR/bin:$CUCC_PATH/bin:$PATH"
 
 for arg in "$@"; do

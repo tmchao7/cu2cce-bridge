@@ -66,7 +66,11 @@ fi
 
 REPO_INC="$PWD/include"
 REPO_LIB="$PWD/build/real_test/install/lib"
-export LD_LIBRARY_PATH="$REPO_LIB:$CANN_BASE/lib64:${LD_LIBRARY_PATH:-}"
+if [ -n "${LD_LIBRARY_PATH:-}" ]; then
+    export LD_LIBRARY_PATH="$REPO_LIB:$CANN_BASE/lib64:$LD_LIBRARY_PATH"
+else
+    export LD_LIBRARY_PATH="$REPO_LIB:$CANN_BASE/lib64"
+fi
 
 printf '\n===== [3/8] official CANN GEMM model =====\n'
 SOC_NAME="$(grep -hF 'probe_device: soc name = ' "$OUT/probe.log" 2>/dev/null | sed 's/.*soc name = //' | head -1)"
