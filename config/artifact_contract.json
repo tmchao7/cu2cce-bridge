@@ -162,7 +162,7 @@
           ]
         },
         {
-          "path": "CMakeFiles/cmake_compat_app.dir/build.make",
+          "path": "CMakeFiles/cmake_static_kernel.dir/build.make",
           "contains_any": [
             "cucc",
             "nvcc"
@@ -170,9 +170,8 @@
         },
         {
           "path": "CMakeFiles/cmake_compat_app.dir/link.txt",
-          "contains_any": [
-            "cucc",
-            "nvcc"
+          "contains": [
+            "libcce_bridge_runtime"
           ]
         }
       ]
@@ -260,9 +259,8 @@
         },
         {
           "path": "CMakeFiles/large_project_app.dir/link.txt",
-          "contains_any": [
-            "cucc",
-            "nvcc"
+          "contains": [
+            "libcce_bridge_runtime"
           ]
         }
       ]
@@ -324,7 +322,7 @@
           ]
         },
         {
-          "path": "CMakeFiles/build_compat_app.dir/build.make",
+          "path": "CMakeFiles/build_compat_static.dir/build.make",
           "contains_any": [
             "cucc",
             "nvcc"
@@ -332,9 +330,8 @@
         },
         {
           "path": "CMakeFiles/build_compat_app.dir/link.txt",
-          "contains_any": [
-            "cucc",
-            "nvcc"
+          "contains": [
+            "libcce_bridge_runtime"
           ]
         }
       ]

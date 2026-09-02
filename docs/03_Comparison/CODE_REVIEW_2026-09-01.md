@@ -287,6 +287,14 @@ CMake 的 build metadata 在 configure/build 两阶段可能记录持久化 `nvc
 contract 现在用 `contains_any: [cucc, nvcc]` 验证 compiler 选择，并继续对最终
 ELF 做严格 runtime 依赖检查。
 
+### [P1] CMake artifact contract 绑定 host-only app 的 compiler，误报合法构建 — 已修复
+
+`cmake_compat`、`cmake_build_compat` 和 `large_project` 的最终 app 只有 host
+`main.cpp`，其 `build.make/link.txt` 合法地使用 g++/host linker；CUDA compiler
+应从实际包含 `.cu` 的 library target metadata 验证，而 `CUDA::cudart` runtime
+应从 host app 的 `link.txt` 和最终 ELF 分别验证。contract 已按 target boundary
+拆分检查，避免把 host-only link 当作 CUDA compiler 缺失。
+
 ### Simplifier 收口（`8bd3dbe`）
 
 删除 `RuleDriver` 中未使用的 `_HOST_FLAG_ALLOWED` 常量和死字段

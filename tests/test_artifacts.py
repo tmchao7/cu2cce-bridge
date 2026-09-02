@@ -65,21 +65,44 @@ class ArtifactVerifierTest(unittest.TestCase):
         self.assertIn("lib/cmake/cu2cce-bridge/cu2cceTargets.cmake", metadata)
         self.assertIn("cu2cce::runtime", " ".join(metadata["lib/cmake/cu2cce-bridge/cu2cceTargets.cmake"]))
 
-    def test_cmake_metadata_accepts_configured_cucc_or_nvcc_shim(self) -> None:
+    def test_cmake_metadata_checks_the_actual_cuda_or_host_link_target(self) -> None:
         contract = json.loads((ROOT / "config/artifact_contract.json").read_text(encoding="utf-8"))
-        for case_name, build_path, link_path in (
-            ("cmake_demo", "CMakeFiles/cmake_vector_add.dir/build.make", "CMakeFiles/cmake_vector_add.dir/link.txt"),
-            ("cmake_compat", "CMakeFiles/cmake_compat_app.dir/build.make", "CMakeFiles/cmake_compat_app.dir/link.txt"),
-            ("cmake_compat_legacy", "CMakeFiles/legacy_vector_add.dir/build.make", "CMakeFiles/legacy_vector_add.dir/link.txt"),
-            ("cmake_large_project", "comp/CMakeFiles/large_kernel_lib.dir/build.make", "CMakeFiles/large_project_app.dir/link.txt"),
-            ("cmake_build_compat", "CMakeFiles/build_compat_app.dir/build.make", "CMakeFiles/build_compat_app.dir/link.txt"),
-        ):
+        cases = {
+            "cmake_demo": (
+                "CMakeFiles/cmake_vector_add.dir/build.make", "any",
+                "CMakeFiles/cmake_vector_add.dir/link.txt", "any",
+            ),
+            "cmake_compat": (
+                "CMakeFiles/cmake_static_kernel.dir/build.make", "any",
+                "CMakeFiles/cmake_compat_app.dir/link.txt", "runtime",
+            ),
+            "cmake_compat_legacy": (
+                "CMakeFiles/legacy_vector_add.dir/build.make", "any",
+                "CMakeFiles/legacy_vector_add.dir/link.txt", "any",
+            ),
+            "cmake_large_project": (
+                "comp/CMakeFiles/large_kernel_lib.dir/build.make", "any",
+                "CMakeFiles/large_project_app.dir/link.txt", "runtime",
+            ),
+            "cmake_build_compat": (
+                "CMakeFiles/build_compat_static.dir/build.make", "any",
+                "CMakeFiles/build_compat_app.dir/link.txt", "runtime",
+            ),
+        }
+        for case_name, (build_path, build_kind, link_path, link_kind) in cases.items():
             metadata = {entry["path"]: entry for entry in contract["cases"][case_name]["metadata"]}
             self.assertIn(build_path, metadata, case_name)
-            self.assertEqual(sorted(metadata[build_path]["contains_any"]), ["cucc", "nvcc"], case_name)
+            if build_kind == "any":
+                self.assertEqual(sorted(metadata[build_path]["contains_any"]), ["cucc", "nvcc"], case_name)
+            else:
+                self.assertIn("cucc", metadata[build_path].get("contains", []), case_name)
             self.assertIn(link_path, metadata, case_name)
-            self.assertEqual(sorted(metadata[link_path]["contains_any"]), ["cucc", "nvcc"], case_name)
-            self.assertNotIn("libcce_bridge_runtime", metadata[link_path].get("contains", []), case_name)
+            if link_kind == "any":
+                self.assertEqual(sorted(metadata[link_path]["contains_any"]), ["cucc", "nvcc"], case_name)
+                self.assertNotIn("libcce_bridge_runtime", metadata[link_path].get("contains", []), case_name)
+            else:
+                self.assertIn("libcce_bridge_runtime", metadata[link_path].get("contains", []), case_name)
+                self.assertNotIn("contains_any", metadata[link_path], case_name)
 
     def test_install_export_contracts_check_exported_target_names(self) -> None:
         data = json.loads((ROOT / "config/artifact_contract.json").read_text(encoding="utf-8"))
