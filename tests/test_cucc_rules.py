@@ -262,10 +262,23 @@ class CuccRuleDriverTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("'path with spaces'", result.stdout)
 
+    def test_xlinker_rejects_missing_value(self) -> None:
+        with self.assertRaises(DriverError):
+            self.driver().prepare(["main.o", "-Xlinker"])
+
     def test_value_bearing_rule_rejects_missing_value(self) -> None:
         for flag in ("-ccbin", "-Xcompiler", "--library-path"):
             with self.subTest(flag=flag), self.assertRaises(DriverError):
                 self.driver().prepare([flag])
+
+    def test_cuda_source_detection_ignores_option_values_named_cu(self) -> None:
+        prepared = self.driver().prepare([
+            "-c", "main.cpp", "-I", "include/header.cu",
+            "-include", "generated/prelude.cu", "-o", "main.o",
+        ])
+        self.assertFalse(prepared.source_is_cuda)
+        self.assertNotIn("-x", prepared.args)
+        self.assertNotIn("--enable-simt", prepared.args)
 
     def test_source_without_c_is_compile_and_link(self) -> None:
         prepared = self.driver().prepare(["main.cu", "-o", "app"])
@@ -661,6 +674,17 @@ class CuccRuleDriverTest(unittest.TestCase):
         self.assertNotIn("-std=gnu++17", explicit.args)
         default = self.driver().prepare(["-c", "main.cu", "-o", "main.o"])
         self.assertIn("-std=gnu++17", default.args)
+
+    def test_direct_cucc_uses_device_arch_helper_without_explicit_arch(self) -> None:
+        env = dict(self.env)
+        for key in ("CU2CCE_NPU_ARCH", "CUCC_NPU_ARCH", "CUCC_TARGETS", "CUCC_TARGETS_FROM_DEVICE"):
+            env.pop(key, None)
+        helper = self.cucc / "tools/device_arch.sh"
+        helper.parent.mkdir(parents=True, exist_ok=True)
+        helper.write_text("#!/bin/sh\necho dav-c100-vec\n", encoding="utf-8")
+        helper.chmod(0o755)
+        driver = RuleDriver(env=env)
+        self.assertEqual(driver.npu_arch, "dav-c100-vec")
 
     def test_cucc_targets_from_device_alias_accepts_one_ascend_architecture(self) -> None:
         env = dict(self.env)

@@ -12,7 +12,7 @@
 - **绝不伪造**：不支持的参数/类型按规则 reject 或明确 not-support；
   不静默吞错误。
 
-Ascend 架构选择优先使用 `CU2CCE_NPU_ARCH`/`CUCC_NPU_ARCH`；为对齐 cu-bridge，`CUCC_TARGETS` 作为兼容别名接受，但当前 ccec puresimt 一次只允许一个 `dav-*` 架构。`sm_*`/`compute_*` 只用于 CUDA 兼容宏、trace 或诊断，绝不作为 ccec 的目标架构。
+Ascend 架构选择优先使用 `CU2CCE_NPU_ARCH`/`CUCC_NPU_ARCH`；为对齐 cu-bridge，`CUCC_TARGETS` 作为兼容别名接受，但当前 ccec puresimt 一次只允许一个 `dav-*` 架构。未显式设置时，直接 `cucc` 与 `cmake_cce`/`make_cce`/`ninja_cce` 共用 `tools/device_arch.sh` 的 `npu-smi → cache → default` 解析，避免不同入口在不同 Ascend SoC 上选择不一致。`sm_*`/`compute_*` 只用于 CUDA 兼容宏、trace 或诊断，绝不作为 ccec 的目标架构。
 
 ## 2. 五阶段模型（phase/mode）
 

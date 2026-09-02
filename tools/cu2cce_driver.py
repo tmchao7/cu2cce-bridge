@@ -47,6 +47,22 @@ _ARCH_VALUE_FLAGS = {
     "--gpu-code", "--cuda-gpu-arch", "--offload-arch",
 }
 
+# Options whose next argv token is a value rather than a source/object.  This
+# is intentionally kept separate from the rule table: phase detection must
+# happen before rule transformation, and a value such as ``header.cu`` must
+# never turn a host-only invocation into an Ascend CUDA invocation.
+_INPUT_VALUE_OPTIONS = frozenset({
+    "-o", "--output-file", "-MF", "-MT", "--dependency-output",
+    "-I", "-L", "-l", "-D", "-U", "-include", "-isystem", "-x",
+    "-ccbin", "--compiler-bindir", "--cuda-path", "--cudart",
+    "-arch", "--gpu-architecture", "--gpu-code", "-gencode",
+    "--generate-code", "--ptxas-options", "-Xptxas", "-Xcompiler",
+    "--compiler-options", "-Xlinker", "--linker-options", "-Xcudafe",
+    "-Xnvlink", "--nvlink-options", "--threads", "-t", "--pre-include",
+    "--include-path", "--library-path", "--machine", "-m",
+    "--maxrregcount",
+})
+
 
 def _shell_join(arguments: Sequence[str]) -> str:
     """Render argv safely on Python versions predating :func:`shlex.join`.
@@ -361,7 +377,21 @@ class RuleDriver:
                 "Bazel/TF cu-bridge mode is not supported by the Ascend puresimt "
                 "driver; use cmake_cce/make_cce with explicit CANN integration"
             )
-        self.npu_arch = self._resolve_npu_arch()
+        self.rules_path = self._select_rules_file(rules_file)
+        try:
+            self.rules = json.loads(self.rules_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise DriverError(f"cannot load cu2cce rules: {self.rules_path}: {exc}") from exc
+        if self.rules.get("schema_version") != 1:
+            raise DriverError(
+                f"unsupported cu2cce rules schema in {self.rules_path}: "
+                f"{self.rules.get('schema_version')!r}"
+            )
+        frontend_defaults = self.rules.get("frontend", {})
+        if "CUCC_CUDA_VERSION" not in self.env:
+            self.cucc_cuda_version = str(frontend_defaults.get("cuda_version", self.cucc_cuda_version))
+        default_arch = str(frontend_defaults.get("default_arch", "dav-c310-vec"))
+        self.npu_arch = self._resolve_npu_arch(default_arch)
         self.debug_enabled = self.env.get("CU2CCE_DEBUG", "0") == "1" or \
             self.env.get("WCUDA_DEBUG", "0") == "1"
         self.strict = self.env.get("CU2CCE_STRICT_FLAGS", "0") == "1"
@@ -391,33 +421,11 @@ class RuleDriver:
             raise DriverError("CU2CCE_GCC_TOOLCHAIN must be auto or off")
         self.gcc_toolchain_mode = gcc_toolchain
         self.cuda_arch_value: Optional[int] = None
-        self.rules_path = self._select_rules_file(rules_file)
-        try:
-            self.rules = json.loads(self.rules_path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError) as exc:
-            raise DriverError(f"cannot load cu2cce rules: {self.rules_path}: {exc}") from exc
-        frontend_defaults = self.rules.get("frontend", {})
-        if "CUCC_CUDA_VERSION" not in self.env:
-            self.cucc_cuda_version = str(frontend_defaults.get("cuda_version", self.cucc_cuda_version))
-        if (
-            "CU2CCE_NPU_ARCH" not in self.env
-            and "CUCC_NPU_ARCH" not in self.env
-            and not (
-                self.env.get("CUCC_TARGETS", "").strip()
-                or self.env.get("CUCC_TARGETS_FROM_DEVICE", "").strip()
-            )
-        ):
-            self.npu_arch = str(frontend_defaults.get("default_arch", self.npu_arch))
-        if self.rules.get("schema_version") != 1:
-            raise DriverError(
-                f"unsupported cu2cce rules schema in {self.rules_path}: "
-                f"{self.rules.get('schema_version')!r}"
-            )
         self.actions: List[Action] = []
         self.injected: List[str] = []
         self.response_files: List[str] = []
 
-    def _resolve_npu_arch(self) -> str:
+    def _resolve_npu_arch(self, default_arch: str = "dav-c310-vec") -> str:
         """Resolve one Ascend target without treating CUDA sm_* as a device arch.
 
         ``CUCC_TARGETS`` is accepted as a compatibility alias for cu-bridge's
@@ -442,7 +450,39 @@ class RuleDriver:
         ).replace(",", " ")
         targets = raw_targets.split()
         if not targets:
-            return "dav-c310-vec"
+            # Direct ``cucc`` invocations must use the same NPU discovery path
+            # as cmake_cce/make_cce/ninja_cce.  The wrappers source
+            # device_arch.sh themselves; reusing the installed helper here
+            # prevents a direct compile on (for example) Ascend 910B from
+            # silently falling back to the 950 default.
+            helper_candidates = [
+                self.cucc_path / "tools" / "device_arch.sh",
+                self.repo_root / "tools" / "device_arch.sh",
+            ]
+            for helper in helper_candidates:
+                if not helper.is_file():
+                    continue
+                try:
+                    probe = subprocess.run(
+                        ["bash", str(helper)],
+                        env=self.env,
+                        capture_output=True,
+                        text=True,
+                        check=False,
+                        timeout=5,
+                    )
+                except (OSError, subprocess.SubprocessError):
+                    continue
+                candidates = [line.strip() for line in probe.stdout.splitlines() if line.strip()]
+                if probe.returncode == 0 and candidates:
+                    detected = candidates[-1]
+                    if re.fullmatch(r"dav-[A-Za-z0-9_.-]+", detected):
+                        return detected
+            if not re.fullmatch(r"dav-[A-Za-z0-9_.-]+", default_arch):
+                raise DriverError(
+                    f"frontend default architecture {default_arch!r} is not an Ascend dav-* target"
+                )
+            return default_arch
         if len(set(targets)) != 1:
             raise DriverError(
                 "CUCC_TARGETS must contain exactly one Ascend dav-* architecture "
@@ -545,15 +585,6 @@ class RuleDriver:
             self._debug(f"{action}: {argument}{suffix}")
 
     @staticmethod
-    def _has_cuda_source(args: Sequence[str]) -> bool:
-        if any(Path(arg).suffix == ".cu" for arg in args):
-            return True
-        for i, arg in enumerate(args[:-1]):
-            if arg == "-x" and args[i + 1] in ("cuda", "cu", "c++-cuda"):
-                return True
-        return False
-
-    @staticmethod
     def _scan_inputs(args: Sequence[str]) -> Tuple[List[str], Optional[str], bool, bool, str]:
         inputs: List[str] = []
         output: Optional[str] = None
@@ -561,10 +592,9 @@ class RuleDriver:
         has_object = False
         explicit_language = ""
         i = 0
-        value_options = {"-o", "-MF", "-MT", "-include", "-x", "-isystem"}
         while i < len(args):
             arg = args[i]
-            if arg in value_options:
+            if arg in _INPUT_VALUE_OPTIONS:
                 if i + 1 < len(args):
                     value = args[i + 1]
                     if arg == "-o":
@@ -591,7 +621,7 @@ class RuleDriver:
     @staticmethod
     def _phase(args: Sequence[str]) -> Tuple[str, str, List[str], Optional[str], bool]:
         inputs, output, compile_only, has_object, explicit_language = RuleDriver._scan_inputs(args)
-        source_is_cuda = RuleDriver._has_cuda_source(args) or explicit_language in ("cuda", "cu", "c++-cuda")
+        source_is_cuda = any(Path(path).suffix == ".cu" for path in inputs) or explicit_language in ("cuda", "cu", "c++-cuda")
         if "--device-link" in args or "-dlink" in args:
             # Device-link is handled at link time through the injected
             # -lcce_bridge_runtime target; the cucc CMake layer forces
@@ -1059,7 +1089,9 @@ class RuleDriver:
                 i += consumed
                 continue
 
-            if argument == "-Xlinker" and i + 1 < len(expanded):
+            if argument == "-Xlinker":
+                if i + 1 >= len(expanded):
+                    raise DriverError("-Xlinker requires a value")
                 # clang-native linker option; cu-bridge forwards it to mxcc
                 # unchanged. Dropping the pair silently lost user link
                 # options (rpath, scripts, ...), so keep it intact.

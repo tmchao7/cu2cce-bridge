@@ -303,6 +303,21 @@ ELF 做严格 runtime 依赖检查。
 `large_project_app`，从而触发 artifact contract 失败。现在顶层安装声明使用
 `EXPORT largeProjectTargets`，并由 CMake compatibility test 锁定该 target graph。
 
+### [P1] direct `cucc` 与构建 wrapper 的 NPU 架构解析不一致 — 已修复
+
+`cmake_cce`、`make_cce`、`ninja_cce` 和 `pre_cce` 已经通过
+`tools/device_arch.sh` 解析 `npu-smi`/cache，但直接 `cucc` 原先在无环境变量时
+固定回退 `dav-c310-vec`。现在驱动加载规则后复用同一个 helper，仍严格接受单一
+`dav-*` target；因此不同入口不会在 Ascend 910B/950 等设备上产生不同的 ccec
+架构选择。
+
+### [P2] cucc phase detection 会把 option value 误认为 `.cu` 输入 — 已修复
+
+输入扫描原先仅跳过少量带值选项，`-I include/header.cu`、`-include
+generated/prelude.cu` 这类合法 host 参数可能触发 CUDA/SIMT 注入。现在 phase
+扫描集中维护带值选项集合，并以真正的输入列表判断 `source_is_cuda`；同时对缺失
+`-Xlinker` value 明确报错。
+
 ### Simplifier 收口（`8bd3dbe`）
 
 删除 `RuleDriver` 中未使用的 `_HOST_FLAG_ALLOWED` 常量和死字段
@@ -333,7 +348,7 @@ ELF 做严格 runtime 依赖检查。
 回归确认。当前验证包括：
 
 ```text
-Python unittest 全量（188 tests）
+Python unittest 全量（191 tests）
 cucc rules validator
 Python py_compile
 bash -n 所有入口脚本
