@@ -58,6 +58,35 @@ class RepositoryHygieneTest(unittest.TestCase):
         ):
             self.assertIn(item, text)
 
+    def test_readme_documents_default_build_output_and_environment_setup(self) -> None:
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        for item in (
+            "bash tools/real_test/build_bridge.sh",
+            "--prefix \"$PWD/build/real_test/install\"",
+            "build/real_test/install/",
+            "source \"$CANN_BASE/set_env.sh\"",
+            "source \"$CANN_BASE/bin/setenv.bash\"",
+            "export CUCC_PATH", "export CUDA_PATH",
+            "export CANN_BASE", "export ASCEND_TOOLKIT_HOME",
+            "export CU2CCE_NPU_ARCH", "export PATH",
+            "export LD_LIBRARY_PATH",
+        ):
+            self.assertIn(item, readme)
+        self.assertIn("不需要 `/opt` 或 `/usr/local` 权限", readme)
+
+    def test_readme_has_reproducible_examples_for_all_build_entries(self) -> None:
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        for command in (
+            "cucc -c vector_add.cu",
+            "cucc build/vector_add.o -o build/vector_add",
+            "cmake_cce -S . -B build",
+            "cmake_cce --build build --parallel",
+            "make_cce -C . -j2",
+            "cmake_cce -S . -B build -G Ninja",
+            "ninja_cce -C build",
+        ):
+            self.assertIn(command, readme)
+
     def test_readme_explains_binary_install_tree_usage(self) -> None:
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         for item in (
