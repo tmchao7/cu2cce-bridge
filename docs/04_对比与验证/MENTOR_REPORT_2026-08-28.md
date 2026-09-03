@@ -37,7 +37,7 @@
 用户 CMake 工程（原始，含 find_package(CUDAToolkit)/CUDA 语言）
         │  bash tools/cmake_cce -S <工程> -B build
         ▼
-① cmake_cce 包装器：布置 CUDA 形状的 shim 目录 + 注入
+① cmake_cce 包装器：布置 CUDA 形状的 虚拟工具链目录 + 注入
    -DCMAKE_USER_MAKE_RULES_OVERRIDE[_CUDA]=CUDAOverrides.cmake
         ▼
 ② mock nvcc（shim cuda/bin/nvcc）：应答 CMake 全部探测

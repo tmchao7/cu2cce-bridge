@@ -29,7 +29,7 @@ cu2cce_virtual_toolkit_root_for_build() {
     fi
     digest="$(printf '%s' "$canonical" | cksum | awk '{print $1}')"
     [ -n "$digest" ] || return 1
-    printf '%s/cmake-shim-%s\n' "${base%/}" "$digest"
+    printf '%s/cmake-virtual-toolkit-%s\n' "${base%/}" "$digest"
 }
 
 # Recover a virtual toolkit root recorded by an existing CMake build tree. This keeps
@@ -134,10 +134,10 @@ cu2cce_resolve_npu_arch() {
     bash "$CUCC_PATH/tools/device_arch.sh" 2>/dev/null || printf 'dav-c310-vec\n'
 }
 
-# cu2cce_prepare_virtual_toolkit DST_WCUDA NVCC_TARGET HOSTCC_BIN_DIR HOSTCC_MODE [MANIFEST]
+# cu2cce_prepare_virtual_toolkit VIRTUAL_TOOLKIT_ROOT NVCC_TARGET HOSTCC_BIN_DIR HOSTCC_MODE [MANIFEST]
 #
-# Builds the toolkit-shaped tree under $DST_WCUDA/CUDA_DIR:
-#   DST_WCUDA     persistence root (sentinel: $DST_WCUDA/make.log)
+# Builds the toolkit-shaped tree under $VIRTUAL_TOOLKIT_ROOT/CUDA_DIR:
+#   VIRTUAL_TOOLKIT_ROOT     persistence root (sentinel: $VIRTUAL_TOOLKIT_ROOT/make.log)
 #   NVCC_TARGET   what bin/nvcc points at (nvcc_entry.sh for configure,
 #                 bin/cucc for build phases)
 #   HOSTCC_DIR    where the {c++,g++,gcc,cc} entries are created

@@ -10,7 +10,7 @@ Implementation: `b7fe098`
 | cmake_entry | ALIGNED | cmake_maca -> cmake_mock/cmake_assist | cmake_cce -> persistent CUDA-shaped shim | Explicit cmake_cce is the NPU entry; system cmake is not replaced. |
 | cmake_two_phase | ALIGNED | configure mock, build real make_maca/ninja_maca | configure mock_nvcc, build cucc through generator wrapper | The backend compiler remains ccec, not mxcc. |
 | make_wrapper | ALIGNED | make_maca builds link.json toolkit tree | make_cce builds manifest-driven toolkit tree | Manifest-based implementation is the NPU equivalent. |
-| ninja_wrapper | ALIGNED | ninja_maca rebuilds shim and exports environment | ninja_cce repoints persistent shim and runs ninja | Direct ninja lifecycle is audited separately from CMake dispatch. |
+| ninja_wrapper | ALIGNED | ninja_maca rebuilds shim and exports environment | ninja_cce repoints persistent virtual toolkit and runs ninja | Direct ninja lifecycle is audited separately from CMake dispatch. |
 | pre_wrapper | ALIGNED | pre_makefile prepares CUDA environment | pre_cce prepares CUDA-shaped Ascend environment | Direct argv execution is safer than reference eval string reconstruction. |
 | host_link_carrier | EQUIVALENT_NPU | bin/gnu links through mxcc and MACA libraries | hostcc_cce keeps g++ and injects bridge/CANN libraries | Literal mxcc copying is invalid on Ascend. |
 | system_cmake_replacement | NOT_APPLICABLE_NPU | USE_CMAKE_MACA=1 replaces system cmake | No system replacement; cmake_cce remains explicit | Avoids root requirement, global mutation, and restore failure risk. |

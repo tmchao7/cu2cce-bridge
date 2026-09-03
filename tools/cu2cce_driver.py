@@ -867,7 +867,7 @@ class RuleDriver:
             self._record(" ".join(values), "inject", rule.get("reason", ""))
         return tokens
 
-    def _is_cuda_shim_library_path(self, argument: str) -> bool:
+    def _is_virtual_toolkit_library_path(self, argument: str) -> bool:
         if not argument.startswith("-L"):
             return False
         value = os.path.normpath(argument[2:].strip('"'))
@@ -881,7 +881,7 @@ class RuleDriver:
             target_prefix = f"{cuda_root}/targets/"
             if value.startswith(target_prefix) and value.endswith("/lib"):
                 return True
-        return "cu2cce-cmake-shim-" in value and "/cuda/" in value
+        return "cu2cce-cmake-virtual-toolkit-" in value and "/CUDA_DIR/" in value
 
     @staticmethod
     def _validate_option_values(expanded: Sequence[str]) -> None:
@@ -896,7 +896,7 @@ class RuleDriver:
             ):
                 raise DriverError(f"{argument} requires a value; got option {value}")
 
-    def _is_cuda_shim_library_file(self, argument: str) -> bool:
+    def _is_virtual_toolkit_library_file(self, argument: str) -> bool:
         """Identify absolute CUDA toolkit/stub libraries that must not reach ccec."""
         if argument.startswith("-"):
             return False
@@ -1160,7 +1160,7 @@ class RuleDriver:
         return cleaned
 
     def _locate_real_gcc(self) -> Optional[str]:
-        """Path of the real host gcc, skipping cu2cce shim PATH entries."""
+        """Path of the real host gcc, skipping cu2cce virtual toolkit PATH entries."""
         if Path("/usr/bin/gcc").is_file():
             return "/usr/bin/gcc"
         for entry in self.env.get("PATH", "").split(os.pathsep):
@@ -1181,7 +1181,7 @@ class RuleDriver:
     def _gcc_toolchain_flags(self) -> List[str]:
         """cu-bridge bin/cucc add_gcc_toolchain parity (cucc:1055-1066).
 
-        When the gcc visible behind the shim is not the standard /usr/bin/gcc
+        When the gcc visible behind the virtual toolkit is not the standard /usr/bin/gcc
         (shim wrapper in front, or devtoolset-only machines), append
         --gcc-toolchain=<real gcc prefix>/ so the clang-based backend's host
         pass finds libgcc/std headers. No-op on the standard layout;
@@ -1193,7 +1193,7 @@ class RuleDriver:
             return []
         prefix = Path(real_gcc).parent.parent
         flag = f"--gcc-toolchain={prefix}/"
-        self._record(flag, "inject", "real gcc prefix located behind the shim "
+        self._record(flag, "inject", "real gcc prefix located behind the virtual toolkit "
                                      "(cu-bridge add_gcc_toolchain parity)")
         return [flag]
 
@@ -1212,15 +1212,15 @@ class RuleDriver:
             argument = expanded[i]
             consumed = 1
 
-            if argument == "-L" and i + 1 < len(expanded) and self._is_cuda_shim_library_path("-L" + expanded[i + 1]):
-                self._record(argument + " " + expanded[i + 1], "drop", "temporary CUDA shim library path")
+            if argument == "-L" and i + 1 < len(expanded) and self._is_virtual_toolkit_library_path("-L" + expanded[i + 1]):
+                self._record(argument + " " + expanded[i + 1], "drop", "temporary virtual toolkit library path")
                 i += 2
                 continue
-            if self._is_cuda_shim_library_path(argument):
-                self._record(argument, "drop", "temporary CUDA shim library path")
+            if self._is_virtual_toolkit_library_path(argument):
+                self._record(argument, "drop", "temporary virtual toolkit library path")
                 i += 1
                 continue
-            if self._is_cuda_shim_library_file(argument):
+            if self._is_virtual_toolkit_library_file(argument):
                 self._record(argument, "drop", "absolute CUDA toolkit/stub library path")
                 i += 1
                 continue
@@ -1306,13 +1306,13 @@ class RuleDriver:
                 else:
                     raw = replace.get("to", argument)
                     values = [str(raw)] if not isinstance(raw, list) else [str(x) for x in raw]
-                # A replacement can expose a CUDA shim library path (for
+                # A replacement can expose a CUDA virtual toolkit library path (for
                 # example --library-path <CUDA_DIR>/lib64 -> -L <path>).
                 # Re-run the path policy on the replacement so that only the
                 # bridge/CANN library directories reach the linker.
                 if values[:1] == ["-L"] and len(values) == 2 and \
-                        self._is_cuda_shim_library_path("-L" + values[1]):
-                    self._record(argument, "drop", "temporary CUDA shim library path")
+                        self._is_virtual_toolkit_library_path("-L" + values[1]):
+                    self._record(argument, "drop", "temporary virtual toolkit library path")
                     i += consumed
                     continue
                 # -Xcompiler/--compiler-options carry host flags (CMake

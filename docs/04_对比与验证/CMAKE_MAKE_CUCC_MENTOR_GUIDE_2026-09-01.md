@@ -45,7 +45,7 @@ CMake configure 期会探测：
 - device linker/fatbinary 工具；
 - 版本和架构信息。
 
-`cu-bridge` 用 mock nvcc 回答这些探测，避免 configure 阶段真的调用 CUDA 编译器；build 阶段再把同一个 shim 中的 `nvcc` 指向真实 cucc/mxcc wrapper。
+`cu-bridge` 用 mock nvcc 回答这些探测，避免 configure 阶段真的调用 CUDA 编译器；build 阶段再把同一个虚拟工具链目录 中的 `nvcc` 指向真实 cucc/mxcc wrapper。
 
 关键设计是双阶段：
 
@@ -116,7 +116,7 @@ tools/mock/virtualDir.py
 - 需要 root 或 sudo；
 - 会修改系统命令；
 - 中途异常可能导致系统 CMake 没有恢复；
-- 当前显式 `cmake_cce` 加 persistent shim 已经提供同等构建机制。
+- 当前显式 `cmake_cce` 加 persistent virtual toolkit 已经提供同等构建机制。
 
 这是“机制等价、入口方式有意不同”的例子。
 

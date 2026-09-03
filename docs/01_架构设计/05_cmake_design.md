@@ -8,7 +8,7 @@
 
 ```text
 ① tools/cmake_cce（Bash 入口）
-   布置 CUDA 形状 shim 目录（bin/nvcc→nvcc_entry.sh→mock_nvcc.py）
+   布置 CUDA 形状 虚拟工具链目录（bin/nvcc→nvcc_entry.sh→mock_nvcc.py）
    注入 -DCMAKE_USER_MAKE_RULES_OVERRIDE[_CUDA]=CUDAOverrides.cmake
    导出 CUDA_PATH/CANN_BASE/CU2CCE_NPU_ARCH/LIBC_MODE 等
         ▼
@@ -20,7 +20,7 @@
 ③ CUDAOverrides.cmake（CMake 内置探测前生效）
    CMAKE_CUDA_COMPILER/DEVICE_LINKER/FATBINARY ← shim
    CMAKE_CUDA_RUNTIME_LIBRARY=None、CUDA_ARCHITECTURES=OFF
-   vendor 正则接受 shim 的 NVIDIA-compat 身份
+   vendor 正则接受 虚拟工具链目录的 NVIDIA-compat 身份
 ```
 
 逃生开关：`CU2CCE_CMAKE_NO_OVERRIDE=1` 回退旧旁路（纯 `-DCMAKE_CUDA_*`）。

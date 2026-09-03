@@ -20,8 +20,8 @@ Layout contract (normalized from the manifests):
     (libcudart.so, libcuda.so.1, ...) pointing at the bridge runtime
   - files: small generated text files (version banner, CMake config shim)
 
-The builder never touches user sources and never follows an existing shim
-destructively: links are replaced atomically (symlink to temp name + rename).
+The builder never touches user sources and never follows an existing virtual
+toolkit destructively: links are replaced atomically (symlink to temp name + rename).
 """
 from __future__ import annotations
 
@@ -68,9 +68,9 @@ def _atomic_symlink(link: Path, target: str) -> None:
             return
         link.unlink()
     elif link.exists():
-        # A previous interrupted/older shim build may have left a real
+        # A previous interrupted/older virtual toolkit build may have left a real
         # directory where the manifest now requires a link (for example
-        # targets/<triple>/include).  This path is inside the generated fake
+        # targets/<triple>/include).  This path is inside the generated virtual
         # toolkit, so remove the stale directory instead of calling
         # Path.unlink() and failing with IsADirectoryError.
         if link.is_dir():
@@ -103,7 +103,7 @@ def _merge_layout(base: Dict[str, object], overrides: Dict[str, object]) -> Dict
 
 
 def load_layout(layout_path: Path, _seen: Optional[set] = None) -> Dict[str, object]:
-    """Normalize old and cu-bridge-shaped manifests to the builder layout.
+    """Normalize the two canonical cu-bridge-shaped manifests.
 
     ``tools/link.json`` stores the common layout under ``pre_make``. The CMake
     ``stub_link.json`` points at that file through ``virtual_cmake.base_manifest``
@@ -115,22 +115,20 @@ def load_layout(layout_path: Path, _seen: Optional[set] = None) -> Dict[str, obj
         raise ValueError(f"manifest inheritance cycle: {path}")
     seen.add(path)
     data = json.loads(path.read_text(encoding="utf-8"))
+    if data.get("backend") != "ascend-cann" or data.get("compiler") != "bisheng-ccec":
+        raise ValueError("manifest backend must be ascend-cann/bisheng-ccec")
     if isinstance(data.get("pre_make"), dict):
         return dict(data["pre_make"])
     virtual_cmake = data.get("virtual_cmake")
     if isinstance(virtual_cmake, dict):
         base_name = virtual_cmake.get("base_manifest")
-        if base_name:
-            base_path = (path.parent / str(base_name)).resolve()
-            base = load_layout(base_path, seen)
-            overrides = virtual_cmake.get("overrides", {})
-            return _merge_layout(base, overrides if isinstance(overrides, dict) else {})
-        layout = virtual_cmake.get("layout")
-        if isinstance(layout, dict):
-            return dict(layout)
-    # Canonical manifests are link.json (pre_make) and stub_link.json
-    # (virtual_cmake); no legacy centralized layout is accepted here.
-    return data
+        if not base_name:
+            raise ValueError("virtual_cmake manifest must inherit tools/link.json")
+        base_path = (path.parent / str(base_name)).resolve()
+        base = load_layout(base_path, seen)
+        overrides = virtual_cmake.get("overrides", {})
+        return _merge_layout(base, overrides if isinstance(overrides, dict) else {})
+    raise ValueError("manifest must contain pre_make or virtual_cmake")
 
 
 def build_virtual_toolkit(
@@ -242,9 +240,6 @@ def build_virtual_toolkit(
         notes.append(f"wrote {path}")
     return notes
 
-
-# Compatibility API name used by older integrations.
-build_shim = build_virtual_toolkit
 
 
 def _reference_command(argv: List[str]) -> Optional[int]:

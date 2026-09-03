@@ -346,7 +346,7 @@ make_cce -C . clean
 
 | 能力 | 状态 | 证据/边界 |
 |---|---|---|
-| 直接 `ninja_cce -C build` | `SUPPORTED` for tested CMake tree | 恢复/重建同一 CUDA shim 后执行系统 Ninja |
+| 直接 `ninja_cce -C build` | `SUPPORTED` for tested CMake tree | 恢复/重建同一 CUDA 虚拟工具链目录 后执行系统 Ninja |
 | `-jN` / `-v` / `-t clean` | `SUPPORTED` for tested forms | argv 原样传给 Ninja |
 | `cmake_cce --build` 自动选择 Ninja | `SUPPORTED` | 检测 `build.ninja` 后 dispatch `ninja_cce` |
 | 旧 CMake build tree 增量构建 | `SUPPORTED` for recorded shim | 读取 `CMakeCache.txt` 中 `CUDA_DIR/bin/nvcc` |

@@ -54,25 +54,25 @@ TEMP_DIR_NAME="cu2cce-bridge"
 if [ -n "${CU2CCE_CMAKE_SHIM_DIR:-}" ]; then
     # CMake configure records compiler/host-tool paths under this root; keep
     # direct Make/pre-wrapper execution on the same persistent shim.
-    DST_WCUDA="$CU2CCE_CMAKE_SHIM_DIR"
+    VIRTUAL_TOOLKIT_ROOT="$CU2CCE_CMAKE_SHIM_DIR"
 else
-    DST_WCUDA="$CU2CCE_HOME/${TEMP_DIR_NAME}"
+    VIRTUAL_TOOLKIT_ROOT="$CU2CCE_HOME/${TEMP_DIR_NAME}"
 fi
-if [[ "$DST_WCUDA" != /* ]]; then
+if [[ "$VIRTUAL_TOOLKIT_ROOT" != /* ]]; then
     # The wrapped make/pre command may change directory; keep CUDA_PATH and
     # all generated symlink targets anchored to the invocation directory.
-    DST_WCUDA="$PWD/$DST_WCUDA"
+    VIRTUAL_TOOLKIT_ROOT="$PWD/$VIRTUAL_TOOLKIT_ROOT"
 fi
 # Parallel-job isolation (cu-bridge USE_WCUDA_FOR_MULTI_JOB parity).
 if [ "${CU2CCE_SHIM_ISOLATE:-0}" = "1" ]; then
-    DST_WCUDA="${DST_WCUDA}-${PPID}"
+    VIRTUAL_TOOLKIT_ROOT="${VIRTUAL_TOOLKIT_ROOT}-${PPID}"
 fi
 
-CUDA_DIR="$(cu2cce_prepare_virtual_toolkit "$DST_WCUDA" "$CUCC_PATH/bin/cucc" "$DST_WCUDA/bin" wrapper "$CUCC_PATH/tools/link.json")" || exit 1
+CUDA_DIR="$(cu2cce_prepare_virtual_toolkit "$VIRTUAL_TOOLKIT_ROOT" "$CUCC_PATH/bin/cucc" "$VIRTUAL_TOOLKIT_ROOT/bin" wrapper "$CUCC_PATH/tools/link.json")" || exit 1
 
 export CUDA_PATH="$CUDA_DIR"
 export CUDA_HOME="$CUDA_DIR"
-export PATH="$DST_WCUDA/bin:$CUDA_DIR/bin:$PATH"
+export PATH="$VIRTUAL_TOOLKIT_ROOT/bin:$CUDA_DIR/bin:$PATH"
 export ASCEND_TOOLKIT_HOME
 export CANN_BASE="${CANN_BASE:-/usr/local/Ascend/latest}"
 CU2CCE_NPU_ARCH="$(cu2cce_resolve_npu_arch)" || exit 1
@@ -84,7 +84,7 @@ export LD_LIBRARY_PATH="$(cu2cce_prepend_ld_library_path \
 for arg in "$@"; do
     case "$arg" in
         clean|*clean|clean-*)
-            rm -rf "$DST_WCUDA"
+            rm -rf "$VIRTUAL_TOOLKIT_ROOT"
             break
             ;;
     esac

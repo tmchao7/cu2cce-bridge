@@ -88,8 +88,8 @@ required profile，`server_cmd.txt` 有专门的非阻塞段记录。
 `cmake_modules/override/CUDAOverrides.cmake`，在 CMake 内置探测开始前固定：
 
 - `CMAKE_CUDA_COMPILER` / `CMAKE_CUDA_DEVICE_LINKER` / `CMAKE_CUDA_FATBINARY` =
-  shim nvcc（现代 CMake 不再去探测缺失的 nvlink/fatbinary）；
-- toolkit root 指向 shim 的 CUDA 形状目录；vendor 正则接受 shim 的
+  虚拟工具链 nvcc（现代 CMake 不再去探测缺失的 nvlink/fatbinary）；
+- toolkit root 指向 虚拟工具链目录的 CUDA 形状目录；vendor 正则接受 虚拟工具链目录的
   NVIDIA-compat 身份；
 - `CUDA_RUNTIME_LIBRARY=None`、`CUDA_ARCHITECTURES=OFF`（Ascend arch 由
   `CU2CCE_NPU_ARCH` 决定，零硬编码）。

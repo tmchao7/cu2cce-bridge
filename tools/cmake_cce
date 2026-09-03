@@ -5,7 +5,7 @@
 #   export CUCC_PATH=/path/to/cu2cce-bridge/install
 #   cmake_cce -S . -B build
 #   cmake_cce --build build            # dispatches to make_cce/ninja_cce
-#   cmake --build build                # also works via the persistent shim
+#   cmake --build build                # also works via the persistent virtual toolkit
 #
 # The wrapper creates a CUDA-toolkit-shaped virtual directory for CMake's compiler
 # detection (layout manifest: tools/link.json, built by
@@ -102,9 +102,9 @@ elif [ "$build_phase" -eq 1 ] && [ -n "$build_dir_hint" ] && \
     # tree; the build still repoints that shim to this cucc installation.
     :
 else
-    SHIM_BASE="${CU2CCE_HOME:-${WCUDA_HOME:-${CUBRIDGE_HOME:-$HOME}}}/cu2cce-bridge"
-    VIRTUAL_TOOLKIT_ROOT="$(cu2cce_virtual_toolkit_root_for_build "$SHIM_BASE" "$build_dir_hint")" || {
-        echo "cmake_cce: cannot derive stable shim root for build directory $build_dir_hint" >&2
+    VIRTUAL_TOOLKIT_BASE="${CU2CCE_HOME:-${WCUDA_HOME:-${CUBRIDGE_HOME:-$HOME}}}/cu2cce-bridge"
+    VIRTUAL_TOOLKIT_ROOT="$(cu2cce_virtual_toolkit_root_for_build "$VIRTUAL_TOOLKIT_BASE" "$build_dir_hint")" || {
+        echo "cmake_cce: cannot derive stable virtual toolkit root for build directory $build_dir_hint" >&2
         exit 1
     }
 fi
@@ -118,7 +118,7 @@ if [ "${CU2CCE_SHIM_ISOLATE:-0}" = "1" ] && [ -z "${CU2CCE_CMAKE_SHIM_DIR:-}" ] 
     VIRTUAL_TOOLKIT_ROOT="${VIRTUAL_TOOLKIT_ROOT}-${PPID}"
 fi
 # Pass the resolved root to the generator wrapper so Make/Ninja rebuild the
-# same shim that CMake used during configure, including custom roots.
+# same virtual toolkit that CMake used during configure, including custom roots.
 export CU2CCE_CMAKE_SHIM_DIR="$VIRTUAL_TOOLKIT_ROOT"
 CUDA_DIR="$VIRTUAL_TOOLKIT_ROOT/CUDA_DIR"
 if [ "$build_phase" -eq 1 ]; then

@@ -56,7 +56,7 @@ Ninja 映射为 `-v`/`-j 0`，并增加 argv 级测试。
 `cmake_cce` 在进入 build directory 后执行 generator wrapper；相对
 `CUCC_PATH` 会因此失效，`CU2CCE_CMAKE_SHIM_DIR` 也可能导致 Make/Ninja
 重新生成另一棵 shim。现在各入口在跨目录前解析安装路径，并把已解析的
-shim root 传递给 Make/Ninja/pre wrapper，确保 configure/build 使用同一份
+虚拟工具链根目录 传递给 Make/Ninja/pre wrapper，确保 configure/build 使用同一份
 CUDA-shaped toolkit。
 
 ### [P1] legacy FindCUDA `cuda_compile` 会把 `OPTIONS` 当作源文件 — 已修复
@@ -66,7 +66,7 @@ CUDA-shaped toolkit。
 legacy source/options parser；`cuda_wrap_srcs` 同时去除 helper-only 的
 `PHONY` marker，并对 PTX/CUBIN/FATBIN format 明确 FATAL_ERROR。
 
-### [P2] CUDA shim library path 过滤不支持非 x86 与 `--library-path` 形式 — 已修复
+### [P2] CUDA 虚拟工具链目录 library path 过滤不支持非 x86 与 `--library-path` 形式 — 已修复
 
 原逻辑硬编码 `targets/x86_64-linux/lib`，且只在输入已经是 `-L` 时过滤；
 ARM/aarch64 的 CMake/Make 产物可能将临时 CUDA alias 路径带入最终链接。
@@ -132,7 +132,7 @@ required artifact、动态依赖、metadata、forbidden suffix 均在加载阶�
 
 当 wrapper 先生成相对 `CUDA_PATH`、再由 Make/Ninja 切换工作目录时，
 构建命令会解析到另一位置。现在 Make、Ninja、pre wrapper 在目录切换前
-将 shim root 锚定为绝对路径，并有 Make/Ninja wrapper 级测试。
+将 虚拟工具链根目录 锚定为绝对路径，并有 Make/Ninja wrapper 级测试。
 
 ### [P2] `large_project` 的 install/export 没有进入 blocking artifact contract — 已修复（`aa3da05`、`783a04f`）
 
@@ -156,7 +156,7 @@ artifact verifier 原先使用 `library in readelf_output`，近似名称或相�
 
 ### [P2] direct `tools/mock/virtualDir.py` 的相对路径会生成 dangling symlink — 已修复（`1e3119a`）
 
-wrapper 层虽已将 shim root 绝对化，但直接使用共享 builder 时，
+wrapper 层虽已将 虚拟工具链根目录 绝对化，但直接使用共享 builder 时，
 `--cucc-path install`、`--nvcc-target install/bin/cucc` 仍会把相对 target
 写入 toolkit 内部，导致 `bin/nvcc`/include 等链接失效。现在 builder 在
 写 manifest 前统一 resolve CLI path，Make/CMake/Ninja/pre 共享同一行为。
@@ -171,7 +171,7 @@ Make/CMake/Ninja wrapper 通过 `device_arch.sh` 时以 `CUCC_TARGETS_FROM_DEVIC
 ### [P3] 用户示例仍推荐普通 `cmake --build`，容易绕过真实 build wrapper — 已修复（`6bf2e0b`）
 
 示例 README 原先 configure 使用 `cmake_cce`，build 却调用普通 `cmake --build`；
-这条路径虽然可借 persistent shim 工作，但不会执行 `cmake_cce` 的 generator
+这条路径虽然可借 persistent virtual toolkit 工作，但不会执行 `cmake_cce` 的 generator
 dispatch 和真实 cucc symlink 校验。现在 CMake 示例统一使用 `cmake_cce --build`，
 并由文档契约测试锁定。
 
@@ -334,7 +334,7 @@ generated/prelude.cu` 这类合法 host 参数可能触发 CUDA/SIMT 注入。�
 ## 有意保留的差异
 
 - `cu-bridge` 的 `USE_CMAKE_MACA=1` 系统 CMake 替换不复制；cu2cce 使用显式
-  `cmake_cce` + persistent shim，避免修改系统命令。
+  `cmake_cce` + persistent virtual toolkit，避免修改系统命令。
 - MACA `mxcc` host/device link 机制不复制；Ascend 使用 ccec puresimt 和 host g++，
   必要时显式链接 `libruntime.so`、`libascendcl.so`、`libcce_bridge_runtime.so`。
 - MACA 的 CUDA library 全量映射、PTX/CUBIN/FATBIN、RDC/device-link、symbol library

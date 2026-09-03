@@ -65,7 +65,7 @@ docs/                 架构、范围、对比、参考和维护文档
 |---|---|---|
 | `tools/cmake_maca` / `cmake_mock` | `tools/cmake_cce` | CANN/ccec；不做系统 CMake 物理替换 |
 | `tools/make_maca` | `tools/make_cce` | host g++ + bridge/CANN runtime |
-| `tools/ninja_maca` | `tools/ninja_cce` | 同一 CMake shim 的 Ninja 构建 |
+| `tools/ninja_maca` | `tools/ninja_cce` | 同一 CMake 虚拟工具链目录的 Ninja 构建 |
 | `tools/pre_makefile` | `tools/pre_cce` | configure/autotools 环境准备 |
 | `bin/gnu` | `tools/hostcc_cce` | host link 注入 Ascend/bridge runtime |
 | `link.json` / `stub_link.json` | `tools/link.json` + `tools/mock/stub_link.json` | Make/pre 与 CMake 的虚拟 CUDA 工具链清单 |
@@ -354,7 +354,7 @@ cmake_cce --build build --parallel
 ```
 
 `cmake_cce` configure 阶段使用 fake CUDA toolkit/mock nvcc 完成 CMake 探测；
-`cmake_cce --build` 阶段会把同一个 shim 的 `nvcc` 切换到真实 `cucc`，再由 `cucc → ccec`
+`cmake_cce --build` 阶段会把同一个虚拟工具链目录的 `nvcc` 切换到真实 `cucc`，再由 `cucc → ccec`
 生成真实产物。CMake 的 `build/` 下通常可以看到：
 
 ```text
@@ -424,10 +424,10 @@ Ninja 最终产物类别保持一致。
 如果多个项目或多个 bridge 版本并发 configure/build，建议为每个项目设置不同的：
 
 ```bash
-export CU2CCE_CMAKE_SHIM_DIR=/tmp/my-cuda-app-cmake-shim
+export CU2CCE_CMAKE_SHIM_DIR=/tmp/my-cuda-app-cmake-virtual-toolkit
 ```
 
-未设置时，CMake 默认 shim 会按 canonical build directory 生成稳定隔离 key。
+未设置时，CMake 默认虚拟工具链目录会按 canonical build directory 生成稳定隔离 key。
 
 ## 使用 Make
 
@@ -503,7 +503,7 @@ ninja_cce -C build -t clean
 ```
 
 `ninja_cce` 会优先读取现有 `CMakeCache.txt` 中记录的 `CUDA_DIR/bin/nvcc`，确保增量构建继续
-使用同一份 shim；没有旧 cache 时则按 build directory 创建稳定的默认 shim。
+使用同一份虚拟工具链目录；没有旧 cache 时则按 build directory 创建稳定的默认目录。
 
 Ninja 的构建 metadata 主要包括：
 

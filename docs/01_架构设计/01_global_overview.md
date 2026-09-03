@@ -46,7 +46,7 @@ src/bridge/runtime/     wcuda* → aclrt* 实现（默认流/事件注册表/FP6
 src/bridge/blas/        wcublas* → aclblas* 实现（实验线）
 bin/conf.json  cucc 参数规则（数据驱动核心）
 tools/cu2cce_driver.py    规则解释器（cucc 与 mock nvcc 共用）
-tools/mock/mock_nvcc.py   CMake 探测应答器（shim nvcc）
+tools/mock/mock_nvcc.py   CMake 探测应答器（虚拟工具链 nvcc）
 tools/cmake_cce 等包装器   CMake/Make/Ninja 适配入口
 cmake_modules/            FindCUDAToolkit / override / FindCUDA
 examples/                 各场景样例（puresimt 最小集 / cmake 案例集 / blas）

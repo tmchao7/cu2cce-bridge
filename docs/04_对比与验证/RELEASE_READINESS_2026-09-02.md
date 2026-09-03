@@ -23,7 +23,7 @@ TEST_BLOCKED_BY_DEVICE=0
 | cucc | `bin/cucc` → `tools/cu2cce_driver.py` → `ccec` | `.o`、`.d`、ELF executable/shared object、`NEEDED`/RPATH | `dav-*` 由 `device_arch.sh` 解析；`sm_*` 只作兼容宏/诊断 |
 | CMake | `cmake_cce` configure mock + build 真实 `cucc` | CMake metadata、`.o/.a/.so/ELF`、install/export | `CUDA::cudart` 表示 bridge runtime；不提供伪造完整 CUDA Toolkit |
 | Make | `make_cce` + manifest virtual CUDA toolkit | `.o/.d/.a/.so/ELF`、clean 生命周期 | host link 通过 bridge/CANN runtime，不能依赖 MACA 库名 |
-| Ninja | `ninja_cce` + 同一 persistent shim | `build.ninja`、`rules.ninja`、同类最终产物 | configure/build 两阶段仍使用同一 `CUDA_DIR` |
+| Ninja | `ninja_cce` + 同一 persistent virtual toolkit | `build.ninja`、`rules.ninja`、同类最终产物 | configure/build 两阶段仍使用同一 `CUDA_DIR` |
 
 产物契约位于 `config/artifact_contract.json`，检查器位于
 `tools/real_test/verify_artifacts.py`。禁止产生 `.cce`、`.ptx`、`.cubin`、`.fatbin`
@@ -38,7 +38,7 @@ TEST_BLOCKED_BY_DEVICE=0
   三套手工软链逻辑漂移。
 - 直接 `cucc` 与构建 wrapper 共用 `device_arch.sh`；host-only 编译的
   `-I/-include` 值不会误触发 CUDA phase；缺失 `-Xlinker` value 明确报错。
-- CMake 默认 shim 以 canonical build directory 生成稳定 key；增量构建会优先读取
+- CMake 默认虚拟工具链目录 以 canonical build directory 生成稳定 key；增量构建会优先读取
   既有 `CMakeCache.txt` 中记录的 `CUDA_DIR/bin/nvcc`，兼容发布前已经配置的旧 build tree。
 - artifact verifier 只检查实际 target boundary：`.cu` target 验证 compiler，host app
   验证 bridge runtime，避免把合法 host link metadata 当成 CUDA compiler 缺失。
@@ -87,7 +87,7 @@ CU2CCE_REGRESSION_REMOTE=origin CU2CCE_REGRESSION_PROFILE=full \
 ```
 
 `multi_cu_diagnostic` 的 duplicate registration 仍属于预期的 Ascend backend
-`DIAGNOSTIC_ONLY`，不应通过链接器选项伪装为支持。未显式指定时，CMake 默认 shim
+`DIAGNOSTIC_ONLY`，不应通过链接器选项伪装为支持。未显式指定时，CMake 默认虚拟工具链目录
 按 canonical build directory 自动隔离；显式指定同一个 `CU2CCE_CMAKE_SHIM_DIR` 的
 多个并发构建仍会共享状态，此时必须为每个项目使用不同目录，或设置
 `CU2CCE_SHIM_ISOLATE=1`。

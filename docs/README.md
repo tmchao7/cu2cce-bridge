@@ -85,6 +85,12 @@ CMake 的 configure 阶段使用 virtual CUDA toolkit 和 `mock_nvcc.py` 满足 
 
 ## 术语约定
 
+- **虚拟 CUDA 工具链目录**：`tools/mock/virtualDir.py` 根据 `tools/link.json` 和
+  `tools/mock/stub_link.json` 生成的 CUDA 形状目录，供 CMake/Make/Ninja 探测和转发。
+  它不是完整 CUDA Toolkit，也不是 Ascend 编译器本身。
+- **shim**：历史上对“兼容入口/适配层”的简称；当前文档尽量使用“虚拟 CUDA 工具链目录”，
+  但 `CU2CCE_CMAKE_SHIM_DIR` 等既有环境变量保持不变。
+
 - **puresimt**：让 `ccec` 直接解析 CUDA SIMT 写法的当前正式路线。
 - **bridge runtime**：`libcce_bridge_runtime.so` 及其对 CANN runtime 的封装。
 - **virtual CUDA toolkit/shim**：只提供 CUDA 形状的目录、入口和库别名，供构建系统探测或转发；不等同于

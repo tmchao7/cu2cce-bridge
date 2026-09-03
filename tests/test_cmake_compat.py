@@ -701,7 +701,7 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         # keyed by the canonical build directory so separate projects do not
         # overwrite one another. Explicit CU2CCE_CMAKE_SHIM_DIR still wins.
         self.assertIn('cu2cce_virtual_toolkit_root_for_build', cmake_cce)
-        self.assertIn('cmake-shim-', (ROOT / "tools/virtual_toolkit_env.sh").read_text(encoding="utf-8"))
+        self.assertIn('cmake-virtual-toolkit-', (ROOT / "tools/virtual_toolkit_env.sh").read_text(encoding="utf-8"))
         # Configure phase binds the shim nvcc to the mock through the shared
         # helper (re-pointing here makes repeated configure/build cycles on
         # one persistent shim deterministic). Since the seventh batch the
@@ -727,8 +727,8 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         # make.log sentinel is created by the helper (persistent virtual CUDA toolkit);
         # make_cce sources it and binds the shim nvcc to the real cucc.
         self.assertIn('. "${CUCC_PATH}/tools/virtual_toolkit_env.sh"', make_cce)
-        self.assertIn('cu2cce_prepare_virtual_toolkit "$DST_WCUDA" "$CUCC_PATH/bin/cucc"', make_cce)
-        self.assertIn('PATH="$DST_WCUDA/bin:$CUDA_DIR/bin:$PATH"', make_cce)
+        self.assertIn('cu2cce_prepare_virtual_toolkit "$VIRTUAL_TOOLKIT_ROOT" "$CUCC_PATH/bin/cucc"', make_cce)
+        self.assertIn('PATH="$VIRTUAL_TOOLKIT_ROOT/bin:$CUDA_DIR/bin:$PATH"', make_cce)
 
     def test_shim_layout_manifest_is_single_source_for_three_entries(self) -> None:
         # Fifth parity batch: cmake_cce/make_cce/pre_cce used to carry three
@@ -1899,7 +1899,7 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         ninja = (ROOT / "tools/ninja_cce").read_text(encoding="utf-8")
         self.assertIn('CU2CCE_CMAKE_SHIM_DIR', ninja)
         self.assertIn('cu2cce_virtual_toolkit_root_for_build', ninja)
-        self.assertIn('cmake-shim-', (ROOT / "tools/virtual_toolkit_env.sh").read_text(encoding="utf-8"))
+        self.assertIn('cmake-virtual-toolkit-', (ROOT / "tools/virtual_toolkit_env.sh").read_text(encoding="utf-8"))
         self.assertIn("ninja_cce: build phase: virtual toolkit nvcc ->", ninja)
         self.assertIn('cu2cce_prepare_virtual_toolkit', ninja)
         self.assertIn('"$CUCC_PATH/bin/cucc"', ninja)
@@ -2018,7 +2018,7 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         # cucc like make_cce, and its host compiler entries go through
         # hostcc_cce).
         self.assertIn('. "${CUCC_PATH}/tools/virtual_toolkit_env.sh"', pre_cce)
-        self.assertIn('cu2cce_prepare_virtual_toolkit "$DST_WCUDA" "$CUCC_PATH/bin/cucc"', pre_cce)
+        self.assertIn('cu2cce_prepare_virtual_toolkit "$VIRTUAL_TOOLKIT_ROOT" "$CUCC_PATH/bin/cucc"', pre_cce)
         self.assertIn('exec "$@"', pre_cce)
         self.assertNotIn('eval "$*"', pre_cce)
 

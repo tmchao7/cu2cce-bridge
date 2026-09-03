@@ -76,7 +76,7 @@ make_cce / ninja_cce / pre_cce
 | `bin/` | 用户可直接调用的入口；当前核心入口是 `cucc` | 命令找不到、环境变量、driver 启动失败 |
 | `cmake/` | 原生 `cu2cce-bridge` CMake package 配置 | `find_package(cu2cce-bridge CONFIG)` 找不到或 target 路径错误 |
 | `cmake_modules/` | CUDA/CMake 兼容模块，不是 CANN 编译器本身 | `FindCUDA`、`FindCUDAToolkit`、legacy CMake 配置问题 |
-| `config/` | 版本化规则、shim 布局、artifact contract | 规则覆盖、软链布局、产物契约问题 |
+| `config/` | 版本化规则、虚拟工具链布局、artifact contract | 规则覆盖、软链布局、产物契约问题 |
 | `include/` | CUDA 兼容头、runtime 声明、SIMT adaptor、shadow libc | `.cu` 解析、CUDA API 声明、host/device 头冲突 |
 | `src/` | bridge runtime 和 experimental BLAS 的实现 | 链接符号、ACL 调用、运行时返回码 |
 | `examples/` | puresimt、CMake、Make/Ninja、BLAS 和诊断载体 | 复现某个 API 或构建入口的最小案例 |
@@ -170,7 +170,7 @@ entries 后直接执行系统 `make`。Makefile 中的 `nvcc` 会通过虚拟工
 ### `tools/ninja_cce`
 
 Ninja wrapper。支持直接 `ninja_cce -C <build>`，读取已有 CMake cache 的 shim，或根据 build
-目录生成稳定的默认 shim；随后设置 NPU/CANN 环境并执行系统 `ninja`。
+目录生成稳定的默认虚拟工具链目录；随后设置 NPU/CANN 环境并执行系统 `ninja`。
 
 ### `tools/pre_cce`
 
@@ -188,8 +188,8 @@ link 阶段由 driver 的 `hostcc.link.inject` 规则补充 bridge runtime 和�
 CMake/Make/Ninja/pre 共用的 shell helper，集中处理：
 
 - host triple、NPU 架构和 ccec 路径解析；
-- CMake build cache 中旧 shim 的恢复；
-- build-keyed shim root；
+- CMake build cache 中旧 虚拟工具链目录的恢复；
+- build-keyed 虚拟工具链根目录；
 - 无尾部空项的 `LD_LIBRARY_PATH`；
 - virtual CUDA toolkit builder 调用。
 

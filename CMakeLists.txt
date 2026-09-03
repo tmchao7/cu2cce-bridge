@@ -82,7 +82,7 @@ install(PROGRAMS bin/cucc DESTINATION bin)
 # but the install tree itself does not rely on symlink compatibility files.
 install(PROGRAMS bin/nvcc DESTINATION bin)
 
-# 安装用户可直接调用的构建入口到 bin；nvcc_entry/mock 是内部 shim。
+# 安装用户可直接调用的构建入口到 bin；nvcc_entry/mock 是虚拟 CUDA 工具链内部入口。
 install(PROGRAMS tools/make_cce tools/cmake_cce tools/ninja_cce
         DESTINATION bin)
 install(PROGRAMS tools/cu2cce_driver.py tools/validate_cucc_rules.py

@@ -466,27 +466,27 @@ export CU2CCE_BRIDGE=/home/t50063365/workspace/repos/cu2cce-bridge
 export CUCC_PATH=$CU2CCE_BRIDGE/build/real_test/install
 export CUDA_PATH=$CUCC_PATH
 export PATH=$CUCC_PATH/bin:$CUCC_PATH/tools:$PATH
-# shim 默认持久且按 build 目录隔离：~/cu2cce-bridge/cmake-shim-<build-key>。
-# configure 与 build 共享同一 shim；如需固定位置或跨工具共享，再设置下面这行。
-# export CU2CCE_CMAKE_SHIM_DIR=/tmp/cu2cce-cmake-shim
+# 虚拟工具链目录默认持久且按 build 目录隔离：~/cu2cce-bridge/cmake-virtual-toolkit-<build-key>。
+# configure 与 build 共享同一虚拟工具链目录；如需固定位置或跨工具共享，再设置下面这行。
+# export CU2CCE_CMAKE_SHIM_DIR=/tmp/cu2cce-cmake-virtual-toolkit
 
 cmake_cce -S /home/t50063365/workspace/repos/cu2cce-bridge/examples/cmake_demo \
     -B /tmp/cu2cce-cmake-build
-cmake_cce --build /tmp/cu2cce-cmake-build     # build 阶段：shim nvcc 自动切换为真 cucc
+cmake_cce --build /tmp/cu2cce-cmake-build     # build 阶段：虚拟工具链 nvcc 自动切换为真 cucc
 /tmp/cu2cce-cmake-build/cmake_vector_add
 ```
 
 CMake 的 CUDA compiler detection 会经过：
 
 ```text
-cmake_cce → CMake CUDA shim → nvcc_entry → mock_nvcc → cucc → ccec
+cmake_cce → CMake CUDA 虚拟工具链目录 → nvcc_entry → mock_nvcc → cucc → ccec
 ```
 
 **双阶段协议（与 cu-bridge 的 cmake_mock/make_maca 同构）**：configure 阶段
-shim nvcc 走 mock（应答探测 + 编译器自检真编译回退）；用
-`cmake_cce --build build` 触发 build 时，shim nvcc 自动切换为真 cucc
+虚拟工具链 nvcc 走 mock（应答探测 + 编译器自检真编译回退）；用
+`cmake_cce --build build` 触发 build 时，虚拟工具链 nvcc 自动切换为真 cucc
 （绕过 mock）。经 `cmake --build` 直接构建也兼容（mock 保留真编译回退）。
-shim 的 `lib64/` 提供 libcudart/libcuda → 桥运行时软链，纯 g++ 链接的
+虚拟工具链目录的 `lib64/` 提供 libcudart/libcuda → 桥运行时软链，纯 g++ 链接的
 Make 工程也能解析 `-lcudart`。
 
 **能力现状（详见 `docs/01_架构设计/05_cmake_design.md` 与构建矩阵）**：

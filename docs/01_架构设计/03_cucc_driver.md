@@ -1,7 +1,7 @@
 # cucc 编译驱动详解
 
 > `cucc`（bin 入口）→ `tools/cu2cce_driver.py`（`RuleDriver`）。
-> 同一个驱动也被 `tools/mock/mock_nvcc.py`（CMake shim）复用——这是
+> 同一个驱动也被 `tools/mock/mock_nvcc.py`（CMake 虚拟工具链目录）复用——这是
 > "CMake 路径与命令行路径行为一致"的保证。设计文档历史版见
 > `docs/99_归档/CUCC_RULE_DRIVEN_DRIVER_v1.md`。
 
@@ -86,7 +86,7 @@ Ascend 架构选择优先使用 `CU2CCE_NPU_ARCH`/`CUCC_NPU_ARCH`；为对齐 cu
 cucc [nvcc 风格参数]                 # 正常编译/链接
 cucc --dryrun ...                    # 打印最终 ccec 命令不执行
 cucc --proxy-mode ...                # shlex 单行输出（供父包装器消费）
-cucc --cmake-identity                # CMake shim 身份
+cucc --cmake-identity                # CMake 虚拟工具链目录 身份
 CU2CCE_TRACE_FILE=f.json CU2CCE_DEBUG=1   # 规则决策 JSON / 调试
 ```
 

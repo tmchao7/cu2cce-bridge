@@ -48,15 +48,15 @@ done
 if [ -n "${CU2CCE_CMAKE_SHIM_DIR:-}" ]; then
     VIRTUAL_TOOLKIT_ROOT="$CU2CCE_CMAKE_SHIM_DIR"
 elif VIRTUAL_TOOLKIT_ROOT="$(cu2cce_cmake_cache_virtual_toolkit_root "$build_dir_hint" 2>/dev/null)"; then
-    # Preserve the compiler shim recorded by this existing CMake tree.
+    # Preserve the compiler virtual toolkit entry recorded by this existing CMake tree.
     :
 else
     # Direct ninja invocation has no CMake wrapper to provide a shim path.
     # Derive the same persistent build-keyed root as cmake_cce from the
     # current directory or Ninja's -C/--directory argument.
-    SHIM_BASE="${CU2CCE_HOME:-${WCUDA_HOME:-${CUBRIDGE_HOME:-$HOME}}}/cu2cce-bridge"
-    VIRTUAL_TOOLKIT_ROOT="$(cu2cce_virtual_toolkit_root_for_build "$SHIM_BASE" "$build_dir_hint")" || {
-        echo "ninja_cce: cannot derive stable shim root for build directory $build_dir_hint" >&2
+    VIRTUAL_TOOLKIT_BASE="${CU2CCE_HOME:-${WCUDA_HOME:-${CUBRIDGE_HOME:-$HOME}}}/cu2cce-bridge"
+    VIRTUAL_TOOLKIT_ROOT="$(cu2cce_virtual_toolkit_root_for_build "$VIRTUAL_TOOLKIT_BASE" "$build_dir_hint")" || {
+        echo "ninja_cce: cannot derive stable virtual toolkit root for build directory $build_dir_hint" >&2
         exit 1
     }
 fi

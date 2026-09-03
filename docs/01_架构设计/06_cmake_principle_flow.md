@@ -70,7 +70,7 @@ CMake 内部对 CUDA 语言的处理流程是：**探测编译器身份 → 询�
 
 | CMake 期待 | 现实 | 兼容层对策 |
 |---|---|---|
-| 一个行为像 nvcc 的可执行文件 | 不存在 | shim 目录 + mock nvcc（探测应答）+ RuleDriver（真编译翻译） |
+| 一个行为像 nvcc 的可执行文件 | 不存在 | 虚拟工具链目录 + mock nvcc（探测应答）+ RuleDriver（真编译翻译） |
 | NVIDIA 编译器身份特征 | ccec 是 clang 15 系 | mock 应答 NVIDIA-compat 身份 + override 固定变量 |
 | cudart 链接与 CUDA 架构体系 | 桥运行时 + 无 GPU 架构概念 | FindCUDAToolkit 别名族 + ARCHITECTURES OFF 强制 |
 
@@ -107,7 +107,7 @@ sequenceDiagram
     participant U as 用户 shell
     participant W as cmake_cce
     participant C as CMake
-    participant M as mock_nvcc(shim nvcc)
+    participant M as mock_nvcc(虚拟工具链 nvcc)
     participant D as RuleDriver
     participant X as ccec/ACL
 
@@ -159,7 +159,7 @@ sequenceDiagram
 
 | 变量 | 值 | 目的 |
 |---|---|---|
-| `CMAKE_CUDA_COMPILER` | shim nvcc | 与 mock 一致 |
+| `CMAKE_CUDA_COMPILER` | 虚拟工具链 nvcc | 与 mock 一致 |
 | `CMAKE_CUDA_DEVICE_LINKER/FATBINARY` | shim 占位 | 免去对 nvlink/fatbinary 的探测（CMake ≥3.21） |
 | `CMAKE_CUDA_RUNTIME_LIBRARY` | `None` | cudart 语义由桥运行时承接，阻止 CMake 自动链 cudart |
 | `CMAKE_CUDA_ARCHITECTURES` | `OFF` | NVIDIA sm_XX 无意义且触发 `.cubin` 产物管线（真机失败教训） |
@@ -175,7 +175,7 @@ CUDA::cudart)` 照常工作；另有 `cu2cce::runtime` 原生包（区分"桥"�
 ## 5. 一次真实构建的命令 trace（真机）
 
 configure 后推荐用 `cmake_cce --build`，`.cu.o` 规则实际执行（`CU2CCE_DEBUG` 可见）；
-普通 `cmake --build` 仍可借持久 shim 工作，但不会主动执行 wrapper 的第二阶段 dispatch：
+普通 `cmake --build` 仍可借持久虚拟工具链目录 工作，但不会主动执行 wrapper 的第二阶段 dispatch：
 
 ```text
 cucc -c vector_add.cu -o CMakeFiles/demo.dir/vector_add.cu.o \

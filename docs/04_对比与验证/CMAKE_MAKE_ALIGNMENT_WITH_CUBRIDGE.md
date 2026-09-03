@@ -82,7 +82,7 @@ configure 脚本用 `pre_makefile` 包裹；Python 库安装不管（FAQ Q7）�
 | 宿主编译器劫持 | bin/gnu 包装器（链接走 mxcc） | hostcc_cce（第五批次规则化：`cu2cce_driver.py --hostcc-mode` 消费 rules `hostcc.link.inject`）；链接器保持 g++（语义由桥运行时承接） | 已对齐（规则面 2026-08-30；链接器保留 NPU 适配） |
 | Make 入口 | make_maca（假目录+PATH+make；make.log 哨兵） | make_cce（同构 + manifest 化布局；clean 目标词元匹配修复 `cleanpack` 误删） | 已对齐 |
 | 并行隔离 | USE_WCUDA_FOR_MULTI_JOB（$PPID 后缀） | **第五批次补齐**：`CU2CCE_SHIM_ISOLATE=1`（cmake_cce/make_cce/pre_cce 统一） | 已对齐（2026-08-30） |
-| 假工具包默认持久化 | CUBRIDGE_HOME=$HOME（持久，configure/build 共享） | **默认持久且按 build 目录隔离**：`${CU2CCE_HOME:-${CUBRIDGE_HOME:-$HOME}}/cu2cce-bridge/cmake-shim-<build-key>`（CU2CCE_CMAKE_SHIM_DIR 显式覆盖） | 已对齐（2026-09-02：双阶段共享同一 shim，同时避免跨项目覆盖） |
+| 假工具包默认持久化 | CUBRIDGE_HOME=$HOME（持久，configure/build 共享） | **默认持久且按 build 目录隔离**：`${CU2CCE_HOME:-${CUBRIDGE_HOME:-$HOME}}/cu2cce-bridge/cmake-virtual-toolkit-<build-key>`（CU2CCE_CMAKE_SHIM_DIR 显式覆盖） | 已对齐（2026-09-02：双阶段共享同一 shim，同时避免跨项目覆盖） |
 | configure 包裹器 | pre_makefile（configure 脚本包裹，FAQ Q5） | **pre_cce**（同构 + hostcc_cce 统一——第五批次前是身份软链，纯 g++ 链接拿不到注入） | 已对齐（2026-08-28；2026-08-30 统一 hostcc） |
 | 设备架构探测助手 | multi_target.sh + get_device_arch.sh（CUCC_TARGETS → mx-smi → 提示） | **tools/device_arch.sh**（CU2CCE_NPU_ARCH/CUCC_NPU_ARCH/CUCC_TARGETS/CUCC_TARGETS_FROM_DEVICE → npu-smi 表映射 → cache → default + tip），cmake_cce/make_cce/ninja_cce/pre_cce 接线 | 已对齐（2026-09-01，NPU 单 dav-* target 约束） |
 | CUPTI 路径布局 | 虚拟目录含 extras/CUPTI/{include,lib64} | tools/link.json 同款空目录布局（路径探测兼容） | 已对齐（2026-08-28） |
@@ -99,7 +99,7 @@ configure 脚本用 `pre_makefile` 包裹；Python 库安装不管（FAQ Q7）�
 | | cu-bridge | 本桥 |
 |---|---|---|
 | 用户工程内 | 标准 `.o`/目标产物，无中间件 | 同 |
-| 桥临时物 | `$CUBRIDGE_HOME/_nvcc/`（命令脚本）、`~/cu-bridge`（假工具包） | shim 目录（默认 `~/cu2cce-bridge/cmake-shim-<build-key>`，持久按 build 隔离；或 `CU2CCE_CMAKE_SHIM_DIR`）、`$CU2CCE_HOME/cu2cce-bridge/`（make 假工具包） |
+| 桥临时物 | `$CUBRIDGE_HOME/_nvcc/`（命令脚本）、`~/cu-bridge`（假工具包） | 虚拟工具链目录（默认 `~/cu2cce-bridge/cmake-virtual-toolkit-<build-key>`，持久按 build 隔离；或 `CU2CCE_CMAKE_SHIM_DIR`）、`$CU2CCE_HOME/cu2cce-bridge/`（make 假工具包） |
 | 链接执行者 | mxcc | g++（+ 桥运行时 .so） |
 | 安装树 | bin/include/extras/cmake_module/tools + 库装进 `$MACA_PATH/lib` | bin/include/lib/config/cmake_modules/tools（自包含前缀）+ `bin/nvcc` 软链 |
 
@@ -110,8 +110,8 @@ configure 脚本用 `pre_makefile` 包裹；Python 库安装不管（FAQ Q7）�
 代码阅读地图（每步给出文件与关键函数）：
 
 1. **configure 入口**：`tools/cmake_cce` —— 环境预检 → build 分流
-   （`--build/--install` 时 shim nvcc→cucc；`--build` 再按 build.ninja 分发
-   make_cce/ninja_cce，deal_build_param parity）→ shim 布局
+   （`--build/--install` 时 虚拟工具链 nvcc→cucc；`--build` 再按 build.ninja 分发
+   make_cce/ninja_cce，deal_build_param parity）→ 虚拟工具链布局
    （`tools/mock/virtualDir.py` 消费 `tools/link.json`：bin/include/
    lib64 软链族/targets 三元组/version.txt）→ cmake 参数注入
    （ARCHITECTURES=OFF / RUNTIME_LIBRARY=None / MODULE_PATH 前插 /
@@ -141,7 +141,7 @@ configure 脚本用 `pre_makefile` 包裹；Python 库安装不管（FAQ Q7）�
 
 > 第五批次（2026-08-30）收口：cmake --build 分流、queries 查询直通、`-std` 去重、
 > `-gencode` 架构提取 + `CU2CCE_ARCH_MACRO` opt-in 注入、`.cu` 预包含
-> cuda_runtime.h、hostcc 规则化、shim 清单化（tools/link.json +
+> cuda_runtime.h、hostcc 规则化、虚拟工具链清单化（tools/link.json +
 > tools/mock/virtualDir.py）、lib64 别名扩展（libcublas/libnvToolsExt，EXPERIMENTAL）、
 > pre_cce hostcc 统一、clean 词元匹配、CU2CCE_SHIM_ISOLATE 并行隔离、
 > mock ABI 现编替身——决策细节见分析文档 §二。
@@ -179,7 +179,7 @@ configure 脚本用 `pre_makefile` 包裹；Python 库安装不管（FAQ Q7）�
 5. 头文件生态/cuDriver API/多 `.cu` 归档聚合（SDK 级与昇腾侧议题，见分析文档 §四）。
 
 > 已关闭的历史差距：pre_makefile（→pre_cce）、bin/gnu（→hostcc_cce，第五批次
-> 进一步规则化）、multi_target/get_device_arch（→device_arch.sh）、持久 shim、
+> 进一步规则化）、multi_target/get_device_arch（→device_arch.sh）、持久虚拟工具链目录、
 > lib64 软链族、安装树 nvcc 软链、cmake --build 分流、queries 直通、mock ABI
 > 现编——2026-08-28/08-30 两批次落地。
 
@@ -192,8 +192,8 @@ cu-bridge 机制变化（升级 mock 分支/link.json 结构/新增入口）时�
 
 本轮继续按 `cu-bridge` 机制逐项收口，同时保留 Ascend NPU 后端边界：
 
-- `ninja_cce` 现在与 `make_cce`/`pre_cce` 共用 virtual CUDA toolkit 生命周期，统一处理持久 shim、`CUDA_PATH`、`CANN_BASE`、`ASCEND_TOOLKIT_HOME`、`CU2CCE_NPU_ARCH`、`LD_LIBRARY_PATH`、clean 和并行隔离。
-- 修正 CMake shim 路径一致性：`cmake_cce`、`ninja_cce` 和 `tools/mock/virtualDir.py` 统一使用 `<shim-root>/CUDA_DIR`，避免 CMake 记录的 mock `nvcc` 路径与 build 阶段重指向路径不一致。
+- `ninja_cce` 现在与 `make_cce`/`pre_cce` 共用 virtual CUDA toolkit 生命周期，统一处理持久虚拟工具链目录、`CUDA_PATH`、`CANN_BASE`、`ASCEND_TOOLKIT_HOME`、`CU2CCE_NPU_ARCH`、`LD_LIBRARY_PATH`、clean 和并行隔离。
+- 修正 CMake 虚拟工具链目录 路径一致性：`cmake_cce`、`ninja_cce` 和 `tools/mock/virtualDir.py` 统一使用 `<shim-root>/CUDA_DIR`，避免 CMake 记录的 mock `nvcc` 路径与 build 阶段重指向路径不一致。
 - `pre_cce` 和所有构建 wrapper 保持 argv 直接传递，不复制参考脚本的 `eval` 字符串执行风险。
 - `-E` 采用 `cu-bridge` 的 query passthrough 机制，但后端仍由 Ascend ccec 负责，实际预处理输出继续以真机证据为准。
 - `CUCC_TARGETS` 作为兼容别名接受，但 Ascend ccec puresimt 一次只允许一个 `dav-*` 目标；`sm_*`/`compute_*` 不会被误传为 NPU 架构。
@@ -245,7 +245,7 @@ cu-bridge 机制变化（升级 mock 分支/link.json 结构/新增入口）时�
 - 顶层 README/Quickstart/文档导航只保留单一操作入口；已完成计划和 review spec
   统一归档到 `docs/99_归档/`，构建/扫描状态由 `.gitignore` 排除。
 
-仍有意保留的限制：默认 persistent shim 是历史兼容行为；并发或多 bridge 版本构建
+仍有意保留的限制：默认 persistent virtual toolkit 是历史兼容行为；并发或多 bridge 版本构建
 必须通过 `CU2CCE_CMAKE_SHIM_DIR` 或 `CU2CCE_SHIM_ISOLATE=1` 隔离。Ascend 多 `.cu`
 静态库重复 registration、PTX/CUBIN/FATBIN、RDC/device-link 和未验证 CUDA library
 不会因 parity 目标被伪装成已支持能力。

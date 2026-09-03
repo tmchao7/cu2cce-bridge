@@ -44,7 +44,7 @@ def _host_triple() -> str:
 
 
 def determine_cuda() -> str:
-    cuda_path = os.environ.get("CUDA_PATH", "/tmp/cu2cce-cuda-shim")
+    cuda_path = os.environ.get("CUDA_PATH", "/tmp/cu2cce-cuda-toolkit")
     target_dir = f"targets/{_host_triple()}"
     return f'''#$ _NVVM_BRANCH_=nvvm
 #$ _SPACE_=
@@ -66,7 +66,7 @@ def _simple_preprocess_response() -> str:
     """Answer CMake >=3.24's --simple-preprocess CUDA-version probe.
 
     CMake runs `nvcc --simple-preprocess -x cu ...` and greps for the CUDA
-    version string. The shim replies with a fragment CMake parses into the
+    version string. The virtual toolkit entry replies with a fragment CMake parses into the
     configured CUDA-compat version; nothing is compiled."""
     major, minor, build = _cuda_version_parts()
     return (
@@ -195,7 +195,7 @@ def main() -> int:
     # Everything else is a real compile/link/preprocess invocation. In
     # particular -MD/-MF/-MT are CMake's dependency-generation flags attached
     # to every genuine CUDA object rule: they must reach the rule driver and
-    # ccec, never be swallowed by the shim.
+    # ccec, never be swallowed by the virtual toolkit entry.
     return run_driver(args)
 
 
