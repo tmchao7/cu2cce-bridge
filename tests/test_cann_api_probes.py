@@ -46,3 +46,11 @@ class CannApiProbeTest(unittest.TestCase):
             )
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("acl_rt.h", result.stdout + result.stderr)
+
+    def test_surface_probe_accepts_device_compile_inputs(self) -> None:
+        script = (ROOT / "tools/real_test/diag/cann_api_surface_probe.sh").read_text(encoding="utf-8")
+        self.assertIn("--bridge-include", script)
+        self.assertIn("--ccec", script)
+        self.assertIn("--npu-arch", script)
+        self.assertIn("__shfl_sync", script)
+        self.assertIn("atomicCAS", script)

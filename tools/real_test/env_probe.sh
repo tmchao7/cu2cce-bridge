@@ -130,12 +130,12 @@ for h in acl/acl_rt.h acl/acl_base.h acl/ops/acl_cblas.h; do
 done
 
 ACL_RT_LIB=""
-if [ -f "$ATH/lib64/libascendcl.so" ]; then
-    ACL_RT_LIB="-lascendcl"; ok "lib64/libascendcl.so（链接参数 ${ACL_RT_LIB}）"
-elif [ -f "$ATH/lib64/libacl_rt.so" ]; then
+if [ -f "$ATH/lib64/libacl_rt.so" ]; then
     ACL_RT_LIB="-lacl_rt"; ok "lib64/libacl_rt.so（链接参数 ${ACL_RT_LIB}）"
+elif [ -f "$ATH/lib64/libascendcl.so" ]; then
+    ACL_RT_LIB="-lascendcl"; ok "lib64/libascendcl.so（旧版 fallback，链接参数 ${ACL_RT_LIB}）"
 else
-    miss "lib64/libascendcl.so 与 libacl_rt.so 都不存在"; MISS=$((MISS+1))
+    miss "lib64/libacl_rt.so 与 libascendcl.so 都不存在"; MISS=$((MISS+1))
 fi
 
 HAS_ACL_CBLAS=0

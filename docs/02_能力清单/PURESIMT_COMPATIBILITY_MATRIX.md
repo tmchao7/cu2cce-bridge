@@ -278,3 +278,72 @@ cce::async_invoke
 PTX intrinsic
 CUDA device-link/RDC
 ```
+
+## 11. CUDA device-side API → Ascend C SIMT 逐项映射（2026-09-03）
+
+官方 Ascend C API 列表将 SIMT 作为独立编程模型，入口头文件为 `simt/asc_simt.h`；底层同步、Warp 和原子接口由 CANN 的 `simt_api` 头文件提供。cu2cce 的 CUDA 头文件入口通过 `include/bridge/kernel/cuda_device_api.h` 集中维护以下映射。
+
+### 11.1 线程、同步和执行空间
+
+| CUDA 写法 | CANN/Ascend 写法 | 当前处理 | 状态 | 说明 |
+|---|---|---|---|---|
+| `__global__` | ccec 原生 CUDA SIMT kernel 语法 | 不改写 | `SUPPORTED` for tested kernels | ccec `--enable-simt` 直接解析 |
+| `__device__` | `__SIMT_DEVICE_FUNCTIONS_DECL__` | 由 `simt_adaptor.h` 映射 | `SUPPORTED` for tested helper | 由 CANN `device_types.h` 选择执行空间 |
+| `__shared__` | `__ubuf__` | 宏映射 | `SUPPORTED` for tested kernels | UB 资源不是 NVIDIA shared memory 的字节级承诺 |
+| `__syncthreads()` | `asc_syncthreads()` | 宏映射 | `SUPPORTED` for tested kernels | 依赖 CANN SIMT barrier |
+| `__threadfence()` | `asc_threadfence()` | 宏映射 | `SUPPORTED` for tested forms | 只保证已验证的 Ascend SIMT 内存序 |
+| `__threadfence_block()` | `asc_threadfence_block()` | 宏映射 | `SUPPORTED` for tested forms | block/warp 语义需按 CANN 约束使用 |
+| `__threadfence_system()` | 无公开等价映射 | 不定义 alias | `UNSUPPORTED` | 禁止静默降级成普通 fence |
+
+### 11.2 Warp、Vote 和归约
+
+| CUDA 写法 | CANN/Ascend 写法 | 当前处理 | 状态 | 关键差异 |
+|---|---|---|---|---|
+| `__shfl_sync(mask,v,lane)` | `asc_shfl(v,lane,warpSize)` | 保留 3 参数形式 | `SUPPORTED` for tested forms | mask 在 Ascend 侧为隐式执行组 |
+| `__shfl_sync(mask,v,lane,width)` | `asc_shfl(v,lane,width)` | 保留 width | `EXPERIMENTAL` | width 受 CANN SIMT 支持范围约束 |
+| `__shfl_up_sync` | `asc_shfl_up` | 3/4 参数分派 | `SUPPORTED` for tested forms | mask 不可表达任意 CUDA 子组 |
+| `__shfl_down_sync` | `asc_shfl_down` | 3/4 参数分派 | `SUPPORTED` for tested forms | 当前回归重点覆盖 down |
+| `__shfl_xor_sync` | `asc_shfl_xor` | 3/4 参数分派 | `EXPERIMENTAL` | 需要按 lane mask 和 width 约束使用 |
+| `__all_sync` | `asc_all` | mask 被显式求值后忽略 | `SUPPORTED` for tested forms | 不是任意 CUDA active mask 等价 |
+| `__any_sync` | `asc_any` | mask 被显式求值后忽略 | `SUPPORTED` for tested forms | 同上 |
+| `__ballot_sync` | `asc_ballot` | mask 被显式求值后忽略 | `SUPPORTED` for tested forms | 返回位图宽度由 CANN 定义 |
+| `__activemask()` | `asc_activemask()` | 直接映射 | `EXPERIMENTAL` | 需真实设备执行验证 active lane 行为 |
+| `__reduce_add_sync` | `asc_reduce_add` | mask 被显式求值后忽略 | `SUPPORTED` for tested form | 当前只承诺已验证类型 |
+| `__reduce_max_sync` | `asc_reduce_max` | mask 被显式求值后忽略 | `EXPERIMENTAL` | 依赖 CANN Warp header 和类型支持 |
+| `__reduce_min_sync` | `asc_reduce_min` | mask 被显式求值后忽略 | `EXPERIMENTAL` | 同上 |
+
+### 11.3 原子操作
+
+| CUDA 写法 | CANN/Ascend 写法 | 当前处理 | 状态 | 限制 |
+|---|---|---|---|---|
+| `atomicAdd/Sub/Exch/Max/Min` | `asc_atomic_add/sub/exch/max/min` | 直接宏映射 | `SUPPORTED` for tested types | 需匹配 CANN 支持的地址空间和数据类型 |
+| `atomicInc` | `asc_atomic_inc` | 直接宏映射 | `EXPERIMENTAL` | 当前未纳入主线数值回归 |
+| `atomicDec` | `asc_atomic_dec` | 直接宏映射 | `EXPERIMENTAL` | 同上 |
+| `atomicCAS` | `asc_atomic_cas` | 直接宏映射 | `EXPERIMENTAL` | 返回旧值和支持类型需真机探针确认 |
+| `atomicAnd` | `asc_atomic_and` | 直接宏映射 | `EXPERIMENTAL` | 需确认 global/UB 地址空间 |
+| `atomicOr` | `asc_atomic_or` | 直接宏映射 | `EXPERIMENTAL` | 同上 |
+| `atomicXor` | `asc_atomic_xor` | 直接宏映射 | `EXPERIMENTAL` | 同上 |
+
+### 11.4 数学、类型和内建变量
+
+| CUDA 面 | Ascend C 面 | 当前状态 |
+|---|---|---|
+| `__device__` 内的单精度数学函数 | CANN `simt_api/math_functions.h` | `SUPPORTED` for tested functions |
+| `__float_as_int` 等位级转换 | CANN `simt_api/device_functions.h` | `EXPERIMENTAL`，需按安装版本探针确认 |
+| `__half` / `__half2` | `half` / `half2`、`simt_api/asc_fp16.h` | `SUPPORTED` for tested forms |
+| `__nv_bfloat16` / `__nv_bfloat162` | `bfloat16_t` / `bfloat16x2_t`、`simt_api/asc_bf16.h` | `SUPPORTED` for tested forms |
+| `threadIdx/blockIdx/blockDim/gridDim` | ccec 原生 SIMT builtins | `SUPPORTED` for tested kernels |
+| CUDA vector factory 全量 | CANN vector API | `NOT_VERIFIED` | 未经逐项 host/device 可见性验证，不在兼容头中猜测补齐 |
+| `__CUDA_ARCH__` | 兼容宏或 trace | `DIAGNOSTIC_ONLY` | 不转成 Ascend `dav-*` target |
+
+### 11.5 头文件责任边界
+
+```text
+include/cuda_runtime.h
+  ├─ host Runtime：__cuda_runtime.h → wcuda* → aclrt*
+  ├─ CRT surface：crt/*.h、device_launch_parameters.h、math_constants.h
+  └─ device surface：bridge/kernel/simt_adaptor.h
+                       └─ bridge/kernel/cuda_device_api.h
+```
+
+`cuda_runtime.h` 的头文件可见性、ccec 编译成功和真机运行结果必须分别记录；任何未提供可靠 Ascend 等价物的 CUDA device API 都不能用一个同名宏伪造。

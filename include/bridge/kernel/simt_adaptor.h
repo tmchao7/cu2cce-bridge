@@ -53,17 +53,15 @@
 #define __threadfence_block() asc_threadfence_block()
 #define __shared__ __ubuf__
 
-/* CUDA warp collectives. Ascend SIMT uses an implicit full-warp mask. */
-#define __shfl_sync(mask, var, srcLane) asc_shfl((var), (srcLane))
-#define __shfl_up_sync(mask, var, delta) asc_shfl_up((var), (delta))
-#define __shfl_down_sync(mask, var, delta) asc_shfl_down((var), (delta))
-#define __shfl_xor_sync(mask, var, laneMask) asc_shfl_xor((var), (laneMask))
-#define __all_sync(mask, predicate) asc_all((predicate))
-#define __any_sync(mask, predicate) asc_any((predicate))
-#define __ballot_sync(mask, predicate) asc_ballot((predicate))
-#define __reduce_add_sync(mask, value) asc_reduce_add((value))
+/*
+ * The extended device-language map owns warp-width preservation, vote/reduce
+ * intrinsics and the additional atomic family. Keeping it in a dedicated
+ * header makes the CUDA -> CANN device contract auditable independently from
+ * the host Runtime wrapper.
+ */
+#include "bridge/kernel/cuda_device_api.h"
 
-/* CUDA atomics. */
+/* CUDA atomics covered by the original puresimt regression set. */
 #define atomicAdd(a, b) asc_atomic_add((a), (b))
 #define atomicSub(a, b) asc_atomic_sub((a), (b))
 #define atomicExch(a, b) asc_atomic_exch((a), (b))

@@ -68,16 +68,29 @@ else
     export LD_LIBRARY_PATH="$ASCEND_LIB:$CUCC_PATH/lib"
 fi
 
-# 预检：CMakeLists.txt 直接引用这两个 .so 文件名，缺则构建必失败
-echo "== 链接库预检（CMakeLists.txt 第 48-49 行直接引用） =="
-for lib in libascendcl.so libacl_cblas.so; do
-    if [ -f "$ASCEND_LIB/$lib" ]; then
-        echo "  [OK]   $lib"
-    else
-        echo "  [MISS] $ASCEND_LIB/$lib"
-        echo "         → 按真机实际库名修改 CMakeLists.txt（如改用 -lacl_rt），或建软链后重跑"
-    fi
-done
+# 预检：Runtime 优先使用 CANN 新版公开库 libacl_rt.so，旧版才 fallback
+# 到 libascendcl.so；BLAS 仍是 bridge 的实验性构建依赖。
+echo "== 链接库预检（CANN Runtime + ACL CBLAS） =="
+ACL_RUNTIME_LIB=""
+if [ -f "$ASCEND_LIB/libacl_rt.so" ]; then
+    ACL_RUNTIME_LIB="$ASCEND_LIB/libacl_rt.so"
+elif [ -f "$ASCEND_LIB/libascendcl.so" ]; then
+    ACL_RUNTIME_LIB="$ASCEND_LIB/libascendcl.so"
+fi
+if [ -n "$ACL_RUNTIME_LIB" ]; then
+    echo "  [OK]   $(basename "$ACL_RUNTIME_LIB")"
+else
+    echo "  [MISS] $ASCEND_LIB/libacl_rt.so"
+    echo "  [MISS] $ASCEND_LIB/libascendcl.so (legacy fallback)"
+    echo "         → 请确认 CANN Runtime 安装完整，不要创建伪造软链"
+    exit 1
+fi
+if [ -f "$ASCEND_LIB/libacl_cblas.so" ]; then
+    echo "  [OK]   libacl_cblas.so"
+else
+    echo "  [MISS] $ASCEND_LIB/libacl_cblas.so"
+    exit 1
+fi
 
 BUILD_DIR="$OUT_DIR/cmake-build"
 NPROC="$(nproc 2>/dev/null || getconf _NPROCESSORS_ONLN 2>/dev/null || echo 4)"

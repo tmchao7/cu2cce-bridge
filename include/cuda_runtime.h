@@ -18,6 +18,10 @@
 #include <crt/host_defines.h>
 #include <crt/common_functions.h>
 #include <crt/math_functions.h>
+#include <crt/builtin_types.h>
+#include <crt/device_functions.h>
+#include <device_launch_parameters.h>
+#include <math_constants.h>
 
 #if !defined(__CUDACC_RTC__)
 #define EXCLUDE_FROM_RTC

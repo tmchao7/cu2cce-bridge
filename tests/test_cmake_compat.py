@@ -2147,3 +2147,76 @@ class CanonicalAscendRuntimeCMakeTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class CudaDeviceApiMappingContractTest(unittest.TestCase):
+    def test_cuda_device_api_header_is_included_by_runtime_surface(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        mapping = root / "include/bridge/kernel/cuda_device_api.h"
+        runtime = (root / "include/__cuda_runtime.h").read_text(encoding="utf-8")
+        self.assertTrue(mapping.is_file())
+        self.assertIn('"bridge/kernel/cuda_device_api.h"', runtime)
+
+    def test_mapping_covers_extended_simt_and_atomic_surface(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        text = (root / "include/bridge/kernel/cuda_device_api.h").read_text(encoding="utf-8")
+        for cuda_name, ascend_name in (
+            ("__activemask", "asc_activemask"),
+            ("__reduce_max_sync", "asc_reduce_max"),
+            ("__reduce_min_sync", "asc_reduce_min"),
+            ("atomicInc", "asc_atomic_inc"),
+            ("atomicDec", "asc_atomic_dec"),
+            ("atomicCAS", "asc_atomic_cas"),
+            ("atomicAnd", "asc_atomic_and"),
+            ("atomicOr", "asc_atomic_or"),
+            ("atomicXor", "asc_atomic_xor"),
+        ):
+            self.assertIn(cuda_name, text)
+            self.assertIn(ascend_name, text)
+
+    def test_mapping_preserves_cuda_width_argument_when_present(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        text = (root / "include/bridge/kernel/cuda_device_api.h").read_text(encoding="utf-8")
+        self.assertIn("CU2CCE_SHFL_SYNC4", text)
+        self.assertIn("asc_shfl((var), (srcLane), (width))", text)
+        self.assertIn("CU2CCE_SHFL_UP_SYNC4", text)
+        self.assertIn("CU2CCE_SHFL_DOWN_SYNC4", text)
+        self.assertIn("CU2CCE_SHFL_XOR_SYNC4", text)
+
+    def test_unsupported_system_fence_is_not_silently_aliased(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        text = (root / "include/bridge/kernel/cuda_device_api.h").read_text(encoding="utf-8")
+        self.assertIn("__threadfence_system", text)
+        self.assertIn("UNSUPPORTED", text)
+        self.assertNotRegex(text, r"#define\s+__threadfence_system\s+asc_threadfence")
+
+class CudaRuntimeHeaderSurfaceContractTest(unittest.TestCase):
+    def test_cuda_runtime_exposes_cuda_crt_device_surface(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        runtime = (root / "include/cuda_runtime.h").read_text(encoding="utf-8")
+        for header in (
+            "crt/builtin_types.h",
+            "crt/device_functions.h",
+            "device_launch_parameters.h",
+            "math_constants.h",
+        ):
+            self.assertIsNotNone(
+                re.search(
+                    r"^\s*#\s*include\s+[<\"]" + re.escape(header) + r"[>\"]",
+                    runtime, re.MULTILINE,
+                ),
+                header,
+            )
+
+class CanonicalRuntimeProbeContractTest(unittest.TestCase):
+    def test_environment_probe_prefers_acl_rt_over_legacy_ascendcl(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        text = (root / "tools/real_test/env_probe.sh").read_text(encoding="utf-8")
+        self.assertLess(text.index("libacl_rt.so"), text.index("libascendcl.so"))
+
+    def test_bridge_build_precheck_accepts_either_runtime_with_acl_rt_first(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        text = (root / "tools/real_test/build_bridge.sh").read_text(encoding="utf-8")
+        self.assertIn("libacl_rt.so", text)
+        self.assertIn("libascendcl.so", text)
+        self.assertIn("ACL_RUNTIME_LIB", text)
+        self.assertLess(text.index("libacl_rt.so"), text.index("libascendcl.so"))

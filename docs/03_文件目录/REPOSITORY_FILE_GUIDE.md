@@ -587,7 +587,8 @@ git diff --check
 |---|---|
 | `include/__cuda_runtime.h` | 用户可见 CUDA 兼容头或第三方 API 声明 |
 | `include/bridge/blas/cublas_v2_wrapper.h` | experimental cuBLAS/ACL BLAS 兼容头 |
-| `include/bridge/kernel/simt_adaptor.h` | CUDA SIMT 原语到 Ascend ccec 的适配头 |
+| `include/bridge/kernel/simt_adaptor.h` | CUDA SIMT 基础原语、执行空间和 shared/atomic 基础映射 |
+| `include/bridge/kernel/cuda_device_api.h` | CUDA device-side SIMT/warp/vote/reduce/atomic 到 CANN simt_api 的集中映射 |
 | `include/bridge/runtime/cuda_benchmark_targets.h` | CUDA runtime bridge 的类型、声明和内部接口头 |
 | `include/bridge/runtime/cuda_runtime_wrapper.h` | CUDA runtime bridge 的类型、声明和内部接口头 |
 | `include/bridge/runtime/cuda_to_cce_mcr_adaptor.h` | CUDA runtime bridge 的类型、声明和内部接口头 |
