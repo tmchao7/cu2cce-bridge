@@ -949,7 +949,7 @@ else
 fi
 if [ "${BUILD_COMPAT_PASS:-0}" -eq 1 ] && [ "${CMAKE_PASS:-0}" -eq 1 ] && command -v ninja >/dev/null 2>&1 && [ -x "$NINJA_CCE" ]; then
     if CUCC_PATH="$PWD/build/real_test/install" "$NINJA_CCE" -C "$OUT/cmake-ninja-build" >"$OUT/ninja_cce.log" 2>&1 &&
-       grep -Fq 'ninja_cce: build phase: shim nvcc ->' "$OUT/ninja_cce.log"; then
+       grep -Fq 'ninja_cce: build phase: virtual toolkit nvcc ->' "$OUT/ninja_cce.log"; then
         echo '[PASS] direct ninja_cce wrapper + persistent shim rebuild'
         if ! artifact_check cmake_ninja "$OUT/cmake-ninja-build"; then
             BUILD_COMPAT_PASS=0
@@ -957,7 +957,7 @@ if [ "${BUILD_COMPAT_PASS:-0}" -eq 1 ] && [ "${CMAKE_PASS:-0}" -eq 1 ] && comman
         if [ -d "$OUT/cmake-build-compat-ninja-build" ]; then
             if CUCC_PATH="$PWD/build/real_test/install" "$NINJA_CCE" -C "$OUT/cmake-build-compat-ninja-build" \
                 >"$OUT/ninja_cce_build_compat.log" 2>&1 &&
-               grep -Fq 'ninja_cce: build phase: shim nvcc ->' "$OUT/ninja_cce_build_compat.log" &&
+               grep -Fq 'ninja_cce: build phase: virtual toolkit nvcc ->' "$OUT/ninja_cce_build_compat.log" &&
                artifact_check cmake_build_compat_ninja "$OUT/cmake-build-compat-ninja-build"; then
                 echo '[PASS] direct ninja_cce build-compat artifact shape matches CMake Makefiles'
             else

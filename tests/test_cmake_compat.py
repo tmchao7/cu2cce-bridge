@@ -40,6 +40,10 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         self.assertEqual(conf["cu2cce"]["compiler"], "bisheng-ccec")
         self.assertNotEqual(conf["runtime"], "runtime_cu.so")
         self.assertNotEqual(conf["runtime"], "symbol_cu.so")
+        gnu = (ROOT / "bin/gnu").read_text(encoding="utf-8")
+        for compiler_name in ("c++", "g++", "gcc", "cc"):
+            self.assertIn(compiler_name, gnu)
+        self.assertIn("os.path.realpath", gnu)
 
     def test_cucc_conf_and_legacy_rules_keep_semantic_sections_in_sync(self) -> None:
         import json
