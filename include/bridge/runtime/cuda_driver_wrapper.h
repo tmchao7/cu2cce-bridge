@@ -25,6 +25,16 @@ CUresult wcuInit(unsigned int flags);
 CUresult wcuDriverGetVersion(int *driverVersion);
 CUresult wcuDeviceGetCount(int *count);
 CUresult wcuDeviceGet(CUdevice *device, int ordinal);
+CUresult wcuCtxGetCurrent(CUcontext *context);
+CUresult wcuCtxSetCurrent(CUcontext context);
+CUresult wcuCtxSynchronize(void);
+CUresult wcuModuleLoadData(CUmodule *module, const void *image);
+CUresult wcuModuleUnload(CUmodule module);
+CUresult wcuModuleGetFunction(CUfunction *function, CUmodule module, const char *name);
+CUresult wcuLaunchKernel(CUfunction function, unsigned int gridDimX, unsigned int gridDimY,
+                         unsigned int gridDimZ, unsigned int blockDimX, unsigned int blockDimY,
+                         unsigned int blockDimZ, unsigned int sharedMemBytes, CUstream stream,
+                         void **kernelParams, void **extra);
 
 #ifdef __cplusplus
 }
@@ -36,5 +46,12 @@ CUresult wcuDeviceGet(CUdevice *device, int ordinal);
 #define cuDriverGetVersion wcuDriverGetVersion
 #define cuDeviceGetCount wcuDeviceGetCount
 #define cuDeviceGet wcuDeviceGet
+#define cuCtxGetCurrent wcuCtxGetCurrent
+#define cuCtxSetCurrent wcuCtxSetCurrent
+#define cuCtxSynchronize wcuCtxSynchronize
+#define cuModuleLoadData wcuModuleLoadData
+#define cuModuleUnload wcuModuleUnload
+#define cuModuleGetFunction wcuModuleGetFunction
+#define cuLaunchKernel wcuLaunchKernel
 
 #endif /* __CU2CCE_CUDA_DRIVER_WRAPPER_H__ */

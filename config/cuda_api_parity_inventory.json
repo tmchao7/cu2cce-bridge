@@ -273,16 +273,14 @@
     "cuCtxGetCurrent": {
       "cann_route": "CANN aclrtBinary/module route; no active CUDA Driver ABI",
       "implementation_files": [
-        "include/bridge/cuda_to_cce_reserved_wrapper_parity.h"
+        "runtime/cuda_driver_wrapper.h"
       ],
       "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_driver_wrapper.h"
       ],
-      "reference_prototypes": [
-        "mcDrvError_t CUBRIDGE_API wcuCtxGetCurrent(mcDrvContext_t *pctx);"
-      ],
-      "status": "RESERVED_NPU",
+      "reference_prototypes": [],
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcuCtxGetCurrent"
     },
     "cuCtxGetDevResource": {
@@ -468,16 +466,14 @@
     "cuCtxSetCurrent": {
       "cann_route": "CANN aclrtBinary/module route; no active CUDA Driver ABI",
       "implementation_files": [
-        "include/bridge/cuda_to_cce_reserved_wrapper_parity.h"
+        "runtime/cuda_driver_wrapper.h"
       ],
       "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_driver_wrapper.h"
       ],
-      "reference_prototypes": [
-        "mcDrvError_t CUBRIDGE_API wcuCtxSetCurrent(mcDrvContext_t ctx);"
-      ],
-      "status": "RESERVED_NPU",
+      "reference_prototypes": [],
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcuCtxSetCurrent"
     },
     "cuCtxSetFlags": {
@@ -528,16 +524,14 @@
     "cuCtxSynchronize": {
       "cann_route": "CANN aclrtBinary/module route; no active CUDA Driver ABI",
       "implementation_files": [
-        "include/bridge/cuda_to_cce_reserved_wrapper_parity.h"
+        "runtime/cuda_driver_wrapper.h"
       ],
       "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_driver_wrapper.h"
       ],
-      "reference_prototypes": [
-        "mcDrvError_t CUBRIDGE_API wcuCtxSynchronize(void);"
-      ],
-      "status": "RESERVED_NPU",
+      "reference_prototypes": [],
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcuCtxSynchronize"
     },
     "cuDestroyExternalMemory": {
@@ -635,12 +629,12 @@
       "implementation_files": [
         "runtime/cuda_driver_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_driver_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcuDeviceGet"
     },
     "cuDeviceGetAttribute": {
@@ -693,12 +687,12 @@
       "implementation_files": [
         "runtime/cuda_driver_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_driver_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcuDeviceGetCount"
     },
     "cuDeviceGetDefaultMemPool": {
@@ -1051,12 +1045,12 @@
       "implementation_files": [
         "runtime/cuda_driver_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_driver_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcuDriverGetVersion"
     },
     "cuEGLStreamConsumerAcquireFrame": {
@@ -3282,12 +3276,12 @@
       "implementation_files": [
         "runtime/cuda_driver_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_driver_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcuInit"
     },
     "cuIpcCloseMemHandle": {
@@ -3458,16 +3452,14 @@
     "cuLaunchKernel": {
       "cann_route": "CANN aclrtBinary/module route; no active CUDA Driver ABI",
       "implementation_files": [
-        "include/bridge/cuda_to_cce_reserved_wrapper_parity.h"
+        "runtime/cuda_driver_wrapper.h"
       ],
       "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_driver_wrapper.h"
       ],
-      "reference_prototypes": [
-        "mcDrvError_t CUBRIDGE_API wcuLaunchKernel(mcDrvFunction_t f, unsigned int gridDimX, unsigned int gridDimY, unsigned int gridDimZ, unsigned int blockDimX, unsigned int blockDimY, unsigned int blockDimZ, unsigned int sharedMemBytes, mcDrvStream_t stream, void **kernelParams, void **extra);"
-      ],
-      "status": "RESERVED_NPU",
+      "reference_prototypes": [],
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcuLaunchKernel"
     },
     "cuLaunchKernelEx": {
@@ -4936,16 +4928,14 @@
     "cuModuleGetFunction": {
       "cann_route": "CANN aclrtBinary/module route; no active CUDA Driver ABI",
       "implementation_files": [
-        "include/bridge/cuda_to_cce_reserved_wrapper_parity.h"
+        "runtime/cuda_driver_wrapper.h"
       ],
       "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_driver_wrapper.h"
       ],
-      "reference_prototypes": [
-        "mcDrvError_t CUBRIDGE_API wcuModuleGetFunction(mcDrvFunction_t *hfunc, mcDrvModule_t hmod, const char *name);"
-      ],
-      "status": "RESERVED_NPU",
+      "reference_prototypes": [],
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcuModuleGetFunction"
     },
     "cuModuleGetGlobal": {
@@ -5026,16 +5016,14 @@
     "cuModuleLoadData": {
       "cann_route": "CANN aclrtBinary/module route; no active CUDA Driver ABI",
       "implementation_files": [
-        "include/bridge/cuda_to_cce_reserved_wrapper_parity.h"
+        "runtime/cuda_driver_wrapper.h"
       ],
       "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_driver_wrapper.h"
       ],
-      "reference_prototypes": [
-        "mcDrvError_t CUBRIDGE_API wcuModuleLoadData(mcDrvModule_t *module, const void *image);"
-      ],
-      "status": "RESERVED_NPU",
+      "reference_prototypes": [],
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcuModuleLoadData"
     },
     "cuModuleLoadDataEx": {
@@ -5071,16 +5059,14 @@
     "cuModuleUnload": {
       "cann_route": "CANN aclrtBinary/module route; no active CUDA Driver ABI",
       "implementation_files": [
-        "include/bridge/cuda_to_cce_reserved_wrapper_parity.h"
+        "runtime/cuda_driver_wrapper.h"
       ],
       "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_driver_wrapper.h"
       ],
-      "reference_prototypes": [
-        "mcDrvError_t CUBRIDGE_API wcuModuleUnload(mcDrvModule_t hmod);"
-      ],
-      "status": "RESERVED_NPU",
+      "reference_prototypes": [],
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcuModuleUnload"
     },
     "cuMulticastAddDevice": {
@@ -6647,13 +6633,13 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_template_wrapper.h",
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaBindTexture"
     },
     "cudaBindTexture2D": {
@@ -6896,12 +6882,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaCreateSurfaceObject"
     },
     "cudaCreateTextureObject": {
@@ -6909,12 +6895,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaCreateTextureObject"
     },
     "cudaCreateTextureObject_v2": {
@@ -6952,12 +6938,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaDestroyExternalMemory"
     },
     "cudaDestroyExternalSemaphore": {
@@ -6980,12 +6966,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaDestroySurfaceObject"
     },
     "cudaDestroyTextureObject": {
@@ -6993,12 +6979,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaDestroyTextureObject"
     },
     "cudaDevResourceGenerateDesc": {
@@ -7132,13 +7118,13 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "mckl/cuda_device_runtime_wrapper.h",
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaDeviceGetCacheConfig"
     },
     "cudaDeviceGetDefaultMemPool": {
@@ -7206,13 +7192,13 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "mckl/cuda_device_runtime_wrapper.h",
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaDeviceGetLimit"
     },
     "cudaDeviceGetMemPool": {
@@ -7220,12 +7206,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaDeviceGetMemPool"
     },
     "cudaDeviceGetNvSciSyncAttributes": {
@@ -7276,13 +7262,13 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "mckl/cuda_device_runtime_wrapper.h",
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaDeviceGetSharedMemConfig"
     },
     "cudaDeviceGetStreamPriorityRange": {
@@ -7346,12 +7332,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaDeviceSetCacheConfig"
     },
     "cudaDeviceSetGraphMemAttribute": {
@@ -7374,12 +7360,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaDeviceSetLimit"
     },
     "cudaDeviceSetMemPool": {
@@ -7387,12 +7373,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaDeviceSetMemPool"
     },
     "cudaDeviceSetSharedMemConfig": {
@@ -7400,12 +7386,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaDeviceSetSharedMemConfig"
     },
     "cudaDeviceSynchronize": {
@@ -7946,14 +7932,14 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "mckl/cuda_device_runtime_wrapper.h",
         "runtime/cuda_runtime_template_wrapper.h",
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaFuncGetAttributes"
     },
     "cudaFuncGetName": {
@@ -7989,13 +7975,13 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_template_wrapper.h",
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaFuncSetAttribute"
     },
     "cudaFuncSetCacheConfig": {
@@ -8003,13 +7989,13 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_template_wrapper.h",
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaFuncSetCacheConfig"
     },
     "cudaFuncSetSharedMemConfig": {
@@ -8017,13 +8003,13 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_template_wrapper.h",
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaFuncSetSharedMemConfig"
     },
     "cudaGLGetDevices": {
@@ -8263,13 +8249,13 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "mckl/cuda_device_runtime_wrapper.h",
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaGetErrorName"
     },
     "cudaGetErrorString": {
@@ -8277,13 +8263,13 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "mckl/cuda_device_runtime_wrapper.h",
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaGetErrorString"
     },
     "cudaGetExportTable": {
@@ -8335,13 +8321,13 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_template_wrapper.h",
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaGetMipmappedArrayLevel"
     },
     "cudaGetParameterBuffer": {
@@ -8379,12 +8365,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaGetSurfaceObjectResourceDesc"
     },
     "cudaGetSurfaceReference": {
@@ -8407,13 +8393,13 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_template_wrapper.h",
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaGetSymbolAddress"
     },
     "cudaGetSymbolSize": {
@@ -8421,13 +8407,13 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_template_wrapper.h",
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaGetSymbolSize"
     },
     "cudaGetTextureAlignmentOffset": {
@@ -8452,12 +8438,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaGetTextureObjectResourceDesc"
     },
     "cudaGetTextureObjectResourceViewDesc": {
@@ -8465,12 +8451,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaGetTextureObjectResourceViewDesc"
     },
     "cudaGetTextureObjectTextureDesc": {
@@ -8478,12 +8464,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaGetTextureObjectTextureDesc"
     },
     "cudaGetTextureObjectTextureDesc_v2": {
@@ -8654,12 +8640,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaGraphAddKernelNode"
     },
     "cudaGraphAddMemAllocNode": {
@@ -8821,12 +8807,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaGraphClone"
     },
     "cudaGraphConditionalHandleCreate": {
@@ -8849,12 +8835,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaGraphCreate"
     },
     "cudaGraphDebugDotPrint": {
@@ -8877,12 +8863,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaGraphDestroy"
     },
     "cudaGraphDestroyNode": {
@@ -8890,12 +8876,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaGraphDestroyNode"
     },
     "cudaGraphEventRecordNodeGetEvent": {
@@ -8978,12 +8964,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaGraphExecDestroy"
     },
     "cudaGraphExecEventRecordNodeSetEvent": {
@@ -9175,12 +9161,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaGraphExecUpdate"
     },
     "cudaGraphExecUpdate_V2": {
@@ -9296,12 +9282,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaGraphGetNodes"
     },
     "cudaGraphGetRootNodes": {
@@ -9309,12 +9295,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaGraphGetRootNodes"
     },
     "cudaGraphHostNodeGetParams": {
@@ -9352,12 +9338,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaGraphInstantiate"
     },
     "cudaGraphInstantiateWithFlags": {
@@ -9488,12 +9474,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaGraphLaunch"
     },
     "cudaGraphMemAllocNodeGetParams": {
@@ -9561,12 +9547,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaGraphMemcpyNodeSetParams1D"
     },
     "cudaGraphMemcpyNodeSetParamsFromSymbol": {
@@ -10057,13 +10043,13 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_template_wrapper.h",
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaHostGetDevicePointer"
     },
     "cudaHostGetFlags": {
@@ -10071,12 +10057,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaHostGetFlags"
     },
     "cudaHostRegister": {
@@ -10084,12 +10070,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaHostRegister"
     },
     "cudaHostUnregister": {
@@ -10097,12 +10083,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaHostUnregister"
     },
     "cudaImportExternalMemory": {
@@ -10110,12 +10096,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaImportExternalMemory"
     },
     "cudaImportExternalSemaphore": {
@@ -10138,12 +10124,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaIpcCloseMemHandle"
     },
     "cudaIpcGetEventHandle": {
@@ -10151,12 +10137,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaIpcGetEventHandle"
     },
     "cudaIpcGetMemHandle": {
@@ -10164,12 +10150,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaIpcGetMemHandle"
     },
     "cudaIpcOpenEventHandle": {
@@ -10177,12 +10163,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaIpcOpenEventHandle"
     },
     "cudaIpcOpenMemHandle": {
@@ -10190,12 +10176,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaIpcOpenMemHandle"
     },
     "cudaLaunchCooperativeKernel": {
@@ -10203,13 +10189,13 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_template_wrapper.h",
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaLaunchCooperativeKernel"
     },
     "cudaLaunchCooperativeKernelMultiDevice": {
@@ -10420,13 +10406,13 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_template_wrapper.h",
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaMallocFromPoolAsync"
     },
     "cudaMallocHost": {
@@ -10530,12 +10516,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaMemPoolCreate"
     },
     "cudaMemPoolDestroy": {
@@ -10543,12 +10529,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaMemPoolDestroy"
     },
     "cudaMemPoolExportPointer": {
@@ -10601,12 +10587,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaMemPoolGetAttribute"
     },
     "cudaMemPoolImportFromShareableHandle": {
@@ -10659,12 +10645,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaMemPoolSetAttribute"
     },
     "cudaMemPoolTrimTo": {
@@ -10672,12 +10658,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaMemPoolTrimTo"
     },
     "cudaMemPrefetchAsync": {
@@ -10771,13 +10757,13 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_template_wrapper.h",
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaMemcpy2D"
     },
     "cudaMemcpy2DArrayToArray": {
@@ -10880,12 +10866,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaMemcpy3D"
     },
     "cudaMemcpy3DAsync": {
@@ -10893,13 +10879,13 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "mckl/cuda_device_runtime_wrapper.h",
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaMemcpy3DAsync"
     },
     "cudaMemcpy3DAsync_ptsz": {
@@ -10922,12 +10908,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaMemcpy3DPeer"
     },
     "cudaMemcpy3DPeerAsync": {
@@ -10935,12 +10921,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaMemcpy3DPeerAsync"
     },
     "cudaMemcpyArrayToArray": {
@@ -11016,13 +11002,13 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_template_wrapper.h",
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaMemcpyFromSymbol"
     },
     "cudaMemcpyFromSymbolAsync": {
@@ -11030,13 +11016,13 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_template_wrapper.h",
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaMemcpyFromSymbolAsync"
     },
     "cudaMemcpyPeer": {
@@ -11096,13 +11082,13 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_template_wrapper.h",
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaMemcpyToSymbol"
     },
     "cudaMemcpyToSymbolAsync": {
@@ -11110,13 +11096,13 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_template_wrapper.h",
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaMemcpyToSymbolAsync"
     },
     "cudaMemset": {
@@ -11179,12 +11165,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaMemset3D"
     },
     "cudaMemset3DAsync": {
@@ -11192,13 +11178,13 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "mckl/cuda_device_runtime_wrapper.h",
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaMemset3DAsync"
     },
     "cudaMemset3DAsync_ptsz": {
@@ -11280,13 +11266,13 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_template_wrapper.h",
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaOccupancyAvailableDynamicSMemPerBlock"
     },
     "cudaOccupancyMaxActiveBlocksPerMultiprocessor": {
@@ -11309,14 +11295,14 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "mckl/cuda_device_runtime_wrapper.h",
         "runtime/cuda_runtime_template_wrapper.h",
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaOccupancyMaxActiveBlocksPerMultiprocessorWithFlags"
     },
     "cudaOccupancyMaxActiveClusters": {
@@ -11386,13 +11372,13 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_template_wrapper.h",
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaOccupancyMaxPotentialBlockSizeWithFlags"
     },
     "cudaOccupancyMaxPotentialClusterSize": {
@@ -11431,12 +11417,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaPointerGetAttributes"
     },
     "cudaProfilerInitialize": {
@@ -11585,12 +11571,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaStreamAddCallback"
     },
     "cudaStreamAttachMemAsync": {
@@ -11598,13 +11584,13 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_template_wrapper.h",
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaStreamAttachMemAsync"
     },
     "cudaStreamBeginCapture": {
@@ -11612,12 +11598,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaStreamBeginCapture"
     },
     "cudaStreamBeginCaptureToGraph": {
@@ -11640,12 +11626,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaStreamCopyAttributes"
     },
     "cudaStreamCreate": {
@@ -11680,12 +11666,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaStreamCreateWithPriority"
     },
     "cudaStreamDestroy": {
@@ -11707,12 +11693,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaStreamEndCapture"
     },
     "cudaStreamGetAttribute": {
@@ -11720,12 +11706,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaStreamGetAttribute"
     },
     "cudaStreamGetCaptureInfo": {
@@ -11733,12 +11719,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaStreamGetCaptureInfo"
     },
     "cudaStreamGetCaptureInfo_v2": {
@@ -11746,12 +11732,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaStreamGetCaptureInfo_v2"
     },
     "cudaStreamGetDevResource": {
@@ -11787,12 +11773,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaStreamGetFlags"
     },
     "cudaStreamGetId": {
@@ -11800,12 +11786,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaStreamGetId"
     },
     "cudaStreamGetPriority": {
@@ -11813,12 +11799,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaStreamGetPriority"
     },
     "cudaStreamIsCapturing": {
@@ -11826,12 +11812,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaStreamIsCapturing"
     },
     "cudaStreamQuery": {
@@ -11852,12 +11838,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaStreamSetAttribute"
     },
     "cudaStreamSynchronize": {
@@ -11950,12 +11936,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaThreadGetCacheConfig"
     },
     "cudaThreadGetLimit": {
@@ -11976,12 +11962,12 @@
       "implementation_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_runtime_wrapper.h"
       ],
       "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "status": "UNSUPPORTED_TYPED",
       "wrapper": "wcudaThreadSetCacheConfig"
     },
     "cudaThreadSetLimit": {

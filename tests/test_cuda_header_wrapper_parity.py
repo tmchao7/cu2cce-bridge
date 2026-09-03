@@ -97,6 +97,22 @@ class CudaHeaderWrapperParityToolTest(unittest.TestCase):
         self.assertIn("ACL_ERROR_API_NOT_SUPPORT", source)
         self.assertNotIn("#define cuInit aclInit", wrapper)
 
+    def test_common_driver_module_context_and_launch_apis_are_typed_unsupported(self) -> None:
+        wrapper = (ROOT / "include/bridge/runtime/cuda_driver_wrapper.h").read_text(encoding="utf-8")
+        source = (ROOT / "src/bridge/runtime/src/cuda_driver_wrapper.cpp").read_text(encoding="utf-8")
+        for name in (
+            "wcuCtxGetCurrent", "wcuCtxSetCurrent", "wcuCtxSynchronize",
+            "wcuModuleLoadData", "wcuModuleUnload", "wcuModuleGetFunction",
+            "wcuLaunchKernel",
+        ):
+            self.assertIn(name, wrapper)
+            self.assertIn(name, source)
+        self.assertIn("ACL_ERROR_API_NOT_SUPPORT", source)
+        self.assertGreaterEqual(source.count("return kUnsupported"), 8)
+        inventory = json.loads((ROOT / "config/cuda_api_parity_inventory.json").read_text(encoding="utf-8"))
+        for name in ("cuCtxGetCurrent", "cuModuleLoadData", "cuLaunchKernel"):
+            self.assertEqual(inventory["api_entries"][name]["status"], "UNSUPPORTED_TYPED")
+
     def test_key_cuda_headers_forward_to_cu2cce_surfaces(self) -> None:
         expected = {
             "cuda.h": "cuda_runtime.h",
@@ -145,10 +161,13 @@ class CudaHeaderWrapperParityToolTest(unittest.TestCase):
         text = path.read_text(encoding="utf-8")
         for item in (
             "cudaGraphAddChildGraphNode", "wcudaGraphAddChildGraphNode",
-            "cuInit", "wcuInit",
+            "cuArray3DCreate", "wcuArray3DCreate",
             "Status: RESERVED_NPU", "Future implementation:",
         ):
             self.assertIn(item, text)
+        typed_driver = (ROOT / "include/bridge/runtime/cuda_driver_wrapper.h").read_text(encoding="utf-8")
+        self.assertIn("cuInit", typed_driver)
+        self.assertIn("wcuInit", typed_driver)
         self.assertIn("cublasCreate", (ROOT / "include/bridge/blas/cublas_v2_wrapper.h").read_text(encoding="utf-8"))
         self.assertIn("wcublasCreate", (ROOT / "include/bridge/blas/cublas_v2_wrapper.h").read_text(encoding="utf-8"))
         self.assertIn("#if 0", text)

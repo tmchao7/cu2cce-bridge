@@ -145,6 +145,37 @@ def write_placeholder(path: Path, reference_rel: str, api_names: Iterable[str], 
     path.write_text("\n".join(lines), encoding="utf-8")
 
 
+def _function_body(source: str, name: str) -> str:
+    marker = f"{name}("
+    start = source.find(marker)
+    if start < 0:
+        return ""
+    brace = source.find("{", start)
+    if brace < 0:
+        return ""
+    depth = 0
+    for index in range(brace, len(source)):
+        if source[index] == "{":
+            depth += 1
+        elif source[index] == "}":
+            depth -= 1
+            if depth == 0:
+                return source[brace:index + 1]
+    return ""
+
+
+def implementation_api_status(wrapper: str, implementation: Path) -> str:
+    for path in (implementation / "src").rglob("*.cpp"):
+        body = _function_body(path.read_text(encoding="utf-8", errors="ignore"), wrapper)
+        if body:
+            return (
+                "UNSUPPORTED_TYPED"
+                if "ACL_ERROR_API_NOT_SUPPORT" in body or "return kUnsupported" in body
+                else "ACTIVE_ADAPTED"
+            )
+    return "ACTIVE_ADAPTED"
+
+
 def generate_reserved_wrapper_header(path: Path, missing: dict[str, list[str]], declarations: dict[str, list[str]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     lines = [
@@ -238,7 +269,7 @@ def generate(reference: Path, implementation: Path, inventory: Path) -> dict[str
     for wrapper, files in sorted(reference_functions.items()):
         name = cuda_name(wrapper)
         if wrapper in implementation_functions:
-            status = "ACTIVE_ADAPTED"
+            status = implementation_api_status(wrapper, implementation)
             impl_files = implementation_functions[wrapper]
         else:
             status = "RESERVED_NPU"
