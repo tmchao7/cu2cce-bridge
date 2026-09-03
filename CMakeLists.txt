@@ -24,6 +24,32 @@ message(STATUS "ASCEND_TOOLKIT_HOME=${ASCEND_TOOLKIT_HOME}")
 set(ASCEND_INCLUDE "${ASCEND_TOOLKIT_HOME}/include")
 set(ASCEND_LIB     "${ASCEND_TOOLKIT_HOME}/lib64")
 
+# CANN 9.x publishes the public Runtime in libacl_rt.so. Keep the older
+# libascendcl.so spelling only as a compatibility fallback for older images.
+set(ASCEND_RUNTIME_LIB "")
+set(_ASCEND_RUNTIME_CANDIDATES
+    "${ASCEND_LIB}/libacl_rt.so"
+    "${ASCEND_LIB}/libascendcl.so"
+    "$ENV{CANN_BASE}/lib64/libacl_rt.so"
+    "$ENV{CANN_BASE}/lib64/libascendcl.so"
+    "$ENV{CANN_BASE}/runtime/lib64/libacl_rt.so"
+    "$ENV{CANN_BASE}/runtime/lib64/libascendcl.so")
+foreach(_runtime_candidate IN LISTS _ASCEND_RUNTIME_CANDIDATES)
+    if(NOT ASCEND_RUNTIME_LIB AND EXISTS "${_runtime_candidate}")
+        set(ASCEND_RUNTIME_LIB "${_runtime_candidate}")
+    endif()
+endforeach()
+if(NOT ASCEND_RUNTIME_LIB)
+    # Keep configure diagnostics useful on non-CANN hosts; the actual build
+    # will fail clearly if no usable Runtime is supplied.
+    set(ASCEND_RUNTIME_LIB "${ASCEND_LIB}/libacl_rt.so")
+    message(WARNING "cu2cce: no CANN Runtime library found; assuming ${ASCEND_RUNTIME_LIB}")
+elseif(ASCEND_RUNTIME_LIB MATCHES "libascendcl\\.so$")
+    message(STATUS "cu2cce: using legacy CANN Runtime ${ASCEND_RUNTIME_LIB}; prefer libacl_rt.so")
+else()
+    message(STATUS "cu2cce: using canonical CANN Runtime ${ASCEND_RUNTIME_LIB}")
+endif()
+
 # 产物：libcce_bridge_runtime.so（对应 cu-bridge 的 bridge 运行库，装入 ${INSTALL_PREFIX}/lib）
 set(LIB_DEST_DIR "lib")
 
@@ -53,10 +79,8 @@ target_include_directories(cce_bridge_runtime
 
 target_link_libraries(cce_bridge_runtime
     PRIVATE
-        ${ASCEND_LIB}/libascendcl.so
+        ${ASCEND_RUNTIME_LIB}
         ${ASCEND_LIB}/libacl_cblas.so
-        # CANN 9.x 推荐 libacl_rt.so；若链接失败改用 -lascendcl
-        # ${ASCEND_LIB}/libacl_rt.so
 )
 
 target_compile_definitions(cce_bridge_runtime PRIVATE CUBRIDGE_EXPORT_SYMBOL)

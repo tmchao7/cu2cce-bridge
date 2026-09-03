@@ -30,6 +30,22 @@ endif()
 # includes still define the helper macros, which keeps configuration-only
 # FindCUDA consumers usable on a development host.
 set(_CU2CCE_RUNTIME "${_CU2CCE_PREFIX}/lib/libcce_bridge_runtime.so")
+set(_CU2CCE_ACL_RUNTIME "")
+foreach(_candidate
+    "$ENV{CANN_BASE}/lib64/libacl_rt.so"
+    "$ENV{ASCEND_TOOLKIT_HOME}/lib64/libacl_rt.so"
+    "$ENV{CANN_BASE}/lib64/libascendcl.so"
+    "$ENV{ASCEND_TOOLKIT_HOME}/lib64/libascendcl.so"
+    "$ENV{CANN_BASE}/runtime/lib64/libacl_rt.so"
+    "$ENV{CANN_BASE}/runtime/lib64/libascendcl.so")
+  if(NOT _CU2CCE_ACL_RUNTIME AND EXISTS "${_candidate}")
+    set(_CU2CCE_ACL_RUNTIME "${_candidate}")
+  endif()
+endforeach()
+if(NOT _CU2CCE_ACL_RUNTIME)
+  set(_CU2CCE_ACL_RUNTIME "$ENV{CANN_BASE}/lib64/libacl_rt.so")
+endif()
+set(CUDA_ACL_RUNTIME_LIBRARY "${_CU2CCE_ACL_RUNTIME}")
 set(_CU2CCE_COMPILER "${_CU2CCE_PREFIX}/bin/cucc")
 set(_CU2CCE_INCLUDE "${_CU2CCE_PREFIX}/include")
 set(_CU2CCE_BRIDGE_VALID TRUE)

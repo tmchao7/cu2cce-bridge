@@ -1054,7 +1054,7 @@
       },
       {
         "tokens": [
-          "-lascendcl"
+          "${CU2CCE_ACL_RUNTIME_LIB}"
         ]
       },
       {
@@ -1300,7 +1300,7 @@
           },
           {
             "tokens": [
-              "-lascendcl"
+              "${CU2CCE_ACL_RUNTIME_LIB}"
             ]
           }
         ]

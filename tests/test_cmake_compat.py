@@ -2118,6 +2118,25 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         self.assertNotIn('"-MD"', mock)
         self.assertNotIn('"-M"', mock)
 
+class CanonicalAscendRuntimeCMakeTest(unittest.TestCase):
+    def test_cmake_modules_select_acl_rt_before_legacy_ascendcl(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        for name in ("FindCUDAToolkit.cmake", "FindCUDA.cmake"):
+            text = (root / "cmake_modules" / name).read_text(encoding="utf-8")
+            self.assertIn("libacl_rt.so", text, name)
+            self.assertIn("libascendcl.so", text, name)
+            self.assertLess(
+                text.index("libacl_rt.so"),
+                text.index("libascendcl.so"),
+                name,
+            )
+
+    def test_top_level_runtime_link_does_not_hardcode_legacy_library(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        text = (root / "CMakeLists.txt").read_text(encoding="utf-8")
+        self.assertIn("libacl_rt.so", text)
+        self.assertIn("libascendcl.so", text)
+        self.assertIn("ASCEND_RUNTIME_LIB", text)
 
 if __name__ == "__main__":
     unittest.main()

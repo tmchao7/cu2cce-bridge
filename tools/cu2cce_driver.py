@@ -326,6 +326,46 @@ class Action:
     replacement: List[str] = field(default_factory=list)
 
 
+@dataclass(frozen=True)
+class AscendRuntimeLibrary:
+    """Selected CANN Runtime library for a host link invocation."""
+
+    flag: str
+    soname: str
+    path: Optional[Path]
+    fallback: bool = False
+
+
+def resolve_ascend_runtime_library(cann_base: str, toolkit_home: str) -> AscendRuntimeLibrary:
+    """Prefer the current CANN Runtime ABI and retain an older fallback.
+
+    CANN's public Runtime documentation pairs ``acl/acl_rt.h`` with
+    ``libacl_rt.so``. Older installations may expose the same API through
+    ``libascendcl.so``. We inspect both the CANN base and toolkit roots, but
+    keep the canonical ``-lacl_rt`` flag when neither file is visible so a
+    missing installation fails at the real linker instead of silently
+    selecting an unrelated library.
+    """
+    roots = []
+    for raw_root in (cann_base, toolkit_home):
+        if not raw_root:
+            continue
+        root = Path(raw_root).expanduser()
+        if root not in roots:
+            roots.append(root)
+    candidates = []
+    for root in roots:
+        for relative in (Path("lib64/libacl_rt.so"), Path("lib/libacl_rt.so")):
+            candidates.append(("-lacl_rt", "libacl_rt.so", root / relative, False))
+    for root in roots:
+        for relative in (Path("lib64/libascendcl.so"), Path("lib/libascendcl.so")):
+            candidates.append(("-lascendcl", "libascendcl.so", root / relative, True))
+    for flag, soname, path, fallback in candidates:
+        if path.is_file():
+            return AscendRuntimeLibrary(flag, soname, path.resolve(), fallback)
+    return AscendRuntimeLibrary("-lacl_rt", "libacl_rt.so", None, False)
+
+
 @dataclass
 class PreparedCommand:
     phase: str
@@ -463,6 +503,10 @@ class RuleDriver:
         )
         self.cann_base = self.env.get("CANN_BASE", "/usr/local/Ascend/latest")
         self.cucc_cuda_version = self.env.get("CUCC_CUDA_VERSION", "11060")
+        self.acl_runtime = resolve_ascend_runtime_library(
+            self.cann_base, self.ascend_toolkit_home
+        )
+        self._reported_legacy_acl_runtime = False
         if self.env.get("WCUDA_BAZEL_TF_BUILD") == "1":
             raise DriverError(
                 "Bazel/TF cu-bridge mode is not supported by the Ascend puresimt "
@@ -825,6 +869,7 @@ class RuleDriver:
             "ASCEND_TOOLKIT_HOME": self.ascend_toolkit_home,
             "CANN_BASE": self.cann_base,
             "CUCC_CUDA_VERSION": self.cucc_cuda_version,
+            "CU2CCE_ACL_RUNTIME_LIB": self.acl_runtime.flag,
             # nvcc defines the __CUDACC_VER_* family for .cu translation
             # units; derived from the compat version so CUCC_CUDA_VERSION
             # overrides propagate (empty parts disable the inject rule).
@@ -855,6 +900,16 @@ class RuleDriver:
 
     def _inject(self, phase: str, context: Mapping[str, bool]) -> List[str]:
         variables = self._variables()
+        if (
+            phase in ("link", "compile_and_link")
+            and self.acl_runtime.fallback
+            and not self._reported_legacy_acl_runtime
+        ):
+            self._warn(
+                "using legacy libascendcl.so; CANN documents libacl_rt.so as "
+                "the preferred Runtime library"
+            )
+            self._reported_legacy_acl_runtime = True
         tokens: List[str] = []
         for rule in self._rules_for("inject", phase):
             if not self._when(str(rule.get("when", "always")), context):

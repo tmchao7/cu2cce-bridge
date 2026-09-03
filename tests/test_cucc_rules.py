@@ -59,6 +59,10 @@ class CuccRuleDriverTest(unittest.TestCase):
         (self.cucc / "third_party/nvidia_cuda_samples/Common").mkdir(parents=True)
         (self.cucc / "include/bridge/kernel/simt_adaptor.h").touch()
         (self.cucc / "lib").mkdir()
+        # The legacy fixture models an older CANN installation. Tests that
+        # need the canonical library create a libacl_rt.so explicitly.
+        (root / "cann/lib64").mkdir(parents=True)
+        (root / "cann/lib64/libascendcl.so").touch()
         self.ccec = root / "ccec"
         self.ccec.touch()
         self.simt = root / "simt"
@@ -1216,6 +1220,68 @@ class CuccRuleDriverTest(unittest.TestCase):
                 self.assertIn("compatible with release 11.6", result.stdout)
                 self.assertIn("cu2cce-bridge", result.stdout)
 
+class AscendRuntimeLibrarySelectionTest(unittest.TestCase):
+    def test_prefers_canonical_acl_rt_when_available(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "lib64").mkdir()
+            (root / "lib64/libacl_rt.so").touch()
+            (root / "lib64/libascendcl.so").touch()
+            selection = cu2cce_driver.resolve_ascend_runtime_library(
+                str(root), str(root / "toolkit")
+            )
+            self.assertEqual(selection.flag, "-lacl_rt")
+            self.assertEqual(selection.soname, "libacl_rt.so")
+            self.assertFalse(selection.fallback)
+
+    def test_uses_legacy_ascendcl_only_when_acl_rt_is_absent(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "lib64").mkdir()
+            (root / "lib64/libascendcl.so").touch()
+            selection = cu2cce_driver.resolve_ascend_runtime_library(
+                str(root), str(root / "toolkit")
+            )
+            self.assertEqual(selection.flag, "-lascendcl")
+            self.assertEqual(selection.soname, "libascendcl.so")
+            self.assertTrue(selection.fallback)
+
+    def test_keeps_canonical_flag_when_no_cann_library_is_visible(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            selection = cu2cce_driver.resolve_ascend_runtime_library(
+                str(root), str(root / "toolkit")
+            )
+            self.assertEqual(selection.flag, "-lacl_rt")
+            self.assertEqual(selection.soname, "libacl_rt.so")
+            self.assertFalse(selection.fallback)
+            self.assertIsNone(selection.path)
+
+class CanonicalRuntimeDriverIntegrationTest(unittest.TestCase):
+    def test_driver_injects_canonical_acl_rt_for_link_phase(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            cucc = root / "install"
+            (cucc / "bin").mkdir(parents=True)
+            (cucc / "include/bridge/kernel").mkdir(parents=True)
+            (cucc / "include/bridge/kernel/simt_adaptor.h").touch()
+            (cucc / "lib").mkdir()
+            cann = root / "cann"
+            (cann / "lib64").mkdir(parents=True)
+            (cann / "lib64/libacl_rt.so").touch()
+            env = {
+                "CUCC_PATH": str(cucc),
+                "CCEC_PATH": str(root / "ccec"),
+                "CANN_BASE": str(cann),
+                "ASCEND_TOOLKIT_HOME": str(root / "toolkit"),
+                "SIMT_API_ROOT": str(root / "simt"),
+                "CU2CCE_NPU_ARCH": "dav-c310-vec",
+            }
+            (root / "ccec").touch()
+            (root / "simt/simt_api").mkdir(parents=True)
+            prepared = cu2cce_driver.RuleDriver(env=env).prepare(["main.o", "-o", "app"])
+            self.assertIn("-lacl_rt", prepared.args)
+            self.assertNotIn("-lascendcl", prepared.args)
 
 if __name__ == "__main__":
     unittest.main()

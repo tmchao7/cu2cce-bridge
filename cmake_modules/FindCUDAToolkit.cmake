@@ -43,6 +43,25 @@ set(CUDA_NVCC_EXECUTABLE "${_CU2CCE_PREFIX}/bin/cucc")
 set(CUDA_COMPILER "${CUDA_NVCC_EXECUTABLE}")
 
 set(_CU2CCE_RUNTIME "${_CU2CCE_PREFIX}/lib/libcce_bridge_runtime.so")
+set(_CU2CCE_ACL_RUNTIME "")
+foreach(_candidate
+    "${_CU2CCE_CANN_BASE}/lib64/libacl_rt.so"
+    "${_CU2CCE_TOOLKIT}/lib64/libacl_rt.so"
+    "${_CU2CCE_CANN_BASE}/lib64/libascendcl.so"
+    "${_CU2CCE_TOOLKIT}/lib64/libascendcl.so"
+    "${_CU2CCE_CANN_BASE}/runtime/lib64/libacl_rt.so"
+    "${_CU2CCE_CANN_BASE}/runtime/lib64/libascendcl.so")
+  if(NOT _CU2CCE_ACL_RUNTIME AND EXISTS "${_candidate}")
+    set(_CU2CCE_ACL_RUNTIME "${_candidate}")
+  endif()
+endforeach()
+if(NOT _CU2CCE_ACL_RUNTIME)
+  # Preserve the canonical spelling when CANN is not visible during a local
+  # configure; real linking remains responsible for reporting the missing ABI.
+  set(_CU2CCE_ACL_RUNTIME "${_CU2CCE_CANN_BASE}/lib64/libacl_rt.so")
+endif()
+set(CUDAToolkit_ACL_RUNTIME_LIBRARY "${_CU2CCE_ACL_RUNTIME}")
+
 if(NOT EXISTS "${_CU2CCE_RUNTIME}")
   set(CUDAToolkit_FOUND FALSE)
   set(CUDA_FOUND FALSE)
@@ -66,7 +85,7 @@ if(NOT TARGET CUDA::cudart)
   # installation; the CUDA runtime bridge remains the primary target.
   set(_CU2CCE_EXTRA_LIBS)
   foreach(_lib
-      "${_CU2CCE_CANN_BASE}/lib64/libascendcl.so"
+      "${_CU2CCE_ACL_RUNTIME}"
       "${_CU2CCE_CANN_BASE}/lib64/libruntime.so"
       "${_CU2CCE_CANN_BASE}/runtime/lib64/libruntime.so"
       "${_CU2CCE_CANN_BASE}/lib64/libstdc++.so"
