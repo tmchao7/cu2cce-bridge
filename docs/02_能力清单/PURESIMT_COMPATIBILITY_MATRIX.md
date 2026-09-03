@@ -255,3 +255,26 @@ options into errors.
 1. 本矩阵；
 2. `docs/04_对比与验证/CURRENT_STATE.md` 摘要；
 3. `docs/01_架构设计/ASCEND_RESEARCH_NOTES.md` 事实记录。
+
+## 10. 官方 SIMT API 与当前 adaptor 的边界（2026-09-03）
+
+官方 Ascend C 的 SIMT 入口为 `simt/asc_simt.h`，通常属于 Device 编译期接口，不对应单独的 Host 动态库。当前 CUDA 兼容头通过 `include/bridge/kernel/simt_adaptor.h` 提供有限映射：
+
+| CUDA 写法 | 当前 Ascend 入口 | 当前状态 | 限制 |
+|---|---|---|---|
+| `__shared__` | `__ubuf__` | `SUPPORTED` for tested kernels | 地址空间不是 CUDA shared memory 的字节级等价物 |
+| `__syncthreads()` | `asc_syncthreads()` | `SUPPORTED` for tested kernels | 仅限 ccec puresimt 语境 |
+| `__threadfence*` | `asc_threadfence*` | `SUPPORTED` for tested forms | 需要继续覆盖内存序语义 |
+| `atomicAdd/Sub/Exch/Min/Max` | `asc_atomic_*` | `SUPPORTED` for tested types | 类型和地址空间需逐项验证 |
+| `__shfl*_sync` | `asc_shfl*` | `SUPPORTED` for tested forms | mask/width 参数不是完整 CUDA 语义复制 |
+| `__all_sync`/`__any_sync`/`__ballot_sync` | `asc_all/asc_any/asc_ballot` | `SUPPORTED` for tested forms | 需要保持 lane/warp 行为证据 |
+| `__reduce_add_sync` | `asc_reduce_add` | `SUPPORTED` for tested form | 不是完整 warp reduction 覆盖 |
+
+以下内容不属于当前 adaptor 合约：
+
+```text
+__simt_vf__
+cce::async_invoke
+PTX intrinsic
+CUDA device-link/RDC
+```

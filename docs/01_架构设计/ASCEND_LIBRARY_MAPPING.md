@@ -107,3 +107,54 @@ grep -l aclrtBinaryLoad /usr/local/Ascend/cann-9.2.0/include/acl/acl_rt.h
 - capabilities 表驱动化（map_to 字段）+ 驱动警告消息带映射路线
   （`-lnccl` 现在会提示 → HCCL 路线，strict 下报错）；
 - 本文档作为映射决策依据；shim 实现逐库立项。
+
+## 10. 2026-09-03 官方头文件、库文件与状态校准
+
+本节以昇腾社区 CANN 官方文档为证据入口，状态仍需以服务器实际安装树、编译探针和真机结果共同确认。官方页面中的“存在”只说明接口属于 CANN 开放面，不代表 cu2cce-bridge 已经提供 CUDA 兼容 wrapper。
+
+官方依据：
+
+```text
+https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/latest/API/ascendcopapi/docs/zh/api/api_list.md
+https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/latest/API/headerliblist/hfandlf_09_0001.html
+```
+
+### 10.1 Runtime 头文件与库文件
+
+| CUDA/bridge 面 | CANN 头文件 | CANN 官方库文件 | bridge 处理 | 状态 |
+|---|---|---|---|---|
+| 设备、Context、Stream、同步、内存 | `acl/acl_rt.h` | `libacl_rt.so` | `cuda* → wcuda* → aclrt*` | `SUPPORTED/ADAPTED` |
+| C++ Runtime 扩展 | `acl/acl_rt_api.h` | `libacl_rt.so` | 当前不自动暴露全部 C++ 扩展 | `NOT_VERIFIED` |
+| Dump | `acl/acl_dump.h` | `libascend_dump.so` | 没有 CUDA Dump 直译 | `ROUTE_ONLY` |
+| Profiling | `acl/acl_prof.h` | `libmsprofiler.so` | `cudaProfilerStart/Stop` 保持兼容占位 | `COMPAT_NOOP/ROUTE_ONLY` |
+| Tensor 数据传输 | `acl/acl_tdt.h` | `libacl_tdt_channel.so` | 当前不映射 CUDA Runtime | `UNSUPPORTED` |
+| 共享队列/Buffer | `acl/acl_tdt_queue.h` | `libacl_tdt_queue.so` | 当前不映射 CUDA Runtime | `UNSUPPORTED` |
+
+新版本 CANN 优先使用 `libacl_rt.so`。`libascendcl.so` 仅作为旧版本安装树的 fallback；不能因为旧库名仍存在就把它写成当前官方首选。
+
+### 10.2 Ascend C Device API
+
+官方 Ascend C API 按编程模型分为 SIMT、SIMD、AI CPU 和 Utils 等类别。当前 CUDA kernel 迁移只使用其中经过 ccec puresimt 验证的子集：
+
+| Ascend C 面 | 典型头文件 | 库依赖 | 与 CUDA 的关系 |
+|---|---|---|---|
+| SIMT | `simt/asc_simt.h` | 通常不单独链接运行库 | 用于当前 `simt_adaptor.h` 的核验依据 |
+| SIMD C | `c_api/asc_simd.h` | Device 编译期能力 | 不是 CUDA Runtime API 的直接替换 |
+| Tensor API | `tensor_api/tensor.h` | Device 编译期能力 | 需要重写为 Ascend C Tensor 编程 |
+| TPipe/TQue | `basic_api/kernel_basic_intf.h` 等 | Device 编译期能力 | 不由 CUDA wrapper 自动生成 |
+| 高阶 API | `adv_api/kernel_api.h`、`adv_api/tiling_api.h` | Device/Host 分工 | 属于 Ascend C 原生开发路线 |
+
+当前 `asc_*` 名称只有在服务器 CANN 头文件和 ccec 编译探针均确认后才可标记为 `SUPPORTED`。
+
+### 10.3 通信、数学和高层算子库
+
+| CUDA 库 | 官方 Ascend 路线 | 当前状态 | 处理原则 |
+|---|---|---|---|
+| NCCL | `hccl/hccl.h`、`libhccl.so` | `ROUTE_ONLY/NOT_VERIFIED` | 不自动把 `-lnccl` 改成 `-lhccl` |
+| cuBLAS | `acl/ops/acl_cblas.h`、`libacl_cblas.so` | `EXPERIMENTAL` | 仅保留已验证 Gemm/Gemv 形状 |
+| cuFFT | SiP、FFT 算子、`aclnn` 路线 | `ROUTE_ONLY` | 不生成 `cufft.h` 的伪实现 |
+| cuDNN | `aclnn`、ATB 等高层路线 | `ROUTE_ONLY` | 不自动生成 `CUDA::cudnn` |
+| CUTLASS | CATLASS、Ascend C | `ROUTE_ONLY` | 需要按工程重写模板和布局 |
+| NVTX | `acl/acl_prof.h`、Msprofiler | `COMPAT_NOOP/ROUTE_ONLY` | 真 profiling 不等同 NVTX 注解 |
+
+`aclnn` 是 CANN 单算子 API，不是 CUDA kernel 语法转换结果；CUDA kernel、CUDA Runtime 和 `aclnn` 调用必须分别评审。

@@ -44,3 +44,31 @@
 
 任何新增"不支持/限制"必须：真机证据 + 本文档条目 + 对应矩阵行 +
 （如适用）契约测试，四件套同步。
+
+## 8. API 映射的证据边界（2026-09-03）
+
+### 8.1 不能作为支持证据的内容
+
+```text
+官方文档中存在函数名
+头文件可以被 include
+CMake configure 成功
+函数返回 ACL_SUCCESS 但实际是 no-op
+只完成链接、没有真机执行
+```
+
+### 8.2 当前后端明确不伪造的能力
+
+```text
+完整 CUDA Driver API
+CUDA Graph
+PTX/CUBIN/FATBIN
+RDC/device-link
+UVM 和完整 Host memory mapping
+NCCL → HCCL 自动 alias
+cuDNN/cuFFT/cuSPARSE/cuRAND 自动 alias
+```
+
+### 8.3 Runtime 库名称规则
+
+新版本 CANN 优先使用 `libacl_rt.so`。旧版本若只有 `libascendcl.so`，bridge 可以 fallback 并输出诊断；这不代表两个库在所有 CANN 版本中可以同时加载，也不代表 `libascendcl.so` 是新版本推荐入口。

@@ -146,3 +146,35 @@ main 的 `cucc` 只做参数、头文件、SIMT API、库和架构注入，然�
 - `docs/99_归档/参考资料/asc-devkit-simt/`：Ascend SIMT API 头和官方形式参考；
 - NVIDIA CUDA Samples：`third_party/nvidia_cuda_samples/Common` helper headers；
 - `tools/real_test/diag/`：runtime/ACL 排障资产。
+
+## 10. 2026-09-03 官方资料核验方法
+
+本项目 API 映射采用“三层证据”而不是只看函数名：
+
+```text
+官方文档列出开放接口
+→ 服务器 CANN 安装树存在对应头文件/库文件
+→ ccec 编译、链接或真机执行探针通过
+```
+
+官方入口：
+
+```text
+https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/latest/API/ascendcopapi/docs/zh/api/api_list.md
+https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/latest/API/headerliblist/hfandlf_09_0001.html
+```
+
+### 10.1 官方开放接口与非 SDK 接口
+
+CANN 文档将安装环境 `include` 下的开放接口与源码仓 `pkg_inc` 等非 SDK 接口区分开。cu2cce-bridge 只能依赖公开 SDK 头文件和库文件，不能因为内部头文件中出现同名函数就扩展兼容契约。
+
+### 10.2 当前 Runtime 结论
+
+- `acl/acl_rt.h` 和 `acl/acl_rt_api.h` 的新版本首选库是 `libacl_rt.so`；
+- `libascendcl.so` 保留为旧版本兼容 fallback；
+- Profiling、Dump、TDT 头文件和库不能自动并入 CUDA Runtime 映射；
+- `cuda* → wcuda* → aclrt*` 的 wrapper 仍是 cu2cce 的主线，不改成直接宏替换 CANN API。
+
+### 10.3 当前 Ascend C 结论
+
+官方 Ascend C API 分为 SIMT、SIMD、AI CPU、Utils 等层。当前 puresimt 仅验证 CUDA 源码经 ccec 直接编译的 SIMT 子集；SIMD/Tensor/TPipe/TQue/高阶 API 属于后续原生 Ascend C 算子开发路线，不会被 cucc 自动生成。

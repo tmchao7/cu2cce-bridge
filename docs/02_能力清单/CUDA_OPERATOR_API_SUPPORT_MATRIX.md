@@ -414,3 +414,38 @@ docs/02_能力清单/BLAS_COMPATIBILITY_MATRIX.md
 - [`CUCC_OPTION_COMPATIBILITY_MATRIX.md`](CUCC_OPTION_COMPATIBILITY_MATRIX.md)：cucc 参数规则；
 - [`BUILD_SYSTEM_COMPATIBILITY_MATRIX.md`](BUILD_SYSTEM_COMPATIBILITY_MATRIX.md)：CMake/Make/Ninja 机制；
 - [`docs/03_文件目录/REPOSITORY_FILE_GUIDE.md`](../03_文件目录/REPOSITORY_FILE_GUIDE.md)：文件定位和维护地图。
+
+## 8. CUDA → Ascend/CANN API 映射校准（2026-09-03）
+
+### 8.1 Runtime 映射
+
+| CUDA API 类别 | CANN 头文件/API | CANN 库 | bridge 入口 | 映射类型 | 状态 |
+|---|---|---|---|---|---|
+| Device 初始化/枚举 | `acl/acl_rt.h`：`aclInit`、`aclrtGetDeviceCount` | `libacl_rt.so` | `cudaGetDeviceCount`、`cudaSetDevice` | `ADAPTED` | `SUPPORTED` |
+| Context | `acl/acl_rt.h`：`aclrtCreateContext`、`aclrtSetCurrentContext` | `libacl_rt.so` | `cudaCtx*`/内部上下文 | `ADAPTED` | `EXPERIMENTAL` |
+| Stream | `acl/acl_rt.h`：`aclrtCreateStream`、`aclrtSynchronizeStream` | `libacl_rt.so` | `cudaStream*` | `ADAPTED` | `SUPPORTED` |
+| Event | `acl/acl_rt.h`：`aclrtCreateEvent`、`aclrtRecordEvent` | `libacl_rt.so` | `cudaEvent*` | `ADAPTED` | `SUPPORTED` |
+| Device 内存 | `acl/acl_rt.h`：`aclrtMalloc`、`aclrtFree` | `libacl_rt.so` | `cudaMalloc`、`cudaFree` | `ADAPTED` | `SUPPORTED` |
+| 同步拷贝 | `acl/acl_rt.h`：`aclrtMemcpy` | `libacl_rt.so` | `cudaMemcpy` | `ADAPTED` | `SUPPORTED` |
+| 异步拷贝 | `acl/acl_rt.h`：`aclrtMemcpyAsync` | `libacl_rt.so` | `cudaMemcpyAsync` | `ADAPTED` | `SUPPORTED` |
+| 2D/pitch 拷贝 | `acl/acl_rt.h` 或逐行 fallback | `libacl_rt.so` | `cudaMemcpy2D*` | `ADAPTED` | `SUPPORTED` for tested shape |
+| Host 注册/映射 | 无稳定一一对应 | - | `cudaHostRegister` 等 | `REJECT` | `UNSUPPORTED` |
+| CUDA Graph | 无 CUDA Graph 一一对应 | - | `cudaGraph*` | `REJECT` | `UNSUPPORTED` |
+| Texture/Surface | 无稳定一一对应 | - | `cudaTexture*`/`cudaSurface*` | `REJECT` | `UNSUPPORTED` |
+
+### 8.2 官方库路线与当前承诺
+
+| CUDA 库 | Ascend/CANN 路线 | 当前状态 | 说明 |
+|---|---|---|---|
+| `cudart` | bridge runtime + `libacl_rt.so` | `SUPPORTED` for tested scope | 不是完整 NVIDIA cudart |
+| `cublas` | `acl_cblas.h` + `libacl_cblas.so` | `EXPERIMENTAL` | 仅已验证数据类型/形状 |
+| `nccl` | `hccl/hccl.h` + `libhccl.so` | `ROUTE_ONLY` | 需要独立 HCCL wrapper 和多卡验证 |
+| `cufft` | SiP/FFT/aclnn | `ROUTE_ONLY` | 没有当前 1:1 shim |
+| `cusparse` | CANN sparse/aclnn | `NOT_VERIFIED` | 不自动链接 |
+| `curand` | Ascend C/应用侧随机数 | `UNSUPPORTED` | 没有当前安全等价层 |
+| `cudnn` | aclnn/ATB | `ROUTE_ONLY` | 不生成虚假 CUDA target |
+| `nvrtc`、PTX、CUBIN、FATBIN | 无 puresimt 等价物 | `UNSUPPORTED` | cucc 明确拒绝 |
+
+### 8.3 判定要求
+
+头文件存在、CMake configure 成功、函数返回成功或 no-op 均不能单独升级为 `SUPPORTED`。每项必须关联服务器探针或 `tools/real_test/server_cmd.txt` 中的真实结果。

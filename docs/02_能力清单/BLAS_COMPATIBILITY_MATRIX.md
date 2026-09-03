@@ -62,3 +62,17 @@ CU2CCE_REGRESSION_REMOTE="$REMOTE" CU2CCE_BLAS_TEST=1 \
 ```text
 BLAS_EXPERIMENTAL_REGRESSION_PASS
 ```
+
+## 7. 官方头文件与库文件配对校准（2026-09-03）
+
+本实验线使用 CANN 的 `acl/ops/acl_cblas.h` 和 `libacl_cblas.so`，不把它描述为 NVIDIA cuBLAS ABI 的直接替代。Runtime 依赖仍由 `libacl_rt.so`（旧版 fallback 为 `libascendcl.so`）提供。
+
+| CUDA 接口 | CANN 接口 | 头文件 | 库文件 | 当前状态 |
+|---|---|---|---|---|
+| `cublasSgemm` | `aclblasGemmEx` | `acl/ops/acl_cblas.h` | `libacl_cblas.so` | `EXPERIMENTAL` |
+| `cublasGemmEx` | `aclblasGemmEx` | `acl/ops/acl_cblas.h` | `libacl_cblas.so` | `EXPERIMENTAL` |
+| `cublasSgemv` | `aclblasGemvEx` | `acl/ops/acl_cblas.h` | `libacl_cblas.so` | `SUPPORTED` for validated shape |
+| `cublasDgemm` | 无当前公开 FP64 等价路径 | - | - | `UNSUPPORTED` |
+| `cublasLt` | ATB/其它高层路线 | - | - | `ROUTE_ONLY` |
+
+`cublasCreate` 等句柄接口是 bridge 自己维护的兼容对象，不是 CANN 原生 handle。PointerMode、Stream 和 alpha/beta scalar 处理均属于 `ADAPTED` 语义，必须继续以真机测试为依据。
