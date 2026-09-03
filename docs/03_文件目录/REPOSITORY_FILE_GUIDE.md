@@ -639,6 +639,7 @@ git diff --check
 | `tests/test_artifacts.py` | artifact contract、metadata、ELF 依赖和 server harness 测试 |
 | `tests/test_blas_surface.py` | experimental BLAS surface 测试 |
 | `tests/test_cmake_compat.py` | CMake/Make/Ninja/pre/虚拟工具链/FindCUDA 兼容测试 |
+| `tests/test_cann_api_probes.py` | CANN 官方头文件与 Runtime 链接探针测试 |
 | `tests/test_cucc_rules.py` | cucc 规则、phase、query、response 和 NPU policy 测试 |
 | `tests/test_repo_hygiene.py` | 仓库目录、文档入口、gitignore 和 tracked tree 卫生契约 |
 
@@ -681,6 +682,8 @@ git diff --check
 | `tools/real_test/clean.sh` | 清理真机回归构建、安装树和日志 |
 | `tools/real_test/diag/README.md` | 非阻塞 ACL/runtime/backend 诊断资产 |
 | `tools/real_test/diag/acl_alloc_probe.cpp` | 非阻塞 ACL/runtime/backend 诊断资产 |
+| `tools/real_test/diag/cann_api_surface_probe.sh` | CANN 官方 Runtime/SIMT/HCCL 头文件存在性和 include 编译探针 |
+| `tools/real_test/diag/cann_runtime_link_probe.sh` | CANN Runtime 库选择、最小链接、NEEDED 和 RPATH 探针 |
 | `tools/real_test/diag/acl_compose_probe.cpp` | 非阻塞 ACL/runtime/backend 诊断资产 |
 | `tools/real_test/diag/acl_diff_probe.cpp` | 非阻塞 ACL/runtime/backend 诊断资产 |
 | `tools/real_test/diag/echo.cce` | 非阻塞 ACL/runtime/backend 诊断资产 |
