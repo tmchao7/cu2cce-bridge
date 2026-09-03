@@ -6,8 +6,8 @@
 #   - 建立临时"伪 CUDA 目录"：把 cu2cce-bridge 的 include/bin 软链成
 #     CUDA_TOOLKIT 布局（bin/nvcc → cucc），这样 Makefile 里
 #     用 `nvcc`/`$(CUDA_PATH)/bin/nvcc` 的地方都被 cucc 接管。
-#     哨兵/布局构建逻辑在共享库 tools/fake_toolkit_env.sh 中
-#     （清单 config/shim_layout.json，link.json parity），与
+#     哨兵/布局构建逻辑在共享库 tools/virtual_toolkit_env.sh 中
+#     （清单 tools/link.json，link.json parity），与
 #     cmake_cce/pre_cce 共用一份实现。
 #   - 设 CUDA_PATH / PATH，然后调用原 make
 #
@@ -34,12 +34,12 @@ if [ -z "${CUCC_PATH}" ]; then
     echo "make_cce: CUCC_PATH not set (point to cu2cce-bridge install dir)" >&2
     exit 1
 fi
-if [ ! -f "${CUCC_PATH}/tools/fake_toolkit_env.sh" ]; then
-    echo "make_cce: shared helper missing: ${CUCC_PATH}/tools/fake_toolkit_env.sh" >&2
+if [ ! -f "${CUCC_PATH}/tools/virtual_toolkit_env.sh" ]; then
+    echo "make_cce: shared helper missing: ${CUCC_PATH}/tools/virtual_toolkit_env.sh" >&2
     exit 1
 fi
 CUCC_PATH="$(cd "$CUCC_PATH" && pwd -P)"
-. "${CUCC_PATH}/tools/fake_toolkit_env.sh"
+. "${CUCC_PATH}/tools/virtual_toolkit_env.sh"
 CU2CCE_NPU_ARCH="$(cu2cce_resolve_npu_arch)" || exit 1
 
 TEMP_DIR_NAME="cu2cce-bridge"
@@ -56,7 +56,7 @@ if [[ "$DST_WCUDA" != /* ]]; then
     DST_WCUDA="$PWD/$DST_WCUDA"
 fi
 # Parallel-job isolation (cu-bridge USE_WCUDA_FOR_MULTI_JOB parity): each
-# top-level make_cce job gets its own fake toolkit when requested.
+# top-level make_cce job gets its own virtual CUDA toolkit when requested.
 if [ "${CU2CCE_SHIM_ISOLATE:-0}" = "1" ]; then
     DST_WCUDA="${DST_WCUDA}-${PPID}"
 fi
@@ -64,7 +64,7 @@ fi
 # ---------------- 建伪 CUDA 目录 ----------------
 # CUDA_PATH 指向伪目录（其 bin/nvcc → cucc）；哨兵、布局构建（lib64 CUDA 名
 # 软链族、targets 三元组、extras/CUPTI、宿主编译器条目）在共享 helper 里。
-CUDA_DIR="$(cu2cce_prepare_fake_toolkit "$DST_WCUDA" "$CUCC_PATH/bin/cucc" "$DST_WCUDA/bin" wrapper)" || exit 1
+CUDA_DIR="$(cu2cce_prepare_virtual_toolkit "$DST_WCUDA" "$CUCC_PATH/bin/cucc" "$DST_WCUDA/bin" wrapper "$CUCC_PATH/tools/link.json")" || exit 1
 
 # ---------------- 设环境并调 make ----------------
 export CUDA_PATH="$CUDA_DIR"

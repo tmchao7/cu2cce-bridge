@@ -326,7 +326,7 @@ ninja_cce -C build
 
 | 能力 | 状态 | 证据/边界 |
 |---|---|---|
-| Makefile 中写 `nvcc` | `SUPPORTED` for tested forms | `make_cce` fake toolkit 将 `nvcc → cucc → ccec` |
+| Makefile 中写 `nvcc` | `SUPPORTED` for tested forms | `make_cce` virtual CUDA toolkit 将 `nvcc → cucc → ccec` |
 | `.cu → .o`、`.d` | `SUPPORTED` | `examples/build_compat/make` |
 | `ar` static archive `.a` | `SUPPORTED` | `build/libkernel_a.a` |
 | shared `.so` | `SUPPORTED` for tested one-`.cu` library | `build/libkernel_b.so` |

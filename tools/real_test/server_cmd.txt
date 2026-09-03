@@ -606,7 +606,7 @@ fi
 rm -f "$OUT/double_policy_diag.o"
 
 # 诊断载体：asyncAPI 单元素丢增的最小复现（昇腾侧议题取证，见
-# 00_project_journey/PENDING_ISSUES_ASCEND.md）。两个变体隔离条件：
+# tools/real_test/diag/（原工作区历史材料未随仓库交付））。两个变体隔离条件：
 # 纯连续 launch vs 每轮事件同步；失配计数+首索引直接落日志。
 printf '\n----- async_repro_diag (diagnostic-only backend-semantics probe) -----\n'
 if "$CCEC" $PS_FLAGS examples/puresimt/async_repro_diag.cu \
@@ -676,7 +676,7 @@ run_cmake_case() {
     # The configure shim is intentionally mock-backed. Verify this build
     # actually crossed the second phase and repointed nvcc to real cucc before
     # accepting its artifacts; otherwise a mock-only build could look green.
-    if ! grep -Fq 'cmake_cce: build phase: shim nvcc ->' "$build_log" || \
+    if ! grep -Fq 'cmake_cce: build phase: virtual toolkit nvcc ->' "$build_log" || \
        [ ! -L "$CU2CCE_CMAKE_SHIM_DIR/CUDA_DIR/bin/nvcc" ] || \
        [ "$(readlink "$CU2CCE_CMAKE_SHIM_DIR/CUDA_DIR/bin/nvcc")" != "$CUCC_PATH/bin/cucc" ]; then
         echo "[FAIL] [$name] CMake build did not use real cucc (log: $build_log)"
@@ -1092,7 +1092,7 @@ elif [ "$DEVICE_HEALTHY" -eq 1 ] && [ -x "$EXTERNAL_FETCH" ] && [ -x "$CMAKE_CCE
                     # status is itself evidence (crash/abort vs. timeout=124).
                     # WCUDA_DEBUG is forced ON for diagnostic-only runs so a
                     # failing sample leaves a per-call bridge trace
-                    # (00_project_journey/PENDING_ISSUES_ASCEND.md). Export
+                    # (tools/real_test/diag/（原工作区历史材料未随仓库交付）). Export
                     # form, not env prefix: run_with_timeout is a shell
                     # function and env cannot launch functions.
                     WCUDA_DEBUG=1 run_with_timeout "$EXTERNAL_RUN_TIMEOUT" "$binary" >"$diag_log" 2>&1

@@ -533,14 +533,16 @@ class RuleDriver:
         if self.env.get("CU2CCE_RULES_FILE"):
             candidates.append(Path(self.env["CU2CCE_RULES_FILE"]).expanduser())
         if self.cucc_path is not None:
+            candidates.append(self.cucc_path / "bin" / "conf.json")
             candidates.append(self.cucc_path / "config" / "cu2cce_rules.json")
+        candidates.append(self.repo_root / "bin" / "conf.json")
         candidates.append(self.repo_root / "config" / "cu2cce_rules.json")
         for candidate in candidates:
             if candidate.is_file():
                 return candidate.resolve()
         raise DriverError(
             "cu2cce rules file not found; set CU2CCE_RULES_FILE or install "
-            "config/cu2cce_rules.json"
+            "bin/conf.json (legacy fallback: config/cu2cce_rules.json)"
         )
 
     def _expand_response_files(self, args: Sequence[str], depth: int = 0) -> List[str]:
@@ -1565,7 +1567,7 @@ class RuleDriver:
     def run_hostcc(self, args: Sequence[str], name: str, proxy_mode: bool = False) -> int:
         """bin/gnu-parity host compiler wrapper driven by config/cu2cce_rules.json.
 
-        The fake toolkit binds bin/{c++,g++,gcc,cc} to hostcc_cce, which
+        The virtual CUDA toolkit binds bin/{c++,g++,gcc,cc} to hostcc_cce, which
         delegates here. Pure compiles/preprocess/queries pass through to the
         real system compiler untouched; link commands append the
         hostcc.link.inject rule set (bridge runtime + CANN acl), matching

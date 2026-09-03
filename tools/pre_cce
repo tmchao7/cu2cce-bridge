@@ -9,7 +9,7 @@
 # wrapped command directly, so scripts that probe for nvcc/gcc during
 # configuration
 # see a complete toolchain. The sentinel/build logic lives in the shared
-# helper tools/fake_toolkit_env.sh (config/shim_layout.json manifest).
+# helper tools/virtual_toolkit_env.sh (tools/link.json manifest).
 #
 # Host compiler entries use the hostcc_cce wrapper (same as make_cce /
 # cmake_cce — links automatically carry the bridge runtime + CANN libs);
@@ -43,12 +43,12 @@ if [ "$#" -eq 0 ]; then
     echo "pre_cce: no command to wrap (usage: pre_cce <command> [args...])" >&2
     exit 1
 fi
-if [ ! -f "${CUCC_PATH}/tools/fake_toolkit_env.sh" ]; then
-    echo "pre_cce: shared helper missing: ${CUCC_PATH}/tools/fake_toolkit_env.sh" >&2
+if [ ! -f "${CUCC_PATH}/tools/virtual_toolkit_env.sh" ]; then
+    echo "pre_cce: shared helper missing: ${CUCC_PATH}/tools/virtual_toolkit_env.sh" >&2
     exit 1
 fi
 CUCC_PATH="$(cd "$CUCC_PATH" && pwd -P)"
-. "${CUCC_PATH}/tools/fake_toolkit_env.sh"
+. "${CUCC_PATH}/tools/virtual_toolkit_env.sh"
 
 TEMP_DIR_NAME="cu2cce-bridge"
 if [ -n "${CU2CCE_CMAKE_SHIM_DIR:-}" ]; then
@@ -68,7 +68,7 @@ if [ "${CU2CCE_SHIM_ISOLATE:-0}" = "1" ]; then
     DST_WCUDA="${DST_WCUDA}-${PPID}"
 fi
 
-CUDA_DIR="$(cu2cce_prepare_fake_toolkit "$DST_WCUDA" "$CUCC_PATH/bin/cucc" "$DST_WCUDA/bin" wrapper)" || exit 1
+CUDA_DIR="$(cu2cce_prepare_virtual_toolkit "$DST_WCUDA" "$CUCC_PATH/bin/cucc" "$DST_WCUDA/bin" wrapper "$CUCC_PATH/tools/link.json")" || exit 1
 
 export CUDA_PATH="$CUDA_DIR"
 export CUDA_HOME="$CUDA_DIR"

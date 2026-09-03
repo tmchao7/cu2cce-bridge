@@ -7,7 +7,8 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List
 
-ACTIONS = {"forward", "drop", "replace", "inject", "reject"}
+ACTIONS = {"forward", "drop", "replace", "inject", "reject", "filter", "replacer", "adder"}
+ACTION_ALIASES = {"filter": "drop", "replacer": "replace", "adder": "inject"}
 PHASES = {"all", "compile", "link", "compile_and_link"}
 CAPABILITY_STATUSES = {"supported_by_bridge", "experimental", "unsupported", "map_available"}
 CAPABILITY_ACTIONS = {"bridge_inject", "warn_no_automatic_replacement", "drop", "reject"}
@@ -71,19 +72,25 @@ def validate(path: Path) -> List[str]:
             if action not in ACTIONS:
                 fail(errors, f"{phase}: unknown action {action}")
                 continue
+            canonical = ACTION_ALIASES.get(action, action)
             rules = section[action]
             if not isinstance(rules, list):
                 fail(errors, f"{phase}.{action}: must be a list")
                 continue
             for index, rule in enumerate(rules):
-                validate_rule(rule, action, f"{phase}.{action}[{index}]", errors)
+                validate_rule(rule, canonical, f"{phase}.{action}[{index}]", errors)
+                # Reference-shaped aliases intentionally repeat the semantic
+                # lists. Validate them, but do not report conflicts against
+                # their canonical drop/replace/inject counterparts.
+                if action in ACTION_ALIASES:
+                    continue
                 if isinstance(rule, dict):
                     pattern = rule.get("pattern", rule.get("match"))
                     if isinstance(pattern, str):
                         previous = seen.get(pattern)
-                        if previous and previous != action and {previous, action} & {"drop", "replace", "reject"}:
-                            fail(errors, f"{phase}: conflicting actions for pattern {pattern!r}: {previous}/{action}")
-                        seen[pattern] = action
+                        if previous and previous != canonical and {previous, canonical} & {"drop", "replace", "reject"}:
+                            fail(errors, f"{phase}: conflicting actions for pattern {pattern!r}: {previous}/{canonical}")
+                        seen[pattern] = canonical
     # Optional cu-bridge skipstring-parity section: probe queries that bypass
     # the whole rule pipeline and pass through to ccec unchanged.
     if "queries" in data:

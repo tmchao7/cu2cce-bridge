@@ -2,7 +2,7 @@
 # ============================================================
 # hostcc_cce —— host C/C++ compiler wrapper (cu-bridge bin/gnu parity).
 #
-# The fake toolkit binds bin/{c++,g++,gcc,cc} to THIS script. All behavior
+# The virtual CUDA toolkit binds bin/{c++,g++,gcc,cc} to THIS script. All behavior
 # is rule-driven from config/cu2cce_rules.json ("hostcc" section, consumed
 # by tools/cu2cce_driver.py --hostcc-mode):
 #   - pure compile (-c) / preprocess (-E) / query: passthrough to the real
@@ -18,7 +18,7 @@
 # ============================================================
 set -u
 
-name="$(basename "$0")"
+name="${CU2CCE_HOSTCC_NAME:-$(basename "$0")}"
 
 CUCC_PATH="${CUCC_PATH:-}"
 if [ -z "$CUCC_PATH" ] || [ ! -f "$CUCC_PATH/lib/libcce_bridge_runtime.so" ] || \

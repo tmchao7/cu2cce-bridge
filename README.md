@@ -24,7 +24,7 @@ Ascend kernel 包装源文件。
 
 ## 当前状态（2026-09-02）
 
-- `cucc`、CMake、Make、Ninja 已统一到同一个参数规则、fake toolkit 和 Ascend-aware
+- `cucc`、CMake、Make、Ninja 已统一到同一个参数规则、virtual CUDA toolkit 和 Ascend-aware
   产物契约；最近一次服务器 full profile 汇总为 `FAIL=0`。
 - 已验证的构建产物类别包括 `.o`、`.d`、`.a`、`.so` 和 ELF executable，并检查
   `NEEDED`、RPATH/RUNPATH、CMake/Ninja metadata、install/export。
@@ -49,13 +49,14 @@ Ascend kernel 包装源文件。
 bin/                 用户命令入口（cucc）
 cmake/               原生 cu2cce CMake package
 cmake_modules/       FindCUDA / FindCUDAToolkit 兼容层
-config/              cucc 规则、fake toolkit 和 artifact contract
+config/              旧版 cucc 规则兼容入口与 artifact contract
+bin/                 cucc 主规则 conf.json、host compiler carrier 和 process_args.py
 include/             CUDA compatibility headers、SIMT adaptor、runtime headers
 src/                 bridge runtime 与 experimental BLAS 实现
 examples/             CUDA、CMake、Make、Ninja 和诊断样例
 tests/                本地规则、构建、产物和仓库卫生测试
 third_party/          必要的 NVIDIA CUDA Samples helper headers
-tools/                cucc driver、构建 wrapper、shim builder、真机脚本
+tools/                cucc driver、构建 wrapper、虚拟 CUDA 工具链目录构建器、真机脚本
 docs/                 架构、范围、对比、参考和维护文档
 ```
 
@@ -68,8 +69,8 @@ docs/                 架构、范围、对比、参考和维护文档
 | `tools/ninja_maca` | `tools/ninja_cce` | 同一 CMake shim 的 Ninja 构建 |
 | `tools/pre_makefile` | `tools/pre_cce` | configure/autotools 环境准备 |
 | `bin/gnu` | `tools/hostcc_cce` | host link 注入 Ascend/bridge runtime |
-| `link.json` / `stub_link.json` | `config/shim_layout.json` | fake CUDA toolkit 目录和 alias 清单 |
-| `virtualDir.py` | `tools/build_shim_tree.py` | manifest-driven shim builder |
+| `link.json` / `stub_link.json` | `tools/link.json` + `tools/mock/stub_link.json` | Make/pre 与 CMake 的虚拟 CUDA 工具链清单 |
+| `virtualDir.py` | `tools/mock/virtualDir.py` | 虚拟 CUDA 工具链目录构建器 |
 
 不要把 `cmake_cce` 改名为 `cmake_maca`，也不要在 Ascend 安装树中伪造 `mxcc`、
 `symbol_cu.so` 或 MACA runtime。
@@ -150,13 +151,14 @@ build/real_test/install/
 │   ├── cmake_cce       # CMake configure/build wrapper
 │   ├── make_cce        # Make wrapper
 │   ├── ninja_cce       # Ninja wrapper
-│   └── nvcc             # 兼容入口，指向 cucc
+│   └── nvcc             # 兼容入口，转发到 cucc（普通文件）
 ├── lib/
 │   └── libcce_bridge_runtime.so
 ├── include/             # cuda_runtime.h、crt、bridge、SIMT、shadow headers
 ├── cmake_modules/       # FindCUDA、FindCUDAToolkit 和 CUDA override
-├── config/              # cu2cce_rules、shim_layout、artifact_contract
-└── tools/               # driver、mock、shim builder、host compiler wrapper
+├── config/              # 旧版兼容规则与 artifact contract；布局清单位于 tools/
+├── bin/                 # cucc、conf.json、gnu、gfortran、process_args.py
+└── tools/               # driver、mock、virtual toolkit directory builder、host compiler wrapper
 ```
 
 也可以显式写出同一个仓库内前缀：
@@ -454,7 +456,7 @@ make_cce -C . -j2
 
 `make_cce` 会：
 
-1. 创建 CUDA-shaped fake toolkit；
+1. 创建 CUDA-shaped virtual CUDA toolkit；
 2. 设置 `CUDA_PATH`/`CUDA_HOME`、CANN 路径和 host compiler wrapper；
 3. 让 Makefile 中的 `nvcc` 进入 `cucc`，再进入 `ccec`；
 4. 让 plain host link 能在已验证形态下找到 bridge/CANN runtime。
@@ -531,7 +533,7 @@ pre_cce make -j2
 export PATH="$CUCC_PATH/bin:$CUCC_PATH/tools:$PATH"
 ```
 
-fake toolkit 中的 host compiler entry 会经过 `hostcc_cce`；host-only compile 透传系统编译器，
+virtual CUDA toolkit 中的 host compiler entry 会经过 `hostcc_cce`；host-only compile 透传系统编译器，
 link 阶段按规则注入 bridge/CANN runtime。`.cu` 源必须交给 `cucc`，不能绕过到 host compiler。
 
 ## CANN/NPU 边界
@@ -614,6 +616,7 @@ build/real_test/puresimt/artifacts/
 macOS 本地不构建 CANN/NPU 产物，但可以执行：
 
 ```bash
+python3 tools/validate_cucc_rules.py bin/conf.json
 python3 tools/validate_cucc_rules.py config/cu2cce_rules.json
 python3 -m unittest discover -s tests -p 'test_*.py' -v
 bash tests/mock_acl/syntax_check.sh

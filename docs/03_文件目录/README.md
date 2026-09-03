@@ -1,16 +1,16 @@
 # 文件目录与问题定位
 
-本目录面向维护者。遇到问题时先按“用户入口 → 规则/环境 → 兼容头 → runtime → 构建 shim →
+本目录面向维护者。遇到问题时先按“用户入口 → 规则/环境 → 兼容头 → runtime → 虚拟工具链目录 →
 测试取证”的调用链定位，不要先修改样例绕过错误。
 
 ## 快速定位
 
 | 现象 | 首先检查 |
 |---|---|
-| `cucc` 参数被错误转发 | `tools/cu2cce_driver.py`、`config/cu2cce_rules.json`、`02_能力清单/CUCC_OPTION_COMPATIBILITY_MATRIX.md` |
+| `cucc` 参数被错误转发 | `tools/cu2cce_driver.py`、`bin/conf.json`（旧入口：`config/cu2cce_rules.json`）、`02_能力清单/CUCC_OPTION_COMPATIBILITY_MATRIX.md` |
 | `.cu` 编译失败 | `include/cuda_runtime.h`、`include/bridge/kernel/simt_adaptor.h`、`tools/device_arch.sh` |
 | CMake configure 失败 | `tools/cmake_cce`、`tools/mock/mock_nvcc.py`、`cmake_modules/override/CUDAOverrides.cmake` |
-| CMake build 找不到 `nvcc`/`cucc` | `tools/fake_toolkit_env.sh`、`tools/build_shim_tree.py`、`tools/ninja_cce` |
+| CMake build 找不到 `nvcc`/`cucc` | `tools/virtual_toolkit_env.sh`、`tools/mock/virtualDir.py`、`tools/ninja_cce` |
 | Make/Ninja 参数或 clean 异常 | `tools/make_cce`、`tools/ninja_cce`、`tools/pre_cce` |
 | 运行时 ACL 错误 | `src/bridge/runtime/`、`include/bridge/runtime/`、真机日志 |
 | `.a/.so/ELF/.d` 产物不对 | `config/artifact_contract.json`、`tools/real_test/verify_artifacts.py`、构建矩阵 |

@@ -65,7 +65,7 @@ class RepositoryHygieneTest(unittest.TestCase):
         for item in (
             "bin/cucc", "tools/cu2cce_driver.py", "tools/cmake_cce",
             "tools/make_cce", "tools/ninja_cce", "tools/pre_cce",
-            "config/cu2cce_rules.json", "config/shim_layout.json",
+            "bin/conf.json", "config/cu2cce_rules.json", "tools/link.json", "tools/mock/stub_link.json",
             "config/artifact_contract.json", "tools/real_test/server_cmd.txt",
             "multi_cu_diagnostic", "DIAGNOSTIC_ONLY",
         ):
@@ -132,6 +132,13 @@ class RepositoryHygieneTest(unittest.TestCase):
         self.assertNotIn("PROJECT_ARCHITECTURE.md", text)
         self.assertNotIn("docs/superpowers/", text)
         self.assertNotIn("plans/cuda-large-project-compatibility.md", text)
+
+    def test_tracked_tree_has_no_symlink_compatibility_files(self) -> None:
+        result = subprocess.run(
+            ["git", "ls-files", "-s"], cwd=ROOT, capture_output=True, text=True, check=True
+        )
+        symlinks = [line for line in result.stdout.splitlines() if line.startswith("120000 ")]
+        self.assertEqual(symlinks, [])
 
     def test_tracked_tree_contains_no_obvious_local_generated_files(self) -> None:
         result = subprocess.run(

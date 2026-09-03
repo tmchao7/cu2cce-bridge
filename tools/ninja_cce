@@ -2,7 +2,7 @@
 # ninja_cce —— run Ninja for a cu2cce-generated build tree.
 #
 # Two-phase protocol (cu-bridge ninja_maca parity): configure uses the mock
-# nvcc entry, while this wrapper rebuilds the persistent CUDA-shaped shim with
+# nvcc entry, while this wrapper rebuilds the persistent virtual CUDA toolkit with
 # the real cucc before Ninja executes.  The same helper/lifecycle is used by
 # make_cce and pre_cce so direct ninja and cmake_cce --build do not drift.
 set -euo pipefail
@@ -16,12 +16,12 @@ if ! command -v ninja >/dev/null 2>&1; then
     echo "ninja_cce: ninja executable not found" >&2
     exit 1
 fi
-if [ ! -f "$CUCC_PATH/tools/fake_toolkit_env.sh" ]; then
-    echo "ninja_cce: shared helper missing: $CUCC_PATH/tools/fake_toolkit_env.sh" >&2
+if [ ! -f "$CUCC_PATH/tools/virtual_toolkit_env.sh" ]; then
+    echo "ninja_cce: shared helper missing: $CUCC_PATH/tools/virtual_toolkit_env.sh" >&2
     exit 1
 fi
 CUCC_PATH="$(cd "$CUCC_PATH" && pwd -P)"
-. "$CUCC_PATH/tools/fake_toolkit_env.sh"
+. "$CUCC_PATH/tools/virtual_toolkit_env.sh"
 
 ASCEND_TOOLKIT_HOME="${ASCEND_TOOLKIT_HOME:-/usr/local/Ascend/ascend-toolkit/latest}"
 CANN_BASE="${CANN_BASE:-/usr/local/Ascend/latest}"
@@ -46,8 +46,8 @@ while [ "$index" -lt "${#args[@]}" ]; do
     index=$((index + 1))
 done
 if [ -n "${CU2CCE_CMAKE_SHIM_DIR:-}" ]; then
-    SHIM_ROOT="$CU2CCE_CMAKE_SHIM_DIR"
-elif SHIM_ROOT="$(cu2cce_cmake_cache_shim_root "$build_dir_hint" 2>/dev/null)"; then
+    VIRTUAL_TOOLKIT_ROOT="$CU2CCE_CMAKE_SHIM_DIR"
+elif VIRTUAL_TOOLKIT_ROOT="$(cu2cce_cmake_cache_virtual_toolkit_root "$build_dir_hint" 2>/dev/null)"; then
     # Preserve the compiler shim recorded by this existing CMake tree.
     :
 else
@@ -55,31 +55,31 @@ else
     # Derive the same persistent build-keyed root as cmake_cce from the
     # current directory or Ninja's -C/--directory argument.
     SHIM_BASE="${CU2CCE_HOME:-${WCUDA_HOME:-${CUBRIDGE_HOME:-$HOME}}}/cu2cce-bridge"
-    SHIM_ROOT="$(cu2cce_shim_root_for_build "$SHIM_BASE" "$build_dir_hint")" || {
+    VIRTUAL_TOOLKIT_ROOT="$(cu2cce_virtual_toolkit_root_for_build "$SHIM_BASE" "$build_dir_hint")" || {
         echo "ninja_cce: cannot derive stable shim root for build directory $build_dir_hint" >&2
         exit 1
     }
 fi
-if [[ "$SHIM_ROOT" != /* ]]; then
+if [[ "$VIRTUAL_TOOLKIT_ROOT" != /* ]]; then
     # Ninja may receive -C <build>; resolve the shim before that directory
     # switch so it remains identical to the configure invocation.
-    SHIM_ROOT="$PWD/$SHIM_ROOT"
+    VIRTUAL_TOOLKIT_ROOT="$PWD/$VIRTUAL_TOOLKIT_ROOT"
 fi
 if [ "${CU2CCE_SHIM_ISOLATE:-0}" = "1" ]; then
-    SHIM_ROOT="${SHIM_ROOT}-${PPID}"
+    VIRTUAL_TOOLKIT_ROOT="${VIRTUAL_TOOLKIT_ROOT}-${PPID}"
 fi
 
-# The shared builder materializes $SHIM_ROOT/CUDA_DIR, matching cmake_cce's
+# The shared builder materializes $VIRTUAL_TOOLKIT_ROOT/CUDA_DIR, matching cmake_cce's
 # configure path. Repointing only a different lowercase directory would leave
 # CMake's recorded compiler bound to mock_nvcc.
-CUDA_DIR="$(cu2cce_prepare_fake_toolkit "$SHIM_ROOT" "$CUCC_PATH/bin/cucc" "$SHIM_ROOT/bin" wrapper)" || exit 1
-printf 'ninja_cce: build phase: shim nvcc -> %s/bin/cucc\n' "$CUCC_PATH" >&2
+CUDA_DIR="$(cu2cce_prepare_virtual_toolkit "$VIRTUAL_TOOLKIT_ROOT" "$CUCC_PATH/bin/cucc" "$VIRTUAL_TOOLKIT_ROOT/bin" wrapper "$CUCC_PATH/tools/link.json")" || exit 1
+printf 'ninja_cce: build phase: virtual toolkit nvcc -> %s/bin/cucc\n' "$CUCC_PATH" >&2
 if [ ! -e "$CUDA_DIR/bin/nvcc" ]; then
-    echo "ninja_cce: fake toolkit build failed under $SHIM_ROOT" >&2
+    echo "ninja_cce: virtual toolkit build failed under $VIRTUAL_TOOLKIT_ROOT" >&2
     exit 1
 fi
 
-export CU2CCE_CMAKE_SHIM_DIR="$SHIM_ROOT"
+export CU2CCE_CMAKE_SHIM_DIR="$VIRTUAL_TOOLKIT_ROOT"
 export CUDA_PATH="$CUDA_DIR"
 export CUDA_HOME="$CUDA_DIR"
 export ASCEND_TOOLKIT_HOME
@@ -88,12 +88,12 @@ export CU2CCE_NPU_ARCH="${CU2CCE_NPU_ARCH:-${CUCC_NPU_ARCH:-dav-c310-vec}}"
 export CUCC_NPU_ARCH="$CU2CCE_NPU_ARCH"
 export LD_LIBRARY_PATH="$(cu2cce_prepend_ld_library_path \
     "$CUCC_PATH/lib:$CANN_BASE/lib64:$CANN_BASE/runtime/lib64")"
-export PATH="$SHIM_ROOT/bin:$CUDA_DIR/bin:$CUCC_PATH/bin:$PATH"
+export PATH="$VIRTUAL_TOOLKIT_ROOT/bin:$CUDA_DIR/bin:$CUCC_PATH/bin:$PATH"
 
 for arg in "$@"; do
     case "$arg" in
         clean|*clean|clean-*)
-            rm -rf "$SHIM_ROOT"
+            rm -rf "$VIRTUAL_TOOLKIT_ROOT"
             break
             ;;
     esac

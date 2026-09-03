@@ -1,0 +1,7 @@
+#!/bin/bash
+# Reference-shaped host compiler carrier. The implementation remains in the
+# Ascend-aware tools/hostcc_cce wrapper; this file is a stable bin/gnu entry.
+set -u
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+export CU2CCE_HOSTCC_NAME="${CU2CCE_HOSTCC_NAME:-g++}"
+exec "$SCRIPT_DIR/../tools/hostcc_cce" "$@"

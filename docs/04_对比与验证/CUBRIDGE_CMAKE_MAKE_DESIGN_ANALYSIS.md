@@ -154,8 +154,8 @@ build 期按 `build.make` 里**记录的绝对编译器路径**逐条发起真�
 | 6 | hostcc 链接注入硬编码在脚本 | `conf_gnu.json` 数据驱动 | **借鉴**：rules 新增 `hostcc.link.inject` 段，`hostcc_cce` 薄壳化委托 `cu2cce_driver.py --hostcc-mode`（保留无桥退化语义；链接仍走 g++——NPU 有意保留，见决策 12） | rules、`tools/hostcc_cce`、driver |
 | 7 | capabilities 前缀匹配过宽 | 逐库 fnmatch 规则 | **收窄**：精确名/`key_` 前缀给精确提示，其余宽前缀降级为"heuristic prefix match"提示（保留 advisory 覆盖，文案不再误导） | `_handle_library_policy` |
 | 8 | mock ABI 探针写 16 字节假 ELF | 宿主 g++ 现编替身源码（保留 INFO 串） | **借鉴（去掉工件）**：新增 `tools/mock/CMakeCUDACompilerABI.cpp/.h`，探测期现编（`-c` 形态编对象、可执行形态真链接，运行输出 "No CUDA devices found."），失败回退占位 | `tools/mock/`、`mock_nvcc.py` |
-| 9 | shim 布局三处硬编码重复 | `link.json`/`stub_link.json` 单一清单 | **借鉴**：`config/shim_layout.json` + `tools/build_shim_tree.py`，cmake_cce/make_cce/pre_cce 共用（幂等原子软链、targets 三元组、version.txt、CUDAToolkit config shim） | 新增两文件、三入口 |
-| 10 | shim lib64 只有 5 个 CUDA 库名 | 全套 CUDA 库名软链 | **扩展（实验性）**：`libcublas.so(.1)`、`libnvToolsExt.so(.1)` → 桥运行时（桥内 cublas 面三用例真机绿 + nvtx stub 已存在），矩阵标 EXPERIMENTAL；**有意不做**全量 `-lcu*→CANN 库` 重写表 | shim_layout.json |
+| 9 | shim 布局三处硬编码重复 | `link.json`/`stub_link.json` 单一清单 | **借鉴**：`tools/link.json` + `tools/mock/virtualDir.py`，cmake_cce/make_cce/pre_cce 共用（幂等原子软链、targets 三元组、version.txt、CUDAToolkit config shim） | 新增两文件、三入口 |
+| 10 | shim lib64 只有 5 个 CUDA 库名 | 全套 CUDA 库名软链 | **扩展（实验性）**：`libcublas.so(.1)`、`libnvToolsExt.so(.1)` → 桥运行时（桥内 cublas 面三用例真机绿 + nvtx stub 已存在），矩阵标 EXPERIMENTAL；**有意不做**全量 `-lcu*→CANN 库` 重写表 | config/shim_layout.json |
 | 11 | `clean` 子串匹配误删（`cleanpack`） | 参数含 "clean" 删假目录 | **修复（更严）**：按目标名词元匹配 `clean/*clean/clean-*` | make_cce、pre_cce |
 | 12 | 无并行隔离选项 | `USE_WCUDA_FOR_MULTI_JOB`（$PPID 后缀） | **借鉴**：`CU2CCE_SHIM_ISOLATE=1` 三入口统一支持 | cmake_cce/make_cce/pre_cce |
 | 13 | pre_cce 宿主编译器是身份软链 | gnu 包装器 | **统一**：pre_cce 改用 hostcc_cce（autotools 纯 g++ 链接也能拿到桥运行时注入） | pre_cce |
@@ -173,17 +173,17 @@ build 期按 `build.make` 里**记录的绝对编译器路径**逐条发起真�
 | 25 | 库名/链接面过滤补齐（conf.json filter） | `-lnvrtc`、`-lOpenCL` 直接 filter（不等到链接期才炸）；`--share → -shared`；`-Xlinker <arg>` 直通 mxcc | **对齐 + 修丢失**：`-lnvrtc/-l:libnvrtc*/-lOpenCL` 从静默 forward 改为带警告 drop；`--share` replace 为 `-shared`；`-Xlinker` 对由 drop 改为**成对透传 ccec**（clang 原生，原 drop 丢失用户 rpath/链接脚本） | rules、driver |
 | 26 | `__CUDACC__` 宏族（`-imacros __macro_mxcc.h`，conf.json all.adder） | mxcc 的 `__MACACC__` 翻译为 `__CUDACC__` + 版本宏 | **对齐（机制级）**：compile 注入 `-D__CUDACC__` + `__CUDACC_VER_MAJOR/MINOR/BUILD/VER`（值由 `CUCC_CUDA_VERSION` 推导，nvcc 编码 MMmmB）；仅 `.cu` TU（nvcc 语义）；mock `--cmake-identity` 前缀退役为 no-op——宏只剩规则文件一个定义点（simplifier） | rules compile.inject、driver |
 | 27 | gcc-only 旗标过滤（conf.json filter 的 var-tracking 族） | `-fno/var-tracking(-assignments)` 静默过滤 | **对齐**：regex_cleanup 种子 `^-f(no-)?var-tracking(-assignments)?$`（clang 报 unknown argument）；同时从宿主旗标白名单移除（白名单此前误放行） | rules regex_cleanup、driver |
-| 28 | 代码简化（code review 产出） | link.json 单一实现被三个包装器复用 | **对齐同款思想**：`tools/fake_toolkit_env.sh` 共享库（哨兵 + builder 调用 + host triple），cmake_cce/make_cce/pre_cce 三处 ~40 行重复收敛为一次 source；规则文件去掉 `--expt-extended-lambda`/`--generate-code=*` 重复项；`-lcublasLt` 库匹配改两段式（精确名优先于宽前缀，提示不再错位） | tools/fake_toolkit_env.sh、三入口、rules、driver |
+| 28 | 代码简化（code review 产出） | link.json 单一实现被三个包装器复用 | **对齐同款思想**：`tools/virtual_toolkit_env.sh` 共享库（哨兵 + builder 调用 + host triple），cmake_cce/make_cce/pre_cce 三处 ~40 行重复收敛为一次 source；规则文件去掉 `--expt-extended-lambda`/`--generate-code=*` 重复项；`-lcublasLt` 库匹配改两段式（精确名优先于宽前缀，提示不再错位） | tools/virtual_toolkit_env.sh、三入口、rules、driver |
 | 29 | conf.json filter/replacer 终检缺口（第八批） | `-lnvrtc`/`-lOpenCL` filter、`--share→-shared`、`-Xlinker` 直通、`--use_fast_math`→后端拼写、`-lgomp`→自家 OpenMP 运行时、`-static` 因后端限制改写、杂项 filter（`g++*`/`--threads=*`/`/usr/bin/cc`/`-keep-dir`/`--W*` 双横线族/`-diag-suppress`）、banner 可解析 release 词组 | **全部对齐（后端拼写不同）**：drop 带警告 / replace 规范化（`-ffast-math`、`-lomp`、`-shared`）/ `-Xlinker` 成对透传 / `-static` 诚实 drop；合法单词号 clang 警告有意保留 forward；banner 携带 `compatible with release 11.6` | rules、driver |
 | 30 | 真机可验证性 | 测试报告 xlsx（200+ 工程） | **harness 内建**：server_cmd.txt full 画像新增机制探针段（queries 直通 / ARCH_MACRO+__CUDACC__+预包含 dryrun / Xlinker+fast-math+nvrtc）与 `cmake_cce --build` 分流探针，失败即打落 CUCC_RULES/CMAKE badge | server_cmd.txt |
 
 ## 三、本批次后的机制拓扑（终态）
 
 ```text
-cmake_cce ──configure──> build_shim_tree.py(shim_layout.json) ──> mock_nvcc.py（探测应答/真编译回退）
+cmake_cce ──configure──> tools/mock/virtualDir.py(config/shim_layout.json) ──> mock_nvcc.py（探测应答/真编译回退）
    │                                        │                        └─> cu2cce_driver.py（--cmake-identity）
    ├──--build──────────deal_build_param─────┴──> make_cce / ninja_cce（build.ninja 选择）
-make_cce/pre_cce ──> build_shim_tree.py ──> PATH+CUDA_PATH ──> make/direct-exec
+make_cce/pre_cce ──> tools/mock/virtualDir.py ──> PATH+CUDA_PATH ──> make/direct-exec
 bin/nvcc / cucc ──> cu2cce_driver.py ──[queries 直通 | 五动作规则 | 注入/排序]──> ccec -x asc --enable-simt
 hostcc_cce ──> cu2cce_driver.py --hostcc-mode ──[hostcc.link.inject]──> /usr/bin/g++（链接补桥运行时）
 ```
@@ -200,7 +200,7 @@ hostcc_cce ──> cu2cce_driver.py --hostcc-mode ──[hostcc.link.inject]─�
 | 双阶段（configure=mock / build=真驱动） | 已收口（持久 shim + 两阶段重指向） |
 | deal_build_param（--build → make/ninja 包装器） | 已收口（第六批次前一批落地） |
 | mock 探测四分支 + ABI 现编替身 | 已收口（多 `--simple-preprocess` 分支；ABI 走 shipped 源码现编） |
-| link.json / stub_link.json 清单化假 SDK | 已收口（shim_layout.json + build_shim_tree.py，三入口共用） |
+| link.json / stub_link.json 清单化假 SDK | 已收口（tools/link.json + tools/mock/virtualDir.py，三入口共用） |
 | make_maka 幂等哨兵 / clean / 并行隔离 | 已收口（make.log 哨兵；clean 词元匹配；CU2CCE_SHIM_ISOLATE） |
 | pre_make / pre_makefile | 已收口（pre_cce，hostcc 统一） |
 | bin/gnu 包装器 + conf_gnu.json | 已收口（hostcc_cce + rules hostcc 段；链接器有意保留 g++） |

@@ -136,8 +136,11 @@ def _item(
 
 
 def build_report(repo: Path, reference: Path) -> Dict[str, Any]:
-    rules = _json(repo / "config/cu2cce_rules.json")
-    layout = _json(repo / "config/shim_layout.json")
+    rules = _json(repo / "bin/conf.json") if (repo / "bin/conf.json").is_file() else _json(repo / "config/cu2cce_rules.json")
+    manifest = repo / "tools/link.json"
+    layout = _json(manifest) if manifest.is_file() else _json(repo / "config/shim_layout.json")
+    if isinstance(layout.get("pre_make"), dict):
+        layout = layout["pre_make"]
     conf = _json(reference / "bin/conf.json")
     ref_link = _json(reference / "tools/link.json")
     ref_stub = _json(reference / "tools/mock/stub_link.json")
@@ -159,7 +162,9 @@ def build_report(repo: Path, reference: Path) -> Dict[str, Any]:
 
     reference_filter_count = len(conf.get("all", {}).get("filter", [])) if isinstance(conf.get("all"), dict) else 0
     reference_query_count = len(conf.get("skipstring", [])) if isinstance(conf.get("skipstring"), list) else 0
-    current_query_count = len(rules.get("queries", [])) if isinstance(rules.get("queries"), list) else 0
+    current_query_count = (len(rules.get("queries", [])) if isinstance(rules.get("queries"), list)
+                            else len(rules.get("skipstring", [])) if isinstance(rules.get("skipstring"), list)
+                            else 0)
     reference_alias_count = _reference_cuda_library_alias_count(ref_link, ref_stub)
     current_alias_count = len(layout.get("cuda_lib_aliases", [])) if isinstance(layout.get("cuda_lib_aliases"), list) else 0
     reference_findcuda_macros = _cmake_command_names(_read(reference / "cmake_module/maca/FindCUDA.cmake"))
@@ -241,7 +246,7 @@ def build_report(repo: Path, reference: Path) -> Dict[str, Any]:
                 "shim_manifest",
                 "ALIGNED" if layout and ref_link and ref_stub else "MISSING",
                 "link.json + stub_link.json",
-                "config/shim_layout.json + build_shim_tree.py",
+                "tools/link.json + tools/mock/virtualDir.py",
                 f"Reference CUDA alias entries: {reference_alias_count}; current manifest aliases: {current_alias_count}; {len(missing_link_names)} reference names are not aliases in the NPU shim and require policy/validation rather than blind copying.",
             ),
         ],

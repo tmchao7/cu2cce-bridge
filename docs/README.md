@@ -57,9 +57,9 @@ CUDA .cu
   → Ascend NPU
 ```
 
-CMake 的 configure 阶段使用 fake toolkit 和 `mock_nvcc.py` 满足 CMake 探测，build 阶段仍然
-调用真实 `cucc`；Make/Ninja/pre wrapper 复用 `fake_toolkit_env.sh` 和
-`build_shim_tree.py`。这是对齐 `cu-bridge` 的机制，而不是复制 MACA 的库名和设备产物。
+CMake 的 configure 阶段使用 virtual CUDA toolkit 和 `mock_nvcc.py` 满足 CMake 探测，build 阶段仍然
+调用真实 `cucc`；Make/Ninja/pre wrapper 复用 `virtual_toolkit_env.sh` 和
+`tools/mock/virtualDir.py`。这是对齐 `cu-bridge` 的机制，而不是复制 MACA 的库名和设备产物。
 
 ## 状态和证据规则
 
@@ -87,7 +87,7 @@ CMake 的 configure 阶段使用 fake toolkit 和 `mock_nvcc.py` 满足 CMake �
 
 - **puresimt**：让 `ccec` 直接解析 CUDA SIMT 写法的当前正式路线。
 - **bridge runtime**：`libcce_bridge_runtime.so` 及其对 CANN runtime 的封装。
-- **fake toolkit/shim**：只提供 CUDA 形状的目录、入口和库别名，供构建系统探测或转发；不等同于
+- **virtual CUDA toolkit/shim**：只提供 CUDA 形状的目录、入口和库别名，供构建系统探测或转发；不等同于
   完整 CUDA Toolkit。
 - **产物对齐**：对齐 `.o`、`.d`、`.a`、`.so`、ELF executable、构建元数据和动态依赖的类别与语义，
   不要求 Ascend 与 MACA 的 ELF 字节级一致。

@@ -6,7 +6,7 @@
 
 - `cucc` / `tools/cu2cce_driver.py`；
 - `cmake_cce`、`make_cce`、`ninja_cce`、`pre_cce`；
-- `device_arch.sh`、fake toolkit shim；
+- `device_arch.sh`、virtual CUDA toolkit shim；
 - legacy `FindCUDA.cmake`；
 - artifact contract/verifier 和真机回归 harness；
 - 与本地 `cu-bridge-muxi` `6ab1076` 的机制 parity。
@@ -38,7 +38,7 @@ ccec 的 `--cce-aicore-arch`。现在缓存、环境变量和 target alias 都�
 
 ### [P2] wrapper 对非法 `CUCC_TARGETS_FROM_DEVICE` 静默回退 — 已修复
 
-共享 fake toolkit helper 只将 `CUCC_TARGETS` 视为显式 target，导致
+共享 virtual CUDA toolkit helper 只将 `CUCC_TARGETS` 视为显式 target，导致
 `CUCC_TARGETS_FROM_DEVICE=sm_80` 时吞掉 `device_arch.sh` 的失败并回退
 `dav-c310-vec`。现在两种 target alias 都走显式校验，错误会阻止 wrapper 继续构建。
 
@@ -86,10 +86,10 @@ FP64 preflight 也只覆盖 `-c` 而遗漏直接 `.cu -> executable`。现在版
 与宏使用同一环境值，`compile_and_link` 也执行相同的 Ascend device-side FP64
 策略。
 
-### [P3] shim builder 损坏目录无法自愈 — 已修复
+### [P3] virtual toolkit directory builder 损坏目录无法自愈 — 已修复
 
 manifest-owned symlink path 若被旧版本/中断构建留下真实目录，
-`Path.unlink()` 会失败。builder 现在在生成 fake toolkit 内移除 stale directory
+`Path.unlink()` 会失败。builder 现在在生成 virtual CUDA toolkit 内移除 stale directory
 后重建 symlink，并有真实复现回归测试。
 
 ### [P2] diagnostic-only 日志与历史输出目录会污染服务器终端/证据 — 已修复（`ade77c3`、`8ec6f8f`）
@@ -154,7 +154,7 @@ artifact verifier 原先使用 `library in readelf_output`，近似名称或相�
 `RUNPATH` 条目；库名要求精确相等，路径只允许精确项或 contract 声明的
 绝对路径后缀。
 
-### [P2] direct `build_shim_tree.py` 的相对路径会生成 dangling symlink — 已修复（`1e3119a`）
+### [P2] direct `tools/mock/virtualDir.py` 的相对路径会生成 dangling symlink — 已修复（`1e3119a`）
 
 wrapper 层虽已将 shim root 绝对化，但直接使用共享 builder 时，
 `--cucc-path install`、`--nvcc-target install/bin/cucc` 仍会把相对 target
@@ -201,7 +201,7 @@ gitcode 更新失败会输出明确 FAIL 并立即退出，避免产生 stale-co
 再执行 fast-forward pull，并对两步都 fail-closed。这样服务器使用的 checkout
 和远端 `gitcode` 分支状态是可审计的。
 
-### [P2] fake toolkit `version.txt` 与 cucc/mock 版本语义漂移 — 已修复（`4d02803`）
+### [P2] virtual CUDA toolkit `version.txt` 与 cucc/mock 版本语义漂移 — 已修复（`4d02803`）
 
 `CUCC_CUDA_VERSION` 原先只影响 driver banner、宏和 mock probe，manifest
 生成的 `version.txt` 仍固定为 11.6.0。现在共享 builder 使用同一变量生成

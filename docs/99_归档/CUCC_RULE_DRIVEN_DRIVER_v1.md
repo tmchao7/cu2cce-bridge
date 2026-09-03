@@ -31,7 +31,7 @@ CMake 命令：
 
 ```text
 CMake
-  → tools/nvcc_entry.sh
+  → tools/mock/nvcc_entry.sh
   → tools/mock/mock_nvcc.py
   → tools/cu2cce_driver.py
   → ccec

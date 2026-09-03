@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "backend": "ascend-cann",
+  "compiler": "bisheng-ccec",
+  "device_arch": "dav-*",
+  "runtime": "libcce_bridge_runtime.so",
+  "pre_make": {
+    "schema_version": 1,
+    "comment": "Fake CUDA toolkit layout consumed by tools/mock/virtualDir.py (cu-bridge tools/link.json + mock/stub_link.json parity, single source for cmake_cce/make_cce/pre_cce). Placeholders ${CUDA_DIR}, ${CUCC_PATH}, ${CANN_BASE}, ${HOST_TRIPLE}, ${NVCC_TARGET}, and ${CUCC_CUDA_VERSION_DISPLAY} are substituted by the builder. The CUDA-named lib64 alias family lets plain host-compiler links of -lcudart/-lcuda (and, experimental, -lcublas/-lnvToolsExt) resolve to the bridge runtime, exactly like cu-bridge's link.json pre_make section.",
+    "dirs": [
+      "bin",
+      "lib64",
+      "lib64/stubs",
+      "nvvm/libdevice",
+      "lib64/cmake/CUDAToolkit",
+      "targets/${HOST_TRIPLE}",
+      "extras/CUPTI/include",
+      "extras/CUPTI/lib64"
+    ],
+    "dir_links": [
+      {
+        "link": "include",
+        "target": "${CUCC_PATH}/include",
+        "replace": true,
+        "comment": "whole-tree link so all compatibility headers are visible; falls back to per-file links when a cross-filesystem link fails"
+      },
+      {
+        "link": "targets/${HOST_TRIPLE}/include",
+        "target": "${CUDA_DIR}/include"
+      },
+      {
+        "link": "targets/${HOST_TRIPLE}/lib",
+        "target": "${CUDA_DIR}/lib64"
+      },
+      {
+        "link": "cmake_modules",
+        "target": "${CUCC_PATH}/cmake_modules"
+      },
+      {
+        "link": "lib64/cmake/CUDAToolkit/FindCUDAToolkit.cmake",
+        "target": "${CUCC_PATH}/cmake_modules/FindCUDAToolkit.cmake"
+      }
+    ],
+    "file_links": [
+      {
+        "link": "bin/nvcc",
+        "target": "${NVCC_TARGET}",
+        "comment": "configure phase -> tools/mock/nvcc_entry.sh (mock), build phase -> bin/cucc"
+      },
+      {
+        "link": "bin/cucc",
+        "target": "${CUCC_PATH}/bin/cucc"
+      }
+    ],
+    "hostcc_names": [
+      "c++",
+      "g++",
+      "gcc",
+      "cc"
+    ],
+    "alias_target": "${CUCC_PATH}/lib/libcce_bridge_runtime.so",
+    "alias_dirs": [
+      "lib64",
+      "lib64/stubs"
+    ],
+    "cuda_lib_aliases": [
+      "libcudart.so",
+      "libcudart_static.a",
+      "libcudadevrt.a",
+      "libcuda.so",
+      "libcuda.so.1",
+      "libcublas.so",
+      "libcublas.so.1",
+      "libnvToolsExt.so",
+      "libnvToolsExt.so.1"
+    ],
+    "files": [
+      {
+        "path": "version.txt",
+        "content": "CUDA Version ${CUCC_CUDA_VERSION_DISPLAY}\n"
+      },
+      {
+        "path": "lib64/cmake/CUDAToolkit/CUDAToolkitConfig.cmake",
+        "content": "include(\"${CMAKE_CURRENT_LIST_DIR}/FindCUDAToolkit.cmake\")\n"
+      }
+    ],
+    "host_tool_wrappers": [
+      {
+        "names": [
+          "gfortran"
+        ],
+        "target": "${CUCC_PATH}/tools/gfortran_cce",
+        "comment": "host-only Fortran carrier; rejects CUDA sources"
+      },
+      {
+        "names": [
+          "mpicc",
+          "mpicxx"
+        ],
+        "target": "${CUCC_PATH}/tools/mpi_cce",
+        "comment": "host-only MPI carrier; rejects CUDA sources"
+      }
+    ],
+    "hostcc_target": "${CUCC_PATH}/bin/gnu"
+  }
+}

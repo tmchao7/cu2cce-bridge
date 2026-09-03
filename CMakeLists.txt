@@ -77,23 +77,24 @@ install(DIRECTORY include/ DESTINATION include)
 # 安装 cucc 驱动（CUCC_PATH/bin）
 install(PROGRAMS bin/cucc DESTINATION bin)
 
-# nvcc compatibility symlink in the install tree (mirrors cu-bridge user
-# manual FAQ Q2's `ln -s cucc nvcc` workaround): Makefiles that hard-code
-# `nvcc` work when PATH contains only $CUCC_PATH/bin.
-install(CODE "file(CREATE_LINK cucc
-  \$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/bin/nvcc SYMBOLIC)")
+# Keep the installed nvcc compatibility entry as a regular wrapper file.
+# The generated virtual toolkit still uses manifest-controlled links internally,
+# but the install tree itself does not rely on symlink compatibility files.
+install(PROGRAMS bin/nvcc DESTINATION bin)
 
 # 安装用户可直接调用的构建入口到 bin；nvcc_entry/mock 是内部 shim。
 install(PROGRAMS tools/make_cce tools/cmake_cce tools/ninja_cce
         DESTINATION bin)
-install(PROGRAMS tools/nvcc_entry.sh tools/cu2cce_driver.py tools/validate_cucc_rules.py
-        tools/compare_cubridge_parity.py
+install(PROGRAMS tools/cu2cce_driver.py tools/validate_cucc_rules.py
+        tools/compare_cubridge_parity.py tools/virtual_toolkit_env.sh
+        tools/build_shim_tree.py tools/fake_toolkit_env.sh
         DESTINATION tools)
-install(PROGRAMS tools/device_arch.sh tools/pre_cce tools/hostcc_cce tools/build_shim_tree.py
+install(PROGRAMS tools/device_arch.sh tools/pre_cce tools/hostcc_cce
         tools/gfortran_cce tools/mpi_cce
         DESTINATION tools)
-install(PROGRAMS tools/fake_toolkit_env.sh
-        DESTINATION tools)
+install(FILES bin/conf.json DESTINATION bin)
+install(PROGRAMS bin/process_args.py bin/gnu bin/gfortran
+        DESTINATION bin)
 install(DIRECTORY tools/mock DESTINATION tools)
 install(PROGRAMS tools/real_test/fetch_external_cuda_samples.sh
         tools/real_test/verify_artifacts.py
@@ -105,6 +106,7 @@ install(PROGRAMS tools/real_test/fetch_external_cuda_samples.sh
 install(DIRECTORY cmake_modules/ DESTINATION cmake_modules)
 install(FILES config/cu2cce_rules.json config/shim_layout.json config/artifact_contract.json
         DESTINATION config)
+install(FILES tools/link.json DESTINATION tools)
 
 # Native cu2cce package. This is intentionally separate from CUDA::cudart:
 # it identifies the bridge itself and does not claim complete CUDA library

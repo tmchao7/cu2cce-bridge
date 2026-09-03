@@ -16,7 +16,8 @@
 用户 CUDA .cu
   └─ $CUCC_PATH/bin/cucc
        └─ tools/cu2cce_driver.py
-            ├─ config/cu2cce_rules.json       # argv 规则
+            ├─ bin/conf.json                  # cu-bridge 风格主规则
+            ├─ config/cu2cce_rules.json       # 旧规则格式兼容入口
             ├─ include/                       # CUDA/SIMT 兼容头
             └─ ccec -x asc --enable-simt
                  └─ libcce_bridge_runtime.so
@@ -27,8 +28,8 @@
 
 ```text
 cmake_cce -S/-B
-  └─ fake_toolkit_env.sh + build_shim_tree.py
-       └─ CUDA_DIR/bin/nvcc -> nvcc_entry.sh -> mock_nvcc.py  # configure
+  └─ virtual_toolkit_env.sh + mock/virtualDir.py
+       └─ CUDA_DIR/bin/nvcc -> mock/nvcc_entry.sh -> mock_nvcc.py  # configure
 
 cmake_cce --build
   └─ make_cce 或 ninja_cce
@@ -40,8 +41,8 @@ cmake_cce --build
 
 ```text
 make_cce / ninja_cce / pre_cce
-  └─ fake_toolkit_env.sh
-       └─ build_shim_tree.py
+  └─ virtual_toolkit_env.sh
+       └─ mock/virtualDir.py
             ├─ CUDA_PATH / CUDA_HOME
             ├─ bin/nvcc -> cucc
             ├─ CUDA-named compatibility library aliases
@@ -60,8 +61,9 @@ make_cce / ninja_cce / pre_cce
 | `tools/ninja_maca` | `tools/ninja_cce` | Ninja wrapper，后端改为 ccec/CANN |
 | `tools/pre_makefile` | `tools/pre_cce` | configure/autotools 环境 wrapper |
 | `bin/gnu` | `tools/hostcc_cce` | host compiler carrier；链接注入 bridge/CANN runtime |
-| `tools/link.json` + `stub_link.json` | `config/shim_layout.json` | fake toolkit 的单一布局清单 |
-| `tools/virtualDir.py` | `tools/build_shim_tree.py` | manifest-driven fake toolkit builder |
+| `tools/link.json` + `stub_link.json` | `tools/link.json` + `tools/mock/stub_link.json` | Make/pre 与 CMake 的虚拟工具链清单 |
+| `tools/mock/virtualDir.py` | `tools/mock/virtualDir.py` | virtual toolkit directory builder |
+| `bin/conf.json` | `bin/conf.json` | cucc 主规则文件；外层命名贴近参考项目，内容保留 CANN 扩展 |
 | `mxcc` / `runtime_cu.so` / `symbol_cu.so` | `ccec` / `libcce_bridge_runtime.so` + CANN | 后端专属名称，不做字面复制 |
 
 因此不要为了“看起来一样”把 `cmake_cce` 重命名成 `cmake_maca`，也不要在 Ascend
@@ -80,7 +82,7 @@ make_cce / ninja_cce / pre_cce
 | `examples/` | puresimt、CMake、Make/Ninja、BLAS 和诊断载体 | 复现某个 API 或构建入口的最小案例 |
 | `tests/` | 本地规则、CMake、artifact、mock ACL 和仓库卫生测试 | 回归防护、接口契约变更 |
 | `third_party/` | 必要的 NVIDIA CUDA Samples helper 头 | 官方 sample 缺少 helper include |
-| `tools/` | wrapper、driver、shim builder、真机脚本和 verifier | 构建阶段、环境、真机回归、产物检查 |
+| `tools/` | wrapper、driver、virtual toolkit directory builder、真机脚本和 verifier | 构建阶段、环境、真机回归、产物检查 |
 | `docs/` | 架构、范围、对比、维护和参考文档 | 机制解释、支持范围、维护交接 |
 | `README.md` | 项目定位、二进制使用入口和能力边界 | 使用者快速判断项目能否满足需求 |
 | `QUICKSTART.md` | 面向用户的完整 CANN/编译/运行操作手册 | 从零搭建和运行 CUDA 示例 |
@@ -91,13 +93,35 @@ make_cce / ninja_cce / pre_cce
 当前顶层不保留临时 `plans/`、`.claude/` 等个人工作目录；已完成计划在
 `docs/99_归档/`，构建输出在 `build/` 且不进入版本库。
 
+### `bin/conf.json`
+
+`cucc` 的参考项目风格主规则文件。`filter/replacer/adder/skipstring` 对应
+当前驱动的 drop/replace/inject/query passthrough；`reject`、`capabilities`、
+`frontend` 和诊断字段保留 `Bisheng/ccec`、CANN、`dav-*` 的后端策略。
+
+### `config/cu2cce_rules.json`
+
+旧版规则路径。它仍然保留，供 `CU2CCE_RULES_FILE` 和历史集成显式指定；新功能优先
+修改 `bin/conf.json`，并同步验证两份规则的行为一致。
+
+### `tools/link.json` 与 `tools/mock/stub_link.json`
+
+前者对应 `cu-bridge` 的 `link.json`，负责 Make/pre 的虚拟工具链目录；后者对应
+`stub_link.json`，负责 CMake configure 的 virtual_cmake 入口。两者都只描述 CUDA
+形状的目录和入口，真实编译器仍是 `Bisheng ccec`，真实运行库仍是 bridge/CANN。
+
+### `tools/mock/virtualDir.py`
+
+虚拟 CUDA 工具链目录构建器，负责读取上述清单、创建目录、生成兼容入口和 runtime
+兼容 alias。它只在生成的虚拟工具链目录内创建必要链接，不是仓库文件之间的软链接。
+
 ## 3. 用户入口与构建 wrapper
 
 ### `bin/cucc`
 
 极薄的 shell 入口，负责解析安装根和启动 Python driver。它不转换 CUDA 源文件，也不负责
 CANN API 逻辑。遇到参数过滤、phase、架构或库策略问题，直接看
-`tools/cu2cce_driver.py` 和 `config/cu2cce_rules.json`。
+`tools/cu2cce_driver.py` 和 `bin/conf.json`（旧入口：`config/cu2cce_rules.json`）。
 
 ### `tools/cu2cce_driver.py`
 
@@ -128,10 +152,10 @@ cucc 的唯一规则驱动核心，同时被 CMake 的 `mock_nvcc.py` 复用。�
 
 CMake 用户入口，保持 `cu-bridge` 的 configure/build 双阶段机制，但后端换成 Ascend：
 
-- configure：fake toolkit + mock nvcc；
+- configure：virtual CUDA toolkit + mock nvcc；
 - build：根据 `build.ninja` 选择 `ninja_cce`，否则选择 `make_cce`；
 - 支持 `--build`/`--target`/`--parallel`/`--config`/`--clean-first`/`--`；
-- 默认 shim 按 build directory 隔离，旧 build tree 优先读取 `CMakeCache.txt`；
+- 默认虚拟工具链目录按 build directory 隔离，旧 build tree 优先读取 `CMakeCache.txt`；
 - 不做 `USE_CMAKE_MACA=1` 的系统 CMake 物理替换。
 
 CMake 配置失败先看 configure log；CMake 构建失败先看 build log 和
@@ -140,8 +164,8 @@ CMake 配置失败先看 configure log；CMake 构建失败先看 build log 和
 ### `tools/make_cce`
 
 Make wrapper。准备 CUDA-shaped toolkit、`CUDA_PATH`/`CUDA_HOME`、CANN 路径、host compiler
-entries 后直接执行系统 `make`。Makefile 中的 `nvcc` 会通过 shim 进入 cucc；`clean` 会清理
-shim，`cleanpack` 不会因子串误判而清理 shim。
+entries 后直接执行系统 `make`。Makefile 中的 `nvcc` 会通过虚拟工具链目录进入 cucc；`clean` 会清理
+对应目录，`cleanpack` 不会因子串误判而清理它。
 
 ### `tools/ninja_cce`
 
@@ -151,15 +175,15 @@ Ninja wrapper。支持直接 `ninja_cce -C <build>`，读取已有 CMake cache �
 ### `tools/pre_cce`
 
 configure/autotools 风格 wrapper，对应 `cu-bridge` 的 `pre_makefile`。只负责准备环境和
-fake toolkit，然后用 `exec "$@"` 原样执行用户命令，不使用 `eval` 重构参数。
+virtual CUDA toolkit，然后用 `exec "$@"` 原样执行用户命令，不使用 `eval` 重构参数。
 
 ### `tools/hostcc_cce`
 
-由 fake toolkit 中的 `g++`/`gcc`/`cc`/`c++` 软链进入。纯 host compile/query 透传系统编译器；
+由虚拟 CUDA 工具链目录中的 `g++`/`gcc`/`cc`/`c++` 入口进入。纯 host compile/query 透传系统编译器；
 link 阶段由 driver 的 `hostcc.link.inject` 规则补充 bridge runtime 和已存在的 CANN 库。
 `.cu` 源文件不能绕过 cucc 直接进入 hostcc。
 
-### `tools/fake_toolkit_env.sh`
+### `tools/virtual_toolkit_env.sh`
 
 CMake/Make/Ninja/pre 共用的 shell helper，集中处理：
 
@@ -167,14 +191,14 @@ CMake/Make/Ninja/pre 共用的 shell helper，集中处理：
 - CMake build cache 中旧 shim 的恢复；
 - build-keyed shim root；
 - 无尾部空项的 `LD_LIBRARY_PATH`；
-- fake toolkit builder 调用。
+- virtual CUDA toolkit builder 调用。
 
-### `tools/build_shim_tree.py`
+### `tools/mock/virtualDir.py`
 
-读取 `config/shim_layout.json` 并幂等创建 CUDA-shaped tree。它负责目录、软链、CUDA 命名
-library alias、host compiler entry、版本文件；不编译用户源文件。
+读取 `tools/link.json` 或 `tools/mock/stub_link.json` 并幂等创建 CUDA-shaped tree。它负责目录、
+生成目录内部链接、CUDA 命名 library alias、host compiler entry 和版本文件；不编译用户源文件。
 
-### `tools/nvcc_entry.sh` 与 `tools/mock/mock_nvcc.py`
+### `tools/mock/nvcc_entry.sh` 与 `tools/mock/mock_nvcc.py`
 
 `nvcc_entry.sh` 是 configure 阶段的 shim 入口；`mock_nvcc.py` 回答 CMake 的 version、ABI、
 identity 和 simple preprocess 探针。ABI stand-in 只用于 configure 探测，真实 build 必须经过
@@ -203,9 +227,9 @@ cucc/ccec。
 python3 tools/validate_cucc_rules.py config/cu2cce_rules.json
 ```
 
-### `config/shim_layout.json`
+### `tools/link.json`
 
-fake toolkit 单一清单，定义 `bin/`、`include`、`targets/<host-triple>/`、`lib64` alias、
+对应 `cu-bridge` 的 `link.json`，是 Make/pre 的虚拟 CUDA 工具链清单，定义 `bin/`、`include`、`targets/<host-triple>/`、`lib64` alias、
 CUPTI 目录和 host tool wrappers。不要在 `cmake_cce`、`make_cce`、`ninja_cce` 中复制软链逻辑。
 
 ### `config/artifact_contract.json`
@@ -395,6 +419,11 @@ git diff --check
 | 路径 | 职责 |
 |---|---|
 | `bin/cucc` | 用户命令入口；当前为 cucc 的启动脚本 |
+| `bin/nvcc` | 安装树中的普通 CUDA 兼容入口，转发到 `bin/cucc`，不依赖安装软链接 |
+| `bin/conf.json` | cu-bridge 风格主规则文件，保留 Ascend/CANN/Bisheng 扩展 |
+| `bin/process_args.py` | 迁移脚本可用的安全 argv 过滤/替换辅助工具；主 cucc 不依赖它 |
+| `bin/gnu` | 参考项目风格的 host compiler carrier，实际调用 `tools/hostcc_cce` |
+| `bin/gfortran` | 参考项目风格的 host Fortran carrier，实际调用 `tools/gfortran_cce` |
 
 ### `cmake/`
 
@@ -418,8 +447,8 @@ git diff --check
 | 路径 | 职责 |
 |---|---|
 | `config/artifact_contract.json` | cucc/CMake/Make/Ninja artifact contract 清单 |
-| `config/cu2cce_rules.json` | cucc 参数规则、query、能力策略和注入配置 |
-| `config/shim_layout.json` | fake CUDA toolkit 目录/软链/alias 清单 |
+| `config/cu2cce_rules.json` | cucc 旧参数规则格式兼容入口 |
+| `config/shim_layout.json` | 旧版集中式虚拟工具链清单兼容入口；新维护入口是 `tools/link.json` 和 `tools/mock/stub_link.json` |
 
 ### `docs/`
 
@@ -636,21 +665,25 @@ git diff --check
 
 | 路径 | 职责 |
 |---|---|
-| `tools/build_shim_tree.py` | 从 shim_layout.json 幂等构建 fake CUDA toolkit |
+| `tools/link.json` | Make/pre 使用的虚拟 CUDA 工具链布局清单 |
+| `tools/mock/stub_link.json` | CMake configure 使用的 virtual_cmake 布局清单 |
+| `tools/virtual_toolkit_env.sh` | CMake/Make/Ninja/pre 共用的虚拟 CUDA 工具链环境 helper |
+| `tools/fake_toolkit_env.sh` | 旧环境 helper 的普通文件兼容启动器，不含独立实现 |
+| `tools/build_shim_tree.py` | 旧构建器的普通文件兼容启动器，不含独立实现 |
 | `tools/cmake_cce` | CMake configure/build wrapper；mock 到真实 cucc 双阶段入口 |
 | `tools/compare_cubridge_parity.py` | 与 cu-bridge reference 的 backend-aware parity 报告工具 |
 | `tools/cu2cce_driver.py` | cucc 与 CMake mock 共用的规则驱动核心 |
 | `tools/device_arch.sh` | Ascend dav-* 架构解析（环境、npu-smi、cache、default） |
-| `tools/fake_toolkit_env.sh` | CMake/Make/Ninja/pre 共用环境与 shim 生命周期 helper |
+
 | `tools/gfortran_cce` | host-only Fortran/MPI wrapper；拒绝 CUDA source 误用 |
 | `tools/hostcc_cce` | host compiler wrapper；link 注入 bridge/CANN runtime |
-| `tools/make_cce` | Make wrapper；nvcc shim 到 cucc 的构建入口 |
+| `tools/make_cce` | Make wrapper；虚拟工具链目录中的 nvcc 入口到 cucc 的构建入口 |
 | `tools/mock/CMakeCUDACompilerABI.cpp` | CMake ABI mock 辅助源码 |
 | `tools/mock/CMakeCompilerABI.h` | CMake ABI mock 辅助源码 |
 | `tools/mock/mock_nvcc.py` | CMake version/ABI/identity 探针 mock |
 | `tools/mpi_cce` | host-only Fortran/MPI wrapper；拒绝 CUDA source 误用 |
 | `tools/ninja_cce` | Ninja wrapper；build tree shim 恢复和真实构建入口 |
-| `tools/nvcc_entry.sh` | CMake configure 阶段的 fake nvcc 入口 |
+| `tools/mock/nvcc_entry.sh` | CMake configure 阶段的 mock nvcc 入口 |
 | `tools/pre_cce` | autotools/configure 环境准备 wrapper |
 | `tools/real_test/README.md` | 真机回归辅助、外部样本或 URL 安全工具 |
 | `tools/real_test/blas_regression.sh` | 真机回归辅助、外部样本或 URL 安全工具 |

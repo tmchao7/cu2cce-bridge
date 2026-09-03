@@ -1,0 +1,7 @@
+#!/bin/bash
+# CUDA-compatible compiler name for installed users. Keep this as a regular
+# file rather than an installation symlink; the virtual toolkit generated for
+# CMake/Make/Ninja may still use manifest-controlled links internally.
+set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+exec "$SCRIPT_DIR/cucc" "$@"

@@ -1,0 +1,5 @@
+#!/bin/bash
+# Reference-shaped host Fortran carrier; Ascend CANN has no CUDA Fortran frontend.
+set -u
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+exec "$SCRIPT_DIR/../tools/gfortran_cce" "$@"

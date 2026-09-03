@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "comment": "Fake CUDA toolkit layout consumed by tools/build_shim_tree.py (cu-bridge tools/link.json + mock/stub_link.json parity, single source for cmake_cce/make_cce/pre_cce). Placeholders ${CUDA_DIR}, ${CUCC_PATH}, ${CANN_BASE}, ${HOST_TRIPLE}, ${NVCC_TARGET}, and ${CUCC_CUDA_VERSION_DISPLAY} are substituted by the builder. The CUDA-named lib64 alias family lets plain host-compiler links of -lcudart/-lcuda (and, experimental, -lcublas/-lnvToolsExt) resolve to the bridge runtime, exactly like cu-bridge's link.json pre_make section.",
+  "comment": "Legacy virtual CUDA toolkit layout retained for compatibility; canonical manifests are tools/link.json and tools/mock/stub_link.json, consumed by tools/mock/virtualDir.py (cu-bridge tools/link.json + mock/stub_link.json parity, single source for cmake_cce/make_cce/pre_cce). Placeholders ${CUDA_DIR}, ${CUCC_PATH}, ${CANN_BASE}, ${HOST_TRIPLE}, ${NVCC_TARGET}, and ${CUCC_CUDA_VERSION_DISPLAY} are substituted by the builder. The CUDA-named lib64 alias family lets plain host-compiler links of -lcudart/-lcuda (and, experimental, -lcublas/-lnvToolsExt) resolve to the bridge runtime, exactly like cu-bridge's link.json pre_make section.",
   "dirs": [
     "bin",
     "lib64",
@@ -39,7 +39,7 @@
     {
       "link": "bin/nvcc",
       "target": "${NVCC_TARGET}",
-      "comment": "configure phase -> tools/nvcc_entry.sh (mock), build phase -> bin/cucc"
+      "comment": "configure phase -> tools/mock/nvcc_entry.sh (mock), build phase -> bin/cucc"
     },
     {
       "link": "bin/cucc",

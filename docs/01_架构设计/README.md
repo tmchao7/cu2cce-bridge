@@ -25,7 +25,7 @@
         │
         ├─ cucc → RuleDriver → ccec
         └─ cmake_cce/make_cce/ninja_cce
-             → fake toolkit + shim → 同一 cucc
+             → virtual CUDA toolkit + shim → 同一 cucc
         │
         ├─ CUDA 兼容头 / SIMT adaptor
         ├─ wcuda* → aclrt* bridge runtime

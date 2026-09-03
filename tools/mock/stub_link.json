@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "backend": "ascend-cann",
+  "compiler": "bisheng-ccec",
+  "device_arch": "dav-*",
+  "runtime": "libcce_bridge_runtime.so",
+  "virtual_cmake": {
+    "base_manifest": "../link.json",
+    "comment": "CMake configure virtual toolkit uses the same Ascend-safe layout as link.json; nvcc target is selected by virtualDir.py."
+  }
+}

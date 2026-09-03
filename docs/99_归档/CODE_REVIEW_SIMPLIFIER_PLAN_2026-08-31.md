@@ -27,7 +27,7 @@
 - Test: `tests/test_cmake_compat.py`
 
 **Interfaces:**
-- Consumes: `/Users/tmchao7/repos/09_expLearn/cu2cce-bridge/tools/pre_cce` and the repository shim builder.
+- Consumes: `/Users/tmchao7/repos/09_expLearn/cu2cce-bridge/tools/pre_cce` and the repository virtual toolkit directory builder.
 - Produces: a regression test proving wrapped command arguments remain separate and exact.
 
 - [ ] **Step 1: Write the failing test**
@@ -246,7 +246,7 @@ Expected: all tests pass and the public legacy surface remains unchanged.
 
 ```bash
 python3 tools/validate_cucc_rules.py config/cu2cce_rules.json
-python3 -m py_compile tools/cu2cce_driver.py tools/build_shim_tree.py tools/mock/mock_nvcc.py tests/test_cucc_rules.py tests/test_cmake_compat.py tests/test_blas_surface.py
+python3 -m py_compile tools/cu2cce_driver.py tools/mock/virtualDir.py tools/mock/mock_nvcc.py tests/test_cucc_rules.py tests/test_cmake_compat.py tests/test_blas_surface.py
 python3 -m unittest discover -s tests -p 'test_*.py' -v
 ```
 
@@ -254,7 +254,7 @@ python3 -m unittest discover -s tests -p 'test_*.py' -v
 
 ```bash
 set -e
-while IFS= read -r -d '' f; do bash -n "$f"; done < <(find bin tools -type f \( -name '*.sh' -o -name 'cucc' -o -name 'cmake_cce' -o -name 'make_cce' -o -name 'ninja_cce' -o -name 'pre_cce' -o -name 'hostcc_cce' -o -name 'fake_toolkit_env.sh' \) -print0)
+while IFS= read -r -d '' f; do bash -n "$f"; done < <(find bin tools -type f \( -name '*.sh' -o -name 'cucc' -o -name 'cmake_cce' -o -name 'make_cce' -o -name 'ninja_cce' -o -name 'pre_cce' -o -name 'hostcc_cce' -o -name 'virtual_toolkit_env.sh' \) -print0)
 bash tests/mock_acl/syntax_check.sh
 ```
 

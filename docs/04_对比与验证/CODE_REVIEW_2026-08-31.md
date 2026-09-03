@@ -10,7 +10,7 @@
 
 - `bin/cucc` 与 `tools/cu2cce_driver.py`
 - `tools/cmake_cce`、`tools/make_cce`、`tools/ninja_cce`、`tools/pre_cce`
-- `tools/fake_toolkit_env.sh`、`tools/build_shim_tree.py`、`config/shim_layout.json`
+- `tools/virtual_toolkit_env.sh`、`tools/mock/virtualDir.py`、`tools/link.json`
 - `cmake_modules/FindCUDA.cmake`、`cmake_modules/FindCUDAToolkit.cmake`、CUDA override
 - 规则、契约测试、mock syntax check、构建兼容性文档
 

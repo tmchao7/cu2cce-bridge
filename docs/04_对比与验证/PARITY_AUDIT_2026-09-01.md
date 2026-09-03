@@ -17,7 +17,7 @@ Implementation: `5826fec`
 | system_cmake_replacement | NOT_APPLICABLE_NPU | USE_CMAKE_MACA=1 replaces system cmake | No system replacement; cmake_cce remains explicit | Avoids root requirement, global mutation, and restore failure risk. |
 | legacy_findcuda_surface | ALIGNED | 29 reference FindCUDA commands | 34 current FindCUDA commands | Missing reference commands: none. |
 | low_frequency_wrappers | EQUIVALENT_NPU | conf_bazel.json, conf_gfortran.json, MPI/Fortran wrappers | gfortran_cce/mpi_cce host-only carriers; no Bazel wrapper | Fortran/MPI host work is delegated safely; CUDA sources are rejected; Bazel remains a separate gap. |
-| shim_manifest | ALIGNED | link.json + stub_link.json | config/shim_layout.json + build_shim_tree.py | Reference CUDA alias entries: 48; current manifest aliases: 9; 37 reference names are not aliases in the NPU shim and require policy/validation rather than blind copying. |
+| shim_manifest | ALIGNED | link.json + stub_link.json | tools/link.json + tools/mock/virtualDir.py | Reference CUDA alias entries: 48; current manifest aliases: 9; 37 reference names are not aliases in the NPU shim and require policy/validation rather than blind copying. |
 
 ## cucc
 

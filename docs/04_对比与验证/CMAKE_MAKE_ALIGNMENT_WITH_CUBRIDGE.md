@@ -73,8 +73,8 @@ configure 脚本用 `pre_makefile` 包裹；Python 库安装不管（FAQ Q7）�
 | CompilerId 探针 | 伪 trace + 复制预编译 a.out ELF | 占位对象 + `--cmake-identity` 宏（无预编译 ELF） | 有意分歧：我们不携带平台特定二进制工件，真机验证走真实编译路径 |
 | 编译器自检 | 0 字节 CMakeTestCUDACompiler 覆盖 CMAKE_ROOT 跳过 | **不 patch CMake 模块**：mock 对 configure 期编译调用保留真编译回退（自检是真证据） | 有意分歧（更严格） |
 | 规则固化 | 无语言钩子（patched 模块未接线）；USE_CMAKE_MACA 二进制替换 hack | `CMAKE_USER_MAKE_RULES_OVERRIDE`（CMake 官方扩展点）+ `CU2CCE_CMAKE_NO_OVERRIDE` 回退（≈其 cmake_assist） | 有意分歧：官方钩子可维护性远优于二进制替换 |
-| 假工具包 lib 软链族 | link.json/stub_link.json（50+ 条） | **lib64 软链族已补 + manifest 化**：libcudart/libcudart_static/libcudadevrt/libcuda.so(.1) → 桥运行时；第五批次扩展 libcublas.so(.1)/libnvToolsExt.so(.1)（EXPERIMENTAL），布局统一由 config/shim_layout.json + build_shim_tree.py 驱动 | 已对齐（本桥不映射 cufft/cusparse/cudnn 等名——诚实边界） |
-| 假工具包清单形式 | link.json（pre_make）+ stub_link.json（virtual_cmake） | **config/shim_layout.json 单一清单 + tools/build_shim_tree.py 单一构建器**（cmake_cce/make_cce/pre_cce 三入口共用，第五批次消灭三处硬编码） | 已对齐（2026-08-30） |
+| 假工具包 lib 软链族 | link.json/stub_link.json（50+ 条） | **lib64 软链族已补 + manifest 化**：libcudart/libcudart_static/libcudadevrt/libcuda.so(.1) → 桥运行时；第五批次扩展 libcublas.so(.1)/libnvToolsExt.so(.1)（EXPERIMENTAL），布局统一由 tools/link.json + tools/mock/virtualDir.py 驱动 | 已对齐（本桥不映射 cufft/cusparse/cudnn 等名——诚实边界） |
+| 假工具包清单形式 | link.json（pre_make）+ stub_link.json（virtual_cmake） | **tools/link.json 单一清单 + tools/mock/virtualDir.py 单一构建器**（cmake_cce/make_cce/pre_cce 三入口共用，第五批次消灭三处硬编码） | 已对齐（2026-08-30） |
 | 查询直通（skipstring） | conf.json skipstring：探测旗标整条命令绕过规则引擎直通 mxcc | **第五批次补齐**：rules `queries` 段（-dumpversion/-dumpmachine/-print-*），命中即 phase=query 原样直通 ccec | 已对齐（2026-08-30） |
 | `-std` 去重 | 用户 flag 透传，无默认冲突 | **第五批次修复**：用户 `-std=` 存在时抑制注入 `-std=gnu++17`（`no_user_std` 条件） | 已对齐（2026-08-30） |
 | `__CUDA_ARCH__` 供给 | -gencode/-arch → `-DNV_ARCH_*` + `-Xdevice -D__CUDA_ARCH__`（device-pass 限定） | **机制级借鉴（opt-in）**：drop 前提取架构值；`CU2CCE_ARCH_MACRO=auto` 注入 `-D__CUDA_ARCH__=<值>`（nvcc 编码 major*100+minor*10），显式 `CU2CCE_CUDA_ARCH` 优先；默认 off（ccec 单遍无 -Xdevice 等价物，全局定义会改变 host `#ifdef __CUDA_ARCH__` 分支——风险记录于 PARITY_AUDIT） | 有意分歧（opt-in + 风险留档，2026-08-30） |
@@ -85,7 +85,7 @@ configure 脚本用 `pre_makefile` 包裹；Python 库安装不管（FAQ Q7）�
 | 假工具包默认持久化 | CUBRIDGE_HOME=$HOME（持久，configure/build 共享） | **默认持久且按 build 目录隔离**：`${CU2CCE_HOME:-${CUBRIDGE_HOME:-$HOME}}/cu2cce-bridge/cmake-shim-<build-key>`（CU2CCE_CMAKE_SHIM_DIR 显式覆盖） | 已对齐（2026-09-02：双阶段共享同一 shim，同时避免跨项目覆盖） |
 | configure 包裹器 | pre_makefile（configure 脚本包裹，FAQ Q5） | **pre_cce**（同构 + hostcc_cce 统一——第五批次前是身份软链，纯 g++ 链接拿不到注入） | 已对齐（2026-08-28；2026-08-30 统一 hostcc） |
 | 设备架构探测助手 | multi_target.sh + get_device_arch.sh（CUCC_TARGETS → mx-smi → 提示） | **tools/device_arch.sh**（CU2CCE_NPU_ARCH/CUCC_NPU_ARCH/CUCC_TARGETS/CUCC_TARGETS_FROM_DEVICE → npu-smi 表映射 → cache → default + tip），cmake_cce/make_cce/ninja_cce/pre_cce 接线 | 已对齐（2026-09-01，NPU 单 dav-* target 约束） |
-| CUPTI 路径布局 | 虚拟目录含 extras/CUPTI/{include,lib64} | shim_layout.json 同款空目录布局（路径探测兼容） | 已对齐（2026-08-28） |
+| CUPTI 路径布局 | 虚拟目录含 extras/CUPTI/{include,lib64} | config/shim_layout.json 同款空目录布局（路径探测兼容） | 已对齐（2026-08-28） |
 | nvcc 兼容软链 | FAQ Q2 手工软链 workaround | **安装树自动提供 `bin/nvcc → cucc`**（install CODE） | 已对齐+自动化 |
 | CUDA Toolkit 发现 | 无 FindCUDAToolkit（文档教用户绕开 CUDA 语言） | FindCUDAToolkit + CUDA::cudart/toolkit 别名族（真机验证） | **本桥领先** |
 | 参数适配 | conf.json（replacer/adder/filter/skipstring）+ gomxccbin 正则 | cu2cce_rules.json（五动作 + queries + hostcc + regex_cleanup 段）单一 in-process 驱动 | 机制不同目标相同；无 Go 工具依赖 |
@@ -112,11 +112,11 @@ configure 脚本用 `pre_makefile` 包裹；Python 库安装不管（FAQ Q7）�
 1. **configure 入口**：`tools/cmake_cce` —— 环境预检 → build 分流
    （`--build/--install` 时 shim nvcc→cucc；`--build` 再按 build.ninja 分发
    make_cce/ninja_cce，deal_build_param parity）→ shim 布局
-   （`tools/build_shim_tree.py` 消费 `config/shim_layout.json`：bin/include/
+   （`tools/mock/virtualDir.py` 消费 `tools/link.json`：bin/include/
    lib64 软链族/targets 三元组/version.txt）→ cmake 参数注入
    （ARCHITECTURES=OFF / RUNTIME_LIBRARY=None / MODULE_PATH 前插 /
    CMAKE_CUDA_COMPILER=shim / USER_MAKE_RULES_OVERRIDE）→ `exec cmake`。
-2. **探测应答**：`tools/nvcc_entry.sh`（4 行：exec python3 mock）→
+2. **探测应答**：`tools/mock/nvcc_entry.sh`（4 行：exec python3 mock）→
    `tools/mock/mock_nvcc.py main()` 五分支（determine_cuda 伪 `#$` /
    --version / --simple-preprocess / ABI 占位对象 / 其余→`run_driver`）。
 3. **真编译翻译**：`tools/cu2cce_driver.py` —— `RuleDriver.prepare()`：
@@ -128,7 +128,7 @@ configure 脚本用 `pre_makefile` 包裹；Python 库安装不管（FAQ Q7）�
    （`-x asc` 与 `-include` 置前）→ `run_prepared()`（Popen ccec）。
 4. **规则数据**：`config/cu2cce_rules.json` —— 五动作 + `queries` + `hostcc`
    段；校验器 `tools/validate_cucc_rules.py`。
-5. **Make 线**：`tools/make_cce` —— build_shim_tree 建假工具包 →
+5. **Make 线**：`tools/make_cce` —— tools/mock/virtualDir.py 构建虚拟 CUDA 工具链目录 →
    PATH/CUDA_PATH → exec make（clean 词元匹配删假目录）；对照
    `tools/ninja_cce`；`tools/pre_cce` 包裹 configure；`tools/hostcc_cce`
    委托 driver `--hostcc-mode`（rules hostcc 段）。
@@ -141,8 +141,8 @@ configure 脚本用 `pre_makefile` 包裹；Python 库安装不管（FAQ Q7）�
 
 > 第五批次（2026-08-30）收口：cmake --build 分流、queries 查询直通、`-std` 去重、
 > `-gencode` 架构提取 + `CU2CCE_ARCH_MACRO` opt-in 注入、`.cu` 预包含
-> cuda_runtime.h、hostcc 规则化、shim 清单化（shim_layout.json +
-> build_shim_tree.py）、lib64 别名扩展（libcublas/libnvToolsExt，EXPERIMENTAL）、
+> cuda_runtime.h、hostcc 规则化、shim 清单化（config/shim_layout.json +
+> tools/mock/virtualDir.py）、lib64 别名扩展（libcublas/libnvToolsExt，EXPERIMENTAL）、
 > pre_cce hostcc 统一、clean 词元匹配、CU2CCE_SHIM_ISOLATE 并行隔离、
 > mock ABI 现编替身——决策细节见分析文档 §二。
 >
@@ -162,7 +162,7 @@ configure 脚本用 `pre_makefile` 包裹；Python 库安装不管（FAQ Q7）�
 > -shared`、`-Xlinker` 成对透传、var-tracking 族清洗种子、`__CUDACC__/
 > __CUDACC_VER_*` 宏族注入（CUCC_CUDA_VERSION 推导，仅 .cu；mock identity
 > 退役为 no-op）、`-lcublasLt` 两段式库匹配、cmake_cce build 目录检查、
-> `tools/fake_toolkit_env.sh` 共享库（三入口 ~40 行重复收敛）。
+> `tools/virtual_toolkit_env.sh` 共享库（三入口 ~40 行重复收敛）。
 >
 > 第八批次（2026-08-30，同日第四批）conf.json filter/replacer 终检收口：
 > `--use_fast_math` 四拼写→`-ffast-math`、`-lgomp/-l:libgomp*`→`-lomp`、
@@ -192,8 +192,8 @@ cu-bridge 机制变化（升级 mock 分支/link.json 结构/新增入口）时�
 
 本轮继续按 `cu-bridge` 机制逐项收口，同时保留 Ascend NPU 后端边界：
 
-- `ninja_cce` 现在与 `make_cce`/`pre_cce` 共用 fake toolkit 生命周期，统一处理持久 shim、`CUDA_PATH`、`CANN_BASE`、`ASCEND_TOOLKIT_HOME`、`CU2CCE_NPU_ARCH`、`LD_LIBRARY_PATH`、clean 和并行隔离。
-- 修正 CMake shim 路径一致性：`cmake_cce`、`ninja_cce` 和 `build_shim_tree.py` 统一使用 `<shim-root>/CUDA_DIR`，避免 CMake 记录的 mock `nvcc` 路径与 build 阶段重指向路径不一致。
+- `ninja_cce` 现在与 `make_cce`/`pre_cce` 共用 virtual CUDA toolkit 生命周期，统一处理持久 shim、`CUDA_PATH`、`CANN_BASE`、`ASCEND_TOOLKIT_HOME`、`CU2CCE_NPU_ARCH`、`LD_LIBRARY_PATH`、clean 和并行隔离。
+- 修正 CMake shim 路径一致性：`cmake_cce`、`ninja_cce` 和 `tools/mock/virtualDir.py` 统一使用 `<shim-root>/CUDA_DIR`，避免 CMake 记录的 mock `nvcc` 路径与 build 阶段重指向路径不一致。
 - `pre_cce` 和所有构建 wrapper 保持 argv 直接传递，不复制参考脚本的 `eval` 字符串执行风险。
 - `-E` 采用 `cu-bridge` 的 query passthrough 机制，但后端仍由 Ascend ccec 负责，实际预处理输出继续以真机证据为准。
 - `CUCC_TARGETS` 作为兼容别名接受，但 Ascend ccec puresimt 一次只允许一个 `dav-*` 目标；`sm_*`/`compute_*` 不会被误传为 NPU 架构。

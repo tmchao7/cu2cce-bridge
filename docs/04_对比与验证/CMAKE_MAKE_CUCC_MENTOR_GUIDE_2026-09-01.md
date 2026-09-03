@@ -66,10 +66,10 @@ configure 期：
 
 ```text
 cmake_cce
-  -> tools/fake_toolkit_env.sh
-  -> tools/build_shim_tree.py
-  -> config/shim_layout.json
-  -> CUDA_DIR/bin/nvcc -> tools/nvcc_entry.sh
+  -> tools/virtual_toolkit_env.sh
+  -> tools/mock/virtualDir.py
+  -> tools/link.json
+  -> CUDA_DIR/bin/nvcc -> tools/mock/nvcc_entry.sh
   -> tools/mock/mock_nvcc.py
 ```
 
@@ -84,7 +84,7 @@ cmake_cce --build <build-dir>
   -> ccec
 ```
 
-CMake 需要 fake toolkit 的原因不是为了伪造 CUDA 功能，而是为了让 CMake 找到它期望的目录和文件：
+CMake 需要 virtual CUDA toolkit 的原因不是为了伪造 CUDA 功能，而是为了让 CMake 找到它期望的目录和文件：
 
 ```text
 CUDA_DIR/bin/nvcc
@@ -98,13 +98,13 @@ CUDA_DIR/lib64/cmake/CUDAToolkit
 当前实现使用一个 manifest：
 
 ```text
-config/shim_layout.json
+tools/link.json
 ```
 
 由一个 builder 统一创建：
 
 ```text
-tools/build_shim_tree.py
+tools/mock/virtualDir.py
 ```
 
 这样 `cmake_cce`、`make_cce`、`ninja_cce`、`pre_cce` 不会分别维护三份软链逻辑。
@@ -195,8 +195,8 @@ build 仍然调用 mock nvcc
 所以 `ninja_cce` 与 `make_cce` 共享：
 
 ```text
-fake_toolkit_env.sh
-build_shim_tree.py
+virtual_toolkit_env.sh
+tools/mock/virtualDir.py
 CU2CCE_HOME
 CU2CCE_CMAKE_SHIM_DIR
 CU2CCE_SHIM_ISOLATE
@@ -449,7 +449,7 @@ Reference: cu-bridge 6ab1076 / 3.8.0
 主要差距：
 
 1. `FindCUDA.cmake` 还有参考实现中的少量低频 helper 未完整复刻；
-2. fake toolkit CUDA library alias 只有已验证的少量集合；
+2. virtual CUDA toolkit CUDA library alias 只有已验证的少量集合；
 3. Bazel、gfortran、MPI wrapper 尚未建立；
 4. 参考 `conf.json` 的部分低频 filter/replacer 仍需要逐项确认；
 5. 当前 CANN/NPU 后端不支持的能力必须继续保持 diagnostic/reject；
@@ -466,7 +466,7 @@ Reference: cu-bridge 6ab1076 / 3.8.0
 可以按下面的顺序讲：
 
 1. **先讲共同抽象：** CUDA 工程不改，构建入口和参数交给 bridge 适配；
-2. **再讲 CMake：** configure 用 mock 探测，build 用真实后端，靠 fake toolkit 保持 CUDA 外形；
+2. **再讲 CMake：** configure 用 mock 探测，build 用真实后端，靠 virtual CUDA toolkit 保持 CUDA 外形；
 3. **再讲 Make/Ninja：** 通过 `CUDA_PATH/PATH` 把 `nvcc` 接到 `cucc`，host compiler 走对应 carrier；
 4. **再讲 cucc：** 通过规则文件动态处理 argv，而不是为单个工程写死；
 5. **再讲 NPU 差异：** ccec、`dav-*`、CANN runtime、g++ link、无 PTX/device-link；

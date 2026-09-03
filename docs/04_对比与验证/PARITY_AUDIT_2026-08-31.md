@@ -14,7 +14,7 @@ Implementation: `b7fe098`
 | pre_wrapper | ALIGNED | pre_makefile prepares CUDA environment | pre_cce prepares CUDA-shaped Ascend environment | Direct argv execution is safer than reference eval string reconstruction. |
 | host_link_carrier | EQUIVALENT_NPU | bin/gnu links through mxcc and MACA libraries | hostcc_cce keeps g++ and injects bridge/CANN libraries | Literal mxcc copying is invalid on Ascend. |
 | system_cmake_replacement | NOT_APPLICABLE_NPU | USE_CMAKE_MACA=1 replaces system cmake | No system replacement; cmake_cce remains explicit | Avoids root requirement, global mutation, and restore failure risk. |
-| shim_manifest | ALIGNED | link.json + stub_link.json | config/shim_layout.json + build_shim_tree.py | Reference CUDA alias entries: 48; current manifest aliases: 9. |
+| shim_manifest | ALIGNED | link.json + stub_link.json | tools/link.json + tools/mock/virtualDir.py | Reference CUDA alias entries: 48; current manifest aliases: 9. |
 
 ## cucc
 
