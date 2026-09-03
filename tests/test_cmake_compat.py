@@ -3,6 +3,7 @@
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -2399,3 +2400,116 @@ class Cuda3dAllocationSafetyContractTest(unittest.TestCase):
         self.assertIn("ACL_ERROR_INVALID_PARAM", body)
 if __name__ == "__main__":
     unittest.main()
+
+class NpuAwareReductionContractTest(unittest.TestCase):
+    def test_warp_reduce_add_is_part_of_the_core_verified_surface(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        text = (root / "include/bridge/kernel/cuda_device_api.h").read_text(encoding="utf-8")
+        self.assertIn("__reduce_add_sync", text)
+        opt_in = text.index("defined(CU2CCE_ENABLE_EXPERIMENTAL_DEVICE_APIS)")
+        self.assertLess(text.index("__reduce_add_sync"), opt_in)
+
+class CudaTextureDescriptorSurfaceContractTest(unittest.TestCase):
+    def test_texture_descriptor_types_are_visible_without_claiming_execution_support(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        types = (root / "include/bridge/runtime/cuda_runtime_types.h").read_text(encoding="utf-8")
+        adaptor = (root / "include/bridge/runtime/cuda_to_cce_mcr_adaptor.h").read_text(encoding="utf-8")
+        header = (root / "include/bridge/runtime/cuda_runtime_wrapper.h").read_text(encoding="utf-8")
+        for name in ("wcceResourceType", "wcceResourceDesc", "wcceTextureDesc", "wcceResourceViewDesc"):
+            self.assertIn(name, types)
+        for cuda_name, bridge_name in (
+            ("cudaResourceType", "wcceResourceType"),
+            ("cudaResourceDesc", "wcceResourceDesc"),
+            ("cudaTextureDesc", "wcceTextureDesc"),
+            ("cudaResourceViewDesc", "wcceResourceViewDesc"),
+        ):
+            self.assertIn(f"#define {cuda_name} {bridge_name}", adaptor)
+        self.assertIn("const wcceResourceDesc *pResDesc", header)
+        self.assertIn("const wcceTextureDesc *pTexDesc", header)
+        self.assertIn("const wcceResourceViewDesc *pResViewDesc", header)
+        for name in (
+            "cudaResViewFormatUnsignedChar4",
+            "cudaResViewFormatSignedInt4",
+            "cudaResViewFormatHalf2",
+            "cudaResViewFormatFloat4",
+        ):
+            self.assertIn(name, adaptor)
+
+class CudaArrayAndPeerTypeSurfaceContractTest(unittest.TestCase):
+    def test_3d_peer_and_array_info_entries_are_typed(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        types = (root / "include/bridge/runtime/cuda_runtime_types.h").read_text(encoding="utf-8")
+        header = (root / "include/bridge/runtime/cuda_runtime_wrapper.h").read_text(encoding="utf-8")
+        adaptor = (root / "include/bridge/runtime/cuda_to_cce_mcr_adaptor.h").read_text(encoding="utf-8")
+        source = (root / "src/bridge/runtime/src/cuda_runtime_wrapper.cpp").read_text(encoding="utf-8")
+        self.assertIn("wcceMemcpy3DPeerParms", types)
+        for cuda_name, wcuda_name in (
+            ("cudaMemcpy3DPeer", "wcudaMemcpy3DPeer"),
+            ("cudaMemcpy3DPeerAsync", "wcudaMemcpy3DPeerAsync"),
+            ("cudaArrayGetInfo", "wcudaArrayGetInfo"),
+            ("cudaGetChannelDesc", "wcudaGetChannelDesc"),
+        ):
+            self.assertIn(f"#define {cuda_name} {wcuda_name}", adaptor)
+            self.assertIn(wcuda_name, header)
+            self.assertIn(wcuda_name, source)
+        self.assertIn("wcudaMemcpy3DPeer(const wcceMemcpy3DPeerParms *p)", header)
+
+class CudaChannelDescriptorOverloadContractTest(unittest.TestCase):
+    def test_channel_descriptor_preserves_explicit_format_kind_overload(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        header = (root / "include/bridge/runtime/cuda_runtime_wrapper.h").read_text(encoding="utf-8")
+        source = (root / "src/bridge/runtime/src/cuda_runtime_wrapper.cpp").read_text(encoding="utf-8")
+        self.assertIn("wcudaCreateChannelDesc(int x, int y, int z, int w)", header)
+        self.assertIn("wcceChannelFormatKind f", header)
+        self.assertIn("wcceChannelFormatKindNone", source)
+
+class CudaRuntimeCompatibilityHeaderEntryTest(unittest.TestCase):
+    def test_common_cuda_type_headers_are_real_forwarding_entries(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        expected = {
+            "vector_types.h": "crt/vector_types.h",
+            "device_types.h": "bridge/runtime/cuda_runtime_types.h",
+            "surface_types.h": "bridge/runtime/cuda_runtime_types.h",
+            "texture_types.h": "bridge/runtime/cuda_runtime_types.h",
+            "cuda_surface_types.h": "surface_types.h",
+            "cuda_texture_types.h": "texture_types.h",
+        }
+        for name, target in expected.items():
+            path = root / "include" / name
+            self.assertTrue(path.is_file(), name)
+            text = path.read_text(encoding="utf-8")
+            self.assertIn(target, text)
+            self.assertNotIn("__simt_vf__", text)
+
+class CudaStandaloneTypeHeaderCompileTest(unittest.TestCase):
+    def test_type_headers_compile_without_cann_or_cuda_installation(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        compiler = shutil.which("c++") or shutil.which("g++")
+        if not compiler:
+            self.skipTest("no C++ compiler")
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "types.cpp"
+            source.write_text(
+                "#include <bridge/runtime/cuda_runtime_types.h>\n"
+                "#include <device_types.h>\n"
+                "#include <surface_types.h>\n"
+                "#include <texture_types.h>\n"
+                "int main() { wcceExtent e{1, 2, 3}; return (int)e.width; }\n",
+                encoding="utf-8",
+            )
+            result = subprocess.run(
+                [compiler, "-std=c++11", "-fsyntax-only", "-I", str(root / "include"), str(source)],
+                capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+class CudaRuntimeTopLevelHeaderParityTest(unittest.TestCase):
+    def test_driver_and_library_type_headers_are_present(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        for name, target in (
+            ("driver_types.h", "bridge/runtime/cuda_runtime_types.h"),
+            ("library_types.h", "bridge/runtime/cuda_runtime_types.h"),
+        ):
+            path = root / "include" / name
+            self.assertTrue(path.is_file(), name)
+            self.assertIn(target, path.read_text(encoding="utf-8"))

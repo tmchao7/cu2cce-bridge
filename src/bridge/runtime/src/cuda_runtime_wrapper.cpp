@@ -1046,56 +1046,79 @@ aclError wcudaMallocPitch(void **devPtr, size_t *pitch, size_t width, size_t hei
 
 static aclError array_not_supported() { return ACL_ERROR_API_NOT_SUPPORT; }
 
-aclError wcudaMallocArray(void *array, const void *desc, size_t width, size_t height,
+aclError wcudaMallocArray(wcceArray_t *array, const wcceChannelFormatDesc *desc, size_t width, size_t height,
                           unsigned int flags) {
     (void)array; (void)desc; (void)width; (void)height; (void)flags;
     return array_not_supported();
 }
 
-aclError wcudaMalloc3DArray(void *array, const void *desc, void *extent, unsigned int flags) {
+aclError wcudaMalloc3DArray(wcceArray_t *array, const wcceChannelFormatDesc *desc, wcceExtent extent, unsigned int flags) {
     (void)array; (void)desc; (void)extent; (void)flags;
     return array_not_supported();
 }
 
-aclError wcudaMallocMipmappedArray(void *mipmappedArray, const void *desc, void *extent,
+aclError wcudaMallocMipmappedArray(wcceMipmappedArray_t *mipmappedArray, const wcceChannelFormatDesc *desc, wcceExtent extent,
                                    unsigned int numLevels, unsigned int flags) {
     (void)mipmappedArray; (void)desc; (void)extent; (void)numLevels; (void)flags;
     return array_not_supported();
 }
 
-aclError wcudaFreeArray(void *array) {
+aclError wcudaFreeArray(wcceArray_t array) {
     (void)array;
     return array_not_supported();
 }
 
-aclError wcudaFreeMipmappedArray(void *mipmappedArray) {
+aclError wcudaFreeMipmappedArray(wcceMipmappedArray_t mipmappedArray) {
     (void)mipmappedArray;
     return array_not_supported();
 }
 
-aclError wcudaMemcpyToArray(void *dst, size_t wOffset, size_t hOffset, const void *src,
+aclError wcudaMemcpyToArray(wcceArray_t dst, size_t wOffset, size_t hOffset, const void *src,
                             size_t count, int kind) {
     (void)dst; (void)wOffset; (void)hOffset; (void)src; (void)count; (void)kind;
     return array_not_supported();
 }
 
-aclError wcudaMemcpyFromArray(void *dst, const void *src, size_t wOffset, size_t hOffset,
+aclError wcudaMemcpyFromArray(void *dst, wcceArray_const_t src, size_t wOffset, size_t hOffset,
                               size_t count, int kind) {
     (void)dst; (void)src; (void)wOffset; (void)hOffset; (void)count; (void)kind;
     return array_not_supported();
 }
 
-aclError wcudaMemcpy2DToArray(void *dst, size_t wOffset, size_t hOffset, const void *src,
+aclError wcudaMemcpy2DToArray(wcceArray_t dst, size_t wOffset, size_t hOffset, const void *src,
                               size_t spitch, size_t width, size_t height, int kind) {
     (void)dst; (void)wOffset; (void)hOffset; (void)src; (void)spitch;
     (void)width; (void)height; (void)kind;
     return array_not_supported();
 }
 
-aclError wcudaMemcpy2DFromArray(void *dst, size_t dpitch, const void *src, size_t wOffset,
+aclError wcudaMemcpy2DFromArray(void *dst, size_t dpitch, wcceArray_const_t src, size_t wOffset,
                                 size_t hOffset, size_t width, size_t height, int kind) {
     (void)dst; (void)dpitch; (void)src; (void)wOffset; (void)hOffset;
     (void)width; (void)height; (void)kind;
+    return array_not_supported();
+}
+
+aclError wcudaArrayGetInfo(wcceChannelFormatDesc *desc, wcceExtent *extent,
+                           unsigned int *flags, wcceArray_const_t array) {
+    (void)array;
+    if (desc != nullptr) {
+        *desc = wcceChannelFormatDesc{0, 0, 0, 0, wcceChannelFormatKindNone};
+    }
+    if (extent != nullptr) {
+        *extent = wcceExtent{0, 0, 0};
+    }
+    if (flags != nullptr) {
+        *flags = 0;
+    }
+    return array_not_supported();
+}
+
+aclError wcudaGetChannelDesc(wcceChannelFormatDesc *desc, wcceArray_const_t array) {
+    (void)array;
+    if (desc != nullptr) {
+        *desc = wcceChannelFormatDesc{0, 0, 0, 0, wcceChannelFormatKindNone};
+    }
     return array_not_supported();
 }
 
@@ -1125,29 +1148,30 @@ wcceChannelFormatDesc wcudaCreateChannelDesc(int x, int y, int z, int w) {
     return value;
 }
 
-aclError wcudaCreateTextureObject(void *pTexObject, const void *pResDesc, const void *pTexDesc,
-                                  const void *pResViewDesc) {
+aclError wcudaCreateTextureObject(wcceTextureObject_t *pTexObject, const wcceResourceDesc *pResDesc,
+                                  const wcceTextureDesc *pTexDesc,
+                                  const wcceResourceViewDesc *pResViewDesc) {
     (void)pResDesc; (void)pTexDesc; (void)pResViewDesc;
     if (pTexObject != nullptr) {
-        *(void **)pTexObject = nullptr;
+        *pTexObject = 0;
     }
     return ACL_ERROR_API_NOT_SUPPORT;
 }
 
-aclError wcudaDestroyTextureObject(void *texObject) {
+aclError wcudaDestroyTextureObject(wcceTextureObject_t texObject) {
     (void)texObject;
     return ACL_ERROR_API_NOT_SUPPORT;
 }
 
-aclError wcudaCreateSurfaceObject(void *pSurfObject, const void *pResDesc) {
+aclError wcudaCreateSurfaceObject(wcceSurfaceObject_t *pSurfObject, const wcceResourceDesc *pResDesc) {
     (void)pResDesc;
     if (pSurfObject != nullptr) {
-        *(void **)pSurfObject = nullptr;
+        *pSurfObject = 0;
     }
     return ACL_ERROR_API_NOT_SUPPORT;
 }
 
-aclError wcudaDestroySurfaceObject(void *surfObject) {
+aclError wcudaDestroySurfaceObject(wcceSurfaceObject_t surfObject) {
     (void)surfObject;
     return ACL_ERROR_API_NOT_SUPPORT;
 }
@@ -1287,6 +1311,17 @@ aclError wcudaMemcpy3DAsync(const wcceMemcpy3DParms *p, aclrtStream stream) {
     (void)p;
     (void)stream;
     return ACL_ERROR_API_NOT_SUPPORT;
+}
+
+aclError wcudaMemcpy3DPeer(const wcceMemcpy3DPeerParms *p) {
+    (void)p;
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaMemcpy3DPeerAsync(const wcceMemcpy3DPeerParms *p, aclrtStream stream) {
+    (void)p;
+    (void)stream;
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
 }
 
 /* ---- Peer 拷贝 ---- */

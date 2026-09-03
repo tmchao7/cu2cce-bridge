@@ -586,6 +586,14 @@ git diff --check
 | 路径 | 职责 |
 |---|---|
 | `include/__cuda_runtime.h` | 用户可见 CUDA 兼容头或第三方 API 声明 |
+| `include/vector_types.h` | CUDA vector_types 兼容入口，使用 ccec 原生 vector 类型 |
+| `include/device_types.h` | CUDA device_types 兼容入口，转发 bridge Runtime 类型和 SIMT 内建入口 |
+| `include/driver_types.h` | CUDA driver_types 兼容入口；只提供共享类型，不伪造完整 Driver ABI |
+| `include/library_types.h` | CUDA library_types 兼容入口；转发共享 Runtime/库类型 |
+| `include/surface_types.h` | CUDA surface 类型兼容入口；仅提供 descriptor/handle 形状 |
+| `include/texture_types.h` | CUDA texture 类型兼容入口；仅提供 descriptor/handle 形状 |
+| `include/cuda_surface_types.h` | CUDA surface_types 兼容转发入口 |
+| `include/cuda_texture_types.h` | CUDA texture_types 兼容转发入口 |
 | `include/bridge/blas/cublas_v2_wrapper.h` | experimental cuBLAS/ACL BLAS 兼容头 |
 | `include/bridge/kernel/simt_adaptor.h` | CUDA SIMT 基础原语、执行空间和 shared/atomic 基础映射 |
 | `include/bridge/kernel/cuda_device_api.h` | CUDA device-side SIMT/warp/vote/reduce/atomic 到 CANN simt_api 的集中映射 |

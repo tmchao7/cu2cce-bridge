@@ -62,3 +62,21 @@ class CannApiProbeTest(unittest.TestCase):
         self.assertIn('"simt_api/device_atomic_functions.h"', script)
         self.assertIn("acl_rt_api.h", script)
         self.assertIn("include compile acl/acl_rt.h + acl/acl_rt_api.h", script)
+    def test_surface_probe_resolves_versioned_ascend_c_simt_headers(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "include/acl").mkdir(parents=True)
+            for header in ("acl_rt.h", "acl_rt_api.h"):
+                (root / "include/acl" / header).write_text("#pragma once\n", encoding="utf-8")
+            simt = root / "x86_64-linux/asc/include/simt_api"
+            simt.mkdir(parents=True)
+            for header in ("asc_simt.h", "device_warp_functions.h", "device_atomic_functions.h"):
+                (simt / header).write_text("#pragma once\n", encoding="utf-8")
+            result = subprocess.run(
+                [str(ROOT / "tools/real_test/diag/cann_api_surface_probe.sh"),
+                 "--cann-base", str(root)],
+                capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn("header simt_api/asc_simt.h exists", result.stdout)
+            self.assertIn("header simt_api/device_warp_functions.h exists", result.stdout)

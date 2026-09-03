@@ -71,11 +71,12 @@
 #  define __all_sync(mask, predicate) ((void)(mask), asc_all((predicate)))
 #  define __any_sync(mask, predicate) ((void)(mask), asc_any((predicate)))
 #  define __ballot_sync(mask, predicate) ((void)(mask), asc_ballot((predicate)))
+/* CANN exposes the additive warp reduction in the core SIMT surface. */
 #  define __reduce_add_sync(mask, value) ((void)(mask), asc_reduce_add((value)))
 
-/* The following operations are present in CANN SIMT headers, but their
- * support is product/编译模型 dependent. They remain opt-in until the
- * current NPU target has a dedicated compile-and-run result. */
+/* These operations are present in CANN SIMT headers, but their support is
+ * product/编译模型 dependent. They remain opt-in until the current NPU
+ * target has dedicated evidence. */
 #  if defined(CU2CCE_ENABLE_EXPERIMENTAL_DEVICE_APIS)
 #    define __activemask() asc_activemask()
 #    define __reduce_max_sync(mask, value) ((void)(mask), asc_reduce_max((value)))

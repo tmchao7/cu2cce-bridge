@@ -77,8 +77,13 @@ status=0
 
 check_header() {
     local header="$1" required="$2" path="$include_root/$header"
+    if [[ "$header" == simt_api/* ]] && [ -n "$SIMT_ROOT" ]; then
+        path="$SIMT_ROOT/${header#simt_api/}"
+    elif [ "$header" = "simt/asc_simt.h" ] && [ -n "$SIMT_ROOT" ]; then
+        path="$SIMT_ROOT/asc_simt.h"
+    fi
     if [ -f "$path" ]; then
-        echo "[PASS] header $header exists"
+        echo "[PASS] header $header exists: $path"
         return 0
     fi
     if [ "$required" = 1 ]; then
@@ -142,9 +147,9 @@ __global__ void cu2cce_device_api_probe(unsigned int *out) {
     int lane = static_cast<int>(threadIdx.x);
     int shuffled = __shfl_down_sync(0xffffffffu, lane, 1, 32);
     int all = __all_sync(0xffffffffu, lane >= 0);
+    int reduced = __reduce_add_sync(0xffffffffu, lane);
     int any = __any_sync(0xffffffffu, lane >= 0);
     unsigned int ballot = __ballot_sync(0xffffffffu, lane >= 0);
-    int reduced = __reduce_add_sync(0xffffffffu, lane);
     atomicAdd(out, static_cast<unsigned int>(shuffled));
     atomicSub(out, static_cast<unsigned int>(all));
     atomicExch(out, static_cast<unsigned int>(any));
@@ -158,6 +163,7 @@ CU
 __global__ void cu2cce_extended_device_api_probe(unsigned int *out) {
     int lane = static_cast<int>(threadIdx.x);
     unsigned int active = __activemask();
+    int reduced = __reduce_add_sync(0xffffffffu, lane);
     int reduced_max = __reduce_max_sync(0xffffffffu, lane);
     int reduced_min = __reduce_min_sync(0xffffffffu, lane);
     unsigned int old = atomicCAS(out, 0u, static_cast<unsigned int>(lane));

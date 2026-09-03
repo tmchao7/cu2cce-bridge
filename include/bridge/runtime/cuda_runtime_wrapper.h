@@ -126,6 +126,9 @@ aclError CUBRIDGE_API wcudaMemcpy2D(void *dst, size_t dpitch, const void *src, s
 /* 3D 拷贝（结构可见，但 Ascend bridge 当前无 CUDA 3D 执行路径） */
 aclError CUBRIDGE_API wcudaMemcpy3D(const wcceMemcpy3DParms *p);
 aclError CUBRIDGE_API wcudaMemcpy3DAsync(const wcceMemcpy3DParms *p, aclrtStream stream);
+aclError CUBRIDGE_API wcudaMemcpy3DPeer(const wcceMemcpy3DPeerParms *p);
+aclError CUBRIDGE_API wcudaMemcpy3DPeerAsync(const wcceMemcpy3DPeerParms *p,
+                                             aclrtStream stream /* =0 */);
 
 /* Peer 拷贝（昇腾有 peer access：aclrtDeviceCanAccessPeer 等） */
 aclError CUBRIDGE_API wcudaMemcpyPeer(void *dst, int dstDevice, const void *src, int srcDevice,
@@ -142,25 +145,29 @@ aclError CUBRIDGE_API wcudaMemset2D(void *devPtr, size_t pitch, int value, size_
                                     size_t height);
 /* Symbol 内存（昇腾无 device symbol 概念，返回 not-support） */
 /* Array（昇腾无 array/mipmap 概念，全部 not-support；用 void* 简化句柄类型保证可编译） */
-aclError CUBRIDGE_API wcudaMallocArray(void *array, const void *desc, size_t width,
-                                       size_t height, unsigned int flags);
-aclError CUBRIDGE_API wcudaMalloc3DArray(void *array, const void *desc, void *extent,
-                                         unsigned int flags);
-aclError CUBRIDGE_API wcudaMallocMipmappedArray(void *mipmappedArray, const void *desc,
-                                                void *extent, unsigned int numLevels,
+aclError CUBRIDGE_API wcudaMallocArray(wcceArray_t *array, const wcceChannelFormatDesc *desc,
+                                       size_t width, size_t height, unsigned int flags);
+aclError CUBRIDGE_API wcudaMalloc3DArray(wcceArray_t *array, const wcceChannelFormatDesc *desc,
+                                         wcceExtent extent, unsigned int flags);
+aclError CUBRIDGE_API wcudaMallocMipmappedArray(wcceMipmappedArray_t *mipmappedArray,
+                                                const wcceChannelFormatDesc *desc,
+                                                wcceExtent extent, unsigned int numLevels,
                                                 unsigned int flags);
-aclError CUBRIDGE_API wcudaFreeArray(void *array);
-aclError CUBRIDGE_API wcudaFreeMipmappedArray(void *mipmappedArray);
-aclError CUBRIDGE_API wcudaMemcpyToArray(void *dst, size_t wOffset, size_t hOffset,
+aclError CUBRIDGE_API wcudaFreeArray(wcceArray_t array);
+aclError CUBRIDGE_API wcudaFreeMipmappedArray(wcceMipmappedArray_t mipmappedArray);
+aclError CUBRIDGE_API wcudaMemcpyToArray(wcceArray_t dst, size_t wOffset, size_t hOffset,
                                          const void *src, size_t count, int kind);
-aclError CUBRIDGE_API wcudaMemcpyFromArray(void *dst, const void *src, size_t wOffset,
+aclError CUBRIDGE_API wcudaMemcpyFromArray(void *dst, wcceArray_const_t src, size_t wOffset,
                                            size_t hOffset, size_t count, int kind);
-aclError CUBRIDGE_API wcudaMemcpy2DToArray(void *dst, size_t wOffset, size_t hOffset,
+aclError CUBRIDGE_API wcudaMemcpy2DToArray(wcceArray_t dst, size_t wOffset, size_t hOffset,
                                            const void *src, size_t spitch, size_t width,
                                            size_t height, int kind);
-aclError CUBRIDGE_API wcudaMemcpy2DFromArray(void *dst, size_t dpitch, const void *src,
+aclError CUBRIDGE_API wcudaMemcpy2DFromArray(void *dst, size_t dpitch, wcceArray_const_t src,
                                              size_t wOffset, size_t hOffset, size_t width,
                                              size_t height, int kind);
+aclError CUBRIDGE_API wcudaArrayGetInfo(wcceChannelFormatDesc *desc, wcceExtent *extent,
+                                        unsigned int *flags, wcceArray_const_t array);
+aclError CUBRIDGE_API wcudaGetChannelDesc(wcceChannelFormatDesc *desc, wcceArray_const_t array);
 
 aclError CUBRIDGE_API wcudaGetSymbolAddress(void **devPtr, const void *symbol);
 aclError CUBRIDGE_API wcudaGetSymbolSize(size_t *size, const void *symbol);
@@ -253,11 +260,14 @@ wccePos CUBRIDGE_API make_wcudaPos(size_t x, size_t y, size_t z);
 /* Channel descriptor is a source-compatibility value; texture execution is
  * still unsupported on Ascend. */
 wcceChannelFormatDesc CUBRIDGE_API wcudaCreateChannelDesc(int x, int y, int z, int w);
-aclError CUBRIDGE_API wcudaCreateTextureObject(void *pTexObject, const void *pResDesc,
-                                               const void *pTexDesc, const void *pResViewDesc);
-aclError CUBRIDGE_API wcudaDestroyTextureObject(void *texObject);
-aclError CUBRIDGE_API wcudaCreateSurfaceObject(void *pSurfObject, const void *pResDesc);
-aclError CUBRIDGE_API wcudaDestroySurfaceObject(void *surfObject);
+aclError CUBRIDGE_API wcudaCreateTextureObject(wcceTextureObject_t *pTexObject,
+                                               const wcceResourceDesc *pResDesc,
+                                               const wcceTextureDesc *pTexDesc,
+                                               const wcceResourceViewDesc *pResViewDesc);
+aclError CUBRIDGE_API wcudaDestroyTextureObject(wcceTextureObject_t texObject);
+aclError CUBRIDGE_API wcudaCreateSurfaceObject(wcceSurfaceObject_t *pSurfObject,
+                                               const wcceResourceDesc *pResDesc);
+aclError CUBRIDGE_API wcudaDestroySurfaceObject(wcceSurfaceObject_t surfObject);
 aclError CUBRIDGE_API wcudaBindTexture(size_t *offset, const void *texref, const void *devPtr,
                                        const void *desc, size_t size);
 
@@ -300,6 +310,16 @@ aclError CUBRIDGE_API wcudaDriverGetVersion(int *driverVersion);
 
 #ifdef __cplusplus
 } /* extern "C" */
+
+/* CUDA also exposes a five-argument channel descriptor helper. Keep the
+ * four-argument C ABI stable and provide the kind-bearing form as a C++
+ * source-compatibility overload. Texture execution remains unsupported. */
+inline wcceChannelFormatDesc wcudaCreateChannelDesc(int x, int y, int z, int w,
+                                                    wcceChannelFormatKind f) {
+    wcceChannelFormatDesc value = wcudaCreateChannelDesc(x, y, z, w);
+    value.f = f;
+    return value;
+}
 
 /* CUDA Runtime provides typed C++ overloads for allocation APIs. NVIDIA's
  * official matrixMul sample uses cudaMallocHost(&float_ptr, size) without a
