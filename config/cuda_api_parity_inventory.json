@@ -4082,9 +4082,9 @@
     },
     "cudaGetMipmappedArrayLevel": {
       "category": "Other_Runtime_Device",
-      "cu2cce_target": "CU2CCE_RESERVED_NPU_cudaGetMipmappedArrayLevel",
+      "cu2cce_target": "wcudaGetMipmappedArrayLevel",
       "reference_maca": "wcudaGetMipmappedArrayLevel",
-      "status": "RESERVED_NPU"
+      "status": "UNSUPPORTED_TYPED"
     },
     "cudaGetParameterBuffer": {
       "category": "Other_Runtime_Device",
@@ -4100,9 +4100,9 @@
     },
     "cudaGetSurfaceObjectResourceDesc": {
       "category": "Array_Texture_Surface",
-      "cu2cce_target": "CU2CCE_RESERVED_NPU_cudaGetSurfaceObjectResourceDesc",
+      "cu2cce_target": "wcudaGetSurfaceObjectResourceDesc",
       "reference_maca": "wcudaGetSurfaceObjectResourceDesc",
-      "status": "RESERVED_NPU"
+      "status": "UNSUPPORTED_TYPED"
     },
     "cudaGetSurfaceReference": {
       "category": "Array_Texture_Surface",
@@ -4130,27 +4130,27 @@
     },
     "cudaGetTextureObjectResourceDesc": {
       "category": "Array_Texture_Surface",
-      "cu2cce_target": "CU2CCE_RESERVED_NPU_cudaGetTextureObjectResourceDesc",
+      "cu2cce_target": "wcudaGetTextureObjectResourceDesc",
       "reference_maca": "wcudaGetTextureObjectResourceDesc",
-      "status": "RESERVED_NPU"
+      "status": "UNSUPPORTED_TYPED"
     },
     "cudaGetTextureObjectResourceViewDesc": {
       "category": "Array_Texture_Surface",
-      "cu2cce_target": "CU2CCE_RESERVED_NPU_cudaGetTextureObjectResourceViewDesc",
+      "cu2cce_target": "wcudaGetTextureObjectResourceViewDesc",
       "reference_maca": "wcudaGetTextureObjectResourceViewDesc",
-      "status": "RESERVED_NPU"
+      "status": "UNSUPPORTED_TYPED"
     },
     "cudaGetTextureObjectTextureDesc": {
       "category": "Array_Texture_Surface",
-      "cu2cce_target": "CU2CCE_RESERVED_NPU_cudaGetTextureObjectTextureDesc",
+      "cu2cce_target": "wcudaGetTextureObjectTextureDesc",
       "reference_maca": "wcudaGetTextureObjectTextureDesc",
-      "status": "RESERVED_NPU"
+      "status": "UNSUPPORTED_TYPED"
     },
     "cudaGetTextureObjectTextureDesc_v2": {
       "category": "Array_Texture_Surface",
-      "cu2cce_target": "CU2CCE_RESERVED_NPU_cudaGetTextureObjectTextureDesc_v2",
+      "cu2cce_target": "wcudaGetTextureObjectTextureDesc_v2",
       "reference_maca": "wcudaGetTextureObjectTextureDesc_v2",
-      "status": "RESERVED_NPU"
+      "status": "ACTIVE_ADAPTED"
     },
     "cudaGetTextureReference": {
       "category": "Array_Texture_Surface",
@@ -4280,9 +4280,9 @@
     },
     "cudaGraphClone": {
       "category": "Graph",
-      "cu2cce_target": "CU2CCE_RESERVED_NPU_cudaGraphClone",
+      "cu2cce_target": "wcudaGraphClone",
       "reference_maca": "wcudaGraphClone",
-      "status": "RESERVED_NPU"
+      "status": "UNSUPPORTED_TYPED"
     },
     "cudaGraphCondAssignDefault": {
       "category": "Graph",
@@ -4436,9 +4436,9 @@
     },
     "cudaGraphDestroyNode": {
       "category": "Graph",
-      "cu2cce_target": "CU2CCE_RESERVED_NPU_cudaGraphDestroyNode",
+      "cu2cce_target": "wcudaGraphDestroyNode",
       "reference_maca": "wcudaGraphDestroyNode",
-      "status": "RESERVED_NPU"
+      "status": "UNSUPPORTED_TYPED"
     },
     "cudaGraphDeviceNode_t": {
       "category": "Graph",
@@ -4634,9 +4634,9 @@
     },
     "cudaGraphExec_t": {
       "category": "Graph",
-      "cu2cce_target": "CU2CCE_RESERVED_NPU_cudaGraphExec_t",
+      "cu2cce_target": "wcceGraphExec_t",
       "reference_maca": "mcGraphExec_t",
-      "status": "RESERVED_NPU"
+      "status": "ACTIVE_DIRECT"
     },
     "cudaGraphExternalSemaphoresSignalNodeGetParams": {
       "category": "Graph",
@@ -4676,15 +4676,15 @@
     },
     "cudaGraphGetNodes": {
       "category": "Graph",
-      "cu2cce_target": "CU2CCE_RESERVED_NPU_cudaGraphGetNodes",
+      "cu2cce_target": "wcudaGraphGetNodes",
       "reference_maca": "wcudaGraphGetNodes",
-      "status": "RESERVED_NPU"
+      "status": "UNSUPPORTED_TYPED"
     },
     "cudaGraphGetRootNodes": {
       "category": "Graph",
-      "cu2cce_target": "CU2CCE_RESERVED_NPU_cudaGraphGetRootNodes",
+      "cu2cce_target": "wcudaGraphGetRootNodes",
       "reference_maca": "wcudaGraphGetRootNodes",
-      "status": "RESERVED_NPU"
+      "status": "UNSUPPORTED_TYPED"
     },
     "cudaGraphHostNodeGetParams": {
       "category": "Graph",
@@ -5072,9 +5072,9 @@
     },
     "cudaGraphNode_t": {
       "category": "Graph",
-      "cu2cce_target": "CU2CCE_RESERVED_NPU_cudaGraphNode_t",
+      "cu2cce_target": "wcceGraphNode_t",
       "reference_maca": "mcGraphNode_t",
-      "status": "RESERVED_NPU"
+      "status": "ACTIVE_DIRECT"
     },
     "cudaGraphReleaseUserObject": {
       "category": "Graph",
@@ -5120,9 +5120,9 @@
     },
     "cudaGraph_t": {
       "category": "Graph",
-      "cu2cce_target": "CU2CCE_RESERVED_NPU_cudaGraph_t",
+      "cu2cce_target": "wcceGraph_t",
       "reference_maca": "mcGraph_t",
-      "status": "RESERVED_NPU"
+      "status": "ACTIVE_DIRECT"
     },
     "cudaGraphicsCubeFace": {
       "category": "Graph",
@@ -5432,9 +5432,9 @@
     },
     "cudaIpcCloseMemHandle": {
       "category": "IPC_External",
-      "cu2cce_target": "CU2CCE_RESERVED_NPU_cudaIpcCloseMemHandle",
+      "cu2cce_target": "wcudaIpcCloseMemHandle",
       "reference_maca": "wcudaIpcCloseMemHandle",
-      "status": "RESERVED_NPU"
+      "status": "UNSUPPORTED_TYPED"
     },
     "cudaIpcEventHandle_st": {
       "category": "IPC_External",
@@ -5444,21 +5444,21 @@
     },
     "cudaIpcEventHandle_t": {
       "category": "IPC_External",
-      "cu2cce_target": "CU2CCE_RESERVED_NPU_cudaIpcEventHandle_t",
+      "cu2cce_target": "wcceIpcEventHandle_t",
       "reference_maca": "mcIpcEventHandle_t",
-      "status": "RESERVED_NPU"
+      "status": "ACTIVE_DIRECT"
     },
     "cudaIpcGetEventHandle": {
       "category": "IPC_External",
-      "cu2cce_target": "CU2CCE_RESERVED_NPU_cudaIpcGetEventHandle",
+      "cu2cce_target": "wcudaIpcGetEventHandle",
       "reference_maca": "wcudaIpcGetEventHandle",
-      "status": "RESERVED_NPU"
+      "status": "UNSUPPORTED_TYPED"
     },
     "cudaIpcGetMemHandle": {
       "category": "IPC_External",
-      "cu2cce_target": "CU2CCE_RESERVED_NPU_cudaIpcGetMemHandle",
+      "cu2cce_target": "wcudaIpcGetMemHandle",
       "reference_maca": "wcudaIpcGetMemHandle",
-      "status": "RESERVED_NPU"
+      "status": "UNSUPPORTED_TYPED"
     },
     "cudaIpcMemHandle_st": {
       "category": "IPC_External",
@@ -5468,27 +5468,27 @@
     },
     "cudaIpcMemHandle_t": {
       "category": "IPC_External",
-      "cu2cce_target": "CU2CCE_RESERVED_NPU_cudaIpcMemHandle_t",
+      "cu2cce_target": "wcceIpcMemHandle_t",
       "reference_maca": "mcIpcMemHandle_t",
-      "status": "RESERVED_NPU"
+      "status": "ACTIVE_DIRECT"
     },
     "cudaIpcMemLazyEnablePeerAccess": {
       "category": "IPC_External",
-      "cu2cce_target": "CU2CCE_RESERVED_NPU_cudaIpcMemLazyEnablePeerAccess",
+      "cu2cce_target": "1U",
       "reference_maca": "mcIpcMemLazyEnablePeerAccess",
-      "status": "RESERVED_NPU"
+      "status": "ACTIVE_DIRECT"
     },
     "cudaIpcOpenEventHandle": {
       "category": "IPC_External",
-      "cu2cce_target": "CU2CCE_RESERVED_NPU_cudaIpcOpenEventHandle",
+      "cu2cce_target": "wcudaIpcOpenEventHandle",
       "reference_maca": "wcudaIpcOpenEventHandle",
-      "status": "RESERVED_NPU"
+      "status": "UNSUPPORTED_TYPED"
     },
     "cudaIpcOpenMemHandle": {
       "category": "IPC_External",
-      "cu2cce_target": "CU2CCE_RESERVED_NPU_cudaIpcOpenMemHandle",
+      "cu2cce_target": "wcudaIpcOpenMemHandle",
       "reference_maca": "wcudaIpcOpenMemHandle",
-      "status": "RESERVED_NPU"
+      "status": "UNSUPPORTED_TYPED"
     },
     "cudaKernelNodeAttrID": {
       "category": "Other_Runtime_Device",
@@ -5816,9 +5816,9 @@
     },
     "cudaMallocFromPoolAsync": {
       "category": "Other_Runtime_Device",
-      "cu2cce_target": "CU2CCE_RESERVED_NPU_cudaMallocFromPoolAsync",
+      "cu2cce_target": "wcudaMallocFromPoolAsync",
       "reference_maca": "wcudaMallocFromPoolAsync",
-      "status": "RESERVED_NPU"
+      "status": "UNSUPPORTED_TYPED"
     },
     "cudaMallocHost": {
       "category": "Other_Runtime_Device",
@@ -6062,39 +6062,39 @@
     },
     "cudaMemPoolAttr": {
       "category": "MemoryPool_UVM",
-      "cu2cce_target": "CU2CCE_RESERVED_NPU_cudaMemPoolAttr",
+      "cu2cce_target": "wcceMemPoolAttr",
       "reference_maca": "mcMemPoolAttr",
-      "status": "RESERVED_NPU"
+      "status": "ACTIVE_DIRECT"
     },
     "cudaMemPoolAttrReleaseThreshold": {
       "category": "MemoryPool_UVM",
-      "cu2cce_target": "CU2CCE_RESERVED_NPU_cudaMemPoolAttrReleaseThreshold",
+      "cu2cce_target": "wcceMemPoolAttrReleaseThreshold",
       "reference_maca": "mcMemPoolAttrReleaseThreshold",
-      "status": "RESERVED_NPU"
+      "status": "ACTIVE_DIRECT"
     },
     "cudaMemPoolAttrReservedMemCurrent": {
       "category": "MemoryPool_UVM",
-      "cu2cce_target": "CU2CCE_RESERVED_NPU_cudaMemPoolAttrReservedMemCurrent",
+      "cu2cce_target": "wcceMemPoolAttrReservedMemCurrent",
       "reference_maca": "mcMemPoolAttrReservedMemCurrent",
-      "status": "RESERVED_NPU"
+      "status": "ACTIVE_DIRECT"
     },
     "cudaMemPoolAttrReservedMemHigh": {
       "category": "MemoryPool_UVM",
-      "cu2cce_target": "CU2CCE_RESERVED_NPU_cudaMemPoolAttrReservedMemHigh",
+      "cu2cce_target": "wcceMemPoolAttrReservedMemHigh",
       "reference_maca": "mcMemPoolAttrReservedMemHigh",
-      "status": "RESERVED_NPU"
+      "status": "ACTIVE_DIRECT"
     },
     "cudaMemPoolAttrUsedMemCurrent": {
       "category": "MemoryPool_UVM",
-      "cu2cce_target": "CU2CCE_RESERVED_NPU_cudaMemPoolAttrUsedMemCurrent",
+      "cu2cce_target": "wcceMemPoolAttrUsedMemCurrent",
       "reference_maca": "mcMemPoolAttrUsedMemCurrent",
-      "status": "RESERVED_NPU"
+      "status": "ACTIVE_DIRECT"
     },
     "cudaMemPoolAttrUsedMemHigh": {
       "category": "MemoryPool_UVM",
-      "cu2cce_target": "CU2CCE_RESERVED_NPU_cudaMemPoolAttrUsedMemHigh",
+      "cu2cce_target": "wcceMemPoolAttrUsedMemHigh",
       "reference_maca": "mcMemPoolAttrUsedMemHigh",
-      "status": "RESERVED_NPU"
+      "status": "ACTIVE_DIRECT"
     },
     "cudaMemPoolCreate": {
       "category": "MemoryPool_UVM",
@@ -6128,9 +6128,9 @@
     },
     "cudaMemPoolGetAttribute": {
       "category": "MemoryPool_UVM",
-      "cu2cce_target": "CU2CCE_RESERVED_NPU_cudaMemPoolGetAttribute",
+      "cu2cce_target": "wcudaMemPoolGetAttribute",
       "reference_maca": "wcudaMemPoolGetAttribute",
-      "status": "RESERVED_NPU"
+      "status": "UNSUPPORTED_TYPED"
     },
     "cudaMemPoolImportFromShareableHandle": {
       "category": "MemoryPool_UVM",
@@ -6158,21 +6158,21 @@
     },
     "cudaMemPoolReuseAllowInternalDependencies": {
       "category": "MemoryPool_UVM",
-      "cu2cce_target": "CU2CCE_RESERVED_NPU_cudaMemPoolReuseAllowInternalDependencies",
+      "cu2cce_target": "wcceMemPoolReuseAllowInternalDependencies",
       "reference_maca": "mcMemPoolReuseAllowInternalDependencies",
-      "status": "RESERVED_NPU"
+      "status": "ACTIVE_DIRECT"
     },
     "cudaMemPoolReuseAllowOpportunistic": {
       "category": "MemoryPool_UVM",
-      "cu2cce_target": "CU2CCE_RESERVED_NPU_cudaMemPoolReuseAllowOpportunistic",
+      "cu2cce_target": "wcceMemPoolReuseAllowOpportunistic",
       "reference_maca": "mcMemPoolReuseAllowOpportunistic",
-      "status": "RESERVED_NPU"
+      "status": "ACTIVE_DIRECT"
     },
     "cudaMemPoolReuseFollowEventDependencies": {
       "category": "MemoryPool_UVM",
-      "cu2cce_target": "CU2CCE_RESERVED_NPU_cudaMemPoolReuseFollowEventDependencies",
+      "cu2cce_target": "wcceMemPoolReuseFollowEventDependencies",
       "reference_maca": "mcMemPoolReuseFollowEventDependencies",
-      "status": "RESERVED_NPU"
+      "status": "ACTIVE_DIRECT"
     },
     "cudaMemPoolSetAccess": {
       "category": "MemoryPool_UVM",
@@ -6182,15 +6182,15 @@
     },
     "cudaMemPoolSetAttribute": {
       "category": "MemoryPool_UVM",
-      "cu2cce_target": "CU2CCE_RESERVED_NPU_cudaMemPoolSetAttribute",
+      "cu2cce_target": "wcudaMemPoolSetAttribute",
       "reference_maca": "wcudaMemPoolSetAttribute",
-      "status": "RESERVED_NPU"
+      "status": "UNSUPPORTED_TYPED"
     },
     "cudaMemPoolTrimTo": {
       "category": "MemoryPool_UVM",
-      "cu2cce_target": "CU2CCE_RESERVED_NPU_cudaMemPoolTrimTo",
+      "cu2cce_target": "wcudaMemPoolTrimTo",
       "reference_maca": "wcudaMemPoolTrimTo",
-      "status": "RESERVED_NPU"
+      "status": "UNSUPPORTED_TYPED"
     },
     "cudaMemPool_t": {
       "category": "MemoryPool_UVM",
@@ -7370,27 +7370,27 @@
     },
     "cudaStreamAttrID": {
       "category": "Stream_Event_Thread",
-      "cu2cce_target": "CU2CCE_RESERVED_NPU_cudaStreamAttrID",
+      "cu2cce_target": "wcceStreamAttrID",
       "reference_maca": "mcStreamAttrID_enum",
-      "status": "RESERVED_NPU"
+      "status": "ACTIVE_DIRECT"
     },
     "cudaStreamAttrValue": {
       "category": "Stream_Event_Thread",
-      "cu2cce_target": "CU2CCE_RESERVED_NPU_cudaStreamAttrValue",
+      "cu2cce_target": "wcceStreamAttrValue",
       "reference_maca": "mcStreamAttrValue",
-      "status": "RESERVED_NPU"
+      "status": "ACTIVE_DIRECT"
     },
     "cudaStreamAttributeAccessPolicyWindow": {
       "category": "Stream_Event_Thread",
-      "cu2cce_target": "CU2CCE_RESERVED_NPU_cudaStreamAttributeAccessPolicyWindow",
+      "cu2cce_target": "wcceStreamAttributeAccessPolicyWindow",
       "reference_maca": "mcStreamAttributeAccessPolicyWindow",
-      "status": "RESERVED_NPU"
+      "status": "ACTIVE_DIRECT"
     },
     "cudaStreamAttributeSynchronizationPolicy": {
       "category": "Stream_Event_Thread",
-      "cu2cce_target": "CU2CCE_RESERVED_NPU_cudaStreamAttributeSynchronizationPolicy",
+      "cu2cce_target": "wcceStreamAttributeSynchronizationPolicy",
       "reference_maca": "mcStreamAttributeSynchronizationPolicy",
-      "status": "RESERVED_NPU"
+      "status": "ACTIVE_DIRECT"
     },
     "cudaStreamBeginCapture": {
       "category": "Stream_Event_Thread",
@@ -7460,9 +7460,9 @@
     },
     "cudaStreamCopyAttributes": {
       "category": "Stream_Event_Thread",
-      "cu2cce_target": "CU2CCE_RESERVED_NPU_cudaStreamCopyAttributes",
+      "cu2cce_target": "wcudaStreamCopyAttributes",
       "reference_maca": "wcudaStreamCopyAttributes",
-      "status": "RESERVED_NPU"
+      "status": "UNSUPPORTED_TYPED"
     },
     "cudaStreamCreate": {
       "category": "Stream_Event_Thread",
@@ -7502,9 +7502,9 @@
     },
     "cudaStreamGetAttribute": {
       "category": "Stream_Event_Thread",
-      "cu2cce_target": "CU2CCE_RESERVED_NPU_cudaStreamGetAttribute",
+      "cu2cce_target": "wcudaStreamGetAttribute",
       "reference_maca": "wcudaStreamGetAttribute",
-      "status": "RESERVED_NPU"
+      "status": "UNSUPPORTED_TYPED"
     },
     "cudaStreamGetCaptureInfo": {
       "category": "Stream_Event_Thread",
@@ -7580,9 +7580,9 @@
     },
     "cudaStreamSetAttribute": {
       "category": "Stream_Event_Thread",
-      "cu2cce_target": "CU2CCE_RESERVED_NPU_cudaStreamSetAttribute",
+      "cu2cce_target": "wcudaStreamSetAttribute",
       "reference_maca": "wcudaStreamSetAttribute",
-      "status": "RESERVED_NPU"
+      "status": "UNSUPPORTED_TYPED"
     },
     "cudaStreamSetCaptureDependencies": {
       "category": "Stream_Event_Thread",

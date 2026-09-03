@@ -441,6 +441,7 @@ git diff --check
 | 路径 | 职责 |
 |---|---|
 | `config/artifact_contract.json` | cucc/CMake/Make/Ninja artifact contract 清单 |
+| `config/cuda_api_parity_inventory.json` | 参考 Runtime adaptor 的 CUDA 条目状态清单；记录 active、typed unsupported、reserved 或 diagnostic 的可审计归宿 |
 
 
 ### `docs/`
@@ -657,6 +658,7 @@ git diff --check
 | `tests/test_cmake_compat.py` | CMake/Make/Ninja/pre/虚拟工具链/FindCUDA 兼容测试 |
 | `tests/test_cann_api_probes.py` | CANN 官方头文件与 Runtime 链接探针测试 |
 | `tests/test_cucc_rules.py` | cucc 规则、phase、query、response 和 NPU policy 测试 |
+| `tests/test_cuda_api_parity.py` | 参考 cu-bridge Runtime 条目完整登记、typed placeholder、状态 inventory 与 active wrapper 声明契约 |
 | `tests/test_repo_hygiene.py` | 仓库目录、文档入口、gitignore 和 tracked tree 卫生契约 |
 
 ### `third_party/`

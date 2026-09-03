@@ -106,20 +106,10 @@
 #define cudaChannelFormatKindUnsignedNormalized8X2 CU2CCE_RESERVED_NPU_cudaChannelFormatKindUnsignedNormalized8X2
 /* reference_maca: cudaChannelFormatKindUnsignedNormalized8X4 -> mcChannelFormatKindUnsignedNormalized8X4 */
 #define cudaChannelFormatKindUnsignedNormalized8X4 CU2CCE_RESERVED_NPU_cudaChannelFormatKindUnsignedNormalized8X4
-/* reference_maca: cudaGetSurfaceObjectResourceDesc -> wcudaGetSurfaceObjectResourceDesc */
-#define cudaGetSurfaceObjectResourceDesc CU2CCE_RESERVED_NPU_cudaGetSurfaceObjectResourceDesc
 /* reference_maca: cudaGetSurfaceReference -> wcudaGetSurfaceReference */
 #define cudaGetSurfaceReference CU2CCE_RESERVED_NPU_cudaGetSurfaceReference
 /* reference_maca: cudaGetTextureAlignmentOffset -> wcudaGetTextureAlignmentOffset */
 #define cudaGetTextureAlignmentOffset CU2CCE_RESERVED_NPU_cudaGetTextureAlignmentOffset
-/* reference_maca: cudaGetTextureObjectResourceDesc -> wcudaGetTextureObjectResourceDesc */
-#define cudaGetTextureObjectResourceDesc CU2CCE_RESERVED_NPU_cudaGetTextureObjectResourceDesc
-/* reference_maca: cudaGetTextureObjectResourceViewDesc -> wcudaGetTextureObjectResourceViewDesc */
-#define cudaGetTextureObjectResourceViewDesc CU2CCE_RESERVED_NPU_cudaGetTextureObjectResourceViewDesc
-/* reference_maca: cudaGetTextureObjectTextureDesc -> wcudaGetTextureObjectTextureDesc */
-#define cudaGetTextureObjectTextureDesc CU2CCE_RESERVED_NPU_cudaGetTextureObjectTextureDesc
-/* reference_maca: cudaGetTextureObjectTextureDesc_v2 -> wcudaGetTextureObjectTextureDesc_v2 */
-#define cudaGetTextureObjectTextureDesc_v2 CU2CCE_RESERVED_NPU_cudaGetTextureObjectTextureDesc_v2
 /* reference_maca: cudaGetTextureReference -> wcudaGetTextureReference */
 #define cudaGetTextureReference CU2CCE_RESERVED_NPU_cudaGetTextureReference
 /* reference_maca: cudaSurfaceBoundaryMode -> _mcSurfaceBoundaryMode */
@@ -302,8 +292,6 @@
 #define cudaGraphAddNode_v2 CU2CCE_RESERVED_NPU_cudaGraphAddNode_v2
 /* reference_maca: cudaGraphChildGraphNodeGetGraph -> wcudaGraphChildGraphNodeGetGraph */
 #define cudaGraphChildGraphNodeGetGraph CU2CCE_RESERVED_NPU_cudaGraphChildGraphNodeGetGraph
-/* reference_maca: cudaGraphClone -> wcudaGraphClone */
-#define cudaGraphClone CU2CCE_RESERVED_NPU_cudaGraphClone
 /* reference_maca: cudaGraphCondAssignDefault -> mcGraphCondAssignDefault */
 #define cudaGraphCondAssignDefault CU2CCE_RESERVED_NPU_cudaGraphCondAssignDefault
 /* reference_maca: cudaGraphCondTypeIf -> mcGraphCondTypeIf */
@@ -350,8 +338,6 @@
 #define cudaGraphDependencyTypeDefault CU2CCE_RESERVED_NPU_cudaGraphDependencyTypeDefault
 /* reference_maca: cudaGraphDependencyTypeProgrammatic -> mcGraphDependencyTypeProgrammatic */
 #define cudaGraphDependencyTypeProgrammatic CU2CCE_RESERVED_NPU_cudaGraphDependencyTypeProgrammatic
-/* reference_maca: cudaGraphDestroyNode -> wcudaGraphDestroyNode */
-#define cudaGraphDestroyNode CU2CCE_RESERVED_NPU_cudaGraphDestroyNode
 /* reference_maca: cudaGraphDeviceNode_t -> mcGraphDeviceNode_t */
 #define cudaGraphDeviceNode_t CU2CCE_RESERVED_NPU_cudaGraphDeviceNode_t
 /* reference_maca: cudaGraphEdgeData -> mcGraphEdgeData */
@@ -412,8 +398,6 @@
 #define cudaGraphExecUpdateResultInfo CU2CCE_RESERVED_NPU_cudaGraphExecUpdateResultInfo
 /* reference_maca: cudaGraphExecUpdateSuccess -> mcGraphExecUpdateSuccess */
 #define cudaGraphExecUpdateSuccess CU2CCE_RESERVED_NPU_cudaGraphExecUpdateSuccess
-/* reference_maca: cudaGraphExec_t -> mcGraphExec_t */
-#define cudaGraphExec_t CU2CCE_RESERVED_NPU_cudaGraphExec_t
 /* reference_maca: cudaGraphExternalSemaphoresSignalNodeGetParams -> wcudaGraphExternalSemaphoresSignalNodeGetParams */
 #define cudaGraphExternalSemaphoresSignalNodeGetParams CU2CCE_RESERVED_NPU_cudaGraphExternalSemaphoresSignalNodeGetParams
 /* reference_maca: cudaGraphExternalSemaphoresSignalNodeSetParams -> wcudaGraphExternalSemaphoresSignalNodeSetParams */
@@ -426,10 +410,6 @@
 #define cudaGraphGetEdges CU2CCE_RESERVED_NPU_cudaGraphGetEdges
 /* reference_maca: cudaGraphGetEdges_v2 -> wcudaGraphGetEdges_v2 */
 #define cudaGraphGetEdges_v2 CU2CCE_RESERVED_NPU_cudaGraphGetEdges_v2
-/* reference_maca: cudaGraphGetNodes -> wcudaGraphGetNodes */
-#define cudaGraphGetNodes CU2CCE_RESERVED_NPU_cudaGraphGetNodes
-/* reference_maca: cudaGraphGetRootNodes -> wcudaGraphGetRootNodes */
-#define cudaGraphGetRootNodes CU2CCE_RESERVED_NPU_cudaGraphGetRootNodes
 /* reference_maca: cudaGraphHostNodeGetParams -> wcudaGraphHostNodeGetParams */
 #define cudaGraphHostNodeGetParams CU2CCE_RESERVED_NPU_cudaGraphHostNodeGetParams
 /* reference_maca: cudaGraphHostNodeSetParams -> wcudaGraphHostNodeSetParams */
@@ -552,8 +532,6 @@
 #define cudaGraphNodeTypeMemset CU2CCE_RESERVED_NPU_cudaGraphNodeTypeMemset
 /* reference_maca: cudaGraphNodeTypeWaitEvent -> mcGraphNodeTypeWaitEvent */
 #define cudaGraphNodeTypeWaitEvent CU2CCE_RESERVED_NPU_cudaGraphNodeTypeWaitEvent
-/* reference_maca: cudaGraphNode_t -> mcGraphNode_t */
-#define cudaGraphNode_t CU2CCE_RESERVED_NPU_cudaGraphNode_t
 /* reference_maca: cudaGraphReleaseUserObject -> wcudaGraphReleaseUserObject */
 #define cudaGraphReleaseUserObject CU2CCE_RESERVED_NPU_cudaGraphReleaseUserObject
 /* reference_maca: cudaGraphRemoveDependencies -> wcudaGraphRemoveDependencies */
@@ -568,8 +546,6 @@
 #define cudaGraphUpload CU2CCE_RESERVED_NPU_cudaGraphUpload
 /* reference_maca: cudaGraphUserObjectMove -> mcGraphUserObjectMove */
 #define cudaGraphUserObjectMove CU2CCE_RESERVED_NPU_cudaGraphUserObjectMove
-/* reference_maca: cudaGraph_t -> mcGraph_t */
-#define cudaGraph_t CU2CCE_RESERVED_NPU_cudaGraph_t
 /* reference_maca: cudaGraphicsCubeFace -> mcGraphicsCubeFace */
 #define cudaGraphicsCubeFace CU2CCE_RESERVED_NPU_cudaGraphicsCubeFace
 /* reference_maca: cudaGraphicsCubeFaceNegativeX -> mcGraphicsCubeFaceNegativeX */
@@ -776,26 +752,10 @@
 #define cudaExternalSemaphore_t CU2CCE_RESERVED_NPU_cudaExternalSemaphore_t
 /* reference_maca: cudaImportExternalSemaphore -> wcudaImportExternalSemaphore */
 #define cudaImportExternalSemaphore CU2CCE_RESERVED_NPU_cudaImportExternalSemaphore
-/* reference_maca: cudaIpcCloseMemHandle -> wcudaIpcCloseMemHandle */
-#define cudaIpcCloseMemHandle CU2CCE_RESERVED_NPU_cudaIpcCloseMemHandle
 /* reference_maca: cudaIpcEventHandle_st -> mcIpcEventHandle_st */
 #define cudaIpcEventHandle_st CU2CCE_RESERVED_NPU_cudaIpcEventHandle_st
-/* reference_maca: cudaIpcEventHandle_t -> mcIpcEventHandle_t */
-#define cudaIpcEventHandle_t CU2CCE_RESERVED_NPU_cudaIpcEventHandle_t
-/* reference_maca: cudaIpcGetEventHandle -> wcudaIpcGetEventHandle */
-#define cudaIpcGetEventHandle CU2CCE_RESERVED_NPU_cudaIpcGetEventHandle
-/* reference_maca: cudaIpcGetMemHandle -> wcudaIpcGetMemHandle */
-#define cudaIpcGetMemHandle CU2CCE_RESERVED_NPU_cudaIpcGetMemHandle
 /* reference_maca: cudaIpcMemHandle_st -> mcIpcMemHandle_st */
 #define cudaIpcMemHandle_st CU2CCE_RESERVED_NPU_cudaIpcMemHandle_st
-/* reference_maca: cudaIpcMemHandle_t -> mcIpcMemHandle_t */
-#define cudaIpcMemHandle_t CU2CCE_RESERVED_NPU_cudaIpcMemHandle_t
-/* reference_maca: cudaIpcMemLazyEnablePeerAccess -> mcIpcMemLazyEnablePeerAccess */
-#define cudaIpcMemLazyEnablePeerAccess CU2CCE_RESERVED_NPU_cudaIpcMemLazyEnablePeerAccess
-/* reference_maca: cudaIpcOpenEventHandle -> wcudaIpcOpenEventHandle */
-#define cudaIpcOpenEventHandle CU2CCE_RESERVED_NPU_cudaIpcOpenEventHandle
-/* reference_maca: cudaIpcOpenMemHandle -> wcudaIpcOpenMemHandle */
-#define cudaIpcOpenMemHandle CU2CCE_RESERVED_NPU_cudaIpcOpenMemHandle
 /* reference_maca: cudaSignalExternalSemaphoresAsync -> wcudaSignalExternalSemaphoresAsync */
 #define cudaSignalExternalSemaphoresAsync CU2CCE_RESERVED_NPU_cudaSignalExternalSemaphoresAsync
 /* reference_maca: cudaSignalExternalSemaphoresAsync_v2 -> wcudaSignalExternalSemaphoresAsync */
@@ -824,44 +784,20 @@
 #define cudaMemAdviseUnsetReadMostly CU2CCE_RESERVED_NPU_cudaMemAdviseUnsetReadMostly
 /* reference_maca: cudaMemAdvise_v2 -> wcudaMemAdvise_v2 */
 #define cudaMemAdvise_v2 CU2CCE_RESERVED_NPU_cudaMemAdvise_v2
-/* reference_maca: cudaMemPoolAttr -> mcMemPoolAttr */
-#define cudaMemPoolAttr CU2CCE_RESERVED_NPU_cudaMemPoolAttr
-/* reference_maca: cudaMemPoolAttrReleaseThreshold -> mcMemPoolAttrReleaseThreshold */
-#define cudaMemPoolAttrReleaseThreshold CU2CCE_RESERVED_NPU_cudaMemPoolAttrReleaseThreshold
-/* reference_maca: cudaMemPoolAttrReservedMemCurrent -> mcMemPoolAttrReservedMemCurrent */
-#define cudaMemPoolAttrReservedMemCurrent CU2CCE_RESERVED_NPU_cudaMemPoolAttrReservedMemCurrent
-/* reference_maca: cudaMemPoolAttrReservedMemHigh -> mcMemPoolAttrReservedMemHigh */
-#define cudaMemPoolAttrReservedMemHigh CU2CCE_RESERVED_NPU_cudaMemPoolAttrReservedMemHigh
-/* reference_maca: cudaMemPoolAttrUsedMemCurrent -> mcMemPoolAttrUsedMemCurrent */
-#define cudaMemPoolAttrUsedMemCurrent CU2CCE_RESERVED_NPU_cudaMemPoolAttrUsedMemCurrent
-/* reference_maca: cudaMemPoolAttrUsedMemHigh -> mcMemPoolAttrUsedMemHigh */
-#define cudaMemPoolAttrUsedMemHigh CU2CCE_RESERVED_NPU_cudaMemPoolAttrUsedMemHigh
 /* reference_maca: cudaMemPoolExportPointer -> wcudaMemPoolExportPointer */
 #define cudaMemPoolExportPointer CU2CCE_RESERVED_NPU_cudaMemPoolExportPointer
 /* reference_maca: cudaMemPoolExportToShareableHandle -> wcudaMemPoolExportToShareableHandle */
 #define cudaMemPoolExportToShareableHandle CU2CCE_RESERVED_NPU_cudaMemPoolExportToShareableHandle
 /* reference_maca: cudaMemPoolGetAccess -> wcudaMemPoolGetAccess */
 #define cudaMemPoolGetAccess CU2CCE_RESERVED_NPU_cudaMemPoolGetAccess
-/* reference_maca: cudaMemPoolGetAttribute -> wcudaMemPoolGetAttribute */
-#define cudaMemPoolGetAttribute CU2CCE_RESERVED_NPU_cudaMemPoolGetAttribute
 /* reference_maca: cudaMemPoolImportFromShareableHandle -> wcudaMemPoolImportFromShareableHandle */
 #define cudaMemPoolImportFromShareableHandle CU2CCE_RESERVED_NPU_cudaMemPoolImportFromShareableHandle
 /* reference_maca: cudaMemPoolImportPointer -> wcudaMemPoolImportPointer */
 #define cudaMemPoolImportPointer CU2CCE_RESERVED_NPU_cudaMemPoolImportPointer
 /* reference_maca: cudaMemPoolPtrExportData -> mcMemPoolPtrExportData */
 #define cudaMemPoolPtrExportData CU2CCE_RESERVED_NPU_cudaMemPoolPtrExportData
-/* reference_maca: cudaMemPoolReuseAllowInternalDependencies -> mcMemPoolReuseAllowInternalDependencies */
-#define cudaMemPoolReuseAllowInternalDependencies CU2CCE_RESERVED_NPU_cudaMemPoolReuseAllowInternalDependencies
-/* reference_maca: cudaMemPoolReuseAllowOpportunistic -> mcMemPoolReuseAllowOpportunistic */
-#define cudaMemPoolReuseAllowOpportunistic CU2CCE_RESERVED_NPU_cudaMemPoolReuseAllowOpportunistic
-/* reference_maca: cudaMemPoolReuseFollowEventDependencies -> mcMemPoolReuseFollowEventDependencies */
-#define cudaMemPoolReuseFollowEventDependencies CU2CCE_RESERVED_NPU_cudaMemPoolReuseFollowEventDependencies
 /* reference_maca: cudaMemPoolSetAccess -> wcudaMemPoolSetAccess */
 #define cudaMemPoolSetAccess CU2CCE_RESERVED_NPU_cudaMemPoolSetAccess
-/* reference_maca: cudaMemPoolSetAttribute -> wcudaMemPoolSetAttribute */
-#define cudaMemPoolSetAttribute CU2CCE_RESERVED_NPU_cudaMemPoolSetAttribute
-/* reference_maca: cudaMemPoolTrimTo -> wcudaMemPoolTrimTo */
-#define cudaMemPoolTrimTo CU2CCE_RESERVED_NPU_cudaMemPoolTrimTo
 /* reference_maca: cudaMemRangeAttribute -> mcMemRangeAttribute_enum */
 #define cudaMemRangeAttribute CU2CCE_RESERVED_NPU_cudaMemRangeAttribute
 /* reference_maca: cudaMemRangeAttributeAccessedBy -> mcMemRangeAttributeAccessedBy */
@@ -1526,8 +1462,6 @@
 #define cudaGetExportTable CU2CCE_RESERVED_NPU_cudaGetExportTable
 /* reference_maca: cudaGetFuncBySymbol -> wcudaGetFuncBySymbol */
 #define cudaGetFuncBySymbol CU2CCE_RESERVED_NPU_cudaGetFuncBySymbol
-/* reference_maca: cudaGetMipmappedArrayLevel -> wcudaGetMipmappedArrayLevel */
-#define cudaGetMipmappedArrayLevel CU2CCE_RESERVED_NPU_cudaGetMipmappedArrayLevel
 /* reference_maca: cudaGetParameterBuffer -> wcudaGetParameterBuffer */
 #define cudaGetParameterBuffer CU2CCE_RESERVED_NPU_cudaGetParameterBuffer
 /* reference_maca: cudaGetParameterBufferV2 -> wcudaGetParameterBufferV2 */
@@ -1584,8 +1518,6 @@
 #define cudaLimitPrintfFifoSize CU2CCE_RESERVED_NPU_cudaLimitPrintfFifoSize
 /* reference_maca: cudaLimitStackSize -> mcLimitStackSize */
 #define cudaLimitStackSize CU2CCE_RESERVED_NPU_cudaLimitStackSize
-/* reference_maca: cudaMallocFromPoolAsync -> wcudaMallocFromPoolAsync */
-#define cudaMallocFromPoolAsync CU2CCE_RESERVED_NPU_cudaMallocFromPoolAsync
 /* reference_maca: cudaMemAccessDesc -> mcMemAccessDesc */
 #define cudaMemAccessDesc CU2CCE_RESERVED_NPU_cudaMemAccessDesc
 /* reference_maca: cudaMemAccessFlags -> mcMemAccessFlags */
@@ -1858,30 +1790,16 @@
 #define cudaEventWaitExternal CU2CCE_RESERVED_NPU_cudaEventWaitExternal
 /* reference_maca: cudaStreamAddCaptureDependencies -> mcStreamAddCaptureDependencies */
 #define cudaStreamAddCaptureDependencies CU2CCE_RESERVED_NPU_cudaStreamAddCaptureDependencies
-/* reference_maca: cudaStreamAttrID -> mcStreamAttrID_enum */
-#define cudaStreamAttrID CU2CCE_RESERVED_NPU_cudaStreamAttrID
-/* reference_maca: cudaStreamAttrValue -> mcStreamAttrValue */
-#define cudaStreamAttrValue CU2CCE_RESERVED_NPU_cudaStreamAttrValue
-/* reference_maca: cudaStreamAttributeAccessPolicyWindow -> mcStreamAttributeAccessPolicyWindow */
-#define cudaStreamAttributeAccessPolicyWindow CU2CCE_RESERVED_NPU_cudaStreamAttributeAccessPolicyWindow
-/* reference_maca: cudaStreamAttributeSynchronizationPolicy -> mcStreamAttributeSynchronizationPolicy */
-#define cudaStreamAttributeSynchronizationPolicy CU2CCE_RESERVED_NPU_cudaStreamAttributeSynchronizationPolicy
 /* reference_maca: cudaStreamBeginCaptureToGraph -> wcudaStreamBeginCaptureToGraph */
 #define cudaStreamBeginCaptureToGraph CU2CCE_RESERVED_NPU_cudaStreamBeginCaptureToGraph
 /* reference_maca: cudaStreamCallback_t -> mcStreamCallback_t */
 #define cudaStreamCallback_t CU2CCE_RESERVED_NPU_cudaStreamCallback_t
-/* reference_maca: cudaStreamCopyAttributes -> wcudaStreamCopyAttributes */
-#define cudaStreamCopyAttributes CU2CCE_RESERVED_NPU_cudaStreamCopyAttributes
-/* reference_maca: cudaStreamGetAttribute -> wcudaStreamGetAttribute */
-#define cudaStreamGetAttribute CU2CCE_RESERVED_NPU_cudaStreamGetAttribute
 /* reference_maca: cudaStreamGetDevResource -> wcudaStreamGetDevResource */
 #define cudaStreamGetDevResource CU2CCE_RESERVED_NPU_cudaStreamGetDevResource
 /* reference_maca: cudaStreamLegacy -> mcStreamAllThreads */
 #define cudaStreamLegacy CU2CCE_RESERVED_NPU_cudaStreamLegacy
 /* reference_maca: cudaStreamPerThread -> mcStreamPerThread */
 #define cudaStreamPerThread CU2CCE_RESERVED_NPU_cudaStreamPerThread
-/* reference_maca: cudaStreamSetAttribute -> wcudaStreamSetAttribute */
-#define cudaStreamSetAttribute CU2CCE_RESERVED_NPU_cudaStreamSetAttribute
 /* reference_maca: cudaStreamSetCaptureDependencies -> mcStreamSetCaptureDependencies */
 #define cudaStreamSetCaptureDependencies CU2CCE_RESERVED_NPU_cudaStreamSetCaptureDependencies
 /* reference_maca: cudaStreamUpdateCaptureDependencies -> wcudaStreamUpdateCaptureDependencies */

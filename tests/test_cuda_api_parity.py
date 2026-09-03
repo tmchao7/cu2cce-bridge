@@ -163,6 +163,38 @@ class CudaRuntimeTypedPlaceholderContractTest(unittest.TestCase):
             self.assertIn("ACL_ERROR_API_NOT_SUPPORT", body, name)
 
 
+class CudaRuntimeReservedFamilyPromotionTest(unittest.TestCase):
+    def test_high_frequency_reserved_families_use_typed_unsupported_wrappers(self) -> None:
+        adaptor = (ROOT / "include/bridge/runtime/cuda_to_cce_mcr_adaptor.h").read_text(encoding="utf-8")
+        types = (ROOT / "include/bridge/runtime/cuda_runtime_types.h").read_text(encoding="utf-8")
+        header = (ROOT / "include/bridge/runtime/cuda_runtime_wrapper.h").read_text(encoding="utf-8")
+        source = (ROOT / "src/bridge/runtime/src/cuda_runtime_wrapper.cpp").read_text(encoding="utf-8")
+        expectations = {
+            "cudaIpcGetMemHandle": "wcudaIpcGetMemHandle",
+            "cudaMallocFromPoolAsync": "wcudaMallocFromPoolAsync",
+            "cudaMemPoolTrimTo": "wcudaMemPoolTrimTo",
+            "cudaGetMipmappedArrayLevel": "wcudaGetMipmappedArrayLevel",
+            "cudaGetTextureObjectResourceDesc": "wcudaGetTextureObjectResourceDesc",
+            "cudaGetSurfaceObjectResourceDesc": "wcudaGetSurfaceObjectResourceDesc",
+            "cudaGraphGetNodes": "wcudaGraphGetNodes",
+            "cudaGraphGetRootNodes": "wcudaGraphGetRootNodes",
+            "cudaGraphClone": "wcudaGraphClone",
+            "cudaStreamGetAttribute": "wcudaStreamGetAttribute",
+        }
+        for cuda_name, wrapper_name in expectations.items():
+            self.assertIn(f"#define {cuda_name} {wrapper_name}", adaptor)
+            self.assertIn(f"{wrapper_name}(", header)
+            start = source.find(f"{wrapper_name}(")
+            self.assertNotEqual(start, -1, wrapper_name)
+            body = source[start:source.find("\n}", start) + 2]
+            self.assertIn("ACL_ERROR_API_NOT_SUPPORT", body, wrapper_name)
+        for type_name in (
+            "wcceIpcMemHandle_t", "wcceIpcEventHandle_t", "wcceGraph_t",
+            "wcceGraphNode_t", "wcceStreamAttrValue", "wcceMemPoolAttr",
+        ):
+            self.assertIn(type_name, types)
+
+
 class CudaApiParityStatusInventoryTest(unittest.TestCase):
     def test_generated_status_inventory_records_every_reference_entry(self) -> None:
         import generate_cuda_api_parity_inventory as generator

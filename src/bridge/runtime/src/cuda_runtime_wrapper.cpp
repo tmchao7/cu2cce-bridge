@@ -1921,6 +1921,187 @@ aclError wcudaFuncGetName(const char **name, const void *func) {
     WCUDA_RETURN(ACL_SUCCESS);
 }
 
+/* ---------------- Typed unsupported parity families ----------------
+ * These entries deliberately preserve CUDA-shaped source compatibility while
+ * refusing to claim CANN support for CUDA IPC, graph, texture/surface,
+ * mempool attributes or stream-attribute semantics. */
+
+aclError wcudaMallocFromPoolAsync(void **ptr, size_t size, wcceMemPool_t memPool,
+                                  aclrtStream stream) {
+    (void)size;
+    (void)memPool;
+    (void)stream;
+    if (ptr != nullptr) {
+        *ptr = nullptr;
+    }
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaMemPoolTrimTo(wcceMemPool_t memPool, size_t minBytesToKeep) {
+    (void)memPool;
+    (void)minBytesToKeep;
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaMemPoolGetAttribute(wcceMemPool_t memPool, wcceMemPoolAttr attr, void *value) {
+    (void)memPool;
+    (void)attr;
+    (void)value;
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaMemPoolSetAttribute(wcceMemPool_t memPool, wcceMemPoolAttr attr,
+                                  const void *value) {
+    (void)memPool;
+    (void)attr;
+    (void)value;
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaIpcGetMemHandle(wcceIpcMemHandle_t *handle, void *devPtr) {
+    (void)devPtr;
+    if (handle != nullptr) {
+        *handle = {};
+    }
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaIpcOpenMemHandle(void **devPtr, wcceIpcMemHandle_t handle, unsigned int flags) {
+    (void)handle;
+    (void)flags;
+    if (devPtr != nullptr) {
+        *devPtr = nullptr;
+    }
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaIpcCloseMemHandle(void *devPtr) {
+    (void)devPtr;
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaIpcGetEventHandle(wcceIpcEventHandle_t *handle, aclrtEvent event) {
+    (void)event;
+    if (handle != nullptr) {
+        *handle = {};
+    }
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaIpcOpenEventHandle(aclrtEvent *event, wcceIpcEventHandle_t handle) {
+    (void)handle;
+    if (event != nullptr) {
+        *event = nullptr;
+    }
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGetMipmappedArrayLevel(wcceArray_t *levelArray, wcceMipmappedArray_t mipmappedArray,
+                                     unsigned int level) {
+    (void)mipmappedArray;
+    (void)level;
+    if (levelArray != nullptr) {
+        *levelArray = nullptr;
+    }
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGetTextureObjectResourceDesc(wcceResourceDesc *pResDesc,
+                                           wcceTextureObject_t texObject) {
+    (void)texObject;
+    if (pResDesc != nullptr) {
+        *pResDesc = {};
+    }
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGetTextureObjectTextureDesc(wcceTextureDesc *pTexDesc,
+                                          wcceTextureObject_t texObject) {
+    (void)texObject;
+    if (pTexDesc != nullptr) {
+        *pTexDesc = {};
+    }
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGetTextureObjectTextureDesc_v2(wcceTextureDesc *pTexDesc,
+                                             wcceTextureObject_t texObject) {
+    return wcudaGetTextureObjectTextureDesc(pTexDesc, texObject);
+}
+
+aclError wcudaGetTextureObjectResourceViewDesc(wcceResourceViewDesc *pResViewDesc,
+                                               wcceTextureObject_t texObject) {
+    (void)texObject;
+    if (pResViewDesc != nullptr) {
+        *pResViewDesc = {};
+    }
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGetSurfaceObjectResourceDesc(wcceResourceDesc *pResDesc,
+                                           wcceSurfaceObject_t surfObject) {
+    (void)surfObject;
+    if (pResDesc != nullptr) {
+        *pResDesc = {};
+    }
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphGetNodes(wcceGraph_t graph, wcceGraphNode_t *nodes, size_t *numNodes) {
+    (void)graph;
+    (void)nodes;
+    if (numNodes != nullptr) {
+        *numNodes = 0;
+    }
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphGetRootNodes(wcceGraph_t graph, wcceGraphNode_t *nodes, size_t *numNodes) {
+    (void)graph;
+    (void)nodes;
+    if (numNodes != nullptr) {
+        *numNodes = 0;
+    }
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphClone(wcceGraph_t *pGraphClone, wcceGraph_t originalGraph) {
+    (void)originalGraph;
+    if (pGraphClone != nullptr) {
+        *pGraphClone = nullptr;
+    }
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphDestroyNode(wcceGraphNode_t node) {
+    (void)node;
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaStreamCopyAttributes(aclrtStream dst, aclrtStream src) {
+    (void)dst;
+    (void)src;
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaStreamGetAttribute(aclrtStream stream, wcceStreamAttrID attr,
+                                 wcceStreamAttrValue *value) {
+    (void)stream;
+    (void)attr;
+    if (value != nullptr) {
+        *value = {};
+    }
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaStreamSetAttribute(aclrtStream stream, wcceStreamAttrID attr,
+                                 const wcceStreamAttrValue *value) {
+    (void)stream;
+    (void)attr;
+    (void)value;
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
 /* ---------------- Version ---------------- */
 
 aclError wcudaRuntimeGetVersion(int *runtimeVersion) {

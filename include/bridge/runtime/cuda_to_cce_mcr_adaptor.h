@@ -130,6 +130,25 @@
 #define cudaFuncAttributes wcceFuncAttributes
 #define cudaMemPool_t wcceMemPool_t
 #define cudaMemPoolProps wcceMemPoolProps
+#define cudaMemPoolAttr wcceMemPoolAttr
+#define cudaMemPoolReuseFollowEventDependencies wcceMemPoolReuseFollowEventDependencies
+#define cudaMemPoolReuseAllowOpportunistic wcceMemPoolReuseAllowOpportunistic
+#define cudaMemPoolReuseAllowInternalDependencies wcceMemPoolReuseAllowInternalDependencies
+#define cudaMemPoolAttrReleaseThreshold wcceMemPoolAttrReleaseThreshold
+#define cudaMemPoolAttrReservedMemCurrent wcceMemPoolAttrReservedMemCurrent
+#define cudaMemPoolAttrReservedMemHigh wcceMemPoolAttrReservedMemHigh
+#define cudaMemPoolAttrUsedMemCurrent wcceMemPoolAttrUsedMemCurrent
+#define cudaMemPoolAttrUsedMemHigh wcceMemPoolAttrUsedMemHigh
+#define cudaIpcMemHandle_t wcceIpcMemHandle_t
+#define cudaIpcEventHandle_t wcceIpcEventHandle_t
+#define cudaIpcMemLazyEnablePeerAccess 1U
+#define cudaGraph_t wcceGraph_t
+#define cudaGraphExec_t wcceGraphExec_t
+#define cudaGraphNode_t wcceGraphNode_t
+#define cudaStreamAttrID wcceStreamAttrID
+#define cudaStreamAttrValue wcceStreamAttrValue
+#define cudaStreamAttributeAccessPolicyWindow wcceStreamAttributeAccessPolicyWindow
+#define cudaStreamAttributeSynchronizationPolicy wcceStreamAttributeSynchronizationPolicy
 #define make_cudaExtent make_wcudaExtent
 #define make_cudaPitchedPtr make_wcudaPitchedPtr
 #define make_cudaPos make_wcudaPos
@@ -239,6 +258,9 @@
 #define cudaStreamGetPriority wcudaStreamGetPriority
 #define cudaStreamGetDevice wcudaStreamGetDevice
 #define cudaStreamGetId wcudaStreamGetId
+#define cudaStreamCopyAttributes wcudaStreamCopyAttributes
+#define cudaStreamGetAttribute wcudaStreamGetAttribute
+#define cudaStreamSetAttribute wcudaStreamSetAttribute
 #define cudaStreamAttachMemAsync wcudaStreamAttachMemAsync
 /* CUDA stream flags are accepted by the official NVIDIA samples. Ascend's
  * wcudaStreamCreateWithFlags currently ignores the flag but preserves the
@@ -305,6 +327,12 @@
 #define cudaGetChannelDesc wcudaGetChannelDesc
 #define cudaFreeArray wcudaFreeArray
 #define cudaFreeMipmappedArray wcudaFreeMipmappedArray
+#define cudaGetMipmappedArrayLevel wcudaGetMipmappedArrayLevel
+#define cudaGetTextureObjectResourceDesc wcudaGetTextureObjectResourceDesc
+#define cudaGetTextureObjectTextureDesc wcudaGetTextureObjectTextureDesc
+#define cudaGetTextureObjectTextureDesc_v2 wcudaGetTextureObjectTextureDesc_v2
+#define cudaGetTextureObjectResourceViewDesc wcudaGetTextureObjectResourceViewDesc
+#define cudaGetSurfaceObjectResourceDesc wcudaGetSurfaceObjectResourceDesc
 #define cudaMemcpyToArray wcudaMemcpyToArray
 #define cudaMemcpyFromArray wcudaMemcpyFromArray
 #define cudaMemcpy2DToArray wcudaMemcpy2DToArray
@@ -326,6 +354,15 @@
 #define cudaMemPoolCreate wcudaMemPoolCreate
 #define cudaMemPoolDestroy wcudaMemPoolDestroy
 #define cudaDeviceGetMemPool wcudaDeviceGetMemPool
+#define cudaMallocFromPoolAsync wcudaMallocFromPoolAsync
+#define cudaMemPoolTrimTo wcudaMemPoolTrimTo
+#define cudaMemPoolGetAttribute wcudaMemPoolGetAttribute
+#define cudaMemPoolSetAttribute wcudaMemPoolSetAttribute
+#define cudaIpcGetMemHandle wcudaIpcGetMemHandle
+#define cudaIpcOpenMemHandle wcudaIpcOpenMemHandle
+#define cudaIpcCloseMemHandle wcudaIpcCloseMemHandle
+#define cudaIpcGetEventHandle wcudaIpcGetEventHandle
+#define cudaIpcOpenEventHandle wcudaIpcOpenEventHandle
 #define cudaDeviceSetMemPool wcudaDeviceSetMemPool
 #define cudaMallocManaged wcudaMallocManaged
 #define cudaMemAdvise wcudaMemAdvise
@@ -385,6 +422,10 @@
 #define cudaGraphExecUpdate wcudaGraphExecUpdate
 #define cudaGraphAddKernelNode wcudaGraphAddKernelNode
 #define cudaGraphMemcpyNodeSetParams1D wcudaGraphMemcpyNodeSetParams1D
+#define cudaGraphGetNodes wcudaGraphGetNodes
+#define cudaGraphGetRootNodes wcudaGraphGetRootNodes
+#define cudaGraphClone wcudaGraphClone
+#define cudaGraphDestroyNode wcudaGraphDestroyNode
 
 // Texture/Surface（昇腾无对应，全部 not-support）
 #define cudaCreateChannelDesc wcudaCreateChannelDesc

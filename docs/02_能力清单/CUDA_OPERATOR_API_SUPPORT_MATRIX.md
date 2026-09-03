@@ -485,6 +485,19 @@ python3 tools/validate_cuda_api_parity.py \
 
 `missing_entries=0` 只表示参考表中的 CUDA 名称都已 active 或 reserved 登记，不表示所有 API 已在 Ascend 真机实现。
 
+当前 `UNSUPPORTED_TYPED` 中已经覆盖的高频长尾族包括：
+
+| CUDA Runtime 族 | 对外类型/入口 | 当前行为 | 后续实现位置 |
+|---|---|---|---|
+| IPC | `cudaIpcMemHandle_t`、`cudaIpcEventHandle_t`、`cudaIpc*Handle` | 清零输出并返回 `ACL_ERROR_API_NOT_SUPPORT`；不伪造跨进程 ACL 句柄 | `include/bridge/runtime/cuda_runtime_types.h`、`src/bridge/runtime/` |
+| Stream-ordered memory pool | `cudaMallocFromPoolAsync`、`cudaMemPool{TrimTo,GetAttribute,SetAttribute}` | 明确拒绝；不将普通 `aclrtMalloc` 伪装成 pool 语义 | 同上 |
+| Array / Texture / Surface 查询 | mipmapped-level 与 texture/surface descriptor getter | 清零输出并明确拒绝；不声称有纹理执行支持 | 同上 |
+| CUDA Graph 查询 | `cudaGraph{GetNodes,GetRootNodes,Clone,DestroyNode}` | 明确拒绝；不把普通 stream 工作流冒充 Graph | 同上 |
+| Stream attributes | `cudaStream{CopyAttributes,GetAttribute,SetAttribute}` | 明确拒绝；不虚构 CUDA priority/capture/attribute 语义 | 同上 |
+
+这些条目具备**类型化 source compatibility**，但不属于 `SUPPORTED`；调用方必须检查返回的
+`ACL_ERROR_API_NOT_SUPPORT`。
+
 ### 8.3 CUDA Runtime 数据类型入口
 
 `include/bridge/runtime/cuda_runtime_types.h` 提供不依赖 CANN ABI 的数据形状容器，并由 adaptor 映射公开 CUDA 名称：

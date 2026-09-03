@@ -80,6 +80,11 @@ aclError CUBRIDGE_API wcudaStreamGetFlags(aclrtStream stream, unsigned int *flag
 aclError CUBRIDGE_API wcudaStreamGetPriority(aclrtStream stream, int *priority);
 aclError CUBRIDGE_API wcudaStreamGetDevice(aclrtStream stream, int *device);
 aclError CUBRIDGE_API wcudaStreamGetId(aclrtStream stream, unsigned long long *streamId);
+aclError CUBRIDGE_API wcudaStreamCopyAttributes(aclrtStream dst, aclrtStream src);
+aclError CUBRIDGE_API wcudaStreamGetAttribute(aclrtStream stream, wcceStreamAttrID attr,
+                                               wcceStreamAttrValue *value);
+aclError CUBRIDGE_API wcudaStreamSetAttribute(aclrtStream stream, wcceStreamAttrID attr,
+                                               const wcceStreamAttrValue *value);
 aclError CUBRIDGE_API wcudaStreamAttachMemAsync(aclrtStream stream, void *devPtr,
                                                 size_t length, unsigned int flags);
 aclError CUBRIDGE_API wcudaStreamDestroy(aclrtStream stream);
@@ -229,6 +234,19 @@ aclError CUBRIDGE_API wcudaMemPoolCreate(wcceMemPool_t *memPool,
 aclError CUBRIDGE_API wcudaMemPoolDestroy(wcceMemPool_t memPool);
 aclError CUBRIDGE_API wcudaDeviceGetMemPool(wcceMemPool_t *memPool, int device);
 aclError CUBRIDGE_API wcudaDeviceSetMemPool(int device, wcceMemPool_t memPool);
+aclError CUBRIDGE_API wcudaMallocFromPoolAsync(void **ptr, size_t size, wcceMemPool_t memPool,
+                                                aclrtStream stream);
+aclError CUBRIDGE_API wcudaMemPoolTrimTo(wcceMemPool_t memPool, size_t minBytesToKeep);
+aclError CUBRIDGE_API wcudaMemPoolGetAttribute(wcceMemPool_t memPool, wcceMemPoolAttr attr,
+                                               void *value);
+aclError CUBRIDGE_API wcudaMemPoolSetAttribute(wcceMemPool_t memPool, wcceMemPoolAttr attr,
+                                               const void *value);
+aclError CUBRIDGE_API wcudaIpcGetMemHandle(wcceIpcMemHandle_t *handle, void *devPtr);
+aclError CUBRIDGE_API wcudaIpcOpenMemHandle(void **devPtr, wcceIpcMemHandle_t handle,
+                                             unsigned int flags);
+aclError CUBRIDGE_API wcudaIpcCloseMemHandle(void *devPtr);
+aclError CUBRIDGE_API wcudaIpcGetEventHandle(wcceIpcEventHandle_t *handle, aclrtEvent event);
+aclError CUBRIDGE_API wcudaIpcOpenEventHandle(aclrtEvent *event, wcceIpcEventHandle_t handle);
 
 /* Unified Memory：昇腾无 managed memory，fallback 到 device 分配（无自动迁移语义，标注差异）。
  * MemAdvise/Prefetch 为 no-op/not-support（昇腾无统一寻址）。 */
@@ -313,6 +331,19 @@ aclError CUBRIDGE_API wcudaCreateSurfaceObject(wcceSurfaceObject_t *pSurfObject,
 aclError CUBRIDGE_API wcudaDestroySurfaceObject(wcceSurfaceObject_t surfObject);
 aclError CUBRIDGE_API wcudaBindTexture(size_t *offset, const void *texref, const void *devPtr,
                                        const void *desc, size_t size);
+aclError CUBRIDGE_API wcudaGetMipmappedArrayLevel(wcceArray_t *levelArray,
+                                                   wcceMipmappedArray_t mipmappedArray,
+                                                   unsigned int level);
+aclError CUBRIDGE_API wcudaGetTextureObjectResourceDesc(wcceResourceDesc *pResDesc,
+                                                         wcceTextureObject_t texObject);
+aclError CUBRIDGE_API wcudaGetTextureObjectTextureDesc(wcceTextureDesc *pTexDesc,
+                                                        wcceTextureObject_t texObject);
+aclError CUBRIDGE_API wcudaGetTextureObjectTextureDesc_v2(wcceTextureDesc *pTexDesc,
+                                                           wcceTextureObject_t texObject);
+aclError CUBRIDGE_API wcudaGetTextureObjectResourceViewDesc(wcceResourceViewDesc *pResViewDesc,
+                                                             wcceTextureObject_t texObject);
+aclError CUBRIDGE_API wcudaGetSurfaceObjectResourceDesc(wcceResourceDesc *pResDesc,
+                                                         wcceSurfaceObject_t surfObject);
 
 /* ============ External Memory（昇腾无对应，not-support） ============ */
 aclError CUBRIDGE_API wcudaImportExternalMemory(void *extMem_out, const void *memHandleDesc);
@@ -337,6 +368,12 @@ aclError CUBRIDGE_API wcudaGraphAddKernelNode(void *pGraphNode, void *graph,
                                              const void *pNodeParams);
 aclError CUBRIDGE_API wcudaGraphMemcpyNodeSetParams1D(void *node, void *dst, const void *src,
                                                       size_t count, int kind);
+aclError CUBRIDGE_API wcudaGraphGetNodes(wcceGraph_t graph, wcceGraphNode_t *nodes,
+                                             size_t *numNodes);
+aclError CUBRIDGE_API wcudaGraphGetRootNodes(wcceGraph_t graph, wcceGraphNode_t *nodes,
+                                                 size_t *numNodes);
+aclError CUBRIDGE_API wcudaGraphClone(wcceGraph_t *pGraphClone, wcceGraph_t originalGraph);
+aclError CUBRIDGE_API wcudaGraphDestroyNode(wcceGraphNode_t node);
 
 /* ============ Host Function & Func 属性 ============ */
 /* cudaLaunchHostFunc(stream, fn, userData)：昇腾有 aclrtLaunchCallback 对应。

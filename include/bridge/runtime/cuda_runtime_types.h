@@ -249,6 +249,31 @@ typedef struct wcceMemPoolProps {
     int locationId;
 } wcceMemPoolProps;
 
+/* Typed CUDA-shape placeholders. These types make unsupported APIs compile
+ * predictably; they do not describe a CANN IPC, graph, mempool or stream ABI. */
+typedef struct wcceIpcMemHandle_st { unsigned char reserved[64]; } wcceIpcMemHandle_t;
+typedef struct wcceIpcEventHandle_st { unsigned char reserved[64]; } wcceIpcEventHandle_t;
+
+typedef enum wcceMemPoolAttr {
+    wcceMemPoolReuseFollowEventDependencies = 1,
+    wcceMemPoolReuseAllowOpportunistic = 2,
+    wcceMemPoolReuseAllowInternalDependencies = 3,
+    wcceMemPoolAttrReleaseThreshold = 4,
+    wcceMemPoolAttrReservedMemCurrent = 5,
+    wcceMemPoolAttrReservedMemHigh = 6,
+    wcceMemPoolAttrUsedMemCurrent = 7,
+    wcceMemPoolAttrUsedMemHigh = 8,
+} wcceMemPoolAttr;
+
+typedef void *wcceGraph_t;
+typedef void *wcceGraphExec_t;
+typedef void *wcceGraphNode_t;
+typedef enum wcceStreamAttrID {
+    wcceStreamAttributeAccessPolicyWindow = 1,
+    wcceStreamAttributeSynchronizationPolicy = 2,
+} wcceStreamAttrID;
+typedef struct wcceStreamAttrValue { uint64_t reserved[8]; } wcceStreamAttrValue;
+
 #ifdef __cplusplus
 }
 #endif
