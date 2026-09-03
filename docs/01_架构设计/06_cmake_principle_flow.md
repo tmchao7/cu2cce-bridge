@@ -24,15 +24,15 @@
 
 三层对策逐个破解：
 
-1. **shim 假 nvcc**（破①）：`cmake_cce` 造一个 CUDA 形状目录，里面的
+1. **虚拟工具链目录中的兼容 nvcc 入口**（破①）：`cmake_cce` 造一个 CUDA 形状目录，里面的
    `nvcc` 实为脚本，最终转到桥的 python 驱动；
-2. **探测应答**（破②）：假 nvcc 只回答探测类问话（`--version` 给
+2. **探测应答**（破②）：兼容 nvcc 入口只回答探测类问话（`--version` 给
    NVIDIA 兼容身份……）→ CMake 把我们归入 nvcc 家族，生成正确形态的规则；
 3. **override 钉规则**（破③）：探测开始前经 CMake 官方注入点
    （CMAKE_USER_MAKE_RULES_OVERRIDE）固定：运行时库 None（不链 cudart）、
    架构 OFF（不产 `.cubin`）、链接器/打包器占位。
 
-真实编译时假 nvcc 干真事：按 `bin/conf.json`（153 条规则）把 nvcc
+真实编译时兼容 nvcc 入口转交真实 driver：按 `bin/conf.json` 规则把 nvcc
 风格命令翻译成 ccec 命令（`-x asc --enable-simt ...`），链接自动注入桥
 运行时。**探测层如实应答兼容身份，执行层做真实翻译**——翻译不了的
 （PTX/RDC/device double）明确拒绝并说明原因，绝不伪造语义。
@@ -42,9 +42,9 @@
 > "CMake 本身只是施工图生成器：开工前验明编译器身份、把编译规则写进
 > Makefile，然后退场，干活的是 make。我们利用它官方提供的注入点：第一，
 > 探测开始前用 override 变量把规则参数钉死——运行时库不链 cudart、架构
-> 关掉；第二，放一个 shim 假 nvcc，对 CMake 的身份探测给出 NVIDIA 兼容
+> 关掉；第二，在虚拟工具链目录中放置兼容 nvcc 入口，对 CMake 的身份探测给出 NVIDIA 兼容
 > 回答——于是 CMake 按熟悉的 nvcc 家族生成规则；第三，所有真实编译由
-> 假 nvcc 转交我们的规则驱动，按 153 条 JSON 规则翻译成 ccec 命令。用户
+> 兼容 nvcc 入口转交规则驱动，按 `bin/conf.json` 翻译成 ccec 命令。用户
 > 工程一行不改：CMake 以为在和 nvcc 说话，实际编译的是 ccec、跑的是
 > 昇腾。探测可以如实应答兼容身份，但真实编译绝不伪造——翻译不了的参数
 > 都明确拒绝并说明原因。"
@@ -79,7 +79,7 @@ CMake 内部对 CUDA 语言的处理流程是：**探测编译器身份 → 询�
 ```mermaid
 graph TD
     A[用户 CMake 工程<br/>源码零改写] --> B[cmake_cce 包装器]
-    B -->|① 布置 shim: bin/nvcc| C[nvcc_entry.sh]
+    B -->|① 布置虚拟工具链目录：bin/nvcc| C[nvcc_entry.sh]
     B -->|② 注入 CMAKE_USER_MAKE_RULES_OVERRIDE| D[CUDAOverrides.cmake]
     B -->|③ 导出 CUDA_PATH/CANN_BASE/...| E[cmake 真正启动]
     E --> F{CMake 的每一次调用}
@@ -87,7 +87,7 @@ graph TD
     F -->|真实编译/链接| H[RuleDriver 进程内调用]
     G --> I[CMake 认定 CUDA 编译器可用<br/>按 nvcc 家族生成规则]
     H --> J[ccec -x asc --enable-simt]
-    D --> K[固定: RUNTIME_LIBRARY=None<br/>ARCHITECTURES=OFF<br/>DEVICE_LINKER/FATBINARY=shim]
+    D --> K[固定: RUNTIME_LIBRARY=None<br/>ARCHITECTURES=OFF<br/>DEVICE_LINKER/FATBINARY=虚拟工具链占位入口]
     J --> L[昇腾 NPU]
 ```
 
@@ -96,7 +96,7 @@ graph TD
 | 备选 | 否决理由 |
 |---|---|
 | patch CMake 源码/发 CMake 补丁 | CMake 版本面太宽（3.18~3.30+），维护成本爆炸；override 机制是 CMake 官方提供的注入点 |
-| 写一个完整的假 nvcc 可执行 | 探测面之外还需 100% 复刻 nvcc 行为，语义漂移不可控；mock 只答探测、真编译统一走驱动，两条路共享同一实现 |
+| 写一个完整的兼容 nvcc 可执行 | 探测面之外还需 100% 复刻 nvcc 行为，语义漂移不可控；mock 只答探测、真编译统一走驱动，两条路共享同一实现 |
 | 只用 `-DCMAKE_CUDA_COMPILER=ccec` | CMake 会按 clang 家族生成 `--cuda-gpu-arch` 等 clang 参数给 ccec，参数体系错位；必须由 override+mock 先把"身份"立住 |
 | LD_PRELOAD / 二进制 patch nvcc | 侵入系统、不可复现、违背零信任调试原则 |
 
@@ -112,8 +112,8 @@ sequenceDiagram
     participant X as ccec/ACL
 
     U->>W: cmake_cce -S proj -B build
-    W->>W: 布置 shim cuda/bin/nvcc（→nvcc_entry.sh→mock）
-    W->>C: cmake -DCMAKE_USER_MAKE_RULES_OVERRIDE=... -DCMAKE_CUDA_COMPILER=<shim>
+    W->>W: 布置虚拟工具链目录 cuda/bin/nvcc（→nvcc_entry.sh→mock）
+    W->>C: cmake -DCMAKE_USER_MAKE_RULES_OVERRIDE=... -DCMAKE_CUDA_COMPILER=<virtual-toolkit>
     C->>M: nvcc --version
     M-->>C: NVIDIA-compat 版本文本
     C->>M: 编译 CMakeCUDACompilerABI.cu
@@ -137,12 +137,12 @@ sequenceDiagram
 
 ### 4.1 cmake_cce（入口）
 
-- 生成 shim：`$CU2CCE_CMAKE_SHIM_DIR/CUDA_DIR/bin/nvcc → nvcc_entry.sh`，
+- 生成虚拟工具链目录：`$CU2CCE_CMAKE_SHIM_DIR/CUDA_DIR/bin/nvcc → nvcc_entry.sh`，
   外加 device-linker/fatbinary 同名占位（CMake ≥3.21 会探测它们）；
 - 注入：`-DCMAKE_USER_MAKE_RULES_OVERRIDE=<...>/CUDAOverrides.cmake` 与
   `..._OVERRIDE_CUDA=<同一文件>`（override 在**语言探测之前**加载，
   这是 CMake 官方扩展点）；
-- 导出：`CUDA_PATH=<shim>`、`CANN_BASE`、`CU2CCE_NPU_ARCH`、
+- 导出：`CUDA_PATH=<virtual-toolkit>`、`CANN_BASE`、`CU2CCE_NPU_ARCH`、
   `CU2CCE_LIBC_MODE`；透传用户其余 `-D/-G` 参数。
 
 ### 4.2 mock_nvcc（探测应答器）
@@ -181,7 +181,7 @@ configure 后推荐用 `cmake_cce --build`，`.cu.o` 规则实际执行（`CU2CC
 cucc -c vector_add.cu -o CMakeFiles/demo.dir/vector_add.cu.o \
      -I <install>/include -I <cann>/include \
      -include <install>/include/bridge/kernel/simt_adaptor.h \
-     --cuda-path <shim>/cuda ...
+     --cuda-path <virtual-toolkit>/CUDA_DIR ...
   → 驱动丢弃 --cuda-path（提示：工具链由 cu2cce/CANN 选定）
   → 最终：
 /usr/local/Ascend/latest/bin/ccec -x asc \

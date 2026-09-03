@@ -16,7 +16,7 @@
 用户 CUDA .cu
   └─ $CUCC_PATH/bin/cucc
        └─ tools/cu2cce_driver.py
-            └─ bin/conf.json                  # cu-bridge 风格主规则
+            ├─ bin/conf.json                  # cu-bridge 风格主规则
             ├─ include/                       # CUDA/SIMT 兼容头
             └─ ccec -x asc --enable-simt
                  └─ libcce_bridge_runtime.so
@@ -75,7 +75,7 @@ make_cce / ninja_cce / pre_cce
 | `bin/` | 用户可直接调用的入口；当前核心入口是 `cucc` | 命令找不到、环境变量、driver 启动失败 |
 | `cmake/` | 原生 `cu2cce-bridge` CMake package 配置 | `find_package(cu2cce-bridge CONFIG)` 找不到或 target 路径错误 |
 | `cmake_modules/` | CUDA/CMake 兼容模块，不是 CANN 编译器本身 | `FindCUDA`、`FindCUDAToolkit`、legacy CMake 配置问题 |
-| `config/` | 版本化规则、虚拟工具链布局、artifact contract | 规则覆盖、软链布局、产物契约问题 |
+| `config/` | artifact contract；cucc 规则和虚拟工具链清单位于 `bin/`/`tools/` | 规则覆盖、软链布局、产物契约问题 |
 | `include/` | CUDA 兼容头、runtime 声明、SIMT adaptor、shadow libc | `.cu` 解析、CUDA API 声明、host/device 头冲突 |
 | `src/` | bridge runtime 和 experimental BLAS 的实现 | 链接符号、ACL 调用、运行时返回码 |
 | `examples/` | puresimt、CMake、Make/Ninja、BLAS 和诊断载体 | 复现某个 API 或构建入口的最小案例 |
@@ -163,7 +163,7 @@ entries 后直接执行系统 `make`。Makefile 中的 `nvcc` 会通过虚拟工
 
 ### `tools/ninja_cce`
 
-Ninja wrapper。支持直接 `ninja_cce -C <build>`，读取已有 CMake cache 的 shim，或根据 build
+Ninja wrapper。支持直接 `ninja_cce -C <build>`，读取已有 CMake cache 中记录的虚拟工具链目录，或根据 build
 目录生成稳定的默认虚拟工具链目录；随后设置 NPU/CANN 环境并执行系统 `ninja`。
 
 ### `tools/pre_cce`
@@ -182,7 +182,7 @@ link 阶段由 driver 的 `hostcc.link.inject` 规则补充 bridge runtime 和�
 CMake/Make/Ninja/pre 共用的 shell helper，集中处理：
 
 - host triple、NPU 架构和 ccec 路径解析；
-- CMake build cache 中旧 虚拟工具链目录的恢复；
+- CMake build cache 中记录的虚拟工具链目录恢复；
 - build-keyed 虚拟工具链根目录；
 - 无尾部空项的 `LD_LIBRARY_PATH`；
 - virtual CUDA toolkit builder 调用。
@@ -194,7 +194,7 @@ CMake/Make/Ninja/pre 共用的 shell helper，集中处理：
 
 ### `tools/mock/nvcc_entry.sh` 与 `tools/mock/mock_nvcc.py`
 
-`nvcc_entry.sh` 是 configure 阶段的 shim 入口；`mock_nvcc.py` 回答 CMake 的 version、ABI、
+`nvcc_entry.sh` 是 configure 阶段的虚拟工具链入口；`mock_nvcc.py` 回答 CMake 的 version、ABI、
 identity 和 simple preprocess 探针。ABI stand-in 只用于 configure 探测，真实 build 必须经过
 cucc/ccec。
 
@@ -206,14 +206,15 @@ cucc/ccec。
 
 | section | 作用 |
 |---|---|
-| `frontend` | compiler、默认 `dav-*`、兼容 CUDA version |
-| `queries` | query/skipstring 类命令直通 |
-| `all` | 全阶段 forward/drop/replace/reject |
-| `compile` | CUDA source 的 inject/特殊替换 |
-| `link` | CANN/bridge link、RPATH 和 runtime 注入 |
-| `capabilities` | cudart、cublas、nccl 等库能力分层和 `map_to` |
-| `regex_cleanup` | 最终命令的 gcc/clang cleanup |
-| `diagnostics` | strict/debug/trace 和 unsupported mode 配置 |
+| `data` | 参考项目风格的规则数据版本 |
+| `skipstring` | query 类命令直通 |
+| `all` / `compile` / `link` | `filter`、`replacer`、`adder` 规则 |
+| `cu2cce.frontend` | CANN `ccec`、默认 `dav-*` 和兼容 CUDA version |
+| `cu2cce.reject` | Ascend 不支持能力的明确拒绝规则 |
+| `cu2cce.capabilities` | cudart、cublas、nccl 等库能力分层和 `map_to` |
+| `cu2cce.hostcc` | host compiler link carrier 的 CANN/bridge 注入 |
+| `cu2cce.regex_cleanup` | 最终命令的 gcc/clang cleanup |
+| `cu2cce.diagnostics` | strict/debug/trace 和 unsupported mode 配置 |
 
 修改此文件后必须运行：
 
@@ -297,7 +298,7 @@ experimental `cublas* → aclblas*` 实现。它不属于默认 puresimt blockin
 | 文件 | 覆盖 |
 |---|---|
 | `tests/test_cucc_rules.py` | 参数规则、query/options/response、架构、host flags、library policy、phase 和 trace |
-| `tests/test_cmake_compat.py` | CMake wrapper、shim 生命周期、legacy module、Make/Ninja/pre 参数边界 |
+| `tests/test_cmake_compat.py` | CMake wrapper、虚拟工具链生命周期、legacy module、Make/Ninja/pre 参数边界 |
 | `tests/test_artifacts.py` | artifact contract、metadata、NEEDED/RPATH、server harness 接线 |
 | `tests/test_blas_surface.py` | experimental BLAS surface |
 | `tests/test_repo_hygiene.py` | 目录、文档入口、gitignore 和发布树卫生 |
@@ -637,7 +638,7 @@ git diff --check
 | `tests/mock_acl/syntax_check.sh` | mock ACL 头/语法检查资产，不代表真机运行 |
 | `tests/test_artifacts.py` | artifact contract、metadata、ELF 依赖和 server harness 测试 |
 | `tests/test_blas_surface.py` | experimental BLAS surface 测试 |
-| `tests/test_cmake_compat.py` | CMake/Make/Ninja/pre/shim/FindCUDA 兼容测试 |
+| `tests/test_cmake_compat.py` | CMake/Make/Ninja/pre/虚拟工具链/FindCUDA 兼容测试 |
 | `tests/test_cucc_rules.py` | cucc 规则、phase、query、response 和 NPU policy 测试 |
 | `tests/test_repo_hygiene.py` | 仓库目录、文档入口、gitignore 和 tracked tree 卫生契约 |
 
@@ -671,7 +672,7 @@ git diff --check
 | `tools/mock/CMakeCompilerABI.h` | CMake ABI mock 辅助源码 |
 | `tools/mock/mock_nvcc.py` | CMake version/ABI/identity 探针 mock |
 | `tools/mpi_cce` | host-only Fortran/MPI wrapper；拒绝 CUDA source 误用 |
-| `tools/ninja_cce` | Ninja wrapper；build tree shim 恢复和真实构建入口 |
+| `tools/ninja_cce` | Ninja wrapper；build tree 虚拟工具链恢复和真实构建入口 |
 | `tools/mock/nvcc_entry.sh` | CMake configure 阶段的 mock nvcc 入口 |
 | `tools/pre_cce` | autotools/configure 环境准备 wrapper |
 | `tools/real_test/README.md` | 真机回归辅助、外部样本或 URL 安全工具 |

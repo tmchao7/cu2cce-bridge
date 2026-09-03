@@ -18,9 +18,9 @@
    其余真实编译调用 → 进程内 RuleDriver → ccec
         ▼
 ③ CUDAOverrides.cmake（CMake 内置探测前生效）
-   CMAKE_CUDA_COMPILER/DEVICE_LINKER/FATBINARY ← shim
+   CMAKE_CUDA_COMPILER/DEVICE_LINKER/FATBINARY ← 虚拟工具链入口
    CMAKE_CUDA_RUNTIME_LIBRARY=None、CUDA_ARCHITECTURES=OFF
-   vendor 正则接受 虚拟工具链目录的 NVIDIA-compat 身份
+   vendor 正则接受虚拟工具链入口的 NVIDIA-compat 身份
 ```
 
 逃生开关：`CU2CCE_CMAKE_NO_OVERRIDE=1` 回退旧旁路（纯 `-DCMAKE_CUDA_*`）。
@@ -33,7 +33,7 @@
 手动使用时必须自己执行）。
 
 ```bash
-# ① 推荐入口（自动布置 shim + override）
+# ① 推荐入口（自动布置虚拟工具链目录 + override）
 bash tools/cmake_cce -S <工程根> -B build
 bash tools/cmake_cce --build build --parallel
 
