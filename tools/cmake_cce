@@ -123,7 +123,11 @@ export CU2CCE_CMAKE_SHIM_DIR="$VIRTUAL_TOOLKIT_ROOT"
 CUDA_DIR="$VIRTUAL_TOOLKIT_ROOT/CUDA_DIR"
 if [ "$build_phase" -eq 1 ]; then
     if [ -e "$CUDA_DIR/bin/nvcc" ]; then
-        ln -sfn "$CUCC_PATH/bin/cucc" "$CUDA_DIR/bin/nvcc"
+        # Rebuild the same virtual directory through the shared manifest
+        # builder instead of maintaining a second hand-written relink path.
+        CUDA_DIR="$(cu2cce_prepare_virtual_toolkit \
+            "$VIRTUAL_TOOLKIT_ROOT" "$CUCC_PATH/bin/cucc" \
+            "$VIRTUAL_TOOLKIT_ROOT/bin" wrapper "$CUCC_PATH/tools/link.json")" || exit 1
         printf 'cmake_cce: build phase: virtual toolkit nvcc -> %s/bin/cucc\n' "$CUCC_PATH" >&2
     else
         printf 'cmake_cce: build phase: no virtual toolkit from a configure run at %s; continuing\n' "$CUDA_DIR" >&2

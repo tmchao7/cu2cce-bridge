@@ -86,10 +86,10 @@ configure 脚本用 `pre_makefile` 包裹；Python 库安装不管（FAQ Q7）�
 | configure 包裹器 | pre_makefile（configure 脚本包裹，FAQ Q5） | **pre_cce**（同构 + hostcc_cce 统一——第五批次前是身份软链，纯 g++ 链接拿不到注入） | 已对齐（2026-08-28；2026-08-30 统一 hostcc） |
 | 设备架构探测助手 | multi_target.sh + get_device_arch.sh（CUCC_TARGETS → mx-smi → 提示） | **tools/device_arch.sh**（CU2CCE_NPU_ARCH/CUCC_NPU_ARCH/CUCC_TARGETS/CUCC_TARGETS_FROM_DEVICE → npu-smi 表映射 → cache → default + tip），cmake_cce/make_cce/ninja_cce/pre_cce 接线 | 已对齐（2026-09-01，NPU 单 dav-* target 约束） |
 | CUPTI 路径布局 | 虚拟目录含 extras/CUPTI/{include,lib64} | tools/link.json 同款空目录布局（路径探测兼容） | 已对齐（2026-08-28） |
-| nvcc 兼容软链 | FAQ Q2 手工软链 workaround | **安装树自动提供 `bin/nvcc → cucc`**（install CODE） | 已对齐+自动化 |
+| nvcc 兼容软链 | FAQ Q2 手工软链 workaround | **安装树提供普通文件 `bin/nvcc` wrapper → `cucc`**（无安装阶段软链） | 已对齐+自动化 |
 | CUDA Toolkit 发现 | 无 FindCUDAToolkit（文档教用户绕开 CUDA 语言） | FindCUDAToolkit + CUDA::cudart/toolkit 别名族（真机验证） | **本桥领先** |
-| 参数适配 | conf.json（replacer/adder/filter/skipstring）+ gomxccbin 正则 | cu2cce_rules.json（五动作 + queries + hostcc + regex_cleanup 段）单一 in-process 驱动 | 机制不同目标相同；无 Go 工具依赖 |
-| 库名重写 | 40+ 条 -lcudart→-lmcruntime 等 | -lcudart 丢弃 + 桥运行时注入；shim lib64 另备 libcublas/libnvToolsExt 名（EXPERIMENTAL，走桥内实验面） | 语义等价（后端库面不同） |
+| 参数适配 | conf.json（replacer/adder/filter/skipstring）+ gomxccbin 正则 | bin/conf.json（filter/replacer/adder/skipstring + Ascend cu2cce 扩展）单一 in-process 驱动 | 机制不同目标相同；无 Go 工具依赖 |
+| 库名重写 | 40+ 条 -lcudart→-lmcruntime 等 | -lcudart 丢弃 + 桥运行时注入；虚拟工具链 `lib64` 另备 libcublas/libnvToolsExt 名（EXPERIMENTAL，走桥内实验面） | 语义等价（后端库面不同） |
 | 设备架构 | CUCC_TARGETS / mx-smi | CU2CCE_NPU_ARCH / CUCC_TARGETS(dav-*) / npu-smi 自动探测 | 已对齐（Ascend 单 target 约束） |
 | CUDA 版本仿真 | CUCC_CUDA_VERSION → -DCUDA_VERSION | 同名开关 CUCC_CUDA_VERSION | 已对齐（同名） |
 | 调试 | WCUDA_DEBUG / CUBRIDGE_LOG_LEVEL | WCUDA_DEBUG / CU2CCE_DEBUG / CU2CCE_TRACE_FILE | 已对齐+扩展 |

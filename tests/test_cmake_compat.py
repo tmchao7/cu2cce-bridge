@@ -696,7 +696,9 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         # link.json/stub_link.json single-manifest parity).
         cmake_cce = (ROOT / "tools/cmake_cce").read_text(encoding="utf-8")
         self.assertIn('cmake_cce: build phase: virtual toolkit nvcc ->', cmake_cce)
-        self.assertIn('ln -sfn "$CUCC_PATH/bin/cucc" "$CUDA_DIR/bin/nvcc"', cmake_cce)
+        self.assertIn('cu2cce_prepare_virtual_toolkit', cmake_cce)
+        self.assertIn('"$VIRTUAL_TOOLKIT_ROOT" "$CUCC_PATH/bin/cucc"', cmake_cce)
+        self.assertNotIn('ln -sfn "$CUCC_PATH/bin/cucc" "$CUDA_DIR/bin/nvcc"', cmake_cce)
         # The build-phase re-point remains persistent, but the default root is
         # keyed by the canonical build directory so separate projects do not
         # overwrite one another. Explicit CU2CCE_CMAKE_SHIM_DIR still wins.
