@@ -304,6 +304,7 @@ CUDA device-link/RDC
 | `__shfl_up_sync` | `asc_shfl_up` | 3/4 参数分派 | `SUPPORTED` for tested forms | mask 不可表达任意 CUDA 子组 |
 | `__shfl_down_sync` | `asc_shfl_down` | 3/4 参数分派 | `SUPPORTED` for tested forms | 当前回归重点覆盖 down |
 | `__shfl_xor_sync` | `asc_shfl_xor` | 3/4 参数分派 | `EXPERIMENTAL` | 需要按 lane mask 和 width 约束使用 |
+| 旧 CUDA `__shfl/__shfl_up/__shfl_down/__shfl_xor` | `asc_shfl*` | `CU2CCE_ENABLE_LEGACY_DEVICE_APIS=1` 后映射 | `EXPERIMENTAL` | 默认关闭，避免污染 CANN FP16 头文件内部同名 `__shfl` 声明 |
 | `__all_sync` | `asc_all` | mask 被显式求值后忽略 | `SUPPORTED` for tested forms | 不是任意 CUDA active mask 等价 |
 | `__any_sync` | `asc_any` | mask 被显式求值后忽略 | `SUPPORTED` for tested forms | 同上 |
 | `__ballot_sync` | `asc_ballot` | mask 被显式求值后忽略 | `SUPPORTED` for tested forms | 返回位图宽度由 CANN 定义 |

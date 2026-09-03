@@ -336,6 +336,10 @@ atomicCAS / atomicInc / atomicDec / atomicAnd / atomicOr / atomicXor
 目标的真机运行支持。`__threadfence_system()` 没有被降级成普通 fence，
 `cudaMemcpyDefault` 也不会被猜测成 Device-to-Device。
 
+旧版无 mask 的 `__shfl` 系列另有独立开关：
+`CU2CCE_ENABLE_LEGACY_DEVICE_APIS=1`。默认关闭是因为 CANN 的 FP16 实现内部也会声明
+名为 `__shfl` 的函数，全局宏会破坏其声明；优先使用 CUDA 的 `__shfl*_sync` 形式。
+
 ## 使用 CMake
 
 CMake 工程不需要修改用户的 `.cu` 源码；推荐始终用 `cmake_cce` 完成 configure 和 build。

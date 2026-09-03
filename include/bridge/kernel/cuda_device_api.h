@@ -83,33 +83,37 @@
 #    define __reduce_min_sync(mask, value) ((void)(mask), asc_reduce_min((value)))
 #  endif
 
-/* Deprecated CUDA warp spellings are still common in older kernels. They do
- * not carry a mask; preserve their optional width argument instead of
- * silently forcing every call to the CANN default. */
-#  define CU2CCE_LEGACY_SHFL2(var, srcLane) asc_shfl((var), (srcLane), warpSize)
-#  define CU2CCE_LEGACY_SHFL3(var, srcLane, width) asc_shfl((var), (srcLane), (width))
-#  define CU2CCE_LEGACY_SHFL_UP2(var, delta) asc_shfl_up((var), (delta), warpSize)
-#  define CU2CCE_LEGACY_SHFL_UP3(var, delta, width) asc_shfl_up((var), (delta), (width))
-#  define CU2CCE_LEGACY_SHFL_DOWN2(var, delta) asc_shfl_down((var), (delta), warpSize)
-#  define CU2CCE_LEGACY_SHFL_DOWN3(var, delta, width) asc_shfl_down((var), (delta), (width))
-#  define CU2CCE_LEGACY_SHFL_XOR2(var, laneMask) asc_shfl_xor((var), (laneMask), warpSize)
-#  define CU2CCE_LEGACY_SHFL_XOR3(var, laneMask, width) asc_shfl_xor((var), (laneMask), (width))
-#  define CU2CCE_SELECT_LEGACY(_1, _2, _3, NAME, ...) NAME
-#  define CU2CCE_LEGACY_SHFL(...) \
+/* Deprecated CUDA warp spellings are opt-in. CANN's FP16 implementation
+ * declares internal functions named `__shfl`; defining these macros globally
+ * would rewrite those declarations when <cuda_fp16.h> is included later.
+ * When enabled, preserve the optional width argument instead of silently
+ * forcing every call to the CANN default. */
+#  if defined(CU2CCE_ENABLE_LEGACY_DEVICE_APIS)
+#    define CU2CCE_LEGACY_SHFL2(var, srcLane) asc_shfl((var), (srcLane), warpSize)
+#    define CU2CCE_LEGACY_SHFL3(var, srcLane, width) asc_shfl((var), (srcLane), (width))
+#    define CU2CCE_LEGACY_SHFL_UP2(var, delta) asc_shfl_up((var), (delta), warpSize)
+#    define CU2CCE_LEGACY_SHFL_UP3(var, delta, width) asc_shfl_up((var), (delta), (width))
+#    define CU2CCE_LEGACY_SHFL_DOWN2(var, delta) asc_shfl_down((var), (delta), warpSize)
+#    define CU2CCE_LEGACY_SHFL_DOWN3(var, delta, width) asc_shfl_down((var), (delta), (width))
+#    define CU2CCE_LEGACY_SHFL_XOR2(var, laneMask) asc_shfl_xor((var), (laneMask), warpSize)
+#    define CU2CCE_LEGACY_SHFL_XOR3(var, laneMask, width) asc_shfl_xor((var), (laneMask), (width))
+#    define CU2CCE_SELECT_LEGACY(_1, _2, _3, NAME, ...) NAME
+#    define CU2CCE_LEGACY_SHFL(...) \
     CU2CCE_SELECT_LEGACY(__VA_ARGS__, CU2CCE_LEGACY_SHFL3, CU2CCE_LEGACY_SHFL2)(__VA_ARGS__)
-#  define CU2CCE_LEGACY_SHFL_UP(...) \
+#    define CU2CCE_LEGACY_SHFL_UP(...) \
     CU2CCE_SELECT_LEGACY(__VA_ARGS__, CU2CCE_LEGACY_SHFL_UP3, CU2CCE_LEGACY_SHFL_UP2)(__VA_ARGS__)
-#  define CU2CCE_LEGACY_SHFL_DOWN(...) \
+#    define CU2CCE_LEGACY_SHFL_DOWN(...) \
     CU2CCE_SELECT_LEGACY(__VA_ARGS__, CU2CCE_LEGACY_SHFL_DOWN3, CU2CCE_LEGACY_SHFL_DOWN2)(__VA_ARGS__)
-#  define CU2CCE_LEGACY_SHFL_XOR(...) \
+#    define CU2CCE_LEGACY_SHFL_XOR(...) \
     CU2CCE_SELECT_LEGACY(__VA_ARGS__, CU2CCE_LEGACY_SHFL_XOR3, CU2CCE_LEGACY_SHFL_XOR2)(__VA_ARGS__)
-#  define __shfl(...) CU2CCE_LEGACY_SHFL(__VA_ARGS__)
-#  define __shfl_up(...) CU2CCE_LEGACY_SHFL_UP(__VA_ARGS__)
-#  define __shfl_down(...) CU2CCE_LEGACY_SHFL_DOWN(__VA_ARGS__)
-#  define __shfl_xor(...) CU2CCE_LEGACY_SHFL_XOR(__VA_ARGS__)
-#  define __all(predicate) asc_all((predicate))
-#  define __any(predicate) asc_any((predicate))
-#  define __ballot(predicate) asc_ballot((predicate))
+#    define __shfl(...) CU2CCE_LEGACY_SHFL(__VA_ARGS__)
+#    define __shfl_up(...) CU2CCE_LEGACY_SHFL_UP(__VA_ARGS__)
+#    define __shfl_down(...) CU2CCE_LEGACY_SHFL_DOWN(__VA_ARGS__)
+#    define __shfl_xor(...) CU2CCE_LEGACY_SHFL_XOR(__VA_ARGS__)
+#    define __all(predicate) asc_all((predicate))
+#    define __any(predicate) asc_any((predicate))
+#    define __ballot(predicate) asc_ballot((predicate))
+#  endif
 #endif
 
 /* CUDA atomics return the value observed before the operation. CANN's SIMT

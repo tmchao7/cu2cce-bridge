@@ -179,10 +179,10 @@ CU
         if [ -n "$SIMT_ROOT" ] && [ -d "$SIMT_ROOT" ]; then
             simt_flags+=( -I"$(dirname "$SIMT_ROOT")" -I"$SIMT_ROOT" )
         fi
-        if "$CCEC" -c "$device_root/device_api_probe.cu" \
-            -o "$device_root/device_api_probe.o" \
-            -x asc --enable-simt --cce-aicore-arch="$NPU_ARCH" \
+        if "$CCEC" -x asc --enable-simt --cce-aicore-arch="$NPU_ARCH" \
             -I"$BRIDGE_INCLUDE" -I"$include_root" "${simt_flags[@]}" \
+            -c "$device_root/device_api_probe.cu" \
+            -o "$device_root/device_api_probe.o" \
             >"$device_root/compile.log" 2>&1; then
             echo "[PASS] device API compile: core SIMT/warp/vote/reduce ($NPU_ARCH)"
         else
@@ -190,11 +190,11 @@ CU
             tail -n 30 "$device_root/compile.log" 2>/dev/null || true
             status=1
         fi
-        if "$CCEC" -c "$device_root/device_api_extended_probe.cu" \
-            -o "$device_root/device_api_extended_probe.o" \
-            -x asc --enable-simt --cce-aicore-arch="$NPU_ARCH" \
+        if "$CCEC" -x asc --enable-simt --cce-aicore-arch="$NPU_ARCH" \
             -DCU2CCE_ENABLE_EXPERIMENTAL_DEVICE_APIS=1 \
             -I"$BRIDGE_INCLUDE" -I"$include_root" "${simt_flags[@]}" \
+            -c "$device_root/device_api_extended_probe.cu" \
+            -o "$device_root/device_api_extended_probe.o" \
             >"$device_root/extended_compile.log" 2>&1; then
             echo "[DIAG-PASS] device API compile: extended atomics/active-mask ($NPU_ARCH)"
         else

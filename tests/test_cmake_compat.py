@@ -2570,3 +2570,18 @@ class CudaAsyncArraySymbolSurfaceContractTest(unittest.TestCase):
             self.assertIn(wcuda_name, header)
             self.assertIn(wcuda_name, source)
         self.assertIn("array_not_supported", source)
+
+class ServerDeviceProbeRegressionContractTest(unittest.TestCase):
+    def test_probe_places_language_selector_before_cuda_input(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        text = (root / "tools/real_test/diag/cann_api_surface_probe.sh").read_text(encoding="utf-8")
+        self.assertIn('"$CCEC" -x asc --enable-simt --cce-aicore-arch="$NPU_ARCH" \\', text)
+        self.assertNotIn('"$CCEC" -c "$device_root/device_api_probe.cu" \\', text)
+        self.assertNotIn('"$CCEC" -c "$device_root/device_api_extended_probe.cu" \\', text)
+
+    def test_legacy_shfl_macros_are_opt_in_to_avoid_cann_internal_collisions(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        text = (root / "include/bridge/kernel/cuda_device_api.h").read_text(encoding="utf-8")
+        marker = "defined(CU2CCE_ENABLE_LEGACY_DEVICE_APIS)"
+        self.assertIn(marker, text)
+        self.assertLess(text.index(marker), text.index("define __shfl(...)"))
