@@ -4,7 +4,7 @@
 #
 # cu-bridge's documented use (FAQ Q5): autoconf-style `configure xxx`
 # becomes `pre_makefile configure xxx`. pre_cce does the same for NPU:
-# it prepares the fake CUDA toolkit environment (bin/nvcc -> cucc,
+# it prepares the virtual CUDA toolkit environment (bin/nvcc -> cucc,
 # CUDA-named lib64 links, host compiler entries) and then executes the
 # wrapped command directly, so scripts that probe for nvcc/gcc during
 # configuration

@@ -66,14 +66,14 @@ cmake_cce --build /tmp/cu2cce-cmake-build
 The core integration is validated on Ascend. The smoke test passed the standard,
 multi-CUDA/static/shared, `CUDA::cudart`, legacy `FindCUDA`, and Ninja projects on
 2026-09-02. Advanced CUDA device-link, PTX/CUBIN/FATBIN, and unvalidated CUDA library
-packages remain experimental or unsupported. Set `CU2CCE_CMAKE_SHIM_DIR` to keep the compiler shim in a persistent directory; use a
+packages remain experimental or unsupported. Set `CU2CCE_CMAKE_SHIM_DIR` to keep the compiler virtual toolkit directory in a persistent location; use a
 different directory per concurrent project. The artifact contract additionally checks
 `.o/.a/.so/ELF`, `.d`, `NEEDED`, RPATH/RUNPATH and forbidden NVIDIA intermediates.
 
 ## cucc rule diagnostics
 
 The compiler driver is rule-driven. The installed policy is
-`bin/conf.json`, shared by normal `cucc` and the CMake nvcc shim.
+`bin/conf.json`, shared by normal `cucc` and the CMake virtual toolkit nvcc entry.
 For diagnostics:
 
 ```bash

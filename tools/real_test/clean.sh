@@ -17,6 +17,7 @@ mkdir -p "$BUILD"
 # The default cmake_cce virtual toolkit is process-scoped, but stale directories can be
 # left behind after an interrupted configure. Remove only our known prefix.
 for toolkit in "${TMPDIR:-/tmp}"/cu2cce-cmake-virtual-toolkit-* "${TMPDIR:-/tmp}"/cu2cce-cmake-shim-*; do
+    # The second glob removes directories left by pre-95a4860 runs.
     [ -e "$toolkit" ] || [ -L "$toolkit" ] || continue
     rm -rf "$toolkit"
 done

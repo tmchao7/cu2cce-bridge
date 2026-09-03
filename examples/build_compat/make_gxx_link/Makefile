@@ -1,8 +1,8 @@
 # Deliberately links with the PLAIN host compiler + -lcudart: exercises the
-# CUDA-named lib64 symlink family that make_cce builds into its fake toolkit
+# CUDA-named lib64 symlink family that make_cce builds into its virtual CUDA toolkit
 # (cu-bridge link.json pre_make parity). Run through make_cce, which puts
 # nvcc (-> cucc) and the host compiler passthroughs on PATH and exports
-# CUDA_PATH pointing at the fake toolkit.
+# CUDA_PATH pointing at the virtual CUDA toolkit.
 CXX      ?= g++
 NVCC     ?= nvcc
 BUILD    ?= build

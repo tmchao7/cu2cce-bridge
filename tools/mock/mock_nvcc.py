@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CMake nvcc protocol shim shared with the normal cucc rule driver."""
+"""CMake nvcc protocol adapter shared with the normal cucc rule driver."""
 from __future__ import annotations
 
 import os

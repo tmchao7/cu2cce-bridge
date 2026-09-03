@@ -32,7 +32,7 @@
    （CMAKE_USER_MAKE_RULES_OVERRIDE）固定：运行时库 None（不链 cudart）、
    架构 OFF（不产 `.cubin`）、链接器/打包器占位。
 
-真实编译时假 nvcc 干真事：按 `cu2cce_rules.json`（153 条规则）把 nvcc
+真实编译时假 nvcc 干真事：按 `bin/conf.json`（153 条规则）把 nvcc
 风格命令翻译成 ccec 命令（`-x asc --enable-simt ...`），链接自动注入桥
 运行时。**探测层如实应答兼容身份，执行层做真实翻译**——翻译不了的
 （PTX/RDC/device double）明确拒绝并说明原因，绝不伪造语义。
@@ -160,7 +160,7 @@ sequenceDiagram
 | 变量 | 值 | 目的 |
 |---|---|---|
 | `CMAKE_CUDA_COMPILER` | 虚拟工具链 nvcc | 与 mock 一致 |
-| `CMAKE_CUDA_DEVICE_LINKER/FATBINARY` | shim 占位 | 免去对 nvlink/fatbinary 的探测（CMake ≥3.21） |
+| `CMAKE_CUDA_DEVICE_LINKER/FATBINARY` | 虚拟工具链占位 | 免去对 nvlink/fatbinary 的探测（CMake ≥3.21） |
 | `CMAKE_CUDA_RUNTIME_LIBRARY` | `None` | cudart 语义由桥运行时承接，阻止 CMake 自动链 cudart |
 | `CMAKE_CUDA_ARCHITECTURES` | `OFF` | NVIDIA sm_XX 无意义且触发 `.cubin` 产物管线（真机失败教训） |
 

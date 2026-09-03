@@ -702,7 +702,7 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         # overwrite one another. Explicit CU2CCE_CMAKE_SHIM_DIR still wins.
         self.assertIn('cu2cce_virtual_toolkit_root_for_build', cmake_cce)
         self.assertIn('cmake-virtual-toolkit-', (ROOT / "tools/virtual_toolkit_env.sh").read_text(encoding="utf-8"))
-        # Configure phase binds the shim nvcc to the mock through the shared
+        # Configure phase binds the virtual toolkit nvcc to the mock through the shared
         # helper (re-pointing here makes repeated configure/build cycles on
         # one persistent shim deterministic). Since the seventh batch the
         # sentinel/builder logic lives in tools/virtual_toolkit_env.sh.
@@ -725,12 +725,12 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         self.assertIn('"libcudart.so"', layout)
         self.assertIn('lib64/cmake/CUDAToolkit', layout)
         # make.log sentinel is created by the helper (persistent virtual CUDA toolkit);
-        # make_cce sources it and binds the shim nvcc to the real cucc.
+        # make_cce sources it and binds the virtual toolkit nvcc to the real cucc.
         self.assertIn('. "${CUCC_PATH}/tools/virtual_toolkit_env.sh"', make_cce)
         self.assertIn('cu2cce_prepare_virtual_toolkit "$VIRTUAL_TOOLKIT_ROOT" "$CUCC_PATH/bin/cucc"', make_cce)
         self.assertIn('PATH="$VIRTUAL_TOOLKIT_ROOT/bin:$CUDA_DIR/bin:$PATH"', make_cce)
 
-    def test_shim_layout_manifest_is_single_source_for_three_entries(self) -> None:
+    def test_virtual_toolkit_manifests_drive_all_entries(self) -> None:
         # Fifth parity batch: cmake_cce/make_cce/pre_cce used to carry three
         # hand-written copies of the mkdir/ln sequences (cu-bridge keeps ONE
         # manifest: tools/link.json + tools/mock/stub_link.json). All three
@@ -1590,7 +1590,7 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
             self.assertEqual(repaired.returncode, 0, repaired.stderr)
             self.assertTrue(broken_include.is_symlink())
 
-            # Idempotent re-run re-points the shim nvcc without disturbing
+            # Idempotent re-run re-points the virtual toolkit nvcc without disturbing
             # the rest of the tree.
             rerun = sp.run([
                 sys.executable,
@@ -2014,7 +2014,7 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         pre_cce = (ROOT / "tools/pre_cce").read_text(encoding="utf-8")
         # Fifth parity batch: the virtual CUDA toolkit comes from the shared builder;
         # seventh batch: sentinel/builder calls moved into the sourced helper
-        # tools/virtual_toolkit_env.sh (pre_cce binds the shim nvcc to the real
+        # tools/virtual_toolkit_env.sh (pre_cce binds the virtual toolkit nvcc to the real
         # cucc like make_cce, and its host compiler entries go through
         # hostcc_cce).
         self.assertIn('. "${CUCC_PATH}/tools/virtual_toolkit_env.sh"', pre_cce)

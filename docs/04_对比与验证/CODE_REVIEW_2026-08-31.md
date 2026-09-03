@@ -18,7 +18,7 @@
 
 本轮采用双轴判断：
 
-1. 机制是否与 `cu-bridge` 对齐：fake CUDA toolkit、CMake configure/build 双阶段、Make/Ninja 包装、query/filter/replacer、host compiler carrier、持久化 shim、规则驱动 cucc。
+1. 机制是否与 `cu-bridge` 对齐：虚拟 CUDA 工具链目录、CMake configure/build 双阶段、Make/Ninja 包装、query/filter/replacer、host compiler carrier、持久化 shim、规则驱动 cucc。
 2. 是否保留 Ascend NPU 的真实边界：`ccec -x asc --enable-simt`、`dav-*` 架构、`aclrt/ascendcl/libruntime` 链接、host g++ 路径、无 CUDA device-link/PTX/CUBIN/FATBIN 等。
 
 不能因为 MACA 有某个能力，就将其伪装为 Ascend 已支持能力。

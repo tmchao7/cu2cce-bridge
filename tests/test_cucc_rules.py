@@ -15,6 +15,39 @@ import cu2cce_driver  # noqa: E402
 from cu2cce_driver import DriverError, RuleDriver, main, scan_device_double_usage  # noqa: E402
 
 
+def canonical_rules(*, frontend=None, all_filter=None, all_replacer=None,
+                    all_reject=None, capabilities=None, regex_cleanup=None):
+    """Build a compact reference-shaped rule document for validation tests."""
+    return {
+        "schema_version": 1,
+        "data": "0109",
+        "skipstring": [],
+        "all": {
+            "forward": [],
+            "filter": list(all_filter or []),
+            "replacer": list(all_replacer or []),
+            "adder": [],
+        },
+        "compile": {"filter": [], "replacer": [], "adder": []},
+        "link": {"filter": [], "replacer": [], "adder": []},
+        "compile_and_link": {"filter": [], "replacer": [], "adder": []},
+        "condition": [],
+        "not_found": {},
+        "cu2cce": {
+            "backend": "ascend-cann",
+            "compiler": "bisheng-ccec",
+            "enable_simt": True,
+            "default_arch": "dav-c310-vec",
+            "frontend": dict(frontend or {}),
+            "reject": {"all": list(all_reject or [])},
+            "capabilities": dict(capabilities or {}),
+            "hostcc": {},
+            "regex_cleanup": list(regex_cleanup or []),
+            "diagnostics": {},
+        },
+    }
+
+
 class CuccRuleDriverTest(unittest.TestCase):
     def setUp(self) -> None:
         self.tmp = tempfile.TemporaryDirectory()
@@ -475,18 +508,10 @@ class CuccRuleDriverTest(unittest.TestCase):
 
     def test_custom_rules_file_overrides_default(self) -> None:
         rules = Path(self.tmp.name) / "custom.json"
-        rules.write_text(json.dumps({
-            "schema_version": 1,
-            "frontend": {"default_arch": "custom-arch"},
-            "all": {
-                "forward": [], "drop": [], "replace": [],
-                "reject": [{"pattern": "--custom-reject", "reason": "test rule"}]
-            },
-            "compile": {"inject": []},
-            "link": {"inject": []},
-            "compile_and_link": {"inject": []},
-            "capabilities": {}
-        }), encoding="utf-8")
+        rules.write_text(json.dumps(canonical_rules(
+            frontend={"default_arch": "custom-arch"},
+            all_reject=[{"pattern": "--custom-reject", "reason": "test rule"}],
+        )), encoding="utf-8")
         with self.assertRaises(DriverError):
             self.driver(CU2CCE_RULES_FILE=str(rules)).prepare(["--custom-reject", "main.cu"])
 
@@ -976,54 +1001,27 @@ class CuccRuleDriverTest(unittest.TestCase):
         spec.loader.exec_module(module)
         with tempfile.TemporaryDirectory() as tmp_name:
             path = Path(tmp_name) / "rules.json"
-            path.write_text(json.dumps({
-                "schema_version": 1,
-                "frontend": {},
-                "all": {
-                    "forward": [], "drop": [{
-                        "pattern": "--bad", "optional_value": True,
-                    }],
-                    "replace": [], "reject": [],
-                },
-                "compile": {"inject": []},
-                "link": {"inject": []},
-                "compile_and_link": {"inject": []},
-                "capabilities": {}, "diagnostics": {},
-            }), encoding="utf-8")
+            path.write_text(json.dumps(canonical_rules(
+                all_filter=[{"pattern": "--bad", "optional_value": True}],
+            )), encoding="utf-8")
             errors = module.validate(path)
             self.assertTrue(any("optional_value requires" in error for error in errors), errors)
 
     def test_validator_rejects_invalid_replace_value_policy(self) -> None:
         import validate_cucc_rules  # noqa: PLC0415
         rules = Path(self.tmp.name) / "bad-replace.json"
-        rules.write_text(json.dumps({
-            "schema_version": 1,
-            "frontend": {},
-            "all": {"forward": [], "drop": [], "replace": [
-                {"pattern": "--bad", "preserve_value": "yes", "to": "-I"}
-            ], "reject": []},
-            "compile": {"inject": []},
-            "link": {"inject": []},
-            "compile_and_link": {"inject": []},
-            "capabilities": {},
-            "diagnostics": {},
-        }), encoding="utf-8")
+        rules.write_text(json.dumps(canonical_rules(
+            all_replacer=[{"pattern": "--bad", "preserve_value": "yes", "to": "-I"}],
+        )), encoding="utf-8")
         errors = validate_cucc_rules.validate(rules)
         self.assertTrue(any("preserve_value" in error for error in errors))
 
     def test_validator_rejects_invalid_capability_policy(self) -> None:
         import validate_cucc_rules  # noqa: PLC0415
         rules = Path(self.tmp.name) / "bad-capability.json"
-        rules.write_text(json.dumps({
-            "schema_version": 1,
-            "frontend": {},
-            "all": {"forward": [], "drop": [], "replace": [], "reject": []},
-            "compile": {"inject": []},
-            "link": {"inject": []},
-            "compile_and_link": {"inject": []},
-            "capabilities": {"npp": {"status": "unknown", "action": "maybe"}},
-            "diagnostics": {},
-        }), encoding="utf-8")
+        rules.write_text(json.dumps(canonical_rules(
+            capabilities={"npp": {"status": "unknown", "action": "maybe"}},
+        )), encoding="utf-8")
         errors = validate_cucc_rules.validate(rules)
         self.assertTrue(any("capabilities.npp.status" in error for error in errors))
         self.assertTrue(any("capabilities.npp.action" in error for error in errors))
@@ -1031,17 +1029,9 @@ class CuccRuleDriverTest(unittest.TestCase):
     def test_validator_rejects_broken_regex_cleanup_patterns(self) -> None:
         import validate_cucc_rules  # noqa: PLC0415
         rules = Path(self.tmp.name) / "bad-regex.json"
-        rules.write_text(json.dumps({
-            "schema_version": 1,
-            "frontend": {},
-            "all": {"forward": [], "drop": [], "replace": [], "reject": []},
-            "compile": {"inject": []},
-            "link": {"inject": []},
-            "compile_and_link": {"inject": []},
-            "capabilities": {},
-            "diagnostics": {},
-            "regex_cleanup": [{"pattern": "-Werror(=[^)]", "reason": "broken PCRE"}],
-        }), encoding="utf-8")
+        rules.write_text(json.dumps(canonical_rules(
+            regex_cleanup=[{"pattern": "-Werror(=[^)]", "reason": "broken PCRE"}],
+        )), encoding="utf-8")
         errors = validate_cucc_rules.validate(rules)
         self.assertTrue(any("invalid regex" in error for error in errors))
 

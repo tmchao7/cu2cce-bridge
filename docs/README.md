@@ -93,7 +93,7 @@ CMake 的 configure 阶段使用 virtual CUDA toolkit 和 `mock_nvcc.py` 满足 
 
 - **puresimt**：让 `ccec` 直接解析 CUDA SIMT 写法的当前正式路线。
 - **bridge runtime**：`libcce_bridge_runtime.so` 及其对 CANN runtime 的封装。
-- **virtual CUDA toolkit/shim**：只提供 CUDA 形状的目录、入口和库别名，供构建系统探测或转发；不等同于
+- **CUDA 形状兼容目录**：只提供 CUDA 形状的目录、入口和库别名，供构建系统探测或转发；不等同于
   完整 CUDA Toolkit。
 - **产物对齐**：对齐 `.o`、`.d`、`.a`、`.so`、ELF executable、构建元数据和动态依赖的类别与语义，
   不要求 Ascend 与 MACA 的 ELF 字节级一致。

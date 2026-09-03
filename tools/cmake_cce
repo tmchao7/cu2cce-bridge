@@ -285,7 +285,7 @@ HOST_TRIPLE="$(cu2cce_host_triple)"
 # the build phase re-points it to cucc above.
 CUDA_DIR="$(cu2cce_prepare_virtual_toolkit "$VIRTUAL_TOOLKIT_ROOT" "$CUCC_PATH/tools/mock/nvcc_entry.sh" "$CUDA_DIR/bin" wrapper "$CUCC_PATH/tools/mock/stub_link.json")" || exit 1
 
-printf 'cmake_cce: CUDA shim: %s\n' "$CUDA_DIR" >&2
+printf 'cmake_cce: virtual CUDA toolkit: %s\n' "$CUDA_DIR" >&2
 printf 'cmake_cce: host toolkit layout: %s\n' "$HOST_TRIPLE" >&2
 printf 'cmake_cce: Ascend architecture: %s\n' "$CU2CCE_NPU_ARCH" >&2
 

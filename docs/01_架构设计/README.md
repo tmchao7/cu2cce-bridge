@@ -11,7 +11,7 @@
 | `02_deep_dive.md` | 初始化、默认流、事件、同步、Kernel launch 和调试开关 |
 | `03_cucc_driver.md` | `cucc` 的 phase、规则动作、参数注入和 query 语义 |
 | `04_shadow_headers.md` | CUDA 兼容头、shadow libc、crt 前向层和 host/device 陷阱 |
-| `05_cmake_design.md` | CMake 的 shim、mock 探测、override 和真实构建分流 |
+| `05_cmake_design.md` | CMake 的虚拟工具链目录、mock 探测、override 和真实构建分流 |
 | `06_cmake_principle_flow.md` | 一次 CMake configure/build 的逐层时序和失败模式 |
 | `07_cucc_adaptability.md` | 规则驱动、策略层、可观测性和新增参数 SOP |
 | `ASCEND_RESEARCH_NOTES.md` | CANN/SIMT/runtime 的事实记录 |
@@ -25,7 +25,7 @@
         │
         ├─ cucc → RuleDriver → ccec
         └─ cmake_cce/make_cce/ninja_cce
-             → virtual CUDA toolkit + shim → 同一 cucc
+             → virtual CUDA toolkit + mock entry → 同一 cucc
         │
         ├─ CUDA 兼容头 / SIMT adaptor
         ├─ wcuda* → aclrt* bridge runtime

@@ -353,7 +353,7 @@ cmake_cce --build build --parallel
 ./build/my_cuda_app
 ```
 
-`cmake_cce` configure 阶段使用 fake CUDA toolkit/mock nvcc 完成 CMake 探测；
+`cmake_cce` configure 阶段使用 虚拟 CUDA 工具链目录/mock nvcc 完成 CMake 探测；
 `cmake_cce --build` 阶段会把同一个虚拟工具链目录的 `nvcc` 切换到真实 `cucc`，再由 `cucc → ccec`
 生成真实产物。CMake 的 `build/` 下通常可以看到：
 
@@ -455,7 +455,7 @@ make_cce -C . -j2
 
 `make_cce` 会：
 
-1. 创建 CUDA-shaped virtual CUDA toolkit；
+1. 创建 CUDA-shaped 虚拟 CUDA 工具链目录；
 2. 设置 `CUDA_PATH`/`CUDA_HOME`、CANN 路径和 host compiler wrapper；
 3. 让 Makefile 中的 `nvcc` 进入 `cucc`，再进入 `ccec`；
 4. 让 plain host link 能在已验证形态下找到 bridge/CANN runtime。
@@ -532,7 +532,7 @@ pre_cce make -j2
 export PATH="$CUCC_PATH/bin:$CUCC_PATH/tools:$PATH"
 ```
 
-virtual CUDA toolkit 中的 host compiler entry 会经过 `hostcc_cce`；host-only compile 透传系统编译器，
+虚拟 CUDA 工具链目录中的 host compiler entry 会经过 `hostcc_cce`；host-only compile 透传系统编译器，
 link 阶段按规则注入 bridge/CANN runtime。`.cu` 源必须交给 `cucc`，不能绕过到 host compiler。
 
 ## CANN/NPU 边界
