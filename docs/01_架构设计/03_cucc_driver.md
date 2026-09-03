@@ -86,7 +86,7 @@ Ascend 架构选择优先使用 `CU2CCE_NPU_ARCH`/`CUCC_NPU_ARCH`；为对齐 cu
 cucc [nvcc 风格参数]                 # 正常编译/链接
 cucc --dryrun ...                    # 打印最终 ccec 命令不执行
 cucc --proxy-mode ...                # shlex 单行输出（供父包装器消费）
-cucc --cmake-identity                # CMake 虚拟工具链目录 身份
+cucc --cmake-identity                # CMake 虚拟工具链目录身份
 CU2CCE_TRACE_FILE=f.json CU2CCE_DEBUG=1   # 规则决策 JSON / 调试
 ```
 

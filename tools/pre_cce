@@ -53,7 +53,7 @@ CUCC_PATH="$(cd "$CUCC_PATH" && pwd -P)"
 TEMP_DIR_NAME="cu2cce-bridge"
 if [ -n "${CU2CCE_CMAKE_SHIM_DIR:-}" ]; then
     # CMake configure records compiler/host-tool paths under this root; keep
-    # direct Make/pre-wrapper execution on the same persistent shim.
+    # direct Make/pre-wrapper execution on the same persistent virtual toolkit.
     VIRTUAL_TOOLKIT_ROOT="$CU2CCE_CMAKE_SHIM_DIR"
 else
     VIRTUAL_TOOLKIT_ROOT="$CU2CCE_HOME/${TEMP_DIR_NAME}"

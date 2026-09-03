@@ -102,7 +102,7 @@ manifest-owned symlink path 若被旧版本/中断构建留下真实目录，
 ### [P1] CMake 回归原先可能只走 mock_nvcc，未证明 build 阶段执行真实 cucc — 已修复（`73d08ca`）
 
 `server_cmd.txt` 的 configure 阶段本来使用 mock 是正确的，但后续普通
-`cmake --build` 会继续调用 configure shim；这会让 CMake PASS 只证明
+`cmake --build` 会继续调用 configure virtual toolkit entry；这会让 CMake PASS 只证明
 `mock_nvcc.py` 可用，而不能证明真实 `cucc -> ccec` 产物链路。现在所有
 CMake、multi-cu diagnostic 和 external samples build 都通过 `cmake_cce --build`，
 并在 artifact contract 前验证 build 日志包含第二阶段切换、且

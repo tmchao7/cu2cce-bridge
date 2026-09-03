@@ -663,7 +663,7 @@ run_cmake_case() {
     fi
 
     # Configure uses mock_nvcc; build must go through cmake_cce so it
-    # repoints the persistent shim and executes the real cucc path.
+    # repoints the persistent virtual toolkit and executes the real cucc path.
     if "$CMAKE_CCE" --build "$build_dir" >"$build_log" 2>&1; then
         echo "[PASS] [$name] CMake build"
     else
@@ -673,7 +673,7 @@ run_cmake_case() {
         return 0
     fi
 
-    # The configure shim is intentionally mock-backed. Verify this build
+    # The configure virtual toolkit entry is intentionally mock-backed. Verify this build
     # actually crossed the second phase and repointed nvcc to real cucc before
     # accepting its artifacts; otherwise a mock-only build could look green.
     if ! grep -Fq 'cmake_cce: build phase: virtual toolkit nvcc ->' "$build_log" || \
@@ -950,7 +950,7 @@ fi
 if [ "${BUILD_COMPAT_PASS:-0}" -eq 1 ] && [ "${CMAKE_PASS:-0}" -eq 1 ] && command -v ninja >/dev/null 2>&1 && [ -x "$NINJA_CCE" ]; then
     if CUCC_PATH="$PWD/build/real_test/install" "$NINJA_CCE" -C "$OUT/cmake-ninja-build" >"$OUT/ninja_cce.log" 2>&1 &&
        grep -Fq 'ninja_cce: build phase: virtual toolkit nvcc ->' "$OUT/ninja_cce.log"; then
-        echo '[PASS] direct ninja_cce wrapper + persistent shim rebuild'
+        echo '[PASS] direct ninja_cce wrapper + persistent virtual toolkit rebuild'
         if ! artifact_check cmake_ninja "$OUT/cmake-ninja-build"; then
             BUILD_COMPAT_PASS=0
         fi

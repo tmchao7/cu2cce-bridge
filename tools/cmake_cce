@@ -108,7 +108,7 @@ else
         exit 1
     }
 fi
-# Keep a relative user-provided shim path stable across the build-phase cd.
+# Keep a relative user-provided virtual toolkit path stable across the build-phase cd.
 if [[ "$VIRTUAL_TOOLKIT_ROOT" != /* ]]; then
     VIRTUAL_TOOLKIT_ROOT="$PWD/$VIRTUAL_TOOLKIT_ROOT"
 fi
