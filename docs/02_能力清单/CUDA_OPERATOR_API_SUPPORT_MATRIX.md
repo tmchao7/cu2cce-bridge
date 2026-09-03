@@ -143,6 +143,9 @@ cublasXxx(...) → wcublasXxx(...) → aclblasXxx(...)（experimental BLAS）
 | `cudaMemset3D` / `cudaMemset3DAsync` | `wcudaMemset3D/Async` | 无公开 CANN 3D memset 等价物 | `UNSUPPORTED`；保留类型化入口并明确返回不支持 |
 | `cudaMemcpy3DPeer` / `cudaMemcpy3DPeerAsync` | `wcudaMemcpy3DPeer/Async` | CANN bridge 当前无 CUDA 3D peer 参数路径 | `UNSUPPORTED`；使用类型化 `wcceMemcpy3DPeerParms` 入口 |
 | `cudaArrayGetInfo` / `cudaGetChannelDesc` | `wcudaArrayGetInfo/GetChannelDesc` | CANN 无 CUDA array 对象等价物 | `UNSUPPORTED`；输出清零后返回不支持 |
+| `cudaMemcpyTo/FromArrayAsync`、`cudaMemcpy2DTo/FromArrayAsync` | `wcuda*Async` | CANN 无 CUDA array 对象和异步 array copy 等价物 | `UNSUPPORTED`；入口类型化，返回不支持 |
+| `cudaMemcpyArrayToArray` / `cudaMemcpy2DArrayToArray` | `wcudaMemcpyArrayToArray` / `wcudaMemcpy2DArrayToArray` | 无公开 CANN array-to-array 路径 | `UNSUPPORTED` |
+| `cudaMemcpyTo/FromSymbolAsync` | `wcudaMemcpyTo/FromSymbolAsync` | Ascend puresimt 无 CUDA device symbol ABI | `UNSUPPORTED` |
 | `cudaStreamCreate` / `cudaStreamCreateWithFlags` | `wcudaStreamCreate*` | `aclrtCreateStream` | `SUPPORTED` for tested flags |
 | `cudaStreamCreateWithPriority` / `cudaStreamGetPriority` | `wcudaStreamCreateWithPriority/GetPriority` | CANN `aclrtCreateStream` 无 CUDA priority 语义 | `UNSUPPORTED`；保留声明但不静默伪造优先级 |
 | `cudaStreamGetFlags` / `cudaStreamGetId` | `wcudaStreamGetFlags/GetId` | CANN 无稳定公开等价查询 | `UNSUPPORTED` |

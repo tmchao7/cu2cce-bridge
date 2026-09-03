@@ -1110,6 +1110,50 @@ aclError wcudaMemcpy2DFromArray(void *dst, size_t dpitch, wcceArray_const_t src,
     return array_not_supported();
 }
 
+aclError wcudaMemcpyToArrayAsync(wcceArray_t dst, size_t wOffset, size_t hOffset,
+                                 const void *src, size_t count, int kind, aclrtStream stream) {
+    (void)dst; (void)wOffset; (void)hOffset; (void)src; (void)count; (void)kind; (void)stream;
+    return array_not_supported();
+}
+
+aclError wcudaMemcpyFromArrayAsync(void *dst, wcceArray_const_t src, size_t wOffset,
+                                   size_t hOffset, size_t count, int kind, aclrtStream stream) {
+    (void)dst; (void)src; (void)wOffset; (void)hOffset; (void)count; (void)kind; (void)stream;
+    return array_not_supported();
+}
+
+aclError wcudaMemcpy2DToArrayAsync(wcceArray_t dst, size_t wOffset, size_t hOffset,
+                                   const void *src, size_t spitch, size_t width, size_t height,
+                                   int kind, aclrtStream stream) {
+    (void)dst; (void)wOffset; (void)hOffset; (void)src; (void)spitch;
+    (void)width; (void)height; (void)kind; (void)stream;
+    return array_not_supported();
+}
+
+aclError wcudaMemcpy2DFromArrayAsync(void *dst, size_t dpitch, wcceArray_const_t src,
+                                     size_t wOffset, size_t hOffset, size_t width, size_t height,
+                                     int kind, aclrtStream stream) {
+    (void)dst; (void)dpitch; (void)src; (void)wOffset; (void)hOffset;
+    (void)width; (void)height; (void)kind; (void)stream;
+    return array_not_supported();
+}
+
+aclError wcudaMemcpyArrayToArray(wcceArray_t dst, size_t wOffsetDst, size_t hOffsetDst,
+                                 wcceArray_const_t src, size_t wOffsetSrc, size_t hOffsetSrc,
+                                 size_t width, size_t height, int kind) {
+    (void)dst; (void)wOffsetDst; (void)hOffsetDst; (void)src;
+    (void)wOffsetSrc; (void)hOffsetSrc; (void)width; (void)height; (void)kind;
+    return array_not_supported();
+}
+
+aclError wcudaMemcpy2DArrayToArray(wcceArray_t dst, size_t wOffsetDst, size_t hOffsetDst,
+                                   wcceArray_const_t src, size_t wOffsetSrc, size_t hOffsetSrc,
+                                   size_t width, size_t height, int kind) {
+    (void)dst; (void)wOffsetDst; (void)hOffsetDst; (void)src;
+    (void)wOffsetSrc; (void)hOffsetSrc; (void)width; (void)height; (void)kind;
+    return array_not_supported();
+}
+
 aclError wcudaArrayGetInfo(wcceChannelFormatDesc *desc, wcceExtent *extent,
                            unsigned int *flags, wcceArray_const_t array) {
     (void)array;
@@ -1308,6 +1352,19 @@ aclError wcudaMemcpyFromSymbol(void *dst, const void *symbol, size_t count, size
     (void)count;
     (void)offset;
     (void)kind;
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+
+aclError wcudaMemcpyToSymbolAsync(const void *symbol, const void *src, size_t count,
+                                  size_t offset, int kind, aclrtStream stream) {
+    (void)symbol; (void)src; (void)count; (void)offset; (void)kind; (void)stream;
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaMemcpyFromSymbolAsync(void *dst, const void *symbol, size_t count,
+                                    size_t offset, int kind, aclrtStream stream) {
+    (void)dst; (void)symbol; (void)count; (void)offset; (void)kind; (void)stream;
     WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
 }
 

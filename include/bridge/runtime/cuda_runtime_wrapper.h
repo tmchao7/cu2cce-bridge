@@ -168,6 +168,28 @@ aclError CUBRIDGE_API wcudaMemcpy2DToArray(wcceArray_t dst, size_t wOffset, size
 aclError CUBRIDGE_API wcudaMemcpy2DFromArray(void *dst, size_t dpitch, wcceArray_const_t src,
                                              size_t wOffset, size_t hOffset, size_t width,
                                              size_t height, int kind);
+aclError CUBRIDGE_API wcudaMemcpyToArrayAsync(wcceArray_t dst, size_t wOffset,
+                                                  size_t hOffset, const void *src, size_t count,
+                                                  int kind, aclrtStream stream /* =0 */);
+aclError CUBRIDGE_API wcudaMemcpyFromArrayAsync(void *dst, wcceArray_const_t src, size_t wOffset,
+                                                size_t hOffset, size_t count, int kind,
+                                                aclrtStream stream /* =0 */);
+aclError CUBRIDGE_API wcudaMemcpy2DToArrayAsync(wcceArray_t dst, size_t wOffset,
+                                                 size_t hOffset, const void *src, size_t spitch,
+                                                 size_t width, size_t height, int kind,
+                                                 aclrtStream stream /* =0 */);
+aclError CUBRIDGE_API wcudaMemcpy2DFromArrayAsync(void *dst, size_t dpitch, wcceArray_const_t src,
+                                                   size_t wOffset, size_t hOffset, size_t width,
+                                                   size_t height, int kind,
+                                                   aclrtStream stream /* =0 */);
+aclError CUBRIDGE_API wcudaMemcpyArrayToArray(wcceArray_t dst, size_t wOffsetDst,
+                                              size_t hOffsetDst, wcceArray_const_t src,
+                                              size_t wOffsetSrc, size_t hOffsetSrc, size_t width,
+                                              size_t height, int kind);
+aclError CUBRIDGE_API wcudaMemcpy2DArrayToArray(wcceArray_t dst, size_t wOffsetDst,
+                                                size_t hOffsetDst, wcceArray_const_t src,
+                                                size_t wOffsetSrc, size_t hOffsetSrc, size_t width,
+                                                size_t height, int kind);
 aclError CUBRIDGE_API wcudaArrayGetInfo(wcceChannelFormatDesc *desc, wcceExtent *extent,
                                         unsigned int *flags, wcceArray_const_t array);
 aclError CUBRIDGE_API wcudaGetChannelDesc(wcceChannelFormatDesc *desc, wcceArray_const_t array);
@@ -178,6 +200,12 @@ aclError CUBRIDGE_API wcudaMemcpyToSymbol(const void *symbol, const void *src, s
                                           size_t offset /* =0 */, int kind /* =H2D */);
 aclError CUBRIDGE_API wcudaMemcpyFromSymbol(void *dst, const void *symbol, size_t count,
                                             size_t offset /* =0 */, int kind /* =D2H */);
+aclError CUBRIDGE_API wcudaMemcpyToSymbolAsync(const void *symbol, const void *src,
+                                                 size_t count, size_t offset, int kind,
+                                                 aclrtStream stream /* =0 */);
+aclError CUBRIDGE_API wcudaMemcpyFromSymbolAsync(void *dst, const void *symbol, size_t count,
+                                                 size_t offset, int kind,
+                                                 aclrtStream stream /* =0 */);
 aclError CUBRIDGE_API wcudaMemset2DAsync(void *devPtr, size_t pitch, int value, size_t width,
                                          size_t height, aclrtStream stream /* =0 */);
 aclError CUBRIDGE_API wcudaMemset3D(wccePitchedPtr pitchedDevPtr, int value,

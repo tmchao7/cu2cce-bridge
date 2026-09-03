@@ -2549,3 +2549,24 @@ class CudaExecutionAndLimitSurfaceContractTest(unittest.TestCase):
             self.assertIn(f"#define {cuda_name} {wcuda_name}", adaptor)
             self.assertIn(wcuda_name, header)
             self.assertIn(wcuda_name, source)
+
+class CudaAsyncArraySymbolSurfaceContractTest(unittest.TestCase):
+    def test_async_array_and_symbol_entries_are_declared_as_unsupported(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        adaptor = (root / "include/bridge/runtime/cuda_to_cce_mcr_adaptor.h").read_text(encoding="utf-8")
+        header = (root / "include/bridge/runtime/cuda_runtime_wrapper.h").read_text(encoding="utf-8")
+        source = (root / "src/bridge/runtime/src/cuda_runtime_wrapper.cpp").read_text(encoding="utf-8")
+        for cuda_name, wcuda_name in (
+            ("cudaMemcpyToArrayAsync", "wcudaMemcpyToArrayAsync"),
+            ("cudaMemcpyFromArrayAsync", "wcudaMemcpyFromArrayAsync"),
+            ("cudaMemcpy2DToArrayAsync", "wcudaMemcpy2DToArrayAsync"),
+            ("cudaMemcpy2DFromArrayAsync", "wcudaMemcpy2DFromArrayAsync"),
+            ("cudaMemcpyArrayToArray", "wcudaMemcpyArrayToArray"),
+            ("cudaMemcpy2DArrayToArray", "wcudaMemcpy2DArrayToArray"),
+            ("cudaMemcpyToSymbolAsync", "wcudaMemcpyToSymbolAsync"),
+            ("cudaMemcpyFromSymbolAsync", "wcudaMemcpyFromSymbolAsync"),
+        ):
+            self.assertIn(f"#define {cuda_name} {wcuda_name}", adaptor)
+            self.assertIn(wcuda_name, header)
+            self.assertIn(wcuda_name, source)
+        self.assertIn("array_not_supported", source)
