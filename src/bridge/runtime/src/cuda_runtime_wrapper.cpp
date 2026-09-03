@@ -617,6 +617,17 @@ aclError wcudaStreamQuery(aclrtStream stream) {
     WCUDA_RETURN(ACL_SUCCESS);
 }
 
+aclError wcudaStreamAddCallback(aclrtStream stream, wcceStreamCallback_t callback,
+                                void *userData, unsigned int flags) {
+    (void)stream;
+    (void)callback;
+    (void)userData;
+    (void)flags;
+    /* CANN callback registration/report processing is not CUDA callback ABI
+     * compatible; do not silently schedule a callback with weaker ordering. */
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
 aclError wcudaStreamWaitEvent(aclrtStream stream, aclrtEvent event, unsigned int flags) {
     (void)flags;
     aclrtStream resolved = nullptr;
@@ -1683,6 +1694,19 @@ aclError wcudaOccupancyMaxPotentialBlockSize(int *minGridSize, int *blockSize, c
 
 /* ---------------- Execution Control ---------------- */
 
+aclError wcudaLaunchCooperativeKernel(const void *hostFunction, dim3 gridDim, dim3 blockDim,
+                                      void **args, size_t sharedMemBytes, aclrtStream stream) {
+    (void)hostFunction;
+    (void)gridDim;
+    (void)blockDim;
+    (void)args;
+    (void)sharedMemBytes;
+    (void)stream;
+    /* CANN SIMT launch does not expose CUDA cooperative-grid synchronization
+     * semantics. A normal launch would be a semantic downgrade. */
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
 aclError wcudaLaunchKernel(const void *hostFunction, dim3 gridDim, dim3 blockDim, void **args,
                            size_t sharedMemBytes, aclrtStream stream) {
     if (hostFunction == nullptr) {
@@ -1725,6 +1749,14 @@ aclError wcudaThreadExit(void) {
     return wcudaDeviceReset();
 }
 
+aclError wcudaThreadGetLimit(size_t *pValue, int limit) {
+    return wcudaDeviceGetLimit(pValue, limit);
+}
+
+aclError wcudaThreadSetLimit(int limit, size_t value) {
+    return wcudaDeviceSetLimit(limit, value);
+}
+
 aclError wcudaThreadGetCacheConfig(int *cacheConfig) {
     /* 废弃 API，昇腾无 cache 配置，返回 not-support */
     (void)cacheConfig;
@@ -1754,6 +1786,23 @@ aclError wcudaFuncGetAttributes(wcceFuncAttributes *attr, const void *func) {
     (void)attr;
     (void)func;
     /* 昇腾无 kernel 属性查询接口，返回 not-support。 */
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaFuncSetCacheConfig(const void *func, wcceFuncCache cacheConfig) {
+    (void)func;
+    (void)cacheConfig;
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaFuncSetSharedMemConfig(const void *func, wcceSharedMemConfig config) {
+    (void)func;
+    (void)config;
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaThreadSetCacheConfig(int cacheConfig) {
+    (void)cacheConfig;
     WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
 }
 

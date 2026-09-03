@@ -193,6 +193,39 @@ typedef struct wcceMemcpy3DPeerParms {
 /* Common cudaFuncAttributes fields. Values are only meaningful if a future
  * backend-specific implementation fills them; the current wrapper reports
  * API_NOT_SUPPORT for the attribute query. */
+typedef enum wcceFuncCache {
+    wcceFuncCachePreferNone = 0,
+    wcceFuncCachePreferShared = 1,
+    wcceFuncCachePreferL1 = 2,
+    wcceFuncCachePreferEqual = 3,
+} wcceFuncCache;
+
+typedef enum wcceSharedMemConfig {
+    wcceSharedMemBankSizeDefault = 0,
+    wcceSharedMemBankSizeFourByte = 1,
+    wcceSharedMemBankSizeEightByte = 2,
+} wcceSharedMemConfig;
+
+typedef enum wcceLimit {
+    wcceLimitStackSize = 0,
+    wcceLimitPrintfFifoSize = 1,
+    wcceLimitMallocHeapSize = 2,
+    wcceLimitDevRuntimeSyncDepth = 3,
+    wcceLimitDevRuntimePendingLaunchCount = 4,
+} wcceLimit;
+
+#if defined(__has_include)
+#  if __has_include(<acl/acl_base.h>) && __has_include(<acl/acl_rt.h>)
+#    include <acl/acl_base.h>
+#    include <acl/acl_rt.h>
+typedef void (*wcceStreamCallback_t)(aclrtStream stream, aclError status, void *userData);
+#  else
+typedef void (*wcceStreamCallback_t)(void *stream, int status, void *userData);
+#  endif
+#else
+typedef void (*wcceStreamCallback_t)(void *stream, int status, void *userData);
+#endif
+
 typedef struct wcceFuncAttributes {
     size_t sharedSizeBytes;
     int constSizeBytes;

@@ -148,6 +148,10 @@ cublasXxx(...) → wcublasXxx(...) → aclblasXxx(...)（experimental BLAS）
 | `cudaStreamGetFlags` / `cudaStreamGetId` | `wcudaStreamGetFlags/GetId` | CANN 无稳定公开等价查询 | `UNSUPPORTED` |
 | `cudaStreamGetDevice` | `wcudaStreamGetDevice` | 当前 ACL context 的 device 查询 | `EXPERIMENTAL`；不承诺外部 stream 句柄可移植 |
 | `cudaStreamAttachMemAsync` | `wcudaStreamAttachMemAsync` | CANN 无 managed-memory stream association | `UNSUPPORTED` |
+| `cudaStreamAddCallback` | `wcudaStreamAddCallback` | CANN callback/report 机制与 CUDA callback ABI 不同 | `UNSUPPORTED`；不静默降级为 `aclrtLaunchCallback` |
+| `cudaLaunchCooperativeKernel` | `wcudaLaunchCooperativeKernel` | CANN SIMT launch 无 CUDA cooperative-grid 语义 | `UNSUPPORTED` |
+| `cudaFuncSetCacheConfig` / `cudaFuncSetSharedMemConfig` | `wcudaFuncSet*Config` | Ascend 无 CUDA L1/shared bank 配置等价物 | `UNSUPPORTED` |
+| `cudaThreadGetLimit` / `cudaThreadSetLimit` | `wcudaThreadGet/SetLimit` | 复用 device-limit 入口；当前 CANN 无 CUDA limit 等价物 | `UNSUPPORTED` |
 | `cudaStreamDestroy` / `cudaStreamSynchronize` / `cudaStreamQuery` | `wcudaStream*` | ACL stream APIs | `SUPPORTED` for tested shapes |
 | `cudaStreamWaitEvent` | `wcudaStreamWaitEvent` | ACL event/stream dependency | `SUPPORTED` for tested shape |
 | `cudaEventCreate/Destroy/Record/Query/Synchronize/ElapsedTime` | `wcudaEvent*` | ACL event APIs | `SUPPORTED` |

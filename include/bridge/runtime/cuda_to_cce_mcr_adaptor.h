@@ -274,6 +274,7 @@
 #define cudaEventSynchronize wcudaEventSynchronize
 #define cudaEventQuery wcudaEventQuery
 #define cudaEventElapsedTime wcudaEventElapsedTime
+#define cudaStreamAddCallback wcudaStreamAddCallback
 
 // Memory Management
 #define cudaMalloc wcudaMalloc
@@ -334,16 +335,22 @@
 // Execution Control
 /* cudaLaunchKernel 显式 API：昇腾用 <<<>>> 语法糖（bisheng 原生），此 wrapper 当前返回 not-support */
 #define cudaLaunchKernel wcudaLaunchKernel
+#define cudaLaunchCooperativeKernel wcudaLaunchCooperativeKernel
 
 // Occupancy
 #define cudaOccupancyMaxActiveBlocksPerMultiprocessor wcudaOccupancyMaxActiveBlocksPerMultiprocessor
 #define cudaOccupancyMaxPotentialBlockSize wcudaOccupancyMaxPotentialBlockSize
+#define cudaOccupancyAvailableDynamicSMemPerBlock wcudaOccupancyAvailableDynamicSMemPerBlock
+#define cudaOccupancyMaxActiveBlocksPerMultiprocessorWithFlags wcudaOccupancyMaxActiveBlocksPerMultiprocessorWithFlags
+#define cudaOccupancyMaxPotentialBlockSizeWithFlags wcudaOccupancyMaxPotentialBlockSizeWithFlags
 
 // Host Function & Func 属性
 #define cudaLaunchHostFunc wcudaLaunchHostFunc
 #define cudaHostFn_t wcceHostFn_t
 #define cudaFuncGetAttributes wcudaFuncGetAttributes
 #define cudaFuncSetAttribute wcudaFuncSetAttribute
+#define cudaFuncSetCacheConfig wcudaFuncSetCacheConfig
+#define cudaFuncSetSharedMemConfig wcudaFuncSetSharedMemConfig
 #define cudaFuncGetName wcudaFuncGetName
 
 // Error Handling
@@ -382,6 +389,9 @@
 #define cudaThreadSynchronize wcudaThreadSynchronize
 #define cudaThreadExit wcudaThreadExit
 #define cudaThreadGetCacheConfig wcudaThreadGetCacheConfig
+#define cudaThreadGetLimit wcudaThreadGetLimit
+#define cudaThreadSetLimit wcudaThreadSetLimit
+#define cudaThreadSetCacheConfig wcudaThreadSetCacheConfig
 
 // Version
 #define cudaRuntimeGetVersion wcudaRuntimeGetVersion

@@ -87,6 +87,9 @@ aclError CUBRIDGE_API wcudaStreamSynchronize(aclrtStream stream);
 aclError CUBRIDGE_API wcudaStreamQuery(aclrtStream stream);
 aclError CUBRIDGE_API wcudaStreamWaitEvent(aclrtStream stream, aclrtEvent event,
                                            unsigned int flags /* =0 */);
+aclError CUBRIDGE_API wcudaStreamAddCallback(aclrtStream stream,
+                                             wcceStreamCallback_t callback,
+                                             void *userData, unsigned int flags);
 
 /* Stream capture（CUDA Graph 捕获）：昇腾无对应，占位返回 not-support。
  * graph 参数用 void** 简化（真机若需要 CUDA Graph 桥再接 acl 对应物）。 */
@@ -182,6 +185,8 @@ aclError CUBRIDGE_API wcudaMemset3D(wccePitchedPtr pitchedDevPtr, int value,
 aclError CUBRIDGE_API wcudaMemset3DAsync(wccePitchedPtr pitchedDevPtr, int value,
                                          wcceExtent extent, aclrtStream stream /* =0 */);
 aclError CUBRIDGE_API wcudaMemGetInfo(size_t *free, size_t *total);
+aclError CUBRIDGE_API wcudaThreadGetLimit(size_t *pValue, int limit);
+aclError CUBRIDGE_API wcudaThreadSetLimit(int limit, size_t value);
 /* 昇腾无 pitch 分配接口，wcudaMallocPitch 用 aclrtMalloc 模拟（宽度对齐，见实现） */
 aclError CUBRIDGE_API wcudaMallocPitch(void **devPtr, size_t *pitch, size_t width, size_t height);
 aclError CUBRIDGE_API wcudaMalloc3D(wccePitchedPtr *pitchedDevPtr, wcceExtent extent);
@@ -244,6 +249,9 @@ aclError CUBRIDGE_API wcudaOccupancyMaxPotentialBlockSize(int *minGridSize, int 
  * dim3 由 bisheng 提供（CUDA 同构）。 */
 aclError CUBRIDGE_API wcudaLaunchKernel(const void *hostFunction, dim3 gridDim, dim3 blockDim,
                                         void **args, size_t sharedMemBytes, aclrtStream stream);
+aclError CUBRIDGE_API wcudaLaunchCooperativeKernel(const void *hostFunction, dim3 gridDim,
+                                                    dim3 blockDim, void **args,
+                                                    size_t sharedMemBytes, aclrtStream stream);
 
 /* ============ Profiler Control ============ */
 /* 昇腾 profiling 用 aclprof（API 面不同），此处 no-op 占位 */
@@ -302,6 +310,10 @@ typedef void (*wcceHostFn_t)(void *);
 aclError CUBRIDGE_API wcudaLaunchHostFunc(aclrtStream stream, wcceHostFn_t fn, void *userData);
 /* 昇腾无 func 属性/名字接口，声明保证编译 */
 aclError CUBRIDGE_API wcudaFuncSetAttribute(const void *func, int attr, int value);
+aclError CUBRIDGE_API wcudaFuncSetCacheConfig(const void *func, wcceFuncCache cacheConfig);
+aclError CUBRIDGE_API wcudaFuncSetSharedMemConfig(const void *func,
+                                                   wcceSharedMemConfig config);
+aclError CUBRIDGE_API wcudaThreadSetCacheConfig(int cacheConfig);
 aclError CUBRIDGE_API wcudaFuncGetName(const char **name, const void *func);
 
 /* ============ Version ============ */

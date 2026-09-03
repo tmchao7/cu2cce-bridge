@@ -2528,3 +2528,24 @@ class CudaTopLevelCrtHeaderEntryTest(unittest.TestCase):
             path = root / "include" / name
             self.assertTrue(path.is_file(), name)
             self.assertIn(target, path.read_text(encoding="utf-8"))
+
+class CudaExecutionAndLimitSurfaceContractTest(unittest.TestCase):
+    def test_common_execution_and_limit_entries_have_typed_compatibility_stubs(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        types = (root / "include/bridge/runtime/cuda_runtime_types.h").read_text(encoding="utf-8")
+        adaptor = (root / "include/bridge/runtime/cuda_to_cce_mcr_adaptor.h").read_text(encoding="utf-8")
+        header = (root / "include/bridge/runtime/cuda_runtime_wrapper.h").read_text(encoding="utf-8")
+        source = (root / "src/bridge/runtime/src/cuda_runtime_wrapper.cpp").read_text(encoding="utf-8")
+        for name in ("wcceFuncCache", "wcceSharedMemConfig", "wcceStreamCallback_t"):
+            self.assertIn(name, types)
+        for cuda_name, wcuda_name in (
+            ("cudaFuncSetCacheConfig", "wcudaFuncSetCacheConfig"),
+            ("cudaFuncSetSharedMemConfig", "wcudaFuncSetSharedMemConfig"),
+            ("cudaStreamAddCallback", "wcudaStreamAddCallback"),
+            ("cudaThreadGetLimit", "wcudaThreadGetLimit"),
+            ("cudaThreadSetLimit", "wcudaThreadSetLimit"),
+            ("cudaLaunchCooperativeKernel", "wcudaLaunchCooperativeKernel"),
+        ):
+            self.assertIn(f"#define {cuda_name} {wcuda_name}", adaptor)
+            self.assertIn(wcuda_name, header)
+            self.assertIn(wcuda_name, source)
