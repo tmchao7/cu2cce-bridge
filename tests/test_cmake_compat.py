@@ -2513,3 +2513,18 @@ class CudaRuntimeTopLevelHeaderParityTest(unittest.TestCase):
             path = root / "include" / name
             self.assertTrue(path.is_file(), name)
             self.assertIn(target, path.read_text(encoding="utf-8"))
+
+class CudaTopLevelCrtHeaderEntryTest(unittest.TestCase):
+    def test_top_level_crt_headers_forward_to_bridge_entries(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        expected = {
+            "device_functions.h": "crt/device_functions.h",
+            "common_functions.h": "crt/common_functions.h",
+            "math_functions.h": "crt/math_functions.h",
+            "builtin_types.h": "crt/builtin_types.h",
+            "host_defines.h": "crt/host_defines.h",
+        }
+        for name, target in expected.items():
+            path = root / "include" / name
+            self.assertTrue(path.is_file(), name)
+            self.assertIn(target, path.read_text(encoding="utf-8"))

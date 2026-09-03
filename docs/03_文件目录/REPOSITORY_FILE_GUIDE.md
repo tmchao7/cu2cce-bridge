@@ -586,6 +586,11 @@ git diff --check
 | 路径 | 职责 |
 |---|---|
 | `include/__cuda_runtime.h` | 用户可见 CUDA 兼容头或第三方 API 声明 |
+| `include/device_functions.h` | CUDA 顶层 device_functions 兼容转发入口 |
+| `include/common_functions.h` | CUDA 顶层 common_functions 兼容转发入口 |
+| `include/math_functions.h` | CUDA 顶层 math_functions 兼容转发入口 |
+| `include/builtin_types.h` | CUDA 顶层 builtin_types 兼容转发入口 |
+| `include/host_defines.h` | CUDA 顶层 host_defines 兼容转发入口；不重定义 ccec 关键字 |
 | `include/vector_types.h` | CUDA vector_types 兼容入口，使用 ccec 原生 vector 类型 |
 | `include/device_types.h` | CUDA device_types 兼容入口，转发 bridge Runtime 类型和 SIMT 内建入口 |
 | `include/driver_types.h` | CUDA driver_types 兼容入口；只提供共享类型，不伪造完整 Driver ABI |
