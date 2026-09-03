@@ -109,6 +109,31 @@ ccec is ready
 
 ---
 
+## CUDA 公共头文件与 Wrapper 对齐状态
+
+项目除了 Runtime 宏替换表，还维护 `config/cuda_api_parity_inventory.json`，用于登记参考
+`cu-bridge-muxi@6ab1076` 的 CUDA 公共 headers、bridge Wrapper、API 状态和 CANN 迁移路线。
+
+```text
+核心 Runtime/SIMT/FP16/BF16       → ACTIVE_ADAPTED
+稳定但无 Ascend 等价的 API        → UNSUPPORTED_TYPED（返回 ACL_ERROR_API_NOT_SUPPORT）
+Driver/Graph/Interop/复杂库 ABI    → RESERVED_NPU（#if 0 保留 future unlock point）
+NVRTC/PTX/CUBIN/FATBIN             → REJECT
+CUDA 高层库                        → 仅登记路线，未验证前不创建假库 alias
+```
+
+本地核对命令：
+
+```bash
+python3 tools/validate_cuda_header_wrapper_parity.py \
+  --reference ../cu-bridge-muxi \
+  --implementation . \
+  --inventory config/cuda_api_parity_inventory.json
+```
+
+`missing_headers=0`、`missing_wrapper_entries=0` 和 `missing_api_entries=0` 只表示
+维护入口完整，不等于所有 CUDA API 已得到 Ascend/CANN 的行为实现。
+
 ## 4. 构建 cu2cce-bridge
 
 只在 Ascend 真机上执行。

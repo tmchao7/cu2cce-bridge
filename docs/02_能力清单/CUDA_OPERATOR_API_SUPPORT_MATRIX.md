@@ -498,6 +498,38 @@ python3 tools/validate_cuda_api_parity.py \
 这些条目具备**类型化 source compatibility**，但不属于 `SUPPORTED`；调用方必须检查返回的
 `ACL_ERROR_API_NOT_SUPPORT`。
 
+### 8.2.2 CUDA 公共头文件与 Wrapper 完整登记
+
+参考 `cu-bridge-muxi@6ab1076` 的 CUDA 公共头和 bridge Wrapper 已建立独立清单，而不是把
+MACA 的实现名复制到 Ascend：
+
+| 面 | 当前处理 | 状态边界 |
+|---|---|---|
+| Runtime / SIMT 核心头 | `cuda_runtime.h`、`cuda.h`、`cuda_fp16.h`、`cuda_bf16.h`、device/CRT 入口转发至现有 bridge/CANN surface | `ACTIVE_ADAPTED` |
+| Driver / Graph / IPC / 纹理 / Surface | 保留完整 API 名称、reference wrapper、原型和 future unlock point；不伪造 CUDA Driver ABI | 主要为 `RESERVED_NPU`，少量稳定 ABI 为 `UNSUPPORTED_TYPED` |
+| EGL / GL / VDPAU | 公共头可包含，Wrapper 路径明确，但不链接虚假图形 runtime | `RESERVED_NPU` / `DIAGNOSTIC_ONLY` |
+| NVRTC / PTX / CUBIN / FATBIN | 头文件入口和迁移理由可查；puresimt 明确拒绝运行时编译和 NVIDIA artifact | `REJECT` |
+| cuFFT / cuRAND / cuSOLVER / cuSPARSE / cuDNN / NCCL / NPP / NVJPEG / NVML | 头文件和库路线已登记；只有具备独立 wrapper 与真机证据时才升级 | `ROUTE_ONLY` / `RESERVED_NPU` |
+
+`config/cuda_api_parity_inventory.json` 的 `headers`、`wrappers`、`api_entries`、`libraries`
+是后续实现/解除注释的唯一维护入口。`include/bridge/cuda_to_cce_reserved_wrapper_parity.h`
+中的条目默认处于 `#if 0`，所以“登记完整”不会扩大 CANN 的实际 ABI 或链接承诺。
+
+当前已从 reserved inventory 提升为 `UNSUPPORTED_TYPED` 的 Driver 基础入口包括：
+
+```text
+cuInit
+cuDriverGetVersion
+cuDeviceGetCount / cuDeviceGet
+cuCtxGetCurrent / cuCtxSetCurrent / cuCtxSynchronize
+cuModuleLoadData / cuModuleUnload / cuModuleGetFunction
+cuLaunchKernel
+```
+
+这些函数使用 CUDA 形状的 `CUresult`、`CUcontext`、`CUmodule`、`CUfunction` 和 `CUstream`，
+清零输出参数后返回 `ACL_ERROR_API_NOT_SUPPORT`；它们没有调用 `aclInit`、普通 stream launch
+或 `aclrtBinary*` 伪造 CUDA Driver 行为。
+
 ### 8.3 CUDA Runtime 数据类型入口
 
 `include/bridge/runtime/cuda_runtime_types.h` 提供不依赖 CANN ABI 的数据形状容器，并由 adaptor 映射公开 CUDA 名称：

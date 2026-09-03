@@ -204,17 +204,6 @@
 /* cuCtxGetCacheConfig -> wcuCtxGetCacheConfig */
 
 /*
- * CUDA API: cuCtxGetCurrent
- * Reference wrapper: wcuCtxGetCurrent
- * Reference files: runtime/cuda_driver_wrapper.h
- * CANN route: CANN aclrtBinary/module route; no active CUDA Driver ABI
- * Status: RESERVED_NPU
- * Future implementation: include/bridge wrapper + typed CANN probe.
- * Reference prototype: mcDrvError_t CUBRIDGE_API wcuCtxGetCurrent(mcDrvContext_t *pctx);
- */
-/* cuCtxGetCurrent -> wcuCtxGetCurrent */
-
-/*
  * CUDA API: cuCtxGetDevResource
  * Reference wrapper: wcuCtxGetDevResource
  * Reference files: runtime/cuda_driver_wrapper.h
@@ -347,17 +336,6 @@
 /* cuCtxSetCacheConfig -> wcuCtxSetCacheConfig */
 
 /*
- * CUDA API: cuCtxSetCurrent
- * Reference wrapper: wcuCtxSetCurrent
- * Reference files: runtime/cuda_driver_wrapper.h
- * CANN route: CANN aclrtBinary/module route; no active CUDA Driver ABI
- * Status: RESERVED_NPU
- * Future implementation: include/bridge wrapper + typed CANN probe.
- * Reference prototype: mcDrvError_t CUBRIDGE_API wcuCtxSetCurrent(mcDrvContext_t ctx);
- */
-/* cuCtxSetCurrent -> wcuCtxSetCurrent */
-
-/*
  * CUDA API: cuCtxSetFlags
  * Reference wrapper: wcuCtxSetFlags
  * Reference files: runtime/cuda_driver_wrapper.h
@@ -389,17 +367,6 @@
  * Reference prototype: mcDrvError_t CUBRIDGE_API wcuCtxSetSharedMemConfig(mcDrvsharedconfig_t config);
  */
 /* cuCtxSetSharedMemConfig -> wcuCtxSetSharedMemConfig */
-
-/*
- * CUDA API: cuCtxSynchronize
- * Reference wrapper: wcuCtxSynchronize
- * Reference files: runtime/cuda_driver_wrapper.h
- * CANN route: CANN aclrtBinary/module route; no active CUDA Driver ABI
- * Status: RESERVED_NPU
- * Future implementation: include/bridge wrapper + typed CANN probe.
- * Reference prototype: mcDrvError_t CUBRIDGE_API wcuCtxSynchronize(void);
- */
-/* cuCtxSynchronize -> wcuCtxSynchronize */
 
 /*
  * CUDA API: cuDestroyExternalMemory
@@ -2492,17 +2459,6 @@
 /* cuLaunchHostFunc -> wcuLaunchHostFunc */
 
 /*
- * CUDA API: cuLaunchKernel
- * Reference wrapper: wcuLaunchKernel
- * Reference files: runtime/cuda_driver_wrapper.h
- * CANN route: CANN aclrtBinary/module route; no active CUDA Driver ABI
- * Status: RESERVED_NPU
- * Future implementation: include/bridge wrapper + typed CANN probe.
- * Reference prototype: mcDrvError_t CUBRIDGE_API wcuLaunchKernel(mcDrvFunction_t f, unsigned int gridDimX, unsigned int gridDimY, unsigned int gridDimZ, unsigned int blockDimX, unsigned int blockDimY, unsigned int blockDimZ, unsigned int sharedMemBytes, mcDrvStream_t stream, void **kernelParams, void **extra);
- */
-/* cuLaunchKernel -> wcuLaunchKernel */
-
-/*
  * CUDA API: cuLaunchKernelEx
  * Reference wrapper: wcuLaunchKernelEx
  * Reference files: runtime/cuda_driver_wrapper.h
@@ -3574,17 +3530,6 @@
 /* cuMipmappedArrayGetSparseProperties -> wcuMipmappedArrayGetSparseProperties */
 
 /*
- * CUDA API: cuModuleGetFunction
- * Reference wrapper: wcuModuleGetFunction
- * Reference files: runtime/cuda_driver_wrapper.h
- * CANN route: CANN aclrtBinary/module route; no active CUDA Driver ABI
- * Status: RESERVED_NPU
- * Future implementation: include/bridge wrapper + typed CANN probe.
- * Reference prototype: mcDrvError_t CUBRIDGE_API wcuModuleGetFunction(mcDrvFunction_t *hfunc, mcDrvModule_t hmod, const char *name);
- */
-/* cuModuleGetFunction -> wcuModuleGetFunction */
-
-/*
  * CUDA API: cuModuleGetGlobal
  * Reference wrapper: wcuModuleGetGlobal
  * Reference files: runtime/cuda_driver_wrapper.h
@@ -3640,17 +3585,6 @@
 /* cuModuleLoad -> wcuModuleLoad */
 
 /*
- * CUDA API: cuModuleLoadData
- * Reference wrapper: wcuModuleLoadData
- * Reference files: runtime/cuda_driver_wrapper.h
- * CANN route: CANN aclrtBinary/module route; no active CUDA Driver ABI
- * Status: RESERVED_NPU
- * Future implementation: include/bridge wrapper + typed CANN probe.
- * Reference prototype: mcDrvError_t CUBRIDGE_API wcuModuleLoadData(mcDrvModule_t *module, const void *image);
- */
-/* cuModuleLoadData -> wcuModuleLoadData */
-
-/*
  * CUDA API: cuModuleLoadDataEx
  * Reference wrapper: wcuModuleLoadDataEx
  * Reference files: runtime/cuda_driver_wrapper.h
@@ -3671,17 +3605,6 @@
  * Reference prototype: mcDrvError_t CUBRIDGE_API wcuModuleLoadFatBinary(mcDrvModule_t *module, const void *fatCubin);
  */
 /* cuModuleLoadFatBinary -> wcuModuleLoadFatBinary */
-
-/*
- * CUDA API: cuModuleUnload
- * Reference wrapper: wcuModuleUnload
- * Reference files: runtime/cuda_driver_wrapper.h
- * CANN route: CANN aclrtBinary/module route; no active CUDA Driver ABI
- * Status: RESERVED_NPU
- * Future implementation: include/bridge wrapper + typed CANN probe.
- * Reference prototype: mcDrvError_t CUBRIDGE_API wcuModuleUnload(mcDrvModule_t hmod);
- */
-/* cuModuleUnload -> wcuModuleUnload */
 
 /*
  * CUDA API: cuMulticastAddDevice

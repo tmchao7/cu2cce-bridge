@@ -159,6 +159,17 @@ https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/latest/API/head
 
 `aclnn` 是 CANN 单算子 API，不是 CUDA kernel 语法转换结果；CUDA kernel、CUDA Runtime 和 `aclnn` 调用必须分别评审。
 
+### 10.3.1 CUDA 头文件与 Wrapper parity 边界
+
+`cuda_to_cce_mcr_adaptor.h` 只覆盖 Runtime 宏替换，不能替代 CUDA 头文件树和 Driver/Interop/库
+Wrapper 的登记。本项目额外维护 `config/cuda_api_parity_inventory.json`：它记录参考 CUDA header、
+reference wrapper、cu2cce 文件、CANN 路线、当前状态与 future implementation location。
+
+- `cuda.h`、Runtime/SIMT、FP16/BF16 等核心入口可转发到现有 CANN/bridge surface；
+- Graph、CUDA Driver、EGL/GL/VDPAU、NVRTC 和未验证库 API 保留 CUDA 形状，但不宣称存在 Ascend ABI；
+- 复杂原型位于 `cuda_to_cce_reserved_wrapper_parity.h` 的 `#if 0`，供后续 CANN 能力到位后恢复；
+- `cufft`、`cudnn`、`nccl` 等仅登记到 SiP/aclnn/HCCL 等迁移路线，绝不自动改写为真实库链接。
+
 ### 10.4 Runtime/device 替换表登记与服务器证据
 
 `cuda_to_cce_mcr_adaptor.h` 以 CANN/bridge 的实际路径维护 active 映射；

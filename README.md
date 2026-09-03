@@ -22,7 +22,7 @@ CUDA .cu
 `main` 不使用 Python kernel converter，不生成用户可见的 `.cce`、PTX、CUBIN、FATBIN 或
 Ascend kernel 包装源文件。
 
-## 当前状态（2026-09-02）
+## 当前状态（2026-09-03）
 
 - `cucc`、CMake、Make、Ninja 已统一到同一个参数规则、virtual CUDA toolkit 和 Ascend-aware
   产物契约；最近一次服务器 full profile 汇总为 `FAIL=0`。
@@ -32,6 +32,31 @@ Ascend kernel 包装源文件。
 - `multi_cu_diagnostic` 的重复 registration helper 仍是 Ascend backend 的
   `DIAGNOSTIC_ONLY` 限制，不伪装成 CUDA device-link 能力。
 - 本机 macOS 只能执行静态、mock 和单元测试，不能替代 CANN/NPU 真机证据。
+
+## CUDA 公共头文件与 Wrapper 对齐状态
+
+除 Runtime 宏表外，项目还维护 `config/cuda_api_parity_inventory.json`，用于登记参考
+`cu-bridge-muxi@6ab1076` 的公共 CUDA headers、bridge Wrapper 和 API。
+
+```text
+核心 Runtime/SIMT/FP16/BF16       → ACTIVE_ADAPTED
+稳定但无 Ascend 等价的 API        → UNSUPPORTED_TYPED（返回 ACL_ERROR_API_NOT_SUPPORT）
+Driver/Graph/Interop/复杂库 ABI    → RESERVED_NPU（#if 0 中保留完整 future unlock point）
+NVRTC/PTX/CUBIN/FATBIN             → REJECT
+CUDA 高层库                        → 只记录 CANN 迁移路线，未验证前不创建假库 alias
+```
+
+查看或重新核对：
+
+```bash
+python3 tools/validate_cuda_header_wrapper_parity.py \
+  --reference ../cu-bridge-muxi \
+  --implementation . \
+  --inventory config/cuda_api_parity_inventory.json
+```
+
+`missing_headers=0`、`missing_wrapper_entries=0` 和 `missing_api_entries=0` 仅表示
+后续开发所需的头文件、API 名称和 wrapper 入口均有可追踪位置；不表示所有 API 都已实现。
 
 ## 目录与维护入口
 
