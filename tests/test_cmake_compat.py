@@ -2138,5 +2138,12 @@ class CanonicalAscendRuntimeCMakeTest(unittest.TestCase):
         self.assertIn("libascendcl.so", text)
         self.assertIn("ASCEND_RUNTIME_LIB", text)
 
+    def test_server_harness_runs_ascend_api_probes(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        text = (root / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
+        self.assertIn("cann_api_surface_probe.sh", text)
+        self.assertIn("cann_runtime_link_probe.sh", text)
+        self.assertIn("ASCEND_API_MAPPING_REGRESSION_PASS", text)
+
 if __name__ == "__main__":
     unittest.main()

@@ -256,6 +256,29 @@ else
     echo '[INFO] simt_api inventory 不可用（非阻断）'
 fi
 
+# 官方 CANN API/库文件映射探针：acl_rt.h 是当前 bridge Runtime 的硬依赖，
+# 其它组件只记录存在性，不因可选库缺失阻断主线。详细结果落盘。
+API_MAPPING_PASS=1
+printf '\n----- [2.7] CANN 官方 API / Runtime 映射探针 -----\n'
+if bash tools/real_test/diag/cann_api_surface_probe.sh \
+    --cann-base "$CANN_BASE" --output "$OUT/cann_api_surface.log"; then
+    echo '[PASS] CANN API surface contract'
+else
+    echo '[FAIL] CANN API surface contract (details: '$OUT'/cann_api_surface.log)'
+    API_MAPPING_PASS=0
+    FAIL=$((FAIL + 1))
+fi
+if bash tools/real_test/diag/cann_runtime_link_probe.sh \
+    --cann-base "$CANN_BASE" \
+    --bridge-lib "$REPO_LIB/libcce_bridge_runtime.so" \
+    --output "$OUT/cann_runtime_link.log"; then
+    echo '[PASS] CANN Runtime linkage contract'
+else
+    echo '[FAIL] CANN Runtime linkage contract (details: '$OUT'/cann_runtime_link.log)'
+    API_MAPPING_PASS=0
+    FAIL=$((FAIL + 1))
+fi
+
 if profile_runs "fast,full"; then
 CUCC_RULES_PASS=1
 printf '\n===== [2.75/7] cucc puresimt 直通检查 =====\n'
@@ -1173,6 +1196,9 @@ elif [ "$FAIL" -eq 0 ]; then
     fi
     if [ "${LARGE_PROJECT_PASS:-0}" -eq 1 ]; then
         echo 'LARGE_PROJECT_REGRESSION_PASS'
+    fi
+    if [ "${API_MAPPING_PASS:-0}" -eq 1 ]; then
+        echo 'ASCEND_API_MAPPING_REGRESSION_PASS'
     fi
     # 未执行段的诚实标注：skip 不算 PASS 也不算 FAIL。
     if [ "$REGRESSION_PROFILE" = external ]; then
