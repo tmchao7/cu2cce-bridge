@@ -242,6 +242,30 @@ def build_virtual_toolkit(
 
 
 
+def _run_build(
+    *, cuda_dir: Path, cucc_path: Path, nvcc_target: Path, manifest: Path,
+    hostcc_bin_dir: Optional[Path], hostcc_mode: str, cann_base: str, quiet: bool,
+) -> int:
+    """Run the one canonical virtual-toolkit build path for both CLIs."""
+    try:
+        notes = build_virtual_toolkit(
+            cuda_dir=cuda_dir,
+            cucc_path=cucc_path,
+            nvcc_target=nvcc_target,
+            layout_path=manifest,
+            hostcc_bin_dir=hostcc_bin_dir,
+            hostcc_mode=hostcc_mode,
+            cann_base=cann_base,
+        )
+    except (OSError, ValueError, KeyError) as exc:
+        print(f"virtualDir.py: {exc}", file=sys.stderr)
+        return 1
+    if not quiet:
+        for note in notes:
+            print(f"virtualDir.py: {note}")
+    return 0
+
+
 def _reference_command(argv: List[str]) -> Optional[int]:
     """Handle cu-bridge-compatible ``virtualDir.py cmake/make -r`` calls."""
     if not argv or argv[0] not in {"cmake", "make"}:
@@ -261,25 +285,19 @@ def _reference_command(argv: List[str]) -> Optional[int]:
               else cucc_path / "bin" / "cucc")
     manifest = (cucc_path / "tools" / "mock" / "stub_link.json" if command == "cmake"
                 else cucc_path / "tools" / "link.json")
-    try:
-        notes = build_virtual_toolkit(
-            # Reference virtualDir.py treats -r as the toolkit root itself.
-            # The wrapper helpers use the explicit --cuda-dir form and keep
-            # their existing <root>/CUDA_DIR layout for CMake cache stability.
-            cuda_dir=args.root,
-            cucc_path=cucc_path,
-            nvcc_target=target,
-            layout_path=manifest,
-            hostcc_bin_dir=args.root.parent / "bin",
-            hostcc_mode=args.hostcc_mode,
-            cann_base=args.cann_base,
-        )
-    except (OSError, ValueError, KeyError) as exc:
-        print(f"virtualDir.py: {exc}", file=sys.stderr)
-        return 1
-    for note in notes:
-        print(f"virtualDir.py: {note}")
-    return 0
+    # Reference virtualDir.py treats -r as the toolkit root itself. The
+    # wrapper helpers use explicit --cuda-dir and keep <root>/CUDA_DIR for
+    # CMake cache stability.
+    return _run_build(
+        cuda_dir=args.root,
+        cucc_path=cucc_path,
+        nvcc_target=target,
+        manifest=manifest,
+        hostcc_bin_dir=args.root.parent / "bin",
+        hostcc_mode=args.hostcc_mode,
+        cann_base=args.cann_base,
+        quiet=False,
+    )
 
 
 def main(argv: Optional[List[str]] = None) -> int:
@@ -312,23 +330,16 @@ def main(argv: Optional[List[str]] = None) -> int:
             print("virtualDir.py: virtual toolkit manifest not found", file=sys.stderr)
             return 1
 
-    try:
-        notes = build_virtual_toolkit(
-            cuda_dir=args.cuda_dir,
-            cucc_path=args.cucc_path,
-            nvcc_target=args.nvcc_target,
-            layout_path=layout_path,
-            hostcc_bin_dir=args.hostcc_bin_dir,
-            hostcc_mode=args.hostcc_mode,
-            cann_base=args.cann_base,
-        )
-    except (OSError, ValueError, KeyError) as exc:
-        print(f"virtualDir.py: {exc}", file=sys.stderr)
-        return 1
-    if not args.quiet:
-        for note in notes:
-            print(f"virtualDir.py: {note}")
-    return 0
+    return _run_build(
+        cuda_dir=args.cuda_dir,
+        cucc_path=args.cucc_path,
+        nvcc_target=args.nvcc_target,
+        manifest=layout_path,
+        hostcc_bin_dir=args.hostcc_bin_dir,
+        hostcc_mode=args.hostcc_mode,
+        cann_base=args.cann_base,
+        quiet=args.quiet,
+    )
 
 
 if __name__ == "__main__":

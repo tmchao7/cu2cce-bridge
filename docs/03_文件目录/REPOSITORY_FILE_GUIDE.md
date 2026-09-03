@@ -16,8 +16,7 @@
 用户 CUDA .cu
   └─ $CUCC_PATH/bin/cucc
        └─ tools/cu2cce_driver.py
-            ├─ bin/conf.json                  # cu-bridge 风格主规则
-            ├─ bin/conf.json       # 旧规则格式兼容入口
+            └─ bin/conf.json                  # cu-bridge 风格主规则
             ├─ include/                       # CUDA/SIMT 兼容头
             └─ ccec -x asc --enable-simt
                  └─ libcce_bridge_runtime.so
@@ -99,11 +98,6 @@ make_cce / ninja_cce / pre_cce
 当前驱动的 drop/replace/inject/query passthrough；`reject`、`capabilities`、
 `frontend` 和诊断字段保留 `Bisheng/ccec`、CANN、`dav-*` 的后端策略。
 
-### `bin/conf.json`
-
-旧版规则路径。它仍然保留，供 `CU2CCE_RULES_FILE` 和历史集成显式指定；新功能优先
-修改 `bin/conf.json`，并同步验证两份规则的行为一致。
-
 ### `tools/link.json` 与 `tools/mock/stub_link.json`
 
 前者对应 `cu-bridge` 的 `link.json`，负责 Make/pre 的虚拟工具链目录；后者对应
@@ -121,7 +115,7 @@ make_cce / ninja_cce / pre_cce
 
 极薄的 shell 入口，负责解析安装根和启动 Python driver。它不转换 CUDA 源文件，也不负责
 CANN API 逻辑。遇到参数过滤、phase、架构或库策略问题，直接看
-`tools/cu2cce_driver.py` 和 `bin/conf.json`（旧入口：`bin/conf.json`）。
+`tools/cu2cce_driver.py` 和 `bin/conf.json`。
 
 ### `tools/cu2cce_driver.py`
 
@@ -446,8 +440,7 @@ git diff --check
 | 路径 | 职责 |
 |---|---|
 | `config/artifact_contract.json` | cucc/CMake/Make/Ninja artifact contract 清单 |
-| `bin/conf.json` | cucc 旧参数规则格式兼容入口 |
-| `tools/link.json` | 旧版集中式虚拟工具链清单兼容入口；新维护入口是 `tools/link.json` 和 `tools/mock/stub_link.json` |
+
 
 ### `docs/`
 
