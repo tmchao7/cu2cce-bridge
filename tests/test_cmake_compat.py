@@ -2320,5 +2320,36 @@ class HostWrapperBackendIndependenceContractTest(unittest.TestCase):
         source = (root / "src/bridge/runtime/src/cuda_runtime_wrapper.cpp").read_text(encoding="utf-8")
         self.assertNotIn("cudaStreamDefault", source)
         self.assertIn("backend wrapper independent", source)
+
+class CudaRuntimeTypeSurfaceContractTest(unittest.TestCase):
+    def test_common_cuda_runtime_struct_types_have_npu_neutral_storage(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        types = (root / "include/bridge/runtime/cuda_runtime_types.h").read_text(encoding="utf-8")
+        wrapper_types = (root / "include/bridge/runtime/cuda_wrapper_types.h").read_text(encoding="utf-8")
+        adaptor = (root / "include/bridge/runtime/cuda_to_cce_mcr_adaptor.h").read_text(encoding="utf-8")
+        for name in ("wcceExtent", "wccePitchedPtr", "wccePos", "wccePointerAttributes", "wcceMemcpy3DParms", "wcceChannelFormatDesc"):
+            self.assertIn(name, types)
+        self.assertIn('"cuda_runtime_types.h"', wrapper_types)
+        for cuda_name, bridge_name in (
+            ("cudaExtent", "wcceExtent"),
+            ("cudaPitchedPtr", "wccePitchedPtr"),
+            ("cudaPos", "wccePos"),
+            ("cudaPointerAttributes", "wccePointerAttributes"),
+            ("cudaMemcpy3DParms", "wcceMemcpy3DParms"),
+            ("cudaChannelFormatDesc", "wcceChannelFormatDesc"),
+        ):
+            self.assertIn(f"#define {cuda_name} {bridge_name}", adaptor)
+
+    def test_cuda_runtime_factories_are_declared(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        wrapper_h = (root / "include/bridge/runtime/cuda_runtime_wrapper.h").read_text(encoding="utf-8")
+        adaptor = (root / "include/bridge/runtime/cuda_to_cce_mcr_adaptor.h").read_text(encoding="utf-8")
+        for cuda_name, wcuda_name in (
+            ("make_cudaExtent", "make_wcudaExtent"),
+            ("make_cudaPitchedPtr", "make_wcudaPitchedPtr"),
+            ("make_cudaPos", "make_wcudaPos"),
+        ):
+            self.assertIn(f"#define {cuda_name} {wcuda_name}", adaptor)
+            self.assertIn(wcuda_name, wrapper_h)
 if __name__ == "__main__":
     unittest.main()

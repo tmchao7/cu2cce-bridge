@@ -57,6 +57,36 @@
 #define cudaMemcpyDeviceToDevice ACL_MEMCPY_DEVICE_TO_DEVICE
 #define cudaMemcpyDefault wcudaMemcpyDefault
 
+//------------ CUDA Runtime data-shape types ------------//
+// These are cu2cce-owned source-compatibility containers, not CANN aliases.
+#define cudaExtent wcceExtent
+#define cudaPitchedPtr wccePitchedPtr
+#define cudaPos wccePos
+#define cudaPointerAttributes wccePointerAttributes
+#define cudaMemoryType wcceMemoryType
+#define cudaMemoryTypeUnregistered wcceMemoryTypeUnregistered
+#define cudaMemoryTypeHost wcceMemoryTypeHost
+#define cudaMemoryTypeDevice wcceMemoryTypeDevice
+#define cudaMemoryTypeManaged wcceMemoryTypeManaged
+#define cudaChannelFormatDesc wcceChannelFormatDesc
+#define cudaChannelFormatKind wcceChannelFormatKind
+#define cudaChannelFormatKindSigned wcceChannelFormatKindSigned
+#define cudaChannelFormatKindUnsigned wcceChannelFormatKindUnsigned
+#define cudaChannelFormatKindFloat wcceChannelFormatKindFloat
+#define cudaChannelFormatKindNone wcceChannelFormatKindNone
+#define cudaArray_t wcceArray_t
+#define cudaArray_const_t wcceArray_const_t
+#define cudaMipmappedArray_t wcceMipmappedArray_t
+#define cudaTextureObject_t wcceTextureObject_t
+#define cudaSurfaceObject_t wcceSurfaceObject_t
+#define cudaMemcpy3DParms wcceMemcpy3DParms
+#define cudaFuncAttributes wcceFuncAttributes
+#define cudaMemPool_t wcceMemPool_t
+#define cudaMemPoolProps wcceMemPoolProps
+#define make_cudaExtent make_wcudaExtent
+#define make_cudaPitchedPtr make_wcudaPitchedPtr
+#define make_cudaPos make_wcudaPos
+
 //------------ handle types ------------//
 #define cudaStream_t aclrtStream
 #define cudaEvent_t aclrtEvent

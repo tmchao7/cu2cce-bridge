@@ -15,6 +15,7 @@
  */
 
 #include <stddef.h> /* size_t */
+#include "cuda_runtime_types.h"
 
 #ifdef __cplusplus
 extern "C" {

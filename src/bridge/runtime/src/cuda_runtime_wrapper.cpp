@@ -1056,13 +1056,30 @@ aclError wcudaMemcpy2DFromArray(void *dst, size_t dpitch, const void *src, size_
     return array_not_supported();
 }
 
+/* ---- CUDA Runtime data-shape factories ---- */
+
+wcceExtent make_wcudaExtent(size_t width, size_t height, size_t depth) {
+    wcceExtent value = {width, height, depth};
+    return value;
+}
+
+wccePitchedPtr make_wcudaPitchedPtr(void *ptr, size_t pitch, size_t xsize, size_t ysize) {
+    wccePitchedPtr value = {ptr, pitch, xsize, ysize};
+    return value;
+}
+
+wccePos make_wcudaPos(size_t x, size_t y, size_t z) {
+    wccePos value = {x, y, z};
+    return value;
+}
+
 /* ---- Texture/Surface（昇腾无对应，全部 not-support） ---- */
 
-unsigned long long wcudaCreateChannelDesc(int x, int y, int z, int w) {
-    /* 承载 4 个 16bit 通道描述；昇腾无 texture 通道描述概念，仅保证类型可编译。 */
-    return ((unsigned long long)(unsigned short)x) | ((unsigned long long)(unsigned short)y << 16) |
-           ((unsigned long long)(unsigned short)z << 32) |
-           ((unsigned long long)(unsigned short)w << 48);
+wcceChannelFormatDesc wcudaCreateChannelDesc(int x, int y, int z, int w) {
+    /* Keep the CUDA data shape available to callers; Ascend has no texture
+     * channel execution path, so the format kind is intentionally None. */
+    wcceChannelFormatDesc value = {x, y, z, w, wcceChannelFormatKindNone};
+    return value;
 }
 
 aclError wcudaCreateTextureObject(void *pTexObject, const void *pResDesc, const void *pTexDesc,

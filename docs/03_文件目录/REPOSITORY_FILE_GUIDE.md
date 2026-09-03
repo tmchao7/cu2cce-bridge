@@ -591,6 +591,7 @@ git diff --check
 | `include/bridge/kernel/cuda_device_api.h` | CUDA device-side SIMT/warp/vote/reduce/atomic 到 CANN simt_api 的集中映射 |
 | `include/bridge/runtime/cuda_benchmark_targets.h` | CUDA runtime bridge 的类型、声明和内部接口头 |
 | `include/bridge/runtime/cuda_runtime_wrapper.h` | CUDA runtime bridge 的类型、声明和内部接口头 |
+| `include/bridge/runtime/cuda_runtime_types.h` | CUDA Runtime 的 extent/pitch/pos/pointer/array/descriptor 源码兼容类型 |
 | `include/bridge/runtime/cuda_to_cce_mcr_adaptor.h` | CUDA runtime bridge 的类型、声明和内部接口头 |
 | `include/bridge/runtime/cuda_wrapper_internal.h` | CUDA runtime bridge 的类型、声明和内部接口头 |
 | `include/bridge/runtime/cuda_wrapper_internal_types.h` | CUDA runtime bridge 的类型、声明和内部接口头 |

@@ -451,6 +451,20 @@ docs/02_能力清单/BLAS_COMPATIBILITY_MATRIX.md
 | `cudnn` | aclnn/ATB | `ROUTE_ONLY` | 不生成虚假 CUDA target |
 | `nvrtc`、PTX、CUBIN、FATBIN | 无 puresimt 等价物 | `UNSUPPORTED` | cucc 明确拒绝 |
 
+### 8.3 CUDA Runtime 数据类型入口
+
+`include/bridge/runtime/cuda_runtime_types.h` 提供不依赖 CANN ABI 的数据形状容器，并由 adaptor 映射公开 CUDA 名称：
+
+| CUDA 类型/工厂 | cu2cce 类型/入口 | 当前状态 | 限制 |
+|---|---|---|---|
+| `cudaExtent` / `make_cudaExtent` | `wcceExtent` / `make_wcudaExtent` | `SUPPORTED` for source shape | 仅是尺寸容器，不代表 CUDA 3D copy 已实现 |
+| `cudaPitchedPtr` / `make_cudaPitchedPtr` | `wccePitchedPtr` / `make_wcudaPitchedPtr` | `SUPPORTED` for source shape | pitch 实际语义仍受 bridge 2D copy 范围约束 |
+| `cudaPos` / `make_cudaPos` | `wccePos` / `make_wcudaPos` | `SUPPORTED` for source shape | 仅用于参数结构兼容 |
+| `cudaPointerAttributes` | `wccePointerAttributes` | `NOT_VERIFIED` | `cudaPointerGetAttributes` 仍明确返回不支持 |
+| `cudaMemcpy3DParms` | `wcceMemcpy3DParms` | `NOT_VERIFIED` | 结构可见不等于 `cudaMemcpy3D` 执行支持 |
+| `cudaChannelFormatDesc` | `wcceChannelFormatDesc` | `SUPPORTED` for descriptor shape | Texture/Surface 执行仍 `UNSUPPORTED` |
+| `cudaArray_t` / `cudaMipmappedArray_t` | `wcceArray_t` / `wcceMipmappedArray_t` | `NOT_VERIFIED` | 仅 opaque source type，不创建 CANN array 语义 |
+
 ### 8.3 判定要求
 
 头文件存在、CMake configure 成功、函数返回成功或 no-op 均不能单独升级为 `SUPPORTED`。每项必须关联服务器探针或 `tools/real_test/server_cmd.txt` 中的真实结果。

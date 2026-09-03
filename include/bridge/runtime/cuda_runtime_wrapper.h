@@ -236,9 +236,16 @@ aclError CUBRIDGE_API wcudaLaunchKernel(const void *hostFunction, dim3 gridDim, 
 aclError CUBRIDGE_API wcudaProfilerStart(void);
 aclError CUBRIDGE_API wcudaProfilerStop(void);
 
+/* ============ CUDA Runtime data-shape factories ============ */
+wcceExtent CUBRIDGE_API make_wcudaExtent(size_t width, size_t height, size_t depth);
+wccePitchedPtr CUBRIDGE_API make_wcudaPitchedPtr(void *ptr, size_t pitch,
+                                                 size_t xsize, size_t ysize);
+wccePos CUBRIDGE_API make_wcudaPos(size_t x, size_t y, size_t z);
+
 /* ============ Texture/Surface（昇腾无对应，全部 not-support；句柄用 void* 简化） ============ */
-/* cudaCreateChannelDesc 返回 4-int 结构，用 unsigned long long 承载（x,y,z,w 各 16bit） */
-unsigned long long CUBRIDGE_API wcudaCreateChannelDesc(int x, int y, int z, int w);
+/* Channel descriptor is a source-compatibility value; texture execution is
+ * still unsupported on Ascend. */
+wcceChannelFormatDesc CUBRIDGE_API wcudaCreateChannelDesc(int x, int y, int z, int w);
 aclError CUBRIDGE_API wcudaCreateTextureObject(void *pTexObject, const void *pResDesc,
                                                const void *pTexDesc, const void *pResViewDesc);
 aclError CUBRIDGE_API wcudaDestroyTextureObject(void *texObject);
