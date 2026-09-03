@@ -2220,3 +2220,17 @@ class CanonicalRuntimeProbeContractTest(unittest.TestCase):
         self.assertIn("libascendcl.so", text)
         self.assertIn("ACL_RUNTIME_LIB", text)
         self.assertLess(text.index("libacl_rt.so"), text.index("libascendcl.so"))
+
+class CudaRuntimeMappingCompletenessTest(unittest.TestCase):
+    def test_every_public_wcuda_function_has_a_cuda_runtime_alias(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        adaptor = (root / "include/bridge/runtime/cuda_to_cce_mcr_adaptor.h").read_text(encoding="utf-8")
+        wrapper = (root / "include/bridge/runtime/cuda_runtime_wrapper.h").read_text(encoding="utf-8")
+        aliases = set(re.findall(r"^#define\s+(cuda[A-Za-z0-9_]+)\s+(wcuda[A-Za-z0-9_]+)$", adaptor, re.MULTILINE))
+        public_decls = set(re.findall(r"\b(wcuda[A-Za-z0-9_]+)\s*\(", wrapper))
+        intentionally_internal = {"wcudaMallocHostWithFlags"}
+        missing = sorted(
+            name for name in public_decls - intentionally_internal
+            if not any(target == name for _, target in aliases)
+        )
+        self.assertEqual(missing, [])

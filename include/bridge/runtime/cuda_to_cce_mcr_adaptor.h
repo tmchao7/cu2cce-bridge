@@ -100,6 +100,7 @@
 #define cudaDeviceSynchronize wcudaDeviceSynchronize
 #define cudaDeviceReset wcudaDeviceReset
 #define cudaSetDeviceFlags wcudaSetDeviceFlags
+#define cudaGetDeviceFlags wcudaGetDeviceFlags
 #define cudaGetDeviceProperties wcudaGetDeviceProperties
 #define cudaDeviceGetAttribute wcudaDeviceGetAttribute
 /* Device 配置类（昇腾无对应/语义不同，声明保证可编译） */
