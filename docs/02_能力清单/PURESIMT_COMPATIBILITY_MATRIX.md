@@ -281,7 +281,7 @@ CUDA device-link/RDC
 
 ## 11. CUDA device-side API → Ascend C SIMT 逐项映射（2026-09-03）
 
-官方 Ascend C API 列表将 SIMT 作为独立编程模型，入口头文件为 `simt/asc_simt.h`；底层同步、Warp 和原子接口由 CANN 的 `simt_api` 头文件提供。cu2cce 的 CUDA 头文件入口通过 `include/bridge/kernel/cuda_device_api.h` 集中维护以下映射。
+官方 Ascend C API 列表将 SIMT 作为独立编程模型，入口头文件为 `simt/asc_simt.h`；底层同步、Warp 和原子接口由 CANN 的 `simt_api` 头文件提供。cu2cce 的 CUDA 头文件入口通过 `include/bridge/kernel/cuda_device_api.h` 集中维护以下映射。扩展 API 默认关闭；只有显式设置 `CU2CCE_ENABLE_EXPERIMENTAL_DEVICE_APIS=1` 才会暴露依赖产品/编译模型的扩展接口。
 
 ### 11.1 线程、同步和执行空间
 
@@ -307,22 +307,22 @@ CUDA device-link/RDC
 | `__all_sync` | `asc_all` | mask 被显式求值后忽略 | `SUPPORTED` for tested forms | 不是任意 CUDA active mask 等价 |
 | `__any_sync` | `asc_any` | mask 被显式求值后忽略 | `SUPPORTED` for tested forms | 同上 |
 | `__ballot_sync` | `asc_ballot` | mask 被显式求值后忽略 | `SUPPORTED` for tested forms | 返回位图宽度由 CANN 定义 |
-| `__activemask()` | `asc_activemask()` | 直接映射 | `EXPERIMENTAL` | 需真实设备执行验证 active lane 行为 |
+| `__activemask()` | `asc_activemask()` | `CU2CCE_ENABLE_EXPERIMENTAL_DEVICE_APIS=1` 后映射 | `EXPERIMENTAL` | 官方接口存在，但当前目标需单独验证 active lane 行为 |
 | `__reduce_add_sync` | `asc_reduce_add` | mask 被显式求值后忽略 | `SUPPORTED` for tested form | 当前只承诺已验证类型 |
-| `__reduce_max_sync` | `asc_reduce_max` | mask 被显式求值后忽略 | `EXPERIMENTAL` | 依赖 CANN Warp header 和类型支持 |
-| `__reduce_min_sync` | `asc_reduce_min` | mask 被显式求值后忽略 | `EXPERIMENTAL` | 同上 |
+| `__reduce_max_sync` | `asc_reduce_max` | `CU2CCE_ENABLE_EXPERIMENTAL_DEVICE_APIS=1` 后映射 | `EXPERIMENTAL` | 依赖 CANN Warp header、类型和目标编译模型 |
+| `__reduce_min_sync` | `asc_reduce_min` | `CU2CCE_ENABLE_EXPERIMENTAL_DEVICE_APIS=1` 后映射 | `EXPERIMENTAL` | 同上 |
 
 ### 11.3 原子操作
 
 | CUDA 写法 | CANN/Ascend 写法 | 当前处理 | 状态 | 限制 |
 |---|---|---|---|---|
 | `atomicAdd/Sub/Exch/Max/Min` | `asc_atomic_add/sub/exch/max/min` | 直接宏映射 | `SUPPORTED` for tested types | 需匹配 CANN 支持的地址空间和数据类型 |
-| `atomicInc` | `asc_atomic_inc` | 直接宏映射 | `EXPERIMENTAL` | 当前未纳入主线数值回归 |
-| `atomicDec` | `asc_atomic_dec` | 直接宏映射 | `EXPERIMENTAL` | 同上 |
-| `atomicCAS` | `asc_atomic_cas` | 直接宏映射 | `EXPERIMENTAL` | 返回旧值和支持类型需真机探针确认 |
-| `atomicAnd` | `asc_atomic_and` | 直接宏映射 | `EXPERIMENTAL` | 需确认 global/UB 地址空间 |
-| `atomicOr` | `asc_atomic_or` | 直接宏映射 | `EXPERIMENTAL` | 同上 |
-| `atomicXor` | `asc_atomic_xor` | 直接宏映射 | `EXPERIMENTAL` | 同上 |
+| `atomicInc` | `asc_atomic_inc` | 设置 `CU2CCE_ENABLE_EXPERIMENTAL_DEVICE_APIS=1` 后映射 | `NOT_VERIFIED` | 当前未纳入主线数值回归 |
+| `atomicDec` | `asc_atomic_dec` | 设置 `CU2CCE_ENABLE_EXPERIMENTAL_DEVICE_APIS=1` 后映射 | `NOT_VERIFIED` | 同上 |
+| `atomicCAS` | `asc_atomic_cas` | 设置 `CU2CCE_ENABLE_EXPERIMENTAL_DEVICE_APIS=1` 后映射 | `NOT_VERIFIED` | 返回旧值和支持类型需真机探针确认 |
+| `atomicAnd` | `asc_atomic_and` | 设置 `CU2CCE_ENABLE_EXPERIMENTAL_DEVICE_APIS=1` 后映射 | `NOT_VERIFIED` | 需确认 global/UB 地址空间 |
+| `atomicOr` | `asc_atomic_or` | 设置 `CU2CCE_ENABLE_EXPERIMENTAL_DEVICE_APIS=1` 后映射 | `NOT_VERIFIED` | 同上 |
+| `atomicXor` | `asc_atomic_xor` | 设置 `CU2CCE_ENABLE_EXPERIMENTAL_DEVICE_APIS=1` 后映射 | `NOT_VERIFIED` | 同上 |
 
 ### 11.4 数学、类型和内建变量
 
@@ -347,3 +347,12 @@ include/cuda_runtime.h
 ```
 
 `cuda_runtime.h` 的头文件可见性、ccec 编译成功和真机运行结果必须分别记录；任何未提供可靠 Ascend 等价物的 CUDA device API 都不能用一个同名宏伪造。
+
+官方核对入口（以服务器实际安装的 CANN 版本为最终依据）：
+
+```text
+https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/latest/API/ascendcopapi/docs/zh/api/api_list.md
+https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/latest/API/headerliblist/hfandlf_09_0001.html
+```
+
+其中，CANN 文档中列出的 SIMT/原子接口仍需结合具体产品和编译模型判断；本项目的扩展 API 编译结果只作为 `DIAG-ONLY` 证据，不能替代当前 Ascend950 目标的数值执行回归。

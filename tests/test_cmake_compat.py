@@ -2258,15 +2258,15 @@ class DeviceApiProbeHarnessContractTest(unittest.TestCase):
         self.assertIn("--bridge-include \"$REPO_INC\"", text)
         self.assertIn("--ccec \"$API_CCEC\"", text)
         self.assertIn("--npu-arch \"${API_NPU_ARCH:-dav-c310-vec}\"", text)
-        self.assertIn("device API compile: SIMT/warp/vote/reduce/atomic", (root / "tools/real_test/diag/cann_api_surface_probe.sh").read_text(encoding="utf-8"))
+        probe = (root / "tools/real_test/diag/cann_api_surface_probe.sh").read_text(encoding="utf-8")
+        self.assertIn("device API compile: core SIMT/warp/vote/reduce", probe)
+        self.assertIn("device API compile: extended atomics/active-mask", probe)
 
 class CudaCrtDeviceFunctionEntryContractTest(unittest.TestCase):
     def test_direct_crt_device_functions_include_exposes_cuda_device_map(self) -> None:
         root = Path(__file__).resolve().parents[1]
         text = (root / "include/crt/device_functions.h").read_text(encoding="utf-8")
         self.assertIn('"bridge/kernel/cuda_device_api.h"', text)
-if __name__ == "__main__":
-    unittest.main()
 
 class CudaDefaultMemcpyContractTest(unittest.TestCase):
     def test_default_memcpy_does_not_silently_become_device_to_device(self) -> None:
@@ -2278,3 +2278,20 @@ class CudaDefaultMemcpyContractTest(unittest.TestCase):
         self.assertIn("wcudaMemcpyDefault", wrapper_h)
         self.assertIn("ACL_ERROR_API_NOT_SUPPORT", wrapper)
         self.assertIn("pointer attributes", wrapper)
+
+class NpuAwareExtendedDeviceApiContractTest(unittest.TestCase):
+    def test_extended_atomics_are_explicitly_opt_in(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        text = (root / "include/bridge/kernel/cuda_device_api.h").read_text(encoding="utf-8")
+        self.assertIn("CU2CCE_ENABLE_EXPERIMENTAL_DEVICE_APIS", text)
+        self.assertIn("defined(CU2CCE_ENABLE_EXPERIMENTAL_DEVICE_APIS)", text)
+        self.assertLess(text.index("CU2CCE_ENABLE_EXPERIMENTAL_DEVICE_APIS"), text.index("atomicCAS"))
+
+    def test_server_probe_separates_core_and_extended_device_api_checks(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        text = (root / "tools/real_test/diag/cann_api_surface_probe.sh").read_text(encoding="utf-8")
+        self.assertIn("[PASS] device API compile: core SIMT", text)
+        self.assertIn("[DIAG-ONLY] device API compile: extended", text)
+        self.assertIn("CU2CCE_ENABLE_EXPERIMENTAL_DEVICE_APIS", text)
+if __name__ == "__main__":
+    unittest.main()

@@ -30,8 +30,10 @@ ccec 原生识别 CUDA SIMT kernel。`include/bridge/kernel/simt_adaptor.h` 只�
 
 - `__shared__ → __ubuf__`；
 - `__syncthreads → asc_syncthreads`；
-- CUDA warp collectives → Ascend SIMT collectives；
-- CUDA atomics → Ascend SIMT atomics。
+- 已验证的 CUDA warp collectives → Ascend SIMT collectives；
+- 已验证的基础 CUDA atomics（Add/Sub/Exch/Min/Max）→ Ascend SIMT atomics；
+- `atomicCAS/Inc/Dec/And/Or/Xor`、`__activemask` 和 reduce max/min 仅在
+  `CU2CCE_ENABLE_EXPERIMENTAL_DEVICE_APIS=1` 下暴露，不能当作主线支持。
 
 用户代码不得出现 `__simt_vf__`、`__global__[aicore]`、`cce::async_invoke` 或
 hidden block 参数。

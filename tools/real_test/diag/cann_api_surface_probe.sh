@@ -136,22 +136,33 @@ if [ -n "$CCEC" ] || [ -n "$BRIDGE_INCLUDE" ]; then
 
 __global__ void cu2cce_device_api_probe(unsigned int *out) {
     int lane = static_cast<int>(threadIdx.x);
-    int shuffled = __shfl_sync(0xffffffffu, lane, 0, 32);
-    int voted = __all_sync(0xffffffffu, lane >= 0);
+    int shuffled = __shfl_down_sync(0xffffffffu, lane, 1, 32);
+    int all = __all_sync(0xffffffffu, lane >= 0);
+    int any = __any_sync(0xffffffffu, lane >= 0);
+    unsigned int ballot = __ballot_sync(0xffffffffu, lane >= 0);
+    int reduced = __reduce_add_sync(0xffffffffu, lane);
+    atomicAdd(out, static_cast<unsigned int>(shuffled));
+    atomicSub(out, static_cast<unsigned int>(all));
+    atomicExch(out, static_cast<unsigned int>(any));
+    atomicMax(out, static_cast<unsigned int>(reduced));
+    atomicMin(out, ballot);
+}
+CU
+        cat >"$device_root/device_api_extended_probe.cu" <<'CU'
+#include <cuda_runtime.h>
+
+__global__ void cu2cce_extended_device_api_probe(unsigned int *out) {
+    int lane = static_cast<int>(threadIdx.x);
     unsigned int active = __activemask();
     int reduced_max = __reduce_max_sync(0xffffffffu, lane);
     int reduced_min = __reduce_min_sync(0xffffffffu, lane);
-    unsigned int old = atomicCAS(out, 0u, static_cast<unsigned int>(shuffled));
+    unsigned int old = atomicCAS(out, 0u, static_cast<unsigned int>(lane));
     atomicInc(out, 0xffffffffu);
     atomicDec(out, 0xffffffffu);
     atomicAnd(out, active);
-    atomicOr(out, static_cast<unsigned int>(voted));
-    atomicXor(out, static_cast<unsigned int>(reduced_max ^ reduced_min));
+    atomicOr(out, static_cast<unsigned int>(reduced_max));
+    atomicXor(out, static_cast<unsigned int>(reduced_min));
     atomicExch(out, old);
-    atomicAdd(out, 1u);
-    atomicSub(out, 1u);
-    atomicMax(out, static_cast<unsigned int>(reduced_max));
-    atomicMin(out, static_cast<unsigned int>(reduced_min));
 }
 CU
         simt_flags=()
@@ -163,11 +174,22 @@ CU
             -x asc --enable-simt --cce-aicore-arch="$NPU_ARCH" \
             -I"$BRIDGE_INCLUDE" -I"$include_root" "${simt_flags[@]}" \
             >"$device_root/compile.log" 2>&1; then
-            echo "[PASS] device API compile: SIMT/warp/vote/reduce/atomic ($NPU_ARCH)"
+            echo "[PASS] device API compile: core SIMT/warp/vote/reduce ($NPU_ARCH)"
         else
-            echo "[FAIL] device API compile: SIMT/warp/vote/reduce/atomic ($NPU_ARCH)"
+            echo "[FAIL] device API compile: core SIMT/warp/vote/reduce ($NPU_ARCH)"
             tail -n 30 "$device_root/compile.log" 2>/dev/null || true
             status=1
+        fi
+        if "$CCEC" -c "$device_root/device_api_extended_probe.cu" \
+            -o "$device_root/device_api_extended_probe.o" \
+            -x asc --enable-simt --cce-aicore-arch="$NPU_ARCH" \
+            -DCU2CCE_ENABLE_EXPERIMENTAL_DEVICE_APIS=1 \
+            -I"$BRIDGE_INCLUDE" -I"$include_root" "${simt_flags[@]}" \
+            >"$device_root/extended_compile.log" 2>&1; then
+            echo "[DIAG-PASS] device API compile: extended atomics/active-mask ($NPU_ARCH)"
+        else
+            echo "[DIAG-ONLY] device API compile: extended atomics/active-mask unavailable for this CANN target"
+            tail -n 12 "$device_root/extended_compile.log" 2>/dev/null || true
         fi
     fi
 fi

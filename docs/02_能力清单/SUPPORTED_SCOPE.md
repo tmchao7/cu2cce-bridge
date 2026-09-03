@@ -20,13 +20,14 @@
 
 | 能力 | 状态 |
 |---|---|
-| CUDA SIMT 语法（`__global__/__shared__/warp 原语/atomic 族） | `SUPPORTED` |
+| CUDA SIMT 语法（`__global__/__shared__`、已验证 warp 原语、已验证基础 atomic） | `SUPPORTED`；扩展 atomic/active-mask 需显式 opt-in |
 | `__device__` 独立拼写（经执行空间映射） | `SUPPORTED`（真机验证） |
 | 单精度设备数学（expf/logf/sqrtf/sinf/cosf/tanhf/powf/fmin/fmax/fabsf 等） | `SUPPORTED` |
 | CUDA 向量类型 char1..float4（编译器原生） | `SUPPORTED` |
 | crt 前向兼容层（math/device/common_functions + host_defines） | `SUPPORTED`（前向） |
 | host 侧整数 min/max（CUDA 双向语义） | `SUPPORTED`（模板桥） |
 | device double（数学/向量类型） | **`UNSUPPORTED`**（架构边界） |
+| 扩展 device API（`atomicCAS/Inc/Dec/And/Or/Xor`、`__activemask`、reduce max/min） | `NOT_VERIFIED`；`CU2CCE_ENABLE_EXPERIMENTAL_DEVICE_APIS=1` 仅用于目标探针 |
 | thrust / cutlass / CCCL / nvtx3 | `UNSUPPORTED`（未覆盖） |
 
 ## 3. 运行时（wcuda → ACL）

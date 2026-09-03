@@ -10,7 +10,8 @@
  *
  * It only adapts APIs for which the CANN SIMT headers expose a named
  * primitive. It must not invent CUDA warp-mask, system-fence, PTX, or
- * device-link semantics that Ascend does not provide.
+ * device-link semantics that Ascend does not provide. Product/编译模型依赖的
+ * extended APIs are opt-in through CU2CCE_ENABLE_EXPERIMENTAL_DEVICE_APIS.
  */
 
 #if defined(__has_include)
@@ -70,10 +71,16 @@
 #  define __all_sync(mask, predicate) ((void)(mask), asc_all((predicate)))
 #  define __any_sync(mask, predicate) ((void)(mask), asc_any((predicate)))
 #  define __ballot_sync(mask, predicate) ((void)(mask), asc_ballot((predicate)))
-#  define __activemask() asc_activemask()
 #  define __reduce_add_sync(mask, value) ((void)(mask), asc_reduce_add((value)))
-#  define __reduce_max_sync(mask, value) ((void)(mask), asc_reduce_max((value)))
-#  define __reduce_min_sync(mask, value) ((void)(mask), asc_reduce_min((value)))
+
+/* The following operations are present in CANN SIMT headers, but their
+ * support is product/编译模型 dependent. They remain opt-in until the
+ * current NPU target has a dedicated compile-and-run result. */
+#  if defined(CU2CCE_ENABLE_EXPERIMENTAL_DEVICE_APIS)
+#    define __activemask() asc_activemask()
+#    define __reduce_max_sync(mask, value) ((void)(mask), asc_reduce_max((value)))
+#    define __reduce_min_sync(mask, value) ((void)(mask), asc_reduce_min((value)))
+#  endif
 
 /* Deprecated CUDA warp spellings are still common in older kernels. They do
  * not carry a mask; preserve their optional width argument instead of
@@ -105,8 +112,13 @@
 #endif
 
 /* CUDA atomics return the value observed before the operation. CANN's SIMT
- * atomic API uses the same return-value convention for the supported types. */
-#if defined(CU2CCE_HAS_CANN_SIMT_ATOMIC_API)
+ * atomic API uses the same return-value convention for the supported types.
+ * The basic Add/Sub/Exch/Min/Max aliases remain in simt_adaptor.h because
+ * they are covered by the existing Ascend950 regression. The broader atomic
+ * family below is deliberately opt-in until its target-specific evidence is
+ * complete. */
+#if defined(CU2CCE_HAS_CANN_SIMT_ATOMIC_API) && \
+    defined(CU2CCE_ENABLE_EXPERIMENTAL_DEVICE_APIS)
 #  define atomicInc(address, value) asc_atomic_inc((address), (value))
 #  define atomicDec(address, value) asc_atomic_dec((address), (value))
 #  define atomicCAS(address, compare, value) \

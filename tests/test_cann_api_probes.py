@@ -52,5 +52,5 @@ class CannApiProbeTest(unittest.TestCase):
         self.assertIn("--bridge-include", script)
         self.assertIn("--ccec", script)
         self.assertIn("--npu-arch", script)
-        self.assertIn("__shfl_sync", script)
+        self.assertIn("__shfl_down_sync", script)
         self.assertIn("atomicCAS", script)
