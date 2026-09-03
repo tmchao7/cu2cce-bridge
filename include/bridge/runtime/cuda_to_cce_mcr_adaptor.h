@@ -157,6 +157,12 @@
 // Stream Management
 #define cudaStreamCreate wcudaStreamCreate
 #define cudaStreamCreateWithFlags wcudaStreamCreateWithFlags
+#define cudaStreamCreateWithPriority wcudaStreamCreateWithPriority
+#define cudaStreamGetFlags wcudaStreamGetFlags
+#define cudaStreamGetPriority wcudaStreamGetPriority
+#define cudaStreamGetDevice wcudaStreamGetDevice
+#define cudaStreamGetId wcudaStreamGetId
+#define cudaStreamAttachMemAsync wcudaStreamAttachMemAsync
 /* CUDA stream flags are accepted by the official NVIDIA samples. Ascend's
  * wcudaStreamCreateWithFlags currently ignores the flag but preserves the
  * source-level CUDA ABI. */

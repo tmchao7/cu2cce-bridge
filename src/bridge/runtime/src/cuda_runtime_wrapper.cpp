@@ -506,6 +506,67 @@ aclError wcudaStreamCreateWithFlags(aclrtStream *pStream, unsigned int flags) {
     WCUDA_RETURN(aclrtCreateStream(pStream));
 }
 
+aclError wcudaStreamCreateWithPriority(aclrtStream *pStream, unsigned int flags,
+                                         int priority) {
+    (void)flags;
+    (void)priority;
+    if (pStream != nullptr) {
+        *pStream = nullptr;
+    }
+    /* CANN aclrtCreateStream has no CUDA priority parameter. Creating a
+     * normal stream here would silently weaken ordering guarantees. */
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaStreamGetFlags(aclrtStream stream, unsigned int *flags) {
+    (void)stream;
+    if (flags == nullptr) {
+        WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
+    }
+    *flags = 0; /* CUDA stream default flag; keep backend wrapper independent. */
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaStreamGetPriority(aclrtStream stream, int *priority) {
+    (void)stream;
+    if (priority == nullptr) {
+        WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
+    }
+    *priority = 0;
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaStreamGetDevice(aclrtStream stream, int *device) {
+    aclrtStream resolved = nullptr;
+    if (device == nullptr || wcuda_resolve_stream(stream, &resolved) != ACL_SUCCESS) {
+        WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
+    }
+    (void)resolved;
+    /* ACL streams are created in the current context; this is an adapted
+     * query, not a claim that arbitrary foreign stream handles are portable. */
+    WCUDA_RETURN(wcudaGetDevice(device));
+}
+
+aclError wcudaStreamGetId(aclrtStream stream, unsigned long long *streamId) {
+    (void)stream;
+    if (streamId == nullptr) {
+        WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
+    }
+    *streamId = 0;
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaStreamAttachMemAsync(aclrtStream stream, void *devPtr, size_t length,
+                                   unsigned int flags) {
+    (void)stream;
+    (void)devPtr;
+    (void)length;
+    (void)flags;
+    /* This API controls CUDA managed-memory association; Ascend has no
+     * stream-ordered managed-memory equivalent. */
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
 aclError wcudaStreamDestroy(aclrtStream stream) {
     if (stream == nullptr) {
         g_last_error = ACL_ERROR_INVALID_PARAM;

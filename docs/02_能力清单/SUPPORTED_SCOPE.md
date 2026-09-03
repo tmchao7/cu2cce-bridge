@@ -37,6 +37,7 @@
 | 内存（malloc/free/MallocHost/HostAlloc/managed 部分/pitch） | `SUPPORTED`（核心） |
 | 拷贝/填充（同步+异步、1D/2D/peer） | `SUPPORTED`（核心） |
 | 流（create/destroy/sync/query/waitEvent）、事件（record/query/sync/elapsed） | `SUPPORTED`（含默认流语义消费点实现） |
+| Stream priority/flags/ID/managed-memory attach | `UNSUPPORTED`~`EXPERIMENTAL`；保留 CUDA 入口但不伪造 CANN 没有的 priority/ID 语义 |
 | 默认流三种拼写的 legacy 语义 | `SUPPORTED`（消费点实现，simpleStreams 复验） |
 | device 管理/属性（GetDeviceProperties 常用字段） | `SUPPORTED`（诚实填充） |
 | Graph / HostFunc / Pointer 属性等长尾 | `EXPERIMENTAL`~`UNSUPPORTED`（逐项见 PURESIMT 矩阵） |

@@ -2293,5 +2293,32 @@ class NpuAwareExtendedDeviceApiContractTest(unittest.TestCase):
         self.assertIn("[PASS] device API compile: core SIMT", text)
         self.assertIn("[DIAG-ONLY] device API compile: extended", text)
         self.assertIn("CU2CCE_ENABLE_EXPERIMENTAL_DEVICE_APIS", text)
+
+class CudaStreamRuntimeSurfaceContractTest(unittest.TestCase):
+    def test_common_stream_runtime_entries_have_ascend_aware_wrappers(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        adaptor = (root / "include/bridge/runtime/cuda_to_cce_mcr_adaptor.h").read_text(encoding="utf-8")
+        wrapper_h = (root / "include/bridge/runtime/cuda_runtime_wrapper.h").read_text(encoding="utf-8")
+        wrapper = (root / "src/bridge/runtime/src/cuda_runtime_wrapper.cpp").read_text(encoding="utf-8")
+        for cuda_name, wcuda_name in (
+            ("cudaStreamCreateWithPriority", "wcudaStreamCreateWithPriority"),
+            ("cudaStreamGetFlags", "wcudaStreamGetFlags"),
+            ("cudaStreamGetPriority", "wcudaStreamGetPriority"),
+            ("cudaStreamGetDevice", "wcudaStreamGetDevice"),
+            ("cudaStreamGetId", "wcudaStreamGetId"),
+            ("cudaStreamAttachMemAsync", "wcudaStreamAttachMemAsync"),
+        ):
+            self.assertIn(f"#define {cuda_name} {wcuda_name}", adaptor)
+            self.assertIn(wcuda_name, wrapper_h)
+            self.assertIn(wcuda_name, wrapper)
+        self.assertIn("priority", wrapper)
+        self.assertIn("streamId", wrapper)
+
+class HostWrapperBackendIndependenceContractTest(unittest.TestCase):
+    def test_runtime_source_does_not_depend_on_cuda_flag_macros(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        source = (root / "src/bridge/runtime/src/cuda_runtime_wrapper.cpp").read_text(encoding="utf-8")
+        self.assertNotIn("cudaStreamDefault", source)
+        self.assertIn("backend wrapper independent", source)
 if __name__ == "__main__":
     unittest.main()

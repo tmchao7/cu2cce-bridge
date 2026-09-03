@@ -140,6 +140,10 @@ cublasXxx(...) → wcublasXxx(...) → aclblasXxx(...)（experimental BLAS）
 | `cudaMallocPitch` | `wcudaMallocPitch` | bridge pitch-compatible allocation | `SUPPORTED` for current width/contiguous shape；对齐规则不是 CUDA GPU 承诺 |
 | `cudaMemcpy2D` | `wcudaMemcpy2D` | row-wise `aclrtMemcpy` fallback | `SUPPORTED` for current pitched shape |
 | `cudaStreamCreate` / `cudaStreamCreateWithFlags` | `wcudaStreamCreate*` | `aclrtCreateStream` | `SUPPORTED` for tested flags |
+| `cudaStreamCreateWithPriority` / `cudaStreamGetPriority` | `wcudaStreamCreateWithPriority/GetPriority` | CANN `aclrtCreateStream` 无 CUDA priority 语义 | `UNSUPPORTED`；保留声明但不静默伪造优先级 |
+| `cudaStreamGetFlags` / `cudaStreamGetId` | `wcudaStreamGetFlags/GetId` | CANN 无稳定公开等价查询 | `UNSUPPORTED` |
+| `cudaStreamGetDevice` | `wcudaStreamGetDevice` | 当前 ACL context 的 device 查询 | `EXPERIMENTAL`；不承诺外部 stream 句柄可移植 |
+| `cudaStreamAttachMemAsync` | `wcudaStreamAttachMemAsync` | CANN 无 managed-memory stream association | `UNSUPPORTED` |
 | `cudaStreamDestroy` / `cudaStreamSynchronize` / `cudaStreamQuery` | `wcudaStream*` | ACL stream APIs | `SUPPORTED` for tested shapes |
 | `cudaStreamWaitEvent` | `wcudaStreamWaitEvent` | ACL event/stream dependency | `SUPPORTED` for tested shape |
 | `cudaEventCreate/Destroy/Record/Query/Synchronize/ElapsedTime` | `wcudaEvent*` | ACL event APIs | `SUPPORTED` |

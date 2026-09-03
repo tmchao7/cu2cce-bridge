@@ -10,9 +10,9 @@
  *   - 句柄类型用 aclrtStream / aclrtEvent（宏表已把 cudaStream_t / cudaEvent_t 替换）；
  *   - 实现在 src/bridge/runtime/src/cuda_runtime_wrapper.cpp，内部调用 aclrt* 原生 API。
  *
- * 本文件只列 Phase A1 需要的最小核心集（device/stream/event/memory/error/version）。
- * 其余 wcuda 函数（launch/graph/texture/occupancy 等）随 Phase A3+ 逐步补充，
- * 补充时照抄 cu-bridge 声明行，把 mc 类型换成对应 acl 类型即可。
+ * 本文件按 CUDA Runtime 能力族组织已暴露的 bridge 入口。每个声明都必须在
+ * `cuda_to_cce_mcr_adaptor.h` 有对应 alias；没有可靠 Ascend 等价物的接口仍可
+ * 为源码兼容保留声明，但实现必须返回明确的 `ACL_ERROR_API_NOT_SUPPORT`。
  */
 
 #include "cuda_benchmark_targets.h"
@@ -71,6 +71,17 @@ aclError CUBRIDGE_API wcudaCtxSynchronize(void);
 /* ============ Stream Management ============ */
 aclError CUBRIDGE_API wcudaStreamCreate(aclrtStream *pStream);
 aclError CUBRIDGE_API wcudaStreamCreateWithFlags(aclrtStream *pStream, unsigned int flags);
+/* CUDA stream priority/ID metadata has no complete public CANN equivalent.
+ * These entries preserve source-level declarations and report unsupported
+ * semantics instead of silently claiming priority ordering. */
+aclError CUBRIDGE_API wcudaStreamCreateWithPriority(aclrtStream *pStream, unsigned int flags,
+                                                    int priority);
+aclError CUBRIDGE_API wcudaStreamGetFlags(aclrtStream stream, unsigned int *flags);
+aclError CUBRIDGE_API wcudaStreamGetPriority(aclrtStream stream, int *priority);
+aclError CUBRIDGE_API wcudaStreamGetDevice(aclrtStream stream, int *device);
+aclError CUBRIDGE_API wcudaStreamGetId(aclrtStream stream, unsigned long long *streamId);
+aclError CUBRIDGE_API wcudaStreamAttachMemAsync(aclrtStream stream, void *devPtr,
+                                                size_t length, unsigned int flags);
 aclError CUBRIDGE_API wcudaStreamDestroy(aclrtStream stream);
 aclError CUBRIDGE_API wcudaStreamSynchronize(aclrtStream stream);
 aclError CUBRIDGE_API wcudaStreamQuery(aclrtStream stream);
