@@ -1,9 +1,8 @@
-#ifndef CU2CCE_CUDA_PROFILER_API_H_
-#define CU2CCE_CUDA_PROFILER_API_H_
+#ifndef __CU2CCE_PUBLIC_CUDA_PROFILER_API_H__
+#define __CU2CCE_PUBLIC_CUDA_PROFILER_API_H__
 
-/* CUDA Samples include <cuda_profiler_api.h>.  The bridge exposes the same
- * source-level header; profiler start/stop are no-op-compatible wrappers on
- * Ascend and are mapped by the normal CUDA adaptor. */
-#include "cuda_runtime.h"
+/* CUDA-shaped public header; backend semantics stay in cu2cce/CANN. */
+/* Header: cuda_profiler_api.h; unsupported APIs remain explicitly reserved. */
+#include <cuda_runtime.h>
 
-#endif /* CU2CCE_CUDA_PROFILER_API_H_ */
+#endif /* __CU2CCE_PUBLIC_CUDA_PROFILER_API_H__ */

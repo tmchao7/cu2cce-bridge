@@ -147,11 +147,25 @@ def generate(
                 "category": _category(name),
             }
         status_output.parent.mkdir(parents=True, exist_ok=True)
-        status_output.write_text(json.dumps({
+        preserved = {}
+        if status_output.is_file():
+            try:
+                loaded = json.loads(status_output.read_text(encoding="utf-8"))
+                if isinstance(loaded, dict):
+                    preserved = {
+                        key: value for key, value in loaded.items()
+                        if key not in {"schema_version", "reference", "entries"}
+                    }
+            except (OSError, json.JSONDecodeError):
+                preserved = {}
+        preserved.update({
             "schema_version": 1,
             "reference": reference_label,
             "entries": entries,
-        }, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        })
+        status_output.write_text(json.dumps(
+            preserved, ensure_ascii=False, indent=2, sort_keys=True
+        ) + "\n", encoding="utf-8")
 
 
 def main() -> int:

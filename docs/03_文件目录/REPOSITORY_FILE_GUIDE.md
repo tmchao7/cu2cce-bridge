@@ -1,7 +1,7 @@
 # cu2cce-bridge 仓库文件与问题定位指南
 
 **适用分支：** `main` / puresimt
-**更新日期：** 2026-09-02
+**更新日期：** 2026-09-03
 **对标仓库：** `cu-bridge-muxi` `6ab1076` / `3.8.0`
 **目标后端：** Ascend NPU / CANN / ccec
 
@@ -75,9 +75,10 @@ make_cce / ninja_cce / pre_cce
 | `bin/` | 用户可直接调用的入口；当前核心入口是 `cucc` | 命令找不到、环境变量、driver 启动失败 |
 | `cmake/` | 原生 `cu2cce-bridge` CMake package 配置 | `find_package(cu2cce-bridge CONFIG)` 找不到或 target 路径错误 |
 | `cmake_modules/` | CUDA/CMake 兼容模块，不是 CANN 编译器本身 | `FindCUDA`、`FindCUDAToolkit`、legacy CMake 配置问题 |
-| `config/` | artifact contract；cucc 规则和虚拟工具链清单位于 `bin/`/`tools/` | 规则覆盖、软链布局、产物契约问题 |
+| `config/` | artifact contract 与 CUDA Runtime/header/wrapper parity inventory；cucc 规则和虚拟工具链清单位于 `bin/`/`tools/` | 规则覆盖、接口登记、产物契约问题 |
 | `include/` | CUDA 兼容头、runtime 声明、SIMT adaptor、shadow libc | `.cu` 解析、CUDA API 声明、host/device 头冲突 |
 | `src/` | bridge runtime 和 experimental BLAS 的实现 | 链接符号、ACL 调用、运行时返回码 |
+| `src/bridge/runtime/src/cuda_driver_wrapper.cpp` | 基础 CUDA Driver typed placeholder；明确返回 `ACL_ERROR_API_NOT_SUPPORT`，不把 `cuInit` 等伪映射为 ACL ABI |
 | `examples/` | puresimt、CMake、Make/Ninja、BLAS 和诊断载体 | 复现某个 API 或构建入口的最小案例 |
 | `tests/` | 本地规则、CMake、artifact、mock ACL 和仓库卫生测试 | 回归防护、接口契约变更 |
 | `third_party/` | 必要的 NVIDIA CUDA Samples helper 头 | 官方 sample 缺少 helper include |
@@ -441,8 +442,42 @@ git diff --check
 | 路径 | 职责 |
 |---|---|
 | `config/artifact_contract.json` | cucc/CMake/Make/Ninja artifact contract 清单 |
-| `config/cuda_api_parity_inventory.json` | 参考 Runtime adaptor 的 CUDA 条目状态清单；记录 active、typed unsupported、reserved 或 diagnostic 的可审计归宿 |
+| `config/cuda_api_parity_inventory.json` | CUDA Runtime、公共头文件、bridge Wrapper 和库映射的统一 parity 清单；`headers`/`wrappers`/`api_entries` 是生成式文件族的逐项维护入口 |
 
+
+### CUDA 头文件/Wrapper parity 清单
+
+参考 `cu-bridge-muxi@6ab1076` 的公共 CUDA 头文件与 bridge Wrapper 不逐个手工写入本指南，
+而是由 `config/cuda_api_parity_inventory.json` 的以下字段作为**逐文件、逐 API 的唯一来源**：
+
+```text
+headers       → include/<CUDA public header>
+wrappers      → include/bridge/<wrapper header>
+api_entries   → CUDA API、reference wrapper、CANN 路线、状态与未来实现位置
+libraries     → CUDA 库到 CANN 路线及是否有真实 wrapper 证据
+```
+
+这组受管理路径包括 `include/cuda.h`、`include/nvrtc.h`、`include/cudnn.h`、
+`include/bridge/runtime/cuda_driver_wrapper.h`、`include/bridge/video/cuda_vdpau_wrapper.h`
+以及同一 inventory 中列出的全部自动生成普通文件；它们不使用软链接。
+
+状态含义：`ACTIVE_ADAPTED` 表示已有真实 bridge 适配，`UNSUPPORTED_TYPED` 表示可调用 stub
+返回 `ACL_ERROR_API_NOT_SUPPORT`，`RESERVED_NPU` 表示在 `#if 0` 中保留 CUDA 名称、参考 Wrapper
+和 future unlock point，`DIAGNOSTIC_ONLY` 表示只用于编译或性能诊断。头文件存在不代表其库已实现。
+
+维护命令：
+
+```bash
+python3 tools/generate_cuda_header_wrapper_parity.py \
+  --reference ../cu-bridge-muxi \
+  --implementation . \
+  --inventory config/cuda_api_parity_inventory.json
+
+python3 tools/validate_cuda_header_wrapper_parity.py \
+  --reference ../cu-bridge-muxi \
+  --implementation . \
+  --inventory config/cuda_api_parity_inventory.json
+```
 
 ### `docs/`
 
@@ -601,6 +636,7 @@ git diff --check
 | `include/cuda_surface_types.h` | CUDA surface_types 兼容转发入口 |
 | `include/cuda_texture_types.h` | CUDA texture_types 兼容转发入口 |
 | `include/bridge/blas/cublas_v2_wrapper.h` | experimental cuBLAS/ACL BLAS 兼容头 |
+| `include/cuda_library_placeholder.h` | 未实现 CUDA 高层库头的统一可包含占位基础；不提供虚假 CANN ABI、库 alias 或链接目标 |
 | `include/bridge/kernel/simt_adaptor.h` | CUDA SIMT 基础原语、执行空间和 shared/atomic 基础映射 |
 | `include/bridge/kernel/cuda_device_api.h` | CUDA device-side SIMT/warp/vote/reduce/atomic 到 CANN simt_api 的集中映射 |
 | `include/bridge/runtime/cuda_benchmark_targets.h` | CUDA runtime bridge 的类型、声明和内部接口头 |
@@ -658,6 +694,8 @@ git diff --check
 | `tests/test_cmake_compat.py` | CMake/Make/Ninja/pre/虚拟工具链/FindCUDA 兼容测试 |
 | `tests/test_cann_api_probes.py` | CANN 官方头文件与 Runtime 链接探针测试 |
 | `tests/test_cucc_rules.py` | cucc 规则、phase、query、response 和 NPU policy 测试 |
+| `tests/test_cuda_header_wrapper_parity.py` | CUDA 公共头、Wrapper、API inventory、普通文件与服务器回归接线契约 |
+| `tests/header_wrapper_smoke.cpp` | 仅编译 CUDA Runtime/Driver/库/Interop 公共头，确保占位头可组合包含且不产生虚假链接 |
 | `tests/test_cuda_api_parity.py` | 参考 cu-bridge Runtime 条目完整登记、typed placeholder、状态 inventory 与 active wrapper 声明契约 |
 | `tests/test_repo_hygiene.py` | 仓库目录、文档入口、gitignore 和 tracked tree 卫生契约 |
 
@@ -723,6 +761,9 @@ git diff --check
 | `tools/validate_cucc_rules.py` | cucc JSON 规则 schema/冲突校验器 |
 | `tools/validate_cuda_api_parity.py` | 校验参考 cu-bridge 条目在 active 或 RESERVED_NPU inventory 中均有归宿 |
 | `tools/generate_cuda_api_parity_inventory.py` | 从参考 adaptor 生成 RESERVED_NPU CUDA 条目 inventory |
+| `tools/validate_cuda_header_wrapper_parity.py` | 校验参考公共 CUDA headers、bridge Wrapper 和 API 在当前普通文件或 parity inventory 中都有归宿 |
+| `tools/generate_cuda_header_wrapper_parity.py` | 生成公共 CUDA header/Wrapper 的普通占位文件、状态清单与 reserved future-unlock inventory |
+| `tools/real_test/diag/cuda_header_surface_probe.sh` | 在 CANN 主机上分层检查核心、库、Interop、NVRTC 和 device header 的 include/compile surface |
 
 ## 8. 中文文档分区入口
 

@@ -2,6 +2,7 @@
 """Release-hygiene contracts for the repository layout and documentation."""
 from __future__ import annotations
 
+import json
 import subprocess
 import unittest
 from pathlib import Path
@@ -33,8 +34,27 @@ class RepositoryHygieneTest(unittest.TestCase):
         guide = ROOT / "docs/03_文件目录/REPOSITORY_FILE_GUIDE.md"
         text = guide.read_text(encoding="utf-8")
         tracked = subprocess.check_output(["git", "-c", "core.quotePath=false", "ls-files"], cwd=ROOT, text=True).splitlines()
-        missing = [path for path in tracked if f"`{path}`" not in text]
+        inventory = ROOT / "config/cuda_api_parity_inventory.json"
+        managed_parity_paths = set()
+        if inventory.is_file():
+            data = json.loads(inventory.read_text(encoding="utf-8"))
+            for entry in data.get("headers", {}).values():
+                if isinstance(entry, dict) and entry.get("implementation"):
+                    managed_parity_paths.add(str(entry["implementation"]))
+            for entry in data.get("wrappers", {}).values():
+                if isinstance(entry, dict) and entry.get("implementation"):
+                    managed_parity_paths.add(str(entry["implementation"]))
+            managed_parity_paths.add("include/bridge/cuda_to_cce_reserved_wrapper_parity.h")
+        missing = [
+            path for path in tracked
+            if f"`{path}`" not in text and path not in managed_parity_paths
+        ]
         self.assertEqual(missing, [])
+
+    def test_repository_file_guide_declares_generated_cuda_header_wrapper_inventory(self) -> None:
+        text = (ROOT / "docs/03_文件目录/REPOSITORY_FILE_GUIDE.md").read_text(encoding="utf-8")
+        self.assertIn("CUDA 头文件/Wrapper parity 清单", text)
+        self.assertIn("config/cuda_api_parity_inventory.json", text)
 
     def test_repository_file_guide_records_cu_bridge_name_mapping(self) -> None:
         text = (ROOT / "docs/03_文件目录/REPOSITORY_FILE_GUIDE.md").read_text(encoding="utf-8")

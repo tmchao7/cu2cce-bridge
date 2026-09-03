@@ -22,9 +22,11 @@ check() {
 # host 冒烟（用户代码路径：include <stdio.h> 等需命中 shadow 遮蔽头，
 # 走 __CU2CCE_NO_LIBC__ 简化分支——ccec+glibc 2.39 系统头不兼容，真机实测）
 check "host_bridge_smoke.cu" -x c++ -D__CU2CCE_NO_LIBC__ -I "$INCLUDE/shadow" "$ROOT/tests/host_bridge_smoke.cu"
+check "header_wrapper_smoke.cpp" -x c++ "$ROOT/tests/header_wrapper_smoke.cpp"
 # wrapper 实现（wrapper 库路径：g++ 编译系统头，不带 NO_LIBC——
 # 覆盖 std::call_once / <mutex> 真实分支）
 check "cuda_runtime_wrapper.cpp" -x c++ "$SRC/cuda_runtime_wrapper.cpp"
+check "cuda_driver_wrapper.cpp" -x c++ "$SRC/cuda_driver_wrapper.cpp"
 check "cublas_v2_wrapper.cpp" -x c++ "$BLAS_SRC/cublas_v2_wrapper.cpp"
 echo "---"; echo "PASS=$PASS FAIL=$FAIL"
 [ "$FAIL" -eq 0 ]

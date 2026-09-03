@@ -243,6 +243,23 @@ aclError wcudaForward() { return wcudaBase(); }
 
 
 class CudaApiParityStatusInventoryTest(unittest.TestCase):
+    def test_runtime_generator_preserves_header_wrapper_inventory_sections(self) -> None:
+        import generate_cuda_api_parity_inventory as generator
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmpdir = Path(tmp)
+            reference = tmpdir / "reference.h"
+            adaptor = tmpdir / "adaptor.h"
+            reserved = tmpdir / "reserved.h"
+            status = tmpdir / "status.json"
+            reference.write_text("#define cudaMalloc mcMalloc\n", encoding="utf-8")
+            adaptor.write_text("#define cudaMalloc wcudaMalloc\n", encoding="utf-8")
+            status.write_text(json.dumps({"headers": {"cuda.h": {"status": "ACTIVE"}}}), encoding="utf-8")
+            generator.generate(reference, adaptor, reserved, "reference-test", status)
+            data = json.loads(status.read_text(encoding="utf-8"))
+            self.assertIn("headers", data)
+            self.assertIn("cuda.h", data["headers"])
+
     def test_generated_status_inventory_records_every_reference_entry(self) -> None:
         import generate_cuda_api_parity_inventory as generator
 

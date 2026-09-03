@@ -1,0 +1,9 @@
+#ifndef __CU2CCE_PARITY_BRIDGE_MPP_NPP2MPP_FUNCTIONS_H__
+#define __CU2CCE_PARITY_BRIDGE_MPP_NPP2MPP_FUNCTIONS_H__
+
+/* CUDA compatibility header parity entry. */
+/* Reference header: include/bridge/mpp/npp2mpp_functions.h */
+/* This is a cu2cce compatibility surface, not an NVIDIA runtime copy. */
+/* Status: RESERVED_NPU; declarations are tracked in the parity inventory. */
+
+#endif /* __CU2CCE_PARITY_BRIDGE_MPP_NPP2MPP_FUNCTIONS_H__ */

@@ -111,6 +111,8 @@ install(PROGRAMS tools/make_cce tools/cmake_cce tools/ninja_cce
         DESTINATION bin)
 install(PROGRAMS tools/cu2cce_driver.py tools/validate_cucc_rules.py
         tools/validate_cuda_api_parity.py tools/generate_cuda_api_parity_inventory.py
+        tools/validate_cuda_header_wrapper_parity.py
+        tools/generate_cuda_header_wrapper_parity.py
         tools/compare_cubridge_parity.py tools/virtual_toolkit_env.sh
         DESTINATION tools)
 install(PROGRAMS tools/device_arch.sh tools/pre_cce tools/hostcc_cce
@@ -128,6 +130,8 @@ install(PROGRAMS tools/mock/virtualDir.py tools/mock/mock_nvcc.py
 install(PROGRAMS tools/real_test/fetch_external_cuda_samples.sh
         tools/real_test/verify_artifacts.py
         DESTINATION tools/real_test)
+install(PROGRAMS tools/real_test/diag/cuda_header_surface_probe.sh
+        DESTINATION tools/real_test/diag)
 
 # Optional CMake compatibility modules used by cmake_cce. These modules only
 # expose validated bridge-backed targets and legacy build macros; they do not
