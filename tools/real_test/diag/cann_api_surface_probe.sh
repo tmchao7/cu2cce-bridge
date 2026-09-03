@@ -69,6 +69,9 @@ optional_headers=(
     "hccl/hccl.h"
     "hccl/hccl_mc2.h"
     "simt/asc_simt.h"
+    "simt_api/asc_simt.h"
+    "simt_api/device_warp_functions.h"
+    "simt_api/device_atomic_functions.h"
 )
 status=0
 
@@ -104,14 +107,15 @@ if [ -f "$runtime_header" ]; then
     trap 'rm -rf "$compile_root"' EXIT
     cat >"$compile_root/include_probe.cpp" <<'CPP'
 #include <acl/acl_rt.h>
+#include <acl/acl_rt_api.h>
 int main() { return 0; }
 CPP
     if command -v g++ >/dev/null 2>&1 &&
         g++ -fsyntax-only -I"$include_root" "$compile_root/include_probe.cpp" \
             >"$compile_root/compile.log" 2>&1; then
-        echo "[PASS] include compile acl/acl_rt.h"
+        echo "[PASS] include compile acl/acl_rt.h + acl/acl_rt_api.h"
     else
-        echo "[FAIL] include compile acl/acl_rt.h"
+        echo "[FAIL] include compile acl/acl_rt.h + acl/acl_rt_api.h"
         tail -n 10 "$compile_root/compile.log" 2>/dev/null || true
         status=1
     fi

@@ -54,3 +54,11 @@ class CannApiProbeTest(unittest.TestCase):
         self.assertIn("--npu-arch", script)
         self.assertIn("__shfl_down_sync", script)
         self.assertIn("atomicCAS", script)
+
+    def test_surface_probe_checks_installed_simt_api_layout(self) -> None:
+        script = (ROOT / "tools/real_test/diag/cann_api_surface_probe.sh").read_text(encoding="utf-8")
+        self.assertIn('"simt_api/asc_simt.h"', script)
+        self.assertIn('"simt_api/device_warp_functions.h"', script)
+        self.assertIn('"simt_api/device_atomic_functions.h"', script)
+        self.assertIn("acl_rt_api.h", script)
+        self.assertIn("include compile acl/acl_rt.h + acl/acl_rt_api.h", script)
