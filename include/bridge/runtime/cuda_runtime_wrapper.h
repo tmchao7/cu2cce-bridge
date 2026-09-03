@@ -105,6 +105,9 @@ aclError CUBRIDGE_API wcudaEventElapsedTime(float *ms, aclrtEvent start, aclrtEv
 aclError CUBRIDGE_API wcudaMalloc(void **ptr, size_t sizeBytes);
 aclError CUBRIDGE_API wcudaFree(void *ptr);
 aclError CUBRIDGE_API wcudaMemcpy(void *dst, const void *src, size_t count, aclrtMemcpyKind kind);
+/* CUDA's Default direction requires pointer classification. CANN has no
+ * public default-direction primitive; do not silently guess DEVICE_TO_DEVICE. */
+aclError CUBRIDGE_API wcudaMemcpyDefault(void *dst, const void *src, size_t count);
 aclError CUBRIDGE_API wcudaMemcpyAsync(void *dst, const void *src, size_t count,
                                        aclrtMemcpyKind kind, aclrtStream stream /* =0 */);
 aclError CUBRIDGE_API wcudaMemcpy2D(void *dst, size_t dpitch, const void *src, size_t spitch,

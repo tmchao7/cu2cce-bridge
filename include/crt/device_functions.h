@@ -17,4 +17,8 @@
 #endif
 #endif
 
+/* Direct users of <crt/device_functions.h> must receive the same CUDA
+ * device-language map as users of <cuda_runtime.h>. */
+#include "bridge/kernel/cuda_device_api.h"
+
 #endif /* __CU2CCE_CRT_DEVICE_FUNCTIONS_H__ */

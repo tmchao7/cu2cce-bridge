@@ -2145,8 +2145,6 @@ class CanonicalAscendRuntimeCMakeTest(unittest.TestCase):
         self.assertIn("cann_runtime_link_probe.sh", text)
         self.assertIn("ASCEND_API_MAPPING_REGRESSION_PASS", text)
 
-if __name__ == "__main__":
-    unittest.main()
 
 class CudaDeviceApiMappingContractTest(unittest.TestCase):
     def test_cuda_device_api_header_is_included_by_runtime_surface(self) -> None:
@@ -2234,3 +2232,49 @@ class CudaRuntimeMappingCompletenessTest(unittest.TestCase):
             if not any(target == name for _, target in aliases)
         )
         self.assertEqual(missing, [])
+
+class LegacyCudaWarpMappingContractTest(unittest.TestCase):
+    def test_legacy_warp_intrinsics_are_mapped_with_optional_width(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        text = (root / "include/bridge/kernel/cuda_device_api.h").read_text(encoding="utf-8")
+        for name, target in (
+            ("__shfl", "asc_shfl"),
+            ("__shfl_up", "asc_shfl_up"),
+            ("__shfl_down", "asc_shfl_down"),
+            ("__shfl_xor", "asc_shfl_xor"),
+            ("__all", "asc_all"),
+            ("__any", "asc_any"),
+            ("__ballot", "asc_ballot"),
+        ):
+            self.assertIn(name, text)
+            self.assertIn(target, text)
+        self.assertIn("CU2CCE_LEGACY_SHFL2", text)
+        self.assertIn("CU2CCE_LEGACY_SHFL3", text)
+
+class DeviceApiProbeHarnessContractTest(unittest.TestCase):
+    def test_server_harness_passes_real_ccec_and_bridge_include_to_probe(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        text = (root / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
+        self.assertIn("--bridge-include \"$REPO_INC\"", text)
+        self.assertIn("--ccec \"$API_CCEC\"", text)
+        self.assertIn("--npu-arch \"${API_NPU_ARCH:-dav-c310-vec}\"", text)
+        self.assertIn("device API compile: SIMT/warp/vote/reduce/atomic", (root / "tools/real_test/diag/cann_api_surface_probe.sh").read_text(encoding="utf-8"))
+
+class CudaCrtDeviceFunctionEntryContractTest(unittest.TestCase):
+    def test_direct_crt_device_functions_include_exposes_cuda_device_map(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        text = (root / "include/crt/device_functions.h").read_text(encoding="utf-8")
+        self.assertIn('"bridge/kernel/cuda_device_api.h"', text)
+if __name__ == "__main__":
+    unittest.main()
+
+class CudaDefaultMemcpyContractTest(unittest.TestCase):
+    def test_default_memcpy_does_not_silently_become_device_to_device(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        adaptor = (root / "include/bridge/runtime/cuda_to_cce_mcr_adaptor.h").read_text(encoding="utf-8")
+        wrapper_h = (root / "include/bridge/runtime/cuda_runtime_wrapper.h").read_text(encoding="utf-8")
+        wrapper = (root / "src/bridge/runtime/src/cuda_runtime_wrapper.cpp").read_text(encoding="utf-8")
+        self.assertIn("#define cudaMemcpyDefault wcudaMemcpyDefault", adaptor)
+        self.assertIn("wcudaMemcpyDefault", wrapper_h)
+        self.assertIn("ACL_ERROR_API_NOT_SUPPORT", wrapper)
+        self.assertIn("pointer attributes", wrapper)

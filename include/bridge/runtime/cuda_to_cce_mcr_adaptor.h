@@ -55,7 +55,7 @@
 #define cudaMemcpyHostToDevice ACL_MEMCPY_HOST_TO_DEVICE
 #define cudaMemcpyDeviceToHost ACL_MEMCPY_DEVICE_TO_HOST
 #define cudaMemcpyDeviceToDevice ACL_MEMCPY_DEVICE_TO_DEVICE
-#define cudaMemcpyDefault ACL_MEMCPY_DEVICE_TO_DEVICE
+#define cudaMemcpyDefault wcudaMemcpyDefault
 
 //------------ handle types ------------//
 #define cudaStream_t aclrtStream

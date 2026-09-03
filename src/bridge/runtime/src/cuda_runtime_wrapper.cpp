@@ -804,6 +804,16 @@ aclError wcudaMemcpy(void *dst, const void *src, size_t count, aclrtMemcpyKind k
     WCUDA_RETURN(aclrtMemcpy(dst, count, src, count, kind));
 }
 
+aclError wcudaMemcpyDefault(void *dst, const void *src, size_t count) {
+    (void)dst;
+    (void)src;
+    (void)count;
+    /* CUDA infers H2H/H2D/D2H/D2D from pointer attributes. The public CANN
+     * Runtime API does not expose an equivalent default-direction operation,
+     * so guessing DEVICE_TO_DEVICE would corrupt host/device transfers. */
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
 aclError wcudaMemcpyAsync(void *dst, const void *src, size_t count, aclrtMemcpyKind kind,
                           aclrtStream stream) {
     if (dst == nullptr || src == nullptr) {

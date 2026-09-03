@@ -130,11 +130,12 @@ cublasXxx(...) → wcublasXxx(...) → aclblasXxx(...)（experimental BLAS）
 
 | CUDA API/组 | 当前 bridge 符号 | Ascend/CANN 路径 | 状态/边界 |
 |---|---|---|---|
-| `cudaGetDeviceCount` / `cudaSetDevice` / `cudaGetDevice` | `wcudaGetDeviceCount/SetDevice/GetDevice` | `aclrtGetDeviceCount`、`aclrtSetDevice`、ACL 当前 device | `SUPPORTED` |
+| `cudaGetDeviceCount` / `cudaSetDevice` / `cudaGetDevice` / `cudaGetDeviceFlags` | `wcudaGetDeviceCount/SetDevice/GetDevice/GetDeviceFlags` | `aclrtGetDeviceCount`、`aclrtSetDevice`、bridge 兼容 flags | `SUPPORTED` for declared surface；flags 本身是兼容状态 |
 | `cudaDeviceSynchronize` / `cudaDeviceReset` | `wcudaDeviceSynchronize/Reset` | ACL device sync/reset | `SUPPORTED`（当前样例） |
 | `cudaGetDeviceProperties` / 常用 `cudaDeviceGetAttribute` | `wcudaGetDeviceProperties/Attribute` | `_cceDeviceProp_t`/兼容属性映射 | `SUPPORTED` for helper/sample queries；不是 NVIDIA SM 属性承诺 |
 | `cudaMalloc` / `cudaFree` | `wcudaMalloc/Free` | `aclrtMalloc/Free` | `SUPPORTED` |
 | `cudaMemcpy` / `cudaMemcpyAsync` | `wcudaMemcpy/Async` | `aclrtMemcpy/Async` | `SUPPORTED` |
+| `cudaMemcpyDefault` | `wcudaMemcpyDefault` | CANN 没有公开的默认方向推断接口 | `UNSUPPORTED`；明确返回 `ACL_ERROR_API_NOT_SUPPORT`，不猜测为 D2D |
 | `cudaMemset` / `cudaMemsetAsync` | `wcudaMemset/MemsetAsync` | ACL memset path | `SUPPORTED`（当前载体） |
 | `cudaMallocPitch` | `wcudaMallocPitch` | bridge pitch-compatible allocation | `SUPPORTED` for current width/contiguous shape；对齐规则不是 CUDA GPU 承诺 |
 | `cudaMemcpy2D` | `wcudaMemcpy2D` | row-wise `aclrtMemcpy` fallback | `SUPPORTED` for current pitched shape |
