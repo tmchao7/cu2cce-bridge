@@ -54,6 +54,9 @@ class CannApiProbeTest(unittest.TestCase):
         self.assertIn("--npu-arch", script)
         self.assertIn("__shfl_down_sync", script)
         self.assertIn("atomicCAS", script)
+        self.assertIn("device API compile: FP16/BF16 headers", script)
+        self.assertIn("CU2CCE_ENABLE_LEGACY_DEVICE_APIS=1", script)
+        self.assertIn("legacy shuffle", script)
 
     def test_surface_probe_checks_installed_simt_api_layout(self) -> None:
         script = (ROOT / "tools/real_test/diag/cann_api_surface_probe.sh").read_text(encoding="utf-8")

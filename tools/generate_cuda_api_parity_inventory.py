@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from collections import defaultdict
 from pathlib import Path
 from typing import Dict, Iterable, List
@@ -53,12 +54,29 @@ def _function_body(source: str, name: str) -> str:
     return ""
 
 
+def _wrapper_status(wrapper: str, runtime_source: str, seen: set[str] | None = None) -> str:
+    """Classify a typed wrapper, following a simple wrapper-to-wrapper forward.
+
+    A few public CUDA spellings forward to a versioned/legacy wrapper.  The
+    inventory must not accidentally upgrade such a forwarding entry from an
+    explicit ``ACL_ERROR_API_NOT_SUPPORT`` stub to ACTIVE_ADAPTED.
+    """
+    seen = set() if seen is None else seen
+    if wrapper in seen:
+        return "ACTIVE_ADAPTED"
+    seen.add(wrapper)
+    body = _function_body(runtime_source, wrapper)
+    if "ACL_ERROR_API_NOT_SUPPORT" in body:
+        return "UNSUPPORTED_TYPED"
+    forwarded = re.search(r"\breturn\s+(wcuda[A-Za-z0-9_]+)\s*\(", body)
+    if forwarded:
+        return _wrapper_status(forwarded.group(1), runtime_source, seen)
+    return "ACTIVE_ADAPTED"
+
+
 def _active_status(name: str, rhs: str, runtime_source: str) -> str:
     if rhs.startswith("wcuda"):
-        body = _function_body(runtime_source, rhs)
-        if "ACL_ERROR_API_NOT_SUPPORT" in body:
-            return "UNSUPPORTED_TYPED"
-        return "ACTIVE_ADAPTED"
+        return _wrapper_status(rhs, runtime_source)
     return "ACTIVE_DIRECT"
 
 

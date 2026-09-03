@@ -158,3 +158,24 @@ https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/latest/API/head
 | NVTX | `acl/acl_prof.h`、Msprofiler | `COMPAT_NOOP/ROUTE_ONLY` | 真 profiling 不等同 NVTX 注解 |
 
 `aclnn` 是 CANN 单算子 API，不是 CUDA kernel 语法转换结果；CUDA kernel、CUDA Runtime 和 `aclnn` 调用必须分别评审。
+
+### 10.4 Runtime/device 替换表登记与服务器证据
+
+`cuda_to_cce_mcr_adaptor.h` 以 CANN/bridge 的实际路径维护 active 映射；
+`cuda_to_cce_reserved_parity.h` 以 `#if 0` 保存参考表中尚无安全 Ascend 等价物的
+`RESERVED_NPU` 项。提交的 `config/cuda_api_parity_inventory.json` 是 reference 名称和当前状态的
+可复现快照，因此不需要在服务器额外克隆参考仓库即可运行：
+
+```bash
+python3 tools/validate_cuda_api_parity.py \
+  --implementation include/bridge/runtime/cuda_to_cce_mcr_adaptor.h \
+  --inventory include/bridge/runtime/cuda_to_cce_reserved_parity.h \
+  --runtime-header include/bridge/runtime/cuda_runtime_wrapper.h \
+  --status-inventory config/cuda_api_parity_inventory.json
+```
+
+该命令校验 `missing_entries=0`、`duplicate_entries=0`、active 映射不含 MACA 后端名称，
+以及 `ACTIVE_ADAPTED`/`UNSUPPORTED_TYPED` 的 `wcuda*` 入口在公开 wrapper 头中有类型化声明。
+它是**登记完整性**证据，不是对 Graph、IPC、UVM、纹理或 CUDA Driver ABI 的实现声明。
+`server_cmd.txt` 将它与 Runtime 链接探针、core SIMT blocking 编译以及
+experimental/legacy/FP16/BF16 diagnostic-only 编译一起记录。

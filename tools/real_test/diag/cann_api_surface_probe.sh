@@ -175,6 +175,26 @@ __global__ void cu2cce_extended_device_api_probe(unsigned int *out) {
     atomicExch(out, old);
 }
 CU
+        cat >"$device_root/device_api_fp16_bf16_probe.cu" <<'CU'
+#include <cuda_runtime.h>
+#include <cuda_fp16.h>
+#include <cuda_bf16.h>
+
+__global__ void cu2cce_fp16_bf16_probe(float *out) {
+    __half half_value = __float2half(1.0f);
+    __nv_bfloat162 bf16_value = __float2bfloat162_rn(2.0f);
+    out[0] = __half2float(half_value);
+    out[1] = __bfloat1622float2(bf16_value).x;
+}
+CU
+        cat >"$device_root/device_api_legacy_probe.cu" <<'CU'
+#include <cuda_runtime.h>
+
+__global__ void cu2cce_legacy_shuffle_probe(int *out) {
+    int lane = static_cast<int>(threadIdx.x);
+    out[lane] = __shfl_down(lane, 1, 32);
+}
+CU
         simt_flags=()
         if [ -n "$SIMT_ROOT" ] && [ -d "$SIMT_ROOT" ]; then
             simt_flags+=( -I"$(dirname "$SIMT_ROOT")" -I"$SIMT_ROOT" )
@@ -200,6 +220,27 @@ CU
         else
             echo "[DIAG-ONLY] device API compile: extended atomics/active-mask unavailable for this CANN target"
             tail -n 12 "$device_root/extended_compile.log" 2>/dev/null || true
+        fi
+        if "$CCEC" -x asc --enable-simt --cce-aicore-arch="$NPU_ARCH" \
+            -I"$BRIDGE_INCLUDE" -I"$include_root" "${simt_flags[@]}" \
+            -c "$device_root/device_api_fp16_bf16_probe.cu" \
+            -o "$device_root/device_api_fp16_bf16_probe.o" \
+            >"$device_root/fp16_bf16_compile.log" 2>&1; then
+            echo "[DIAG-PASS] device API compile: FP16/BF16 headers ($NPU_ARCH)"
+        else
+            echo "[DIAG-ONLY] device API compile: FP16/BF16 headers unavailable for this CANN target"
+            tail -n 12 "$device_root/fp16_bf16_compile.log" 2>/dev/null || true
+        fi
+        if "$CCEC" -x asc --enable-simt --cce-aicore-arch="$NPU_ARCH" \
+            -DCU2CCE_ENABLE_LEGACY_DEVICE_APIS=1 \
+            -I"$BRIDGE_INCLUDE" -I"$include_root" "${simt_flags[@]}" \
+            -c "$device_root/device_api_legacy_probe.cu" \
+            -o "$device_root/device_api_legacy_probe.o" \
+            >"$device_root/legacy_compile.log" 2>&1; then
+            echo "[DIAG-PASS] device API compile: legacy shuffle ($NPU_ARCH)"
+        else
+            echo "[DIAG-ONLY] device API compile: legacy shuffle unavailable for this CANN target"
+            tail -n 12 "$device_root/legacy_compile.log" 2>/dev/null || true
         fi
     fi
 fi

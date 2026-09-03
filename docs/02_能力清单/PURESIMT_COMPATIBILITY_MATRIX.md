@@ -357,3 +357,15 @@ https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/latest/API/head
 ```
 
 其中，CANN 文档中列出的 SIMT/原子接口仍需结合具体产品和编译模型判断；本项目的扩展 API 编译结果只作为 `DIAG-ONLY` 证据，不能替代当前 Ascend950 目标的数值执行回归。
+
+真机回归的 `cann_api_surface_probe.sh` 以固定参数顺序执行：
+
+```text
+ccec -x asc --enable-simt --cce-aicore-arch=dav-* ... -c probe.cu
+```
+
+其中核心 `_sync` warp/vote/reduce 和基础 atomic 编译是 blocking contract；
+`CU2CCE_ENABLE_EXPERIMENTAL_DEVICE_APIS=1` 的 active-mask/扩展 atomic、
+`CU2CCE_ENABLE_LEGACY_DEVICE_APIS=1` 的旧 `__shfl*`，以及 `cuda_fp16.h`/`cuda_bf16.h`
+头文件组合均是 `DIAG-ONLY`。诊断通过只能说明当前 CANN 版本接受该编译面，仍不等于数值、
+并发或 CUDA warp-mask 语义完全一致。

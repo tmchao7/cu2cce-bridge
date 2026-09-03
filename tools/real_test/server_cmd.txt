@@ -284,6 +284,21 @@ else
     API_MAPPING_PASS=0
     FAIL=$((FAIL + 1))
 fi
+CUDA_API_PARITY_PASS=1
+if python3 tools/validate_cuda_api_parity.py \
+    --implementation include/bridge/runtime/cuda_to_cce_mcr_adaptor.h \
+    --inventory include/bridge/runtime/cuda_to_cce_reserved_parity.h \
+    --runtime-header include/bridge/runtime/cuda_runtime_wrapper.h \
+    --status-inventory config/cuda_api_parity_inventory.json \
+    --format text >"$OUT/cuda_api_parity.log" 2>&1; then
+    echo "[PASS] CUDA API parity inventory (details: $OUT/cuda_api_parity.log)"
+else
+    echo "[FAIL] CUDA API parity inventory (details: $OUT/cuda_api_parity.log)"
+    tail -n 20 "$OUT/cuda_api_parity.log" 2>/dev/null || true
+    CUDA_API_PARITY_PASS=0
+    API_MAPPING_PASS=0
+    FAIL=$((FAIL + 1))
+fi
 
 if profile_runs "fast,full"; then
 CUCC_RULES_PASS=1
@@ -1205,6 +1220,9 @@ elif [ "$FAIL" -eq 0 ]; then
     fi
     if [ "${API_MAPPING_PASS:-0}" -eq 1 ]; then
         echo 'ASCEND_API_MAPPING_REGRESSION_PASS'
+    fi
+    if [ "${CUDA_API_PARITY_PASS:-0}" -eq 1 ]; then
+        echo 'CUDA_API_PARITY_REGRESSION_PASS'
     fi
     # 未执行段的诚实标注：skip 不算 PASS 也不算 FAIL。
     if [ "$REGRESSION_PROFILE" = external ]; then

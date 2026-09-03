@@ -4150,7 +4150,7 @@
       "category": "Array_Texture_Surface",
       "cu2cce_target": "wcudaGetTextureObjectTextureDesc_v2",
       "reference_maca": "wcudaGetTextureObjectTextureDesc_v2",
-      "status": "ACTIVE_ADAPTED"
+      "status": "UNSUPPORTED_TYPED"
     },
     "cudaGetTextureReference": {
       "category": "Array_Texture_Surface",
@@ -7816,7 +7816,7 @@
       "category": "Stream_Event_Thread",
       "cu2cce_target": "wcudaThreadGetLimit",
       "reference_maca": "wcudaThreadGetLimit",
-      "status": "ACTIVE_ADAPTED"
+      "status": "UNSUPPORTED_TYPED"
     },
     "cudaThreadSetCacheConfig": {
       "category": "Stream_Event_Thread",
@@ -7828,7 +7828,7 @@
       "category": "Stream_Event_Thread",
       "cu2cce_target": "wcudaThreadSetLimit",
       "reference_maca": "wcudaThreadSetLimit",
-      "status": "ACTIVE_ADAPTED"
+      "status": "UNSUPPORTED_TYPED"
     },
     "cudaThreadSynchronize": {
       "category": "Stream_Event_Thread",

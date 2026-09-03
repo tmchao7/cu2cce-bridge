@@ -106,6 +106,39 @@ class CudaApiParityToolTest(unittest.TestCase):
             report = json.loads(result.stdout)
             self.assertEqual(report["runtime_header_missing_entries"], [])
 
+    def test_validator_uses_captured_status_inventory_without_reference_checkout(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            tmpdir = Path(tmp)
+            adaptor = tmpdir / "adaptor.h"
+            inventory = tmpdir / "inventory.h"
+            runtime_header = tmpdir / "cuda_runtime_wrapper.h"
+            status = tmpdir / "status.json"
+            self._write(adaptor, "#define cudaMalloc wcudaMalloc\n")
+            self._write(inventory, "#if 0\n#endif\n")
+            self._write(runtime_header, "aclError wcudaMalloc(void **ptr, size_t size);\n")
+            status.write_text(json.dumps({
+                "schema_version": 1,
+                "entries": {
+                    "cudaMalloc": {
+                        "status": "ACTIVE_ADAPTED",
+                        "reference_maca": "mcMalloc",
+                        "cu2cce_target": "wcudaMalloc",
+                        "category": "Other_Runtime_Device",
+                    }
+                },
+            }), encoding="utf-8")
+            result = subprocess.run(
+                [sys.executable, str(TOOLS / "validate_cuda_api_parity.py"),
+                 "--implementation", str(adaptor),
+                 "--inventory", str(inventory),
+                 "--runtime-header", str(runtime_header),
+                 "--status-inventory", str(status),
+                 "--format", "json"],
+                capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(json.loads(result.stdout)["reference_entries"], 1)
+
     def test_validator_flags_active_maca_rhs(self) -> None:
         import validate_cuda_api_parity as parity
 
@@ -195,6 +228,20 @@ class CudaRuntimeReservedFamilyPromotionTest(unittest.TestCase):
             self.assertIn(type_name, types)
 
 
+class CudaApiParityStatusClassifierTest(unittest.TestCase):
+    def test_forwarded_typed_stub_keeps_unsupported_status(self) -> None:
+        import generate_cuda_api_parity_inventory as generator
+
+        source = """
+aclError wcudaBase() { return ACL_ERROR_API_NOT_SUPPORT; }
+aclError wcudaForward() { return wcudaBase(); }
+"""
+        self.assertEqual(
+            generator._active_status("cudaForward", "wcudaForward", source),
+            "UNSUPPORTED_TYPED",
+        )
+
+
 class CudaApiParityStatusInventoryTest(unittest.TestCase):
     def test_generated_status_inventory_records_every_reference_entry(self) -> None:
         import generate_cuda_api_parity_inventory as generator
@@ -215,6 +262,12 @@ class CudaApiParityStatusInventoryTest(unittest.TestCase):
 
 
 class CudaApiParityRepositoryContractTest(unittest.TestCase):
+    def test_server_regression_validates_committed_parity_snapshot(self) -> None:
+        server = (ROOT / "tools/real_test/server_cmd.txt").read_text(encoding="utf-8")
+        self.assertIn("validate_cuda_api_parity.py", server)
+        self.assertIn("cuda_api_parity.log", server)
+        self.assertIn("CUDA API parity inventory", server)
+
     def test_repository_inventory_covers_reference_runtime_entries(self) -> None:
         result = subprocess.run(
             [sys.executable, str(TOOLS / "validate_cuda_api_parity.py"),

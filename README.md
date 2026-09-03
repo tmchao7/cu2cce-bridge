@@ -340,6 +340,23 @@ atomicCAS / atomicInc / atomicDec / atomicAnd / atomicOr / atomicXor
 `CU2CCE_ENABLE_LEGACY_DEVICE_APIS=1`。默认关闭是因为 CANN 的 FP16 实现内部也会声明
 名为 `__shfl` 的函数，全局宏会破坏其声明；优先使用 CUDA 的 `__shfl*_sync` 形式。
 
+Runtime/device 替换表也提供可审计状态：`ACTIVE_DIRECT`、`ACTIVE_ADAPTED`、
+`UNSUPPORTED_TYPED`、`RESERVED_NPU`、`DIAGNOSTIC_ONLY`。其中 Graph、IPC、mempool、
+texture/surface 与 stream attribute 等无可靠 CANN 等价物的入口会保留类型化声明，并返回
+`ACL_ERROR_API_NOT_SUPPORT`；其余未实现参考条目保留在 `#if 0` inventory，不会被静默映射。
+在安装树或服务器上可运行：
+
+```bash
+python3 "$CUCC_PATH/tools/validate_cuda_api_parity.py" \
+  --implementation "$CUCC_PATH/include/bridge/runtime/cuda_to_cce_mcr_adaptor.h" \
+  --inventory "$CUCC_PATH/include/bridge/runtime/cuda_to_cce_reserved_parity.h" \
+  --runtime-header "$CUCC_PATH/include/bridge/runtime/cuda_runtime_wrapper.h" \
+  --status-inventory "$CUCC_PATH/config/cuda_api_parity_inventory.json"
+```
+
+`missing_entries=0` 仅表示替换表的每个参考 CUDA 名称都有明确归宿；它不表示上述高级 CUDA
+语义已被 CANN 实现。
+
 ## 使用 CMake
 
 CMake 工程不需要修改用户的 `.cu` 源码；推荐始终用 `cmake_cce` 完成 configure 和 build。

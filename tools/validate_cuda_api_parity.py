@@ -86,10 +86,26 @@ def load_status_inventory(path: Path) -> Mapping[str, object]:
     return value if isinstance(value, dict) else {}
 
 
-def audit(reference: Path, implementation: Path, inventory: Path,
+def audit(reference: Path | None, implementation: Path, inventory: Path,
           status_inventory: Path | None = None,
           runtime_header: Path | None = None) -> Dict[str, object]:
-    reference_entries = parse_cuda_defines(reference)
+    status_data = load_status_inventory(status_inventory) if status_inventory else {}
+    status_entries = status_data.get("entries", {}) if isinstance(status_data, dict) else {}
+    if not isinstance(status_entries, dict):
+        status_entries = {}
+
+    # The committed status inventory is a reproducible snapshot of the
+    # reference names. It lets an isolated Ascend server validate coverage
+    # without cloning the comparison repository. A local reference checkout,
+    # when supplied, remains the stronger source of truth.
+    if reference is not None:
+        reference_entries = parse_cuda_defines(reference)
+    else:
+        reference_entries = {
+            name: str(entry.get("reference_maca", ""))
+            for name, entry in status_entries.items()
+            if isinstance(entry, dict)
+        }
     active_entries = parse_cuda_defines(implementation)
     reserved_entries = parse_cuda_defines(inventory)
 
@@ -99,10 +115,6 @@ def audit(reference: Path, implementation: Path, inventory: Path,
     missing = sorted(reference_names - active_names - reserved_names)
     duplicate = sorted(active_names & reserved_names)
 
-    status_data = load_status_inventory(status_inventory) if status_inventory else {}
-    status_entries = status_data.get("entries", {}) if isinstance(status_data, dict) else {}
-    if not isinstance(status_entries, dict):
-        status_entries = {}
     status_missing = sorted(reference_names - set(status_entries)) if status_inventory else []
     runtime_header_wrappers = parse_runtime_header_wrappers(runtime_header)
     runtime_header_wrapper_set = set(runtime_header_wrappers)
@@ -133,6 +145,8 @@ def audit(reference: Path, implementation: Path, inventory: Path,
 
     return {
         "reference_entries": len(reference_names),
+        "reference_source": str(reference) if reference is not None else "status-inventory",
+        "reference_source_missing": not bool(reference_names),
         "runtime_header_declared_wrappers": len(runtime_header_wrappers),
         "runtime_header_active_wrapper_entries": active_wrapper_entries,
         "runtime_header_missing_entries": runtime_header_missing_entries,
@@ -153,7 +167,10 @@ def audit(reference: Path, implementation: Path, inventory: Path,
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     root = Path(__file__).resolve().parents[1]
-    parser.add_argument("--reference", type=Path, required=True)
+    parser.add_argument(
+        "--reference", type=Path,
+        help="cu-bridge adaptor or checkout; omit on servers to use the committed status snapshot",
+    )
     parser.add_argument(
         "--implementation", type=Path,
         default=root / "include/bridge/runtime/cuda_to_cce_mcr_adaptor.h",
@@ -192,7 +209,8 @@ def main() -> int:
             for name in result[key]:
                 print(f"  {name}")
     return 0 if not (
-        result["missing_entries"]
+        result["reference_source_missing"]
+        or result["missing_entries"]
         or result["duplicate_entries"]
         or result["active_maca_backend_names"]
         or result["status_inventory_missing_entries"]
