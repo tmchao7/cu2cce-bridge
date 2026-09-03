@@ -2351,5 +2351,51 @@ class CudaRuntimeTypeSurfaceContractTest(unittest.TestCase):
         ):
             self.assertIn(f"#define {cuda_name} {wcuda_name}", adaptor)
             self.assertIn(wcuda_name, wrapper_h)
+
+class CudaRuntimeTypedLongTailContractTest(unittest.TestCase):
+    def test_long_tail_runtime_signatures_use_compatibility_types(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        header = (root / "include/bridge/runtime/cuda_runtime_wrapper.h").read_text(encoding="utf-8")
+        source = (root / "src/bridge/runtime/src/cuda_runtime_wrapper.cpp").read_text(encoding="utf-8")
+        expected = (
+            "wcudaMemcpy3D(const wcceMemcpy3DParms *p)",
+            "wcudaMemcpy3DAsync(const wcceMemcpy3DParms *p",
+            "wcudaPointerGetAttributes(wccePointerAttributes *attributes",
+            "wcudaFuncGetAttributes(wcceFuncAttributes *attr",
+            "wcudaMemPoolCreate(wcceMemPool_t *memPool",
+            "wcudaDeviceGetMemPool(wcceMemPool_t *memPool",
+            "wcudaDeviceSetMemPool(int device, wcceMemPool_t memPool",
+        )
+        for signature in expected:
+            self.assertIn(signature, header)
+            self.assertIn(signature, source)
+
+class Cuda3dRuntimeSurfaceContractTest(unittest.TestCase):
+    def test_common_3d_runtime_entries_have_typed_compatibility_signatures(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        adaptor = (root / "include/bridge/runtime/cuda_to_cce_mcr_adaptor.h").read_text(encoding="utf-8")
+        header = (root / "include/bridge/runtime/cuda_runtime_wrapper.h").read_text(encoding="utf-8")
+        source = (root / "src/bridge/runtime/src/cuda_runtime_wrapper.cpp").read_text(encoding="utf-8")
+        for cuda_name, wcuda_name in (
+            ("cudaMalloc3D", "wcudaMalloc3D"),
+            ("cudaMemset3D", "wcudaMemset3D"),
+            ("cudaMemset3DAsync", "wcudaMemset3DAsync"),
+        ):
+            self.assertIn(f"#define {cuda_name} {wcuda_name}", adaptor)
+            self.assertIn(wcuda_name, header)
+            self.assertIn(wcuda_name, source)
+        self.assertIn("wcudaMalloc3D(wccePitchedPtr *pitchedDevPtr", header)
+        self.assertIn("wcudaMemset3D(wccePitchedPtr pitchedDevPtr", header)
+        self.assertIn("wcudaMemset3DAsync(wccePitchedPtr pitchedDevPtr", header)
+
+class Cuda3dAllocationSafetyContractTest(unittest.TestCase):
+    def test_malloc3d_checks_extent_multiplication_overflow(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        source = (root / "src/bridge/runtime/src/cuda_runtime_wrapper.cpp").read_text(encoding="utf-8")
+        start = source.index("aclError wcudaMalloc3D")
+        end = source.index("aclError wcudaMallocPitch", start)
+        body = source[start:end]
+        self.assertIn("SIZE_MAX", body)
+        self.assertIn("ACL_ERROR_INVALID_PARAM", body)
 if __name__ == "__main__":
     unittest.main()

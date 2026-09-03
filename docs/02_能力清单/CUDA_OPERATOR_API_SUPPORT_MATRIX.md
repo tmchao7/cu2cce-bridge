@@ -138,7 +138,9 @@ cublasXxx(...) → wcublasXxx(...) → aclblasXxx(...)（experimental BLAS）
 | `cudaMemcpyDefault` | `wcudaMemcpyDefault` | CANN 没有公开的默认方向推断接口 | `UNSUPPORTED`；明确返回 `ACL_ERROR_API_NOT_SUPPORT`，不猜测为 D2D |
 | `cudaMemset` / `cudaMemsetAsync` | `wcudaMemset/MemsetAsync` | ACL memset path | `SUPPORTED`（当前载体） |
 | `cudaMallocPitch` | `wcudaMallocPitch` | bridge pitch-compatible allocation | `SUPPORTED` for current width/contiguous shape；对齐规则不是 CUDA GPU 承诺 |
+| `cudaMalloc3D` | `wcudaMalloc3D` | linear `aclrtMalloc` + `wccePitchedPtr` descriptor | `EXPERIMENTAL`；仅提供连续线性存储，`cudaMemcpy3D` 仍不支持 |
 | `cudaMemcpy2D` | `wcudaMemcpy2D` | row-wise `aclrtMemcpy` fallback | `SUPPORTED` for current pitched shape |
+| `cudaMemset3D` / `cudaMemset3DAsync` | `wcudaMemset3D/Async` | 无公开 CANN 3D memset 等价物 | `UNSUPPORTED`；保留类型化入口并明确返回不支持 |
 | `cudaStreamCreate` / `cudaStreamCreateWithFlags` | `wcudaStreamCreate*` | `aclrtCreateStream` | `SUPPORTED` for tested flags |
 | `cudaStreamCreateWithPriority` / `cudaStreamGetPriority` | `wcudaStreamCreateWithPriority/GetPriority` | CANN `aclrtCreateStream` 无 CUDA priority 语义 | `UNSUPPORTED`；保留声明但不静默伪造优先级 |
 | `cudaStreamGetFlags` / `cudaStreamGetId` | `wcudaStreamGetFlags/GetId` | CANN 无稳定公开等价查询 | `UNSUPPORTED` |

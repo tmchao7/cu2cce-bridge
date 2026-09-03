@@ -244,7 +244,10 @@
 #define cudaMemsetAsync wcudaMemsetAsync
 #define cudaMemset2D wcudaMemset2D
 #define cudaMemset2DAsync wcudaMemset2DAsync
+#define cudaMemset3D wcudaMemset3D
+#define cudaMemset3DAsync wcudaMemset3DAsync
 #define cudaMallocPitch wcudaMallocPitch
+#define cudaMalloc3D wcudaMalloc3D
 #define cudaMallocArray wcudaMallocArray
 #define cudaMalloc3DArray wcudaMalloc3DArray
 #define cudaMallocMipmappedArray wcudaMallocMipmappedArray

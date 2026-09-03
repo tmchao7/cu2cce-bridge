@@ -976,6 +976,49 @@ aclError wcudaMemset2DAsync(void *devPtr, size_t pitch, int value, size_t width,
     WCUDA_RETURN(ACL_SUCCESS);
 }
 
+aclError wcudaMalloc3D(wccePitchedPtr *pitchedDevPtr, wcceExtent extent) {
+    if (pitchedDevPtr == nullptr || extent.width == 0 || extent.height == 0 ||
+        extent.depth == 0) {
+        WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
+    }
+    /* CANN has no CUDA 3D allocation object. A linear allocation with a
+     * row-shaped descriptor is useful only as a source-compatibility bridge;
+     * cudaMemcpy3D remains explicitly unsupported. */
+    size_t row_pitch = extent.width;
+    if (extent.height > SIZE_MAX / extent.depth) {
+        WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
+    }
+    size_t rows = extent.height * extent.depth;
+    if (row_pitch > SIZE_MAX / rows) {
+        WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
+    }
+    void *memory = nullptr;
+    aclError ret = wcudaMalloc(&memory, row_pitch * rows);
+    if (ret == ACL_SUCCESS) {
+        pitchedDevPtr->ptr = memory;
+        pitchedDevPtr->pitch = row_pitch;
+        pitchedDevPtr->xsize = extent.width;
+        pitchedDevPtr->ysize = extent.height;
+    }
+    return ret;
+}
+
+aclError wcudaMemset3D(wccePitchedPtr pitchedDevPtr, int value, wcceExtent extent) {
+    (void)pitchedDevPtr;
+    (void)value;
+    (void)extent;
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaMemset3DAsync(wccePitchedPtr pitchedDevPtr, int value, wcceExtent extent,
+                            aclrtStream stream) {
+    (void)pitchedDevPtr;
+    (void)value;
+    (void)extent;
+    (void)stream;
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
 aclError wcudaMallocPitch(void **devPtr, size_t *pitch, size_t width, size_t height) {
     /* cudaMallocPitch can be the first CUDA API in a process. The underlying
      * aclrtMalloc requires a bound ACL context, so initialize before calling it
@@ -1235,12 +1278,12 @@ aclError wcudaMemcpyFromSymbol(void *dst, const void *symbol, size_t count, size
 
 /* ---- 3D 拷贝（昇腾无 3D 参数结构，not-support） ---- */
 
-aclError wcudaMemcpy3D(const void *p) {
+aclError wcudaMemcpy3D(const wcceMemcpy3DParms *p) {
     (void)p;
     return ACL_ERROR_API_NOT_SUPPORT;
 }
 
-aclError wcudaMemcpy3DAsync(const void *p, aclrtStream stream) {
+aclError wcudaMemcpy3DAsync(const wcceMemcpy3DParms *p, aclrtStream stream) {
     (void)p;
     (void)stream;
     return ACL_ERROR_API_NOT_SUPPORT;
@@ -1293,24 +1336,25 @@ aclError wcudaFreeAsync(void *devPtr, aclrtStream hStream) {
     return wcudaFree(devPtr);
 }
 
-aclError wcudaMemPoolCreate(void *memPool, const void *poolProps) {
+aclError wcudaMemPoolCreate(wcceMemPool_t *memPool,
+                              const wcceMemPoolProps *poolProps) {
     (void)memPool;
     (void)poolProps;
     WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
 }
 
-aclError wcudaMemPoolDestroy(void *memPool) {
+aclError wcudaMemPoolDestroy(wcceMemPool_t memPool) {
     (void)memPool;
     WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
 }
 
-aclError wcudaDeviceGetMemPool(void *memPool, int device) {
+aclError wcudaDeviceGetMemPool(wcceMemPool_t *memPool, int device) {
     (void)memPool;
     (void)device;
     WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
 }
 
-aclError wcudaDeviceSetMemPool(int device, void *memPool) {
+aclError wcudaDeviceSetMemPool(int device, wcceMemPool_t memPool) {
     (void)device;
     (void)memPool;
     WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
@@ -1347,7 +1391,7 @@ aclError wcudaMemPrefetchAsync(const void *devPtr, size_t count, int dstDevice, 
     WCUDA_RETURN(ACL_SUCCESS);
 }
 
-aclError wcudaPointerGetAttributes(void *attributes, const void *ptr) {
+aclError wcudaPointerGetAttributes(wccePointerAttributes *attributes, const void *ptr) {
     (void)attributes;
     (void)ptr;
     /* 昇腾无 cudaPointerGetAttributes 对应（需要 cudaPointerAttributes 结构）。
@@ -1671,7 +1715,7 @@ aclError wcudaLaunchHostFunc(aclrtStream stream, wcceHostFn_t fn, void *userData
     WCUDA_RETURN(aclrtLaunchCallback(fn, userData, ACL_CALLBACK_NO_BLOCK, resolved));
 }
 
-aclError wcudaFuncGetAttributes(void *attr, const void *func) {
+aclError wcudaFuncGetAttributes(wcceFuncAttributes *attr, const void *func) {
     (void)attr;
     (void)func;
     /* 昇腾无 kernel 属性查询接口，返回 not-support。 */

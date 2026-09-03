@@ -123,9 +123,9 @@ aclError CUBRIDGE_API wcudaMemcpyAsync(void *dst, const void *src, size_t count,
                                        aclrtMemcpyKind kind, aclrtStream stream /* =0 */);
 aclError CUBRIDGE_API wcudaMemcpy2D(void *dst, size_t dpitch, const void *src, size_t spitch,
                                     size_t width, size_t height, aclrtMemcpyKind kind);
-/* 3D 拷贝（昇腾无 3D 参数结构，用 void* 简化；返回 not-support） */
-aclError CUBRIDGE_API wcudaMemcpy3D(const void *p);
-aclError CUBRIDGE_API wcudaMemcpy3DAsync(const void *p, aclrtStream stream);
+/* 3D 拷贝（结构可见，但 Ascend bridge 当前无 CUDA 3D 执行路径） */
+aclError CUBRIDGE_API wcudaMemcpy3D(const wcceMemcpy3DParms *p);
+aclError CUBRIDGE_API wcudaMemcpy3DAsync(const wcceMemcpy3DParms *p, aclrtStream stream);
 
 /* Peer 拷贝（昇腾有 peer access：aclrtDeviceCanAccessPeer 等） */
 aclError CUBRIDGE_API wcudaMemcpyPeer(void *dst, int dstDevice, const void *src, int srcDevice,
@@ -170,19 +170,25 @@ aclError CUBRIDGE_API wcudaMemcpyFromSymbol(void *dst, const void *symbol, size_
                                             size_t offset /* =0 */, int kind /* =D2H */);
 aclError CUBRIDGE_API wcudaMemset2DAsync(void *devPtr, size_t pitch, int value, size_t width,
                                          size_t height, aclrtStream stream /* =0 */);
+aclError CUBRIDGE_API wcudaMemset3D(wccePitchedPtr pitchedDevPtr, int value,
+                                    wcceExtent extent);
+aclError CUBRIDGE_API wcudaMemset3DAsync(wccePitchedPtr pitchedDevPtr, int value,
+                                         wcceExtent extent, aclrtStream stream /* =0 */);
 aclError CUBRIDGE_API wcudaMemGetInfo(size_t *free, size_t *total);
 /* 昇腾无 pitch 分配接口，wcudaMallocPitch 用 aclrtMalloc 模拟（宽度对齐，见实现） */
 aclError CUBRIDGE_API wcudaMallocPitch(void **devPtr, size_t *pitch, size_t width, size_t height);
+aclError CUBRIDGE_API wcudaMalloc3D(wccePitchedPtr *pitchedDevPtr, wcceExtent extent);
 
 /* Stream Ordered Memory Allocator（SOMA）：
  * cudaMallocAsync/FreeAsync fallback 到 aclrtMalloc/Free（无 pool 语义）；
  * MemPool 系列昇腾无对应，not-support。 */
 aclError CUBRIDGE_API wcudaMallocAsync(void **devPtr, size_t size, aclrtStream hStream);
 aclError CUBRIDGE_API wcudaFreeAsync(void *devPtr, aclrtStream hStream);
-aclError CUBRIDGE_API wcudaMemPoolCreate(void *memPool, const void *poolProps);
-aclError CUBRIDGE_API wcudaMemPoolDestroy(void *memPool);
-aclError CUBRIDGE_API wcudaDeviceGetMemPool(void *memPool, int device);
-aclError CUBRIDGE_API wcudaDeviceSetMemPool(int device, void *memPool);
+aclError CUBRIDGE_API wcudaMemPoolCreate(wcceMemPool_t *memPool,
+                                         const wcceMemPoolProps *poolProps);
+aclError CUBRIDGE_API wcudaMemPoolDestroy(wcceMemPool_t memPool);
+aclError CUBRIDGE_API wcudaDeviceGetMemPool(wcceMemPool_t *memPool, int device);
+aclError CUBRIDGE_API wcudaDeviceSetMemPool(int device, wcceMemPool_t memPool);
 
 /* Unified Memory：昇腾无 managed memory，fallback 到 device 分配（无自动迁移语义，标注差异）。
  * MemAdvise/Prefetch 为 no-op/not-support（昇腾无统一寻址）。 */
@@ -191,7 +197,8 @@ aclError CUBRIDGE_API wcudaMemAdvise(const void *devPtr, size_t count, int advic
 aclError CUBRIDGE_API wcudaMemPrefetchAsync(const void *devPtr, size_t count, int dstDevice,
                                             aclrtStream stream /* =0 */);
 /* PointerGetAttributes：昇腾无统一寻址，简化返回 device 指针属性 */
-aclError CUBRIDGE_API wcudaPointerGetAttributes(void *attributes, const void *ptr);
+aclError CUBRIDGE_API wcudaPointerGetAttributes(wccePointerAttributes *attributes,
+                                                 const void *ptr);
 aclError CUBRIDGE_API wcudaMallocHost(void **ptr, size_t size);
 aclError CUBRIDGE_API wcudaMallocHostWithFlags(void **ptr, size_t size, unsigned int flags);
 aclError CUBRIDGE_API wcudaFreeHost(void *ptr);
@@ -210,7 +217,7 @@ const char CUBRIDGE_API *wcudaGetErrorName(aclError error);
 
 /* ============ Func 属性 ============ */
 /* 昇腾无 kernel 属性查询，返回 not-support */
-aclError CUBRIDGE_API wcudaFuncGetAttributes(void *attr, const void *func);
+aclError CUBRIDGE_API wcudaFuncGetAttributes(wcceFuncAttributes *attr, const void *func);
 
 /* ============ Occupancy ============ */
 /* 昇腾无 occupancy 计算接口，给 SIMT 合理默认值（block 上限 2048）。 */
