@@ -1532,6 +1532,8 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
             (cucc / "cmake_modules").mkdir()
             (cucc / "cmake_modules/FindCUDAToolkit.cmake").write_text("", encoding="utf-8")
             (cucc / "tools").mkdir()
+            (cucc / "bin/gnu").write_text("#!/bin/sh\n", encoding="utf-8")
+            (cucc / "bin/gnu").chmod(0o755)
             (cucc / "tools/hostcc_cce").write_text("#!/bin/sh\n", encoding="utf-8")
             (cucc / "tools/gfortran_cce").write_text("#!/bin/sh\n", encoding="utf-8")
             (cucc / "tools/mpi_cce").write_text("#!/bin/sh\n", encoding="utf-8")
@@ -1553,7 +1555,7 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
             self.assertTrue((cuda_dir / "include/cuda_runtime.h").is_file())
             self.assertEqual(os.readlink(cuda_dir / "bin/nvcc"), str((cucc / "bin/cucc").resolve()))
             self.assertEqual(os.readlink(cuda_dir / "bin/cucc"), str((cucc / "bin/cucc").resolve()))
-            self.assertEqual(os.readlink(hostbin / "g++"), str((cucc / "tools/hostcc_cce").resolve()))
+            self.assertEqual(os.readlink(hostbin / "g++"), str((cucc / "bin/gnu").resolve()))
             self.assertEqual(os.readlink(hostbin / "gfortran"), str((cucc / "tools/gfortran_cce").resolve()))
             self.assertEqual(os.readlink(hostbin / "mpicc"), str((cucc / "tools/mpi_cce").resolve()))
             self.assertEqual(os.readlink(hostbin / "mpicxx"), str((cucc / "tools/mpi_cce").resolve()))
@@ -1639,6 +1641,15 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
     def tmpdir(self) -> Path:
         import tempfile  # noqa: PLC0415
         return Path(tempfile.mkdtemp(prefix="cu2cce-abi-test-"))
+
+    def test_mock_entrypoints_are_installed_as_executable_programs(self) -> None:
+        top = (ROOT / "CMakeLists.txt").read_text(encoding="utf-8")
+        self.assertIn("install(PROGRAMS tools/mock/virtualDir.py", top)
+        self.assertIn("tools/mock/mock_nvcc.py", top)
+        self.assertIn("tools/mock/nvcc_entry.sh", top)
+        for path in (ROOT / "bin/gnu", ROOT / "bin/nvcc", ROOT / "tools/mock/nvcc_entry.sh"):
+            self.assertTrue(path.is_file())
+            self.assertTrue(path.stat().st_mode & 0o111, path)
 
     def test_install_tree_provides_nvcc_wrapper(self) -> None:
         # The install tree carries a regular bin/nvcc wrapper so Makefiles

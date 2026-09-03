@@ -96,6 +96,11 @@ install(FILES bin/conf.json DESTINATION bin)
 install(PROGRAMS bin/process_args.py bin/gnu bin/gfortran
         DESTINATION bin)
 install(DIRECTORY tools/mock DESTINATION tools)
+# Explicit PROGRAMS install keeps the mock entrypoints executable on CMake
+# versions/filesystems that do not preserve mode bits for DIRECTORY installs.
+install(PROGRAMS tools/mock/virtualDir.py tools/mock/mock_nvcc.py
+        tools/mock/nvcc_entry.sh
+        DESTINATION tools/mock)
 install(PROGRAMS tools/real_test/fetch_external_cuda_samples.sh
         tools/real_test/verify_artifacts.py
         DESTINATION tools/real_test)
