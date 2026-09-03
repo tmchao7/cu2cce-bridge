@@ -57,10 +57,13 @@ def audit(reference: Path | None, implementation: Path, inventory: Path) -> dict
     reserved_text = reserved.read_text(encoding="utf-8", errors="ignore") if reserved.is_file() else ""
     reserved_api_names = set(re.findall(r"\* CUDA API: ([A-Za-z_][A-Za-z0-9_]*)", reserved_text))
     reserved_wrapper_names = set(re.findall(r"\* Reference wrapper: ([A-Za-z_][A-Za-z0-9_]*)", reserved_text))
-    api_names = {str(v.get("wrapper")) for v in api_data.values() if isinstance(v, dict) and v.get("wrapper")}
     missing_headers = sorted(ref_headers - impl_headers - {n for n, v in header_data.items() if isinstance(v, dict) and v.get("status") == "REFERENCE_ONLY"})
     missing_wrappers = sorted(path for path, value in wrapper_data.items() if not (implementation / str(value.get("implementation", ""))).is_file())
-    missing_apis = sorted(name for name in ref_funcs if name not in impl_funcs and name not in api_names and name not in reserved_wrapper_names)
+    # A JSON row alone is not a future unlock point.  Every non-active wrapper
+    # must also appear in the committed #if 0 reserved header with its reference
+    # prototype/comment, otherwise a regenerated inventory could silently lose
+    # the declaration-level maintenance surface.
+    missing_apis = sorted(name for name in ref_funcs if name not in impl_funcs and name not in reserved_wrapper_names)
     active_maca: list[str] = []
     for p in (implementation / "include").rglob("*.h"):
         text = active_text(p)

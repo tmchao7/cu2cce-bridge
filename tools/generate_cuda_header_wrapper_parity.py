@@ -13,7 +13,7 @@ import re
 from pathlib import Path
 from typing import Iterable
 
-FUNC_RE = re.compile(r"\b((?:wcu|wcuda|wcublas|wcu[A-Za-z]|nvrtc)[A-Za-z0-9_]*)\s*\(")
+FUNC_RE = re.compile(r"\b((?:wcuda|wcu|nvrtc)[A-Za-z0-9_]*)\s*\(")
 PUBLIC_API_RE = re.compile(r"\b((?:cuda|cu|cublas|cufft|curand|cusolver|cusparse|cudnn|nccl|npp|nppi|npps|nvjpeg|nvml|nvrtc)[A-Za-z0-9_]*)\s*\(")
 PRIVATE_REFERENCE_HEADERS = {"__macro_mxcc.h"}
 

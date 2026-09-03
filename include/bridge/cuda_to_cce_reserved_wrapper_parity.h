@@ -1029,6 +1029,17 @@
 /* cuGLCtxCreate -> wcuGLCtxCreate */
 
 /*
+ * CUDA API: cuGLGetDevices
+ * Reference wrapper: wcuGLGetDevices
+ * Reference files: runtime/cuda_gl_wrapper.h
+ * CANN route: CANN aclrtBinary/module route; no active CUDA Driver ABI
+ * Status: RESERVED_NPU
+ * Future implementation: include/bridge wrapper + typed CANN probe.
+ * Reference prototype: #endif /* _WIN32 */ mcDrvError_t wcuGLGetDevices(unsigned int *pMacaDeviceCount, mcDrvDevice_t *pMacaDevices, unsigned int mcDeviceCount, mcDrvGLDeviceList deviceList);
+ */
+/* cuGLGetDevices -> wcuGLGetDevices */
+
+/*
  * CUDA API: cuGLInit
  * Reference wrapper: wcuGLInit
  * Reference files: runtime/cuda_gl_wrapper.h
@@ -4663,6 +4674,17 @@
 /* cuVDPAUCtxCreate -> wcuVDPAUCtxCreate */
 
 /*
+ * CUDA API: cuVDPAUGetDevice
+ * Reference wrapper: wcuVDPAUGetDevice
+ * Reference files: video/cuda_vdpau_wrapper.h
+ * CANN route: CANN aclrtBinary/module route; no active CUDA Driver ABI
+ * Status: RESERVED_NPU
+ * Future implementation: include/bridge wrapper + typed CANN probe.
+ * Reference prototype: #ifndef __CUDA_VDPAU_WRAPPER_H__ #define __CUDA_VDPAU_WRAPPER_H__ #if defined(__cplusplus) extern "C" { #endif /* __cplusplus */ mcDrvError_t wcuVDPAUGetDevice(mcDrvDevice_t *pDevice, VdpDevice vdpDevice, VdpGetProcAddress *vdpGetProcAddress) { return MC_ERROR_NOT_SUPPORTED;
+ */
+/* cuVDPAUGetDevice -> wcuVDPAUGetDevice */
+
+/*
  * CUDA API: cuWGLGetDevice
  * Reference wrapper: wcuWGLGetDevice
  * Reference files: runtime/cuda_gl_wrapper.h
@@ -5375,6 +5397,17 @@
  * Reference prototype: inline mcError_t wcudaGLSetBufferObjectMapFlags(GLuint bufObj, unsigned int flags) { return mcErrorNotSupported;
  */
 /* cudaGLSetBufferObjectMapFlags -> wcudaGLSetBufferObjectMapFlags */
+
+/*
+ * CUDA API: cudaGLSetGLDevice
+ * Reference wrapper: wcudaGLSetGLDevice
+ * Reference files: runtime/cuda_gl_wrapper.h
+ * CANN route: CANN Runtime/SIMT route must be verified against the installed toolkit
+ * Status: RESERVED_NPU
+ * Future implementation: include/bridge wrapper + typed CANN probe.
+ * Reference prototype: #endif /* _WIN32 */ inline mcError_t wcudaGLSetGLDevice(int device) { return mcErrorNotSupported; }
+ */
+/* cudaGLSetGLDevice -> wcudaGLSetGLDevice */
 
 /*
  * CUDA API: cudaGLUnmapBufferObject
@@ -7012,6 +7045,17 @@
  * Reference prototype: mcError_t CUBRIDGE_API wcudaUserObjectRetain(mcUserObject_t object, unsigned int count __dv(1));
  */
 /* cudaUserObjectRetain -> wcudaUserObjectRetain */
+
+/*
+ * CUDA API: cudaVDPAUGetDevice
+ * Reference wrapper: wcudaVDPAUGetDevice
+ * Reference files: video/cuda_vdpau_interop_wrapper.h
+ * CANN route: CANN Runtime/SIMT route must be verified against the installed toolkit
+ * Status: RESERVED_NPU
+ * Future implementation: include/bridge wrapper + typed CANN probe.
+ * Reference prototype: #ifndef __CUDA_VDPAU_INTEROP_WRAPPER_H__ #define __CUDA_VDPAU_INTEROP_WRAPPER_H__ #include <mc_runtime.h> #include <vdpau/vdpau.h> #if defined(__cplusplus) extern "C" { #endif /* __cplusplus */ __host__ mcError_t wcudaVDPAUGetDevice(int *device, VdpDevice vdpDevice, VdpGetProcAddress *vdpGetProcAddress) { return mcErrorNotSupported;
+ */
+/* cudaVDPAUGetDevice -> wcudaVDPAUGetDevice */
 
 /*
  * CUDA API: cudaVDPAUSetVDPAUDevice

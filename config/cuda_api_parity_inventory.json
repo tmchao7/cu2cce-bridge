@@ -1476,14 +1476,16 @@
     "cuGLGetDevices": {
       "cann_route": "CANN aclrtBinary/module route; no active CUDA Driver ABI",
       "implementation_files": [
-        "cuda_to_cce_reserved_wrapper_parity.h"
+        "include/bridge/cuda_to_cce_reserved_wrapper_parity.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_gl_wrapper.h"
       ],
-      "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "reference_prototypes": [
+        "#endif /* _WIN32 */ mcDrvError_t wcuGLGetDevices(unsigned int *pMacaDeviceCount, mcDrvDevice_t *pMacaDevices, unsigned int mcDeviceCount, mcDrvGLDeviceList deviceList);"
+      ],
+      "status": "RESERVED_NPU",
       "wrapper": "wcuGLGetDevices"
     },
     "cuGLInit": {
@@ -6512,14 +6514,16 @@
     "cuVDPAUGetDevice": {
       "cann_route": "CANN aclrtBinary/module route; no active CUDA Driver ABI",
       "implementation_files": [
-        "cuda_to_cce_reserved_wrapper_parity.h"
+        "include/bridge/cuda_to_cce_reserved_wrapper_parity.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "video/cuda_vdpau_wrapper.h"
       ],
-      "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "reference_prototypes": [
+        "#ifndef __CUDA_VDPAU_WRAPPER_H__ #define __CUDA_VDPAU_WRAPPER_H__ #if defined(__cplusplus) extern \"C\" { #endif /* __cplusplus */ mcDrvError_t wcuVDPAUGetDevice(mcDrvDevice_t *pDevice, VdpDevice vdpDevice, VdpGetProcAddress *vdpGetProcAddress) { return MC_ERROR_NOT_SUPPORTED;"
+      ],
+      "status": "RESERVED_NPU",
       "wrapper": "wcuVDPAUGetDevice"
     },
     "cuWGLGetDevice": {
@@ -8090,14 +8094,16 @@
     "cudaGLSetGLDevice": {
       "cann_route": "CANN Runtime/SIMT route must be verified against the installed toolkit",
       "implementation_files": [
-        "cuda_to_cce_reserved_wrapper_parity.h"
+        "include/bridge/cuda_to_cce_reserved_wrapper_parity.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "runtime/cuda_gl_wrapper.h"
       ],
-      "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "reference_prototypes": [
+        "#endif /* _WIN32 */ inline mcError_t wcudaGLSetGLDevice(int device) { return mcErrorNotSupported; }"
+      ],
+      "status": "RESERVED_NPU",
       "wrapper": "wcudaGLSetGLDevice"
     },
     "cudaGLUnmapBufferObject": {
@@ -12064,14 +12070,16 @@
     "cudaVDPAUGetDevice": {
       "cann_route": "CANN Runtime/SIMT route must be verified against the installed toolkit",
       "implementation_files": [
-        "cuda_to_cce_reserved_wrapper_parity.h"
+        "include/bridge/cuda_to_cce_reserved_wrapper_parity.h"
       ],
-      "mapping_type": "ADAPTED",
+      "mapping_type": "ROUTE_ONLY",
       "reference_files": [
         "video/cuda_vdpau_interop_wrapper.h"
       ],
-      "reference_prototypes": [],
-      "status": "ACTIVE_ADAPTED",
+      "reference_prototypes": [
+        "#ifndef __CUDA_VDPAU_INTEROP_WRAPPER_H__ #define __CUDA_VDPAU_INTEROP_WRAPPER_H__ #include <mc_runtime.h> #include <vdpau/vdpau.h> #if defined(__cplusplus) extern \"C\" { #endif /* __cplusplus */ __host__ mcError_t wcudaVDPAUGetDevice(int *device, VdpDevice vdpDevice, VdpGetProcAddress *vdpGetProcAddress) { return mcErrorNotSupported;"
+      ],
+      "status": "RESERVED_NPU",
       "wrapper": "wcudaVDPAUGetDevice"
     },
     "cudaVDPAUSetVDPAUDevice": {

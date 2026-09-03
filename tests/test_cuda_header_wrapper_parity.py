@@ -36,6 +36,35 @@ class CudaHeaderWrapperParityToolTest(unittest.TestCase):
         self.assertEqual(report["duplicate_entries"], [])
         self.assertEqual(report["active_maca_backend_names"], [])
 
+    def test_validator_requires_reserved_header_for_non_active_wrapper(self) -> None:
+        sys.path.insert(0, str(TOOLS))
+        import validate_cuda_header_wrapper_parity as parity
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            reference = root / "reference"
+            implementation = root / "implementation"
+            for base in (reference, implementation):
+                (base / "include/bridge").mkdir(parents=True)
+            (reference / "include/cuda.h").write_text("#pragma once\n", encoding="utf-8")
+            (reference / "include/bridge/wrapper.h").write_text(
+                "int wcuFuture(void);\n", encoding="utf-8"
+            )
+            (implementation / "include/cuda.h").write_text("#pragma once\n", encoding="utf-8")
+            (implementation / "include/bridge/cuda_to_cce_reserved_wrapper_parity.h").write_text(
+                "#if 0\n#endif\n", encoding="utf-8"
+            )
+            inventory = root / "inventory.json"
+            inventory.write_text(json.dumps({
+                "headers": {"cuda.h": {"implementation": "include/cuda.h", "status": "ACTIVE_ADAPTED"}},
+                "wrappers": {},
+                "api_entries": {
+                    "cuFuture": {"wrapper": "wcuFuture", "status": "RESERVED_NPU"}
+                },
+            }), encoding="utf-8")
+            report = parity.audit(reference, implementation, inventory)
+            self.assertEqual(report["missing_api_entries"], ["wcuFuture"])
+
     def test_validator_uses_committed_inventory_without_reference_checkout(self) -> None:
         result = subprocess.run(
             [sys.executable, str(TOOLS / "validate_cuda_header_wrapper_parity.py"),
