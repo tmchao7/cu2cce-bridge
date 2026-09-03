@@ -18,7 +18,7 @@
                │ cucc（nvcc 兼容驱动）          │ cmake_cce / make_cce / ninja_cce
                ▼                               ▼
 ┌────────────────────────── 桥接层（本仓库） ─────────────────────────────────┐
-│ 编译：config/cu2cce_rules.json 规则驱动 → ccec -x asc --enable-simt           │
+│ 编译：bin/conf.json 规则驱动 → ccec -x asc --enable-simt           │
 │ 头文件：include/cuda_runtime.h → __cuda_runtime.h（宏映射 cuda*→wcuda*）      │
 │         + bridge/kernel/simt_adaptor.h（执行空间/共享内存/warp 原语映射）      │
 │         + crt/*（前向兼容层，见 04_shadow_headers.md）                         │
@@ -44,7 +44,7 @@ include/                用户可见头：cuda_runtime.h、crt/、cublas_v2.h、
 include/bridge/         桥内部头：runtime wrapper、kernel simt_adaptor、blas
 src/bridge/runtime/     wcuda* → aclrt* 实现（默认流/事件注册表/FP64 策略）
 src/bridge/blas/        wcublas* → aclblas* 实现（实验线）
-config/cu2cce_rules.json  cucc 参数规则（数据驱动核心）
+bin/conf.json  cucc 参数规则（数据驱动核心）
 tools/cu2cce_driver.py    规则解释器（cucc 与 mock nvcc 共用）
 tools/mock/mock_nvcc.py   CMake 探测应答器（shim nvcc）
 tools/cmake_cce 等包装器   CMake/Make/Ninja 适配入口

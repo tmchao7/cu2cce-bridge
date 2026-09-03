@@ -13,6 +13,7 @@ error (default) | warn | allow.
 """
 from __future__ import annotations
 
+import copy
 import fnmatch
 import json
 import os
@@ -387,6 +388,66 @@ def expand_response_files(
     return expanded
 
 
+def _normalize_rule_document(document: Mapping[str, Any]) -> Dict[str, Any]:
+    """Convert the reference-shaped ``bin/conf.json`` into driver sections.
+
+    ``cu-bridge`` names the three data actions ``filter/replacer/adder`` and
+    calls query bypasses ``skipstring``.  The Python driver deliberately keeps
+    the smaller internal vocabulary ``drop/replace/inject`` so the execution
+    pipeline has one precedence implementation.  The old schema is accepted
+    only for explicit custom ``CU2CCE_RULES_FILE`` users; the repository's
+    default document is the single canonical ``bin/conf.json``.
+    """
+    if not isinstance(document, Mapping):
+        raise DriverError("cucc rules must be a JSON object")
+    # The legacy/custom schema already has the internal vocabulary.
+    if isinstance(document.get("frontend"), Mapping):
+        return copy.deepcopy(dict(document))
+
+    extension = document.get("cu2cce", {})
+    if not isinstance(extension, Mapping):
+        raise DriverError("cucc rules: cu2cce extension must be an object")
+    frontend = extension.get("frontend", {})
+    if not isinstance(frontend, Mapping):
+        frontend = {}
+    frontend = dict(frontend)
+    frontend.setdefault("compiler", extension.get("compiler", "ccec"))
+    frontend.setdefault("language", "asc")
+    frontend.setdefault("enable_simt", extension.get("enable_simt", True))
+    frontend.setdefault("default_arch", extension.get("default_arch", "dav-c310-vec"))
+    frontend.setdefault("cuda_version", str(document.get("data", "11060")))
+
+    normalized: Dict[str, Any] = {
+        "schema_version": document.get("schema_version", 1),
+        "frontend": frontend,
+        "queries": [
+            {"pattern": str(pattern), "reason": "reference skipstring query passthrough"}
+            for pattern in document.get("skipstring", [])
+        ],
+        "condition": copy.deepcopy(document.get("condition", [])),
+        "not_found": copy.deepcopy(document.get("not_found", {})),
+    }
+    for phase in ("all", "compile", "link", "compile_and_link"):
+        section = document.get(phase, {})
+        if not isinstance(section, Mapping):
+            section = {}
+        normalized[phase] = {
+            "forward": copy.deepcopy(section.get("forward", [])),
+            "drop": copy.deepcopy(section.get("filter", section.get("drop", []))),
+            "replace": copy.deepcopy(section.get("replacer", section.get("replace", []))),
+            "inject": copy.deepcopy(section.get("adder", section.get("inject", []))),
+            "reject": copy.deepcopy(
+                extension.get("reject", {}).get(phase, [])
+                if isinstance(extension.get("reject", {}), Mapping)
+                else section.get("reject", [])
+            ),
+        }
+    for key in ("capabilities", "hostcc", "regex_cleanup", "diagnostics"):
+        value = extension.get(key, document.get(key, {} if key != "regex_cleanup" else []))
+        normalized[key] = copy.deepcopy(value)
+    return normalized
+
+
 class RuleDriver:
     def __init__(self, env: Optional[Mapping[str, str]] = None,
                  rules_file: Optional[Path] = None,
@@ -409,8 +470,9 @@ class RuleDriver:
             )
         self.rules_path = self._select_rules_file(rules_file)
         try:
-            self.rules = json.loads(self.rules_path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError) as exc:
+            raw_rules = json.loads(self.rules_path.read_text(encoding="utf-8"))
+            self.rules = _normalize_rule_document(raw_rules)
+        except (OSError, json.JSONDecodeError, TypeError, DriverError) as exc:
             raise DriverError(f"cannot load cu2cce rules: {self.rules_path}: {exc}") from exc
         if self.rules.get("schema_version") != 1:
             raise DriverError(
@@ -534,15 +596,13 @@ class RuleDriver:
             candidates.append(Path(self.env["CU2CCE_RULES_FILE"]).expanduser())
         if self.cucc_path is not None:
             candidates.append(self.cucc_path / "bin" / "conf.json")
-            candidates.append(self.cucc_path / "config" / "cu2cce_rules.json")
         candidates.append(self.repo_root / "bin" / "conf.json")
-        candidates.append(self.repo_root / "config" / "cu2cce_rules.json")
         for candidate in candidates:
             if candidate.is_file():
                 return candidate.resolve()
         raise DriverError(
             "cu2cce rules file not found; set CU2CCE_RULES_FILE or install "
-            "bin/conf.json (legacy fallback: config/cu2cce_rules.json)"
+            "bin/conf.json"
         )
 
     def _expand_response_files(self, args: Sequence[str], depth: int = 0) -> List[str]:
@@ -1565,7 +1625,7 @@ class RuleDriver:
 
 
     def run_hostcc(self, args: Sequence[str], name: str, proxy_mode: bool = False) -> int:
-        """bin/gnu-parity host compiler wrapper driven by config/cu2cce_rules.json.
+        """bin/gnu-parity host compiler wrapper driven by bin/conf.json.
 
         The virtual CUDA toolkit binds bin/{c++,g++,gcc,cc} to hostcc_cce, which
         delegates here. Pure compiles/preprocess/queries pass through to the

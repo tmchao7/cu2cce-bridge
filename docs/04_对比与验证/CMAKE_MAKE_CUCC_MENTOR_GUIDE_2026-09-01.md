@@ -257,7 +257,7 @@ cu-bridge/bin/conf_regex.yaml
 规则：
 
 ```text
-/Users/tmchao7/repos/09_expLearn/cu2cce-bridge/config/cu2cce_rules.json
+/Users/tmchao7/repos/09_expLearn/cu2cce-bridge/bin/conf.json
 ```
 
 驱动 pipeline：

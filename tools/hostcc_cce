@@ -3,7 +3,7 @@
 # hostcc_cce —— host C/C++ compiler wrapper (cu-bridge bin/gnu parity).
 #
 # The virtual CUDA toolkit binds bin/{c++,g++,gcc,cc} to THIS script. All behavior
-# is rule-driven from config/cu2cce_rules.json ("hostcc" section, consumed
+# is rule-driven from bin/conf.json ("hostcc" section, consumed
 # by tools/cu2cce_driver.py --hostcc-mode):
 #   - pure compile (-c) / preprocess (-E) / query: passthrough to the real
 #     system compiler untouched;

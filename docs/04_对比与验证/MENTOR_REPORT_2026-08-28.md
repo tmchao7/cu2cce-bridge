@@ -106,7 +106,7 @@ CU2CCE_REGRESSION_PROFILE=full     bash tools/real_test/server_cmd.txt   # 全�
 | 维度 | cu-bridge（参照） | cu2cce-bridge（本桥） |
 |---|---|---|
 | 内核路径 | 主线含 ptx2cpp/gomxcc 降级管线（PTX→C++） | **puresimt 直通**：ccec `--enable-simt` 原生解析 CUDA，零改写、零中间产物（有门禁扫描兜底） |
-| 参数适配 | 代码内过滤/替换逻辑 | **规则数据驱动**：`config/cu2cce_rules.json`（forward/drop/replace/inject/reject 五种动作），驱动只解释规则；支持 strict 模式把未验证项升级为错误 |
+| 参数适配 | 代码内过滤/替换逻辑 | **规则数据驱动**：`bin/conf.json`（forward/drop/replace/inject/reject 五种动作），驱动只解释规则；支持 strict 模式把未验证项升级为错误 |
 | 目标后端 | MACA | CANN ccec/ACL（不复制 MACA 映射，保留真实身份） |
 | CMake 适配 | cmake_maca/mock nvcc | 同级能力 + **语言模块 override 模块**（真机验证） |
 | 运行时 | wcuda→maca | wcuda→ACL（1500+ 行，含默认流语义/事件注册表/FP64 策略） |

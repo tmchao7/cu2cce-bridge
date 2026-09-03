@@ -41,7 +41,7 @@ class RepositoryHygieneTest(unittest.TestCase):
         for item in (
             "cmake_maca", "cmake_cce", "make_maca", "make_cce",
             "ninja_maca", "ninja_cce", "pre_makefile", "pre_cce",
-            "bin/gnu", "hostcc_cce", "link.json", "shim_layout.json",
+            "bin/gnu", "hostcc_cce", "link.json", "stub_link.json", "virtualDir.py",
         ):
             self.assertIn(item, text)
 
@@ -65,7 +65,7 @@ class RepositoryHygieneTest(unittest.TestCase):
         for item in (
             "bin/cucc", "tools/cu2cce_driver.py", "tools/cmake_cce",
             "tools/make_cce", "tools/ninja_cce", "tools/pre_cce",
-            "bin/conf.json", "config/cu2cce_rules.json", "tools/link.json", "tools/mock/stub_link.json",
+            "bin/conf.json", "tools/link.json", "tools/mock/stub_link.json",
             "config/artifact_contract.json", "tools/real_test/server_cmd.txt",
             "multi_cu_diagnostic", "DIAGNOSTIC_ONLY",
         ):
@@ -132,6 +132,11 @@ class RepositoryHygieneTest(unittest.TestCase):
         self.assertNotIn("PROJECT_ARCHITECTURE.md", text)
         self.assertNotIn("docs/superpowers/", text)
         self.assertNotIn("plans/cuda-large-project-compatibility.md", text)
+        self.assertNotIn("config/cu2cce_rules.json", text)
+        self.assertNotIn("config/shim_layout.json", text)
+        self.assertNotIn("tools/build_shim_tree.py", text)
+        self.assertNotIn("tools/fake_toolkit_env.sh", text)
+        self.assertNotIn("bin/process_args.py", text)
 
     def test_tracked_tree_has_no_symlink_compatibility_files(self) -> None:
         result = subprocess.run(

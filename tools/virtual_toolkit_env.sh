@@ -169,16 +169,3 @@ cu2cce_prepare_virtual_toolkit() {
     fi
     printf '%s\n' "$cuda_dir"
 }
-
-# Compatibility function name retained for existing integrations.
-cu2cce_prepare_fake_toolkit() {
-    cu2cce_prepare_virtual_toolkit "$@"
-}
-
-# Legacy helper names remain callable for external scripts; no duplicate implementation.
-cu2cce_shim_root_for_build() {
-    cu2cce_virtual_toolkit_root_for_build "$@"
-}
-cu2cce_cmake_cache_shim_root() {
-    cu2cce_cmake_cache_virtual_toolkit_root "$@"
-}

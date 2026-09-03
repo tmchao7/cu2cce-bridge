@@ -46,11 +46,10 @@ Ascend kernel 包装源文件。
 当前目录职责保持与 `cu-bridge` 接近，但保留 Ascend 命名：
 
 ```text
-bin/                 用户命令入口（cucc）
+bin/                 cucc、nvcc、conf.json 和 host compiler carrier
 cmake/               原生 cu2cce CMake package
 cmake_modules/       FindCUDA / FindCUDAToolkit 兼容层
-config/              旧版 cucc 规则兼容入口与 artifact contract
-bin/                 cucc 主规则 conf.json、host compiler carrier 和 process_args.py
+config/              artifact contract
 include/             CUDA compatibility headers、SIMT adaptor、runtime headers
 src/                 bridge runtime 与 experimental BLAS 实现
 examples/             CUDA、CMake、Make、Ninja 和诊断样例
@@ -156,8 +155,8 @@ build/real_test/install/
 │   └── libcce_bridge_runtime.so
 ├── include/             # cuda_runtime.h、crt、bridge、SIMT、shadow headers
 ├── cmake_modules/       # FindCUDA、FindCUDAToolkit 和 CUDA override
-├── config/              # 旧版兼容规则与 artifact contract；布局清单位于 tools/
-├── bin/                 # cucc、conf.json、gnu、gfortran、process_args.py
+├── config/              # artifact contract；布局清单位于 tools/
+├── bin/                 # cucc、conf.json、gnu、gfortran
 └── tools/               # driver、mock、virtual toolkit directory builder、host compiler wrapper
 ```
 
@@ -617,7 +616,6 @@ macOS 本地不构建 CANN/NPU 产物，但可以执行：
 
 ```bash
 python3 tools/validate_cucc_rules.py bin/conf.json
-python3 tools/validate_cucc_rules.py config/cu2cce_rules.json
 python3 -m unittest discover -s tests -p 'test_*.py' -v
 bash tests/mock_acl/syntax_check.sh
 git diff --check

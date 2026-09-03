@@ -1,6 +1,6 @@
 # cucc CUDA 参数兼容性矩阵
 
-规则由 `config/cu2cce_rules.json` 实现，并由 `cucc` 与 CMake 的 `mock_nvcc` shim 共同使用。
+规则由 `bin/conf.json` 实现，并由 `cucc` 与 CMake 的 `mock_nvcc` shim 共同使用。
 参数处理遵循 `reject → replace → drop → forward` 的优先级；`sm_*` 只用于兼容宏、trace 或诊断，不能直接作为 Ascend `ccec` 架构参数。
 
 | 参数族 | 形式 | 阶段 | 动作 | 状态 | 证据 / 边界 |

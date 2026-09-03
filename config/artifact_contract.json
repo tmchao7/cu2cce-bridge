@@ -37,7 +37,7 @@
           "kind": "file"
         },
         {
-          "path": "config/cu2cce_rules.json",
+          "path": "bin/conf.json",
           "kind": "file"
         }
       ],

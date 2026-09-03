@@ -7,7 +7,7 @@
 
 | 现象 | 首先检查 |
 |---|---|
-| `cucc` 参数被错误转发 | `tools/cu2cce_driver.py`、`bin/conf.json`（旧入口：`config/cu2cce_rules.json`）、`02_能力清单/CUCC_OPTION_COMPATIBILITY_MATRIX.md` |
+| `cucc` 参数被错误转发 | `tools/cu2cce_driver.py`、`bin/conf.json`（旧入口：`bin/conf.json`）、`02_能力清单/CUCC_OPTION_COMPATIBILITY_MATRIX.md` |
 | `.cu` 编译失败 | `include/cuda_runtime.h`、`include/bridge/kernel/simt_adaptor.h`、`tools/device_arch.sh` |
 | CMake configure 失败 | `tools/cmake_cce`、`tools/mock/mock_nvcc.py`、`cmake_modules/override/CUDAOverrides.cmake` |
 | CMake build 找不到 `nvcc`/`cucc` | `tools/virtual_toolkit_env.sh`、`tools/mock/virtualDir.py`、`tools/ninja_cce` |

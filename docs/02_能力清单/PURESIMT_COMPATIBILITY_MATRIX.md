@@ -222,7 +222,7 @@ CMake configure → cmake_cce → CUDA shim → nvcc_entry → mock_nvcc；
 
 | Capability | Status | Evidence / boundary |
 |---|---|---|
-| Rule-driven CUDA argument processing | `EXPERIMENTAL` | `config/cu2cce_rules.json` + shared `tools/cu2cce_driver.py` |
+| Rule-driven CUDA argument processing | `EXPERIMENTAL` | `bin/conf.json` + shared `tools/cu2cce_driver.py` |
 | Shared policy for normal cucc and CMake nvcc shim | `EXPERIMENTAL` | `bin/cucc` and `tools/mock/mock_nvcc.py` use the same driver |
 | NVIDIA architecture flag handling | `EXPERIMENTAL` | `-gencode`/`-arch=sm_*` are diagnosed and not mapped to fake Ascend architectures |
 | PTX/CUBIN/FATBIN/device-link rejection | `UNSUPPORTED` | explicitly rejected by the puresimt driver |

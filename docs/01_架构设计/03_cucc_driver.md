@@ -25,7 +25,7 @@ Ascend 架构选择优先使用 `CU2CCE_NPU_ARCH`/`CUCC_NPU_ARCH`；为对齐 cu
 | `-M/-MM/-MD` | dependency | 透传（DIAGNOSTIC_ONLY） |
 | `-S`/`-ptx`/`-cubin` 等 | unsupported | 明确拒绝（puresimt 不产 NVIDIA 中间产物） |
 
-## 3. 规则文件：`config/cu2cce_rules.json`
+## 3. 规则文件：`bin/conf.json`
 
 规则文件之外，`--options-file` 与 `@response-file` 均由同一个安全的 `shlex` 展开器处理；trace 会记录文件路径，不记录文件内容。工具链查询和 `-E` 命中 `queries` 后跳过规则注入，直接透传给 ccec。
 
@@ -43,7 +43,7 @@ Ascend 架构选择优先使用 `CU2CCE_NPU_ARCH`/`CUCC_NPU_ARCH`；为对齐 cu
 `has_simt_api`、`system_libc/not_system_libc`、`shared_link_without_pic`、
 `has_cuda_arch` 等——**全部数据在 JSON 里，驱动不写死具体 flag**。
 
-修改规则后必须过校验器：`python3 tools/validate_cucc_rules.py config/cu2cce_rules.json`。
+修改规则后必须过校验器：`python3 tools/validate_cucc_rules.py bin/conf.json`。
 
 ## 4. 注入链（compile 阶段，`-x asc` 之后的确定性前缀）
 

@@ -7,8 +7,8 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List
 
-ACTIONS = {"forward", "drop", "replace", "inject", "reject", "filter", "replacer", "adder"}
-ACTION_ALIASES = {"filter": "drop", "replacer": "replace", "adder": "inject"}
+ACTIONS = {"forward", "drop", "replace", "inject", "reject"}
+CANONICAL_TOP = {"schema_version", "data", "skipstring", "all", "compile", "link", "compile_and_link", "condition", "not_found", "cu2cce"}
 PHASES = {"all", "compile", "link", "compile_and_link"}
 CAPABILITY_STATUSES = {"supported_by_bridge", "experimental", "unsupported", "map_available"}
 CAPABILITY_ACTIONS = {"bridge_inject", "warn_no_automatic_replacement", "drop", "reject"}
@@ -57,9 +57,46 @@ def validate(path: Path) -> List[str]:
         return [f"cannot parse {path}: {exc}"]
     if not isinstance(data, dict):
         return ["top-level rules value must be an object"]
-    missing = REQUIRED_TOP - set(data)
-    for key in sorted(missing):
-        fail(errors, f"missing top-level key: {key}")
+    canonical = "cu2cce" in data and "frontend" not in data
+    if canonical:
+        missing = CANONICAL_TOP - set(data)
+        for key in sorted(missing):
+            fail(errors, f"missing top-level key: {key}")
+        extension = data.get("cu2cce")
+        if not isinstance(extension, dict):
+            fail(errors, "cu2cce: must be an object")
+            extension = {}
+        reject_map = extension.get("reject", {})
+        if not isinstance(reject_map, dict):
+            fail(errors, "cu2cce.reject: must be an object")
+            reject_map = {}
+        normalized = {
+            "schema_version": data.get("schema_version"),
+            "frontend": extension.get("frontend", {}),
+            "queries": [{"pattern": item} for item in data.get("skipstring", [])],
+            "condition": data.get("condition", []),
+            "not_found": data.get("not_found", {}),
+            "capabilities": extension.get("capabilities", {}),
+            "hostcc": extension.get("hostcc", {}),
+            "regex_cleanup": extension.get("regex_cleanup", []),
+            "diagnostics": extension.get("diagnostics", {}),
+        }
+        for phase in PHASES:
+            section = data.get(phase, {})
+            if not isinstance(section, dict):
+                section = {}
+            normalized[phase] = {
+                "forward": section.get("forward", []),
+                "drop": section.get("filter", []),
+                "replace": section.get("replacer", []),
+                "inject": section.get("adder", []),
+                "reject": reject_map.get(phase, []),
+            }
+        data = normalized
+    else:
+        missing = REQUIRED_TOP - set(data)
+        for key in sorted(missing):
+            fail(errors, f"missing top-level key: {key}")
     if data.get("schema_version") != 1:
         fail(errors, f"schema_version must be 1, got {data.get('schema_version')!r}")
     for phase in PHASES:
@@ -72,25 +109,19 @@ def validate(path: Path) -> List[str]:
             if action not in ACTIONS:
                 fail(errors, f"{phase}: unknown action {action}")
                 continue
-            canonical = ACTION_ALIASES.get(action, action)
             rules = section[action]
             if not isinstance(rules, list):
                 fail(errors, f"{phase}.{action}: must be a list")
                 continue
             for index, rule in enumerate(rules):
-                validate_rule(rule, canonical, f"{phase}.{action}[{index}]", errors)
-                # Reference-shaped aliases intentionally repeat the semantic
-                # lists. Validate them, but do not report conflicts against
-                # their canonical drop/replace/inject counterparts.
-                if action in ACTION_ALIASES:
-                    continue
+                validate_rule(rule, action, f"{phase}.{action}[{index}]", errors)
                 if isinstance(rule, dict):
                     pattern = rule.get("pattern", rule.get("match"))
                     if isinstance(pattern, str):
                         previous = seen.get(pattern)
-                        if previous and previous != canonical and {previous, canonical} & {"drop", "replace", "reject"}:
-                            fail(errors, f"{phase}: conflicting actions for pattern {pattern!r}: {previous}/{canonical}")
-                        seen[pattern] = canonical
+                        if previous and previous != action and {previous, action} & {"drop", "replace", "reject"}:
+                            fail(errors, f"{phase}: conflicting actions for pattern {pattern!r}: {previous}/{action}")
+                        seen[pattern] = action
     # Optional cu-bridge skipstring-parity section: probe queries that bypass
     # the whole rule pipeline and pass through to ccec unchanged.
     if "queries" in data:
@@ -173,7 +204,7 @@ def validate(path: Path) -> List[str]:
 
 
 def main(argv: List[str]) -> int:
-    path = Path(argv[1]) if len(argv) > 1 else Path(__file__).resolve().parents[1] / "config/cu2cce_rules.json"
+    path = Path(argv[1]) if len(argv) > 1 else Path(__file__).resolve().parents[1] / "bin/conf.json"
     errors = validate(path)
     if errors:
         for error in errors:

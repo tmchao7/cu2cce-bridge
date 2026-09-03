@@ -85,7 +85,7 @@ configure 脚本用 `pre_makefile` 包裹；Python 库安装不管（FAQ Q7）�
 | 假工具包默认持久化 | CUBRIDGE_HOME=$HOME（持久，configure/build 共享） | **默认持久且按 build 目录隔离**：`${CU2CCE_HOME:-${CUBRIDGE_HOME:-$HOME}}/cu2cce-bridge/cmake-shim-<build-key>`（CU2CCE_CMAKE_SHIM_DIR 显式覆盖） | 已对齐（2026-09-02：双阶段共享同一 shim，同时避免跨项目覆盖） |
 | configure 包裹器 | pre_makefile（configure 脚本包裹，FAQ Q5） | **pre_cce**（同构 + hostcc_cce 统一——第五批次前是身份软链，纯 g++ 链接拿不到注入） | 已对齐（2026-08-28；2026-08-30 统一 hostcc） |
 | 设备架构探测助手 | multi_target.sh + get_device_arch.sh（CUCC_TARGETS → mx-smi → 提示） | **tools/device_arch.sh**（CU2CCE_NPU_ARCH/CUCC_NPU_ARCH/CUCC_TARGETS/CUCC_TARGETS_FROM_DEVICE → npu-smi 表映射 → cache → default + tip），cmake_cce/make_cce/ninja_cce/pre_cce 接线 | 已对齐（2026-09-01，NPU 单 dav-* target 约束） |
-| CUPTI 路径布局 | 虚拟目录含 extras/CUPTI/{include,lib64} | config/shim_layout.json 同款空目录布局（路径探测兼容） | 已对齐（2026-08-28） |
+| CUPTI 路径布局 | 虚拟目录含 extras/CUPTI/{include,lib64} | tools/link.json 同款空目录布局（路径探测兼容） | 已对齐（2026-08-28） |
 | nvcc 兼容软链 | FAQ Q2 手工软链 workaround | **安装树自动提供 `bin/nvcc → cucc`**（install CODE） | 已对齐+自动化 |
 | CUDA Toolkit 发现 | 无 FindCUDAToolkit（文档教用户绕开 CUDA 语言） | FindCUDAToolkit + CUDA::cudart/toolkit 别名族（真机验证） | **本桥领先** |
 | 参数适配 | conf.json（replacer/adder/filter/skipstring）+ gomxccbin 正则 | cu2cce_rules.json（五动作 + queries + hostcc + regex_cleanup 段）单一 in-process 驱动 | 机制不同目标相同；无 Go 工具依赖 |
@@ -126,7 +126,7 @@ configure 脚本用 `pre_makefile` 包裹；Python 库安装不管（FAQ Q7）�
    逐参数规则循环（reject→replace→drop→forward→未识别警告）→ `_inject()`
    注入链（含 `.cu` 预包含 cuda_runtime.h / `-std` 去重）→ 前缀排序
    （`-x asc` 与 `-include` 置前）→ `run_prepared()`（Popen ccec）。
-4. **规则数据**：`config/cu2cce_rules.json` —— 五动作 + `queries` + `hostcc`
+4. **规则数据**：`bin/conf.json` —— 五动作 + `queries` + `hostcc`
    段；校验器 `tools/validate_cucc_rules.py`。
 5. **Make 线**：`tools/make_cce` —— tools/mock/virtualDir.py 构建虚拟 CUDA 工具链目录 →
    PATH/CUDA_PATH → exec make（clean 词元匹配删假目录）；对照
@@ -141,7 +141,7 @@ configure 脚本用 `pre_makefile` 包裹；Python 库安装不管（FAQ Q7）�
 
 > 第五批次（2026-08-30）收口：cmake --build 分流、queries 查询直通、`-std` 去重、
 > `-gencode` 架构提取 + `CU2CCE_ARCH_MACRO` opt-in 注入、`.cu` 预包含
-> cuda_runtime.h、hostcc 规则化、shim 清单化（config/shim_layout.json +
+> cuda_runtime.h、hostcc 规则化、shim 清单化（tools/link.json +
 > tools/mock/virtualDir.py）、lib64 别名扩展（libcublas/libnvToolsExt，EXPERIMENTAL）、
 > pre_cce hostcc 统一、clean 词元匹配、CU2CCE_SHIM_ISOLATE 并行隔离、
 > mock ABI 现编替身——决策细节见分析文档 §二。

@@ -58,7 +58,7 @@ class ArtifactVerifierTest(unittest.TestCase):
             "lib/cmake/cu2cce-bridge/cu2cceTargets.cmake",
             "lib/cmake/cu2cce-bridge/cu2cce-bridgeConfig.cmake",
             "cmake_modules/FindCUDA.cmake",
-            "config/cu2cce_rules.json",
+            "bin/conf.json",
         ):
             self.assertIn(path, required)
         metadata = {entry["path"]: entry.get("contains", []) for entry in case.get("metadata", [])}

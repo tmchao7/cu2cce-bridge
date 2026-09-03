@@ -68,7 +68,7 @@ docs/                 架构、范围、对比、参考和归档文档
 本机可执行：
 
 ```bash
-python3 tools/validate_cucc_rules.py config/cu2cce_rules.json
+python3 tools/validate_cucc_rules.py bin/conf.json
 python3 -m unittest discover -s tests -p 'test_*.py' -v
 bash tests/mock_acl/syntax_check.sh
 git diff --check

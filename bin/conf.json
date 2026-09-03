@@ -1,61 +1,19 @@
 {
   "schema_version": 1,
-  "frontend": {
-    "compiler": "ccec",
-    "language": "asc",
-    "enable_simt": true,
-    "default_arch": "dav-c310-vec",
-    "cuda_version": "11060"
-  },
-  "queries": [
-    {
-      "pattern": "-E",
-      "reason": "preprocess query passes through to ccec without CUDA/SIMT or link injection (cu-bridge skipstring parity)"
-    },
-    {
-      "pattern": "-dumpversion",
-      "reason": "probe query: bypasses the rule pipeline and passes through to ccec (cu-bridge conf.json skipstring parity)"
-    },
-    {
-      "pattern": "-dumpmachine",
-      "reason": "probe query: bypasses the rule pipeline and passes through to ccec (cu-bridge skipstring parity)"
-    },
-    {
-      "pattern": "-print-search-dirs",
-      "reason": "probe query: bypasses the rule pipeline and passes through to ccec (cu-bridge skipstring parity)"
-    },
-    {
-      "pattern": "-print-libgcc-file-name",
-      "reason": "probe query: bypasses the rule pipeline and passes through to ccec (cu-bridge skipstring parity)"
-    },
-    {
-      "pattern": "-print-file-name=*",
-      "reason": "probe query: bypasses the rule pipeline and passes through to ccec (cu-bridge skipstring parity)"
-    },
-    {
-      "pattern": "-print-prog-name=*",
-      "reason": "probe query: bypasses the rule pipeline and passes through to ccec (cu-bridge skipstring parity)"
-    },
-    {
-      "pattern": "-print-multiarch",
-      "reason": "probe query: bypasses the rule pipeline and passes through to ccec (cu-bridge skipstring parity)"
-    },
-    {
-      "pattern": "-print-multi-directory",
-      "reason": "probe query: bypasses the rule pipeline and passes through to ccec (cu-bridge skipstring parity)"
-    },
-    {
-      "pattern": "-print-multi-lib",
-      "reason": "probe query: bypasses the rule pipeline and passes through to ccec (cu-bridge skipstring parity)"
-    },
-    {
-      "pattern": "-print-multi-os-directory",
-      "reason": "probe query: bypasses the rule pipeline and passes through to ccec (cu-bridge skipstring parity)"
-    },
-    {
-      "pattern": "-print-sysroot",
-      "reason": "probe query: bypasses the rule pipeline and passes through to ccec (cu-bridge skipstring parity)"
-    }
+  "data": "0109",
+  "skipstring": [
+    "-E",
+    "-dumpversion",
+    "-dumpmachine",
+    "-print-search-dirs",
+    "-print-libgcc-file-name",
+    "-print-file-name=*",
+    "-print-prog-name=*",
+    "-print-multiarch",
+    "-print-multi-directory",
+    "-print-multi-lib",
+    "-print-multi-os-directory",
+    "-print-sysroot"
   ],
   "all": {
     "forward": [
@@ -91,850 +49,6 @@
       },
       {
         "pattern": "-l*"
-      }
-    ],
-    "drop": [
-      {
-        "pattern": "-ccbin",
-        "takes_value": true,
-        "reason": "host compiler is selected by ccec/CANN"
-      },
-      {
-        "pattern": "--compiler-bindir",
-        "takes_value": true,
-        "reason": "host compiler is selected by ccec/CANN"
-      },
-      {
-        "pattern": "--cuda-path",
-        "takes_value": true,
-        "reason": "CUDA toolkit path is provided by the cu2cce shim"
-      },
-      {
-        "pattern": "-forward-unknown-to-host-compiler",
-        "reason": "nvcc-only forwarding control"
-      },
-      {
-        "pattern": "--forward-unknown-to-host-compiler",
-        "reason": "nvcc-only forwarding control"
-      },
-      {
-        "pattern": "--cudart",
-        "takes_value": true,
-        "reason": "cu2cce injects the bridge runtime"
-      },
-      {
-        "pattern": "--cudadevrt",
-        "takes_value": true,
-        "reason": "CUDA device runtime is not used by ccec"
-      },
-      {
-        "pattern": "-cudart=*",
-        "reason": "cu2cce injects the bridge runtime"
-      },
-      {
-        "pattern": "--cudart=*",
-        "reason": "cu2cce injects the bridge runtime"
-      },
-      {
-        "pattern": "-arch",
-        "takes_value": true,
-        "reason": "NVIDIA GPU architecture is not used by Ascend ccec"
-      },
-      {
-        "pattern": "-arch=*",
-        "reason": "NVIDIA GPU architecture is not used by Ascend ccec"
-      },
-      {
-        "pattern": "--gpu-architecture",
-        "takes_value": true,
-        "reason": "NVIDIA GPU architecture is not used by Ascend ccec"
-      },
-      {
-        "pattern": "--gpu-architecture=*",
-        "reason": "NVIDIA GPU architecture is not used by Ascend ccec"
-      },
-      {
-        "pattern": "--gpu-code",
-        "takes_value": true,
-        "reason": "NVIDIA GPU code generation is not used by Ascend ccec"
-      },
-      {
-        "pattern": "--gpu-code=*",
-        "reason": "NVIDIA GPU code generation is not used by Ascend ccec"
-      },
-      {
-        "pattern": "code=*",
-        "reason": "NVIDIA code-generation architecture is not used by Ascend ccec"
-      },
-      {
-        "pattern": "-code=*",
-        "reason": "NVIDIA code-generation architecture is not used by Ascend ccec"
-      },
-      {
-        "pattern": "-code",
-        "takes_value": true,
-        "reason": "NVIDIA code-generation architecture is not used by Ascend ccec"
-      },
-      {
-        "pattern": "-gencode",
-        "takes_value": true,
-        "reason": "NVIDIA GPU code generation is not used by Ascend ccec"
-      },
-      {
-        "pattern": "-gencode=*",
-        "reason": "NVIDIA GPU code generation is not used by Ascend ccec"
-      },
-      {
-        "pattern": "--generate-code",
-        "takes_value": true,
-        "reason": "NVIDIA GPU code generation is not used by Ascend ccec"
-      },
-      {
-        "pattern": "--generate-code=*",
-        "reason": "NVIDIA GPU code generation is not used by Ascend ccec"
-      },
-      {
-        "pattern": "--ptxas-options",
-        "takes_value": true,
-        "reason": "ptxas is not part of the Ascend toolchain"
-      },
-      {
-        "pattern": "--ptxas-options=*",
-        "reason": "ptxas is not part of the Ascend toolchain"
-      },
-      {
-        "pattern": "-Xptxas",
-        "takes_value": true,
-        "reason": "ptxas is not part of the Ascend toolchain"
-      },
-      {
-        "pattern": "-Xptxas=*",
-        "reason": "ptxas is not part of the Ascend toolchain"
-      },
-      {
-        "pattern": "-Xfatbin",
-        "takes_value": true,
-        "reason": "fatbinary is not part of the Ascend toolchain"
-      },
-      {
-        "pattern": "-Xfatbin=*",
-        "reason": "fatbinary is not part of the Ascend toolchain"
-      },
-      {
-        "pattern": "-Xlinker=*",
-        "reason": "no such nvcc spelling; use -Xlinker <arg> (forwarded) or -Wl,<arg>"
-      },
-      {
-        "pattern": "--keep-dir",
-        "takes_value": true,
-        "reason": "nvcc intermediate directory"
-      },
-      {
-        "pattern": "--keep-dir=*",
-        "reason": "nvcc intermediate directory"
-      },
-      {
-        "pattern": "-keep",
-        "reason": "nvcc intermediate output"
-      },
-      {
-        "pattern": "--keep",
-        "reason": "nvcc intermediate output"
-      },
-      {
-        "pattern": "--verbose",
-        "reason": "use CU2CCE_DEBUG for driver diagnostics"
-      },
-      {
-        "pattern": "--dryrun",
-        "reason": "nvcc dry-run mode"
-      },
-      {
-        "pattern": "-nocudalib",
-        "reason": "CUDA device libraries are not used by ccec"
-      },
-      {
-        "pattern": "-nocudainc",
-        "reason": "cu2cce supplies CUDA compatibility headers"
-      },
-      {
-        "pattern": "g++*",
-        "reason": "stray host-compiler name passed as an argument (some builds emit it); ccec would treat it as an input file (cu-bridge conf.json filters g++)"
-      },
-      {
-        "pattern": "/usr/bin/cc",
-        "reason": "stray absolute host-compiler argument (cu-bridge conf.json filter parity)"
-      },
-      {
-        "pattern": "--threads=*",
-        "reason": "nvcc host-compile parallelism is meaningless for a single ccec invocation"
-      },
-      {
-        "pattern": "-keep-dir",
-        "takes_value": true,
-        "reason": "nvcc intermediate directory"
-      },
-      {
-        "pattern": "-keep-dir=*",
-        "reason": "nvcc intermediate directory"
-      },
-      {
-        "pattern": "--Wno-deprecated-declarations",
-        "reason": "nvcc double-dash warning spelling; use -Wno-deprecated-declarations (clang spelling)"
-      },
-      {
-        "pattern": "--Wreorder",
-        "reason": "nvcc double-dash warning spelling; use -Wreorder (clang spelling)"
-      },
-      {
-        "pattern": "--Wmissing-launch-bounds",
-        "reason": "nvcc double-dash warning spelling is not accepted by ccec"
-      },
-      {
-        "pattern": "--Wext-lambda-captures-this",
-        "reason": "nvcc double-dash warning spelling is not accepted by ccec"
-      },
-      {
-        "pattern": "-diag-suppress",
-        "takes_value": true,
-        "reason": "nvcc diagnostic suppression spelling is not accepted by ccec"
-      },
-      {
-        "pattern": "-diag-suppress=*",
-        "reason": "nvcc diagnostic suppression spelling is not accepted by ccec"
-      },
-      {
-        "pattern": "--expt-relaxed-constexpr",
-        "reason": "not needed by ccec"
-      },
-      {
-        "pattern": "-x",
-        "takes_value": true,
-        "reason": "cu2cce selects asc for CUDA sources"
-      },
-      {
-        "pattern": "-lcudart",
-        "reason": "cu2cce injects the bridge runtime"
-      },
-      {
-        "pattern": "-lcudart_static",
-        "reason": "cu2cce injects the bridge runtime"
-      },
-      {
-        "pattern": "-lcudadevrt",
-        "reason": "cu2cce injects the bridge runtime"
-      },
-      {
-        "pattern": "-lcuda",
-        "reason": "cu2cce injects the bridge runtime"
-      },
-      {
-        "pattern": "-ccbin=*",
-        "reason": "CUDA toolchain path is selected by cu2cce/CANN"
-      },
-      {
-        "pattern": "--compiler-bindir=*",
-        "reason": "CUDA toolchain path is selected by cu2cce/CANN"
-      },
-      {
-        "pattern": "--cuda-path=*",
-        "reason": "CUDA toolchain path is selected by cu2cce/CANN"
-      },
-      {
-        "pattern": "--extended-lambda",
-        "reason": "nvcc extended-lambda spelling is not needed by ccec"
-      },
-      {
-        "pattern": "-lineinfo",
-        "reason": "CUDA lineinfo option is not part of the current ccec policy"
-      },
-      {
-        "pattern": "--lineinfo",
-        "reason": "CUDA lineinfo option is not part of the current ccec policy"
-      },
-      {
-        "pattern": "-Wno-deprecated-gpu-targets",
-        "reason": "NVIDIA GPU warning control is not applicable to ccec"
-      },
-      {
-        "pattern": "--cuda-gpu-arch=*",
-        "reason": "Clang CUDA GPU architecture is not used by Ascend ccec"
-      },
-      {
-        "pattern": "--cuda-gpu-arch",
-        "takes_value": true,
-        "reason": "Clang CUDA GPU architecture is not used by Ascend ccec"
-      },
-      {
-        "pattern": "-maxrregcount",
-        "takes_value": true,
-        "reason": "NVIDIA register-count control is not used by the Ascend SIMT backend",
-        "optional_value": true
-      },
-      {
-        "pattern": "-maxrregcount=*",
-        "reason": "NVIDIA register-count control is not used by the Ascend SIMT backend"
-      },
-      {
-        "pattern": "--maxrregcount",
-        "takes_value": true,
-        "reason": "NVIDIA register-count control is not used by the Ascend SIMT backend",
-        "optional_value": true
-      },
-      {
-        "pattern": "--maxrregcount=*",
-        "reason": "NVIDIA register-count control is not used by the Ascend SIMT backend"
-      },
-      {
-        "pattern": "--generate-line-info",
-        "reason": "CUDA lineinfo option is not part of the current ccec policy"
-      },
-      {
-        "pattern": "-cubin",
-        "reason": "CUBIN generation is unsupported on Ascend puresimt"
-      },
-      {
-        "pattern": "--Werror",
-        "reason": "ccec uses the host clang -Werror spelling"
-      },
-      {
-        "pattern": "-m64",
-        "reason": "ccec targets the Ascend device, host bitness is fixed"
-      },
-      {
-        "pattern": "--machine",
-        "takes_value": true,
-        "reason": "host machine type is fixed by the ccec toolchain",
-        "optional_value": true
-      },
-      {
-        "pattern": "--machine=*",
-        "reason": "host machine type is fixed by the ccec toolchain"
-      },
-      {
-        "pattern": "-Xcudafe",
-        "takes_value": true,
-        "reason": "cudafe host-frontend options are not part of the ccec toolchain"
-      },
-      {
-        "pattern": "-Xcudafe=*",
-        "reason": "cudafe host-frontend options are not part of the ccec toolchain"
-      },
-      {
-        "pattern": "--cudafe",
-        "takes_value": true,
-        "reason": "cudafe host-frontend options are not part of the ccec toolchain"
-      },
-      {
-        "pattern": "--cudafe=*",
-        "reason": "cudafe host-frontend options are not part of the ccec toolchain"
-      },
-      {
-        "pattern": "--fmad",
-        "takes_value": true,
-        "reason": "NVIDIA fmad control is not part of the ccec policy",
-        "optional_value": true
-      },
-      {
-        "pattern": "--fmad=*",
-        "reason": "NVIDIA fmad control is not part of the ccec policy"
-      },
-      {
-        "pattern": "--prec-div",
-        "takes_value": true,
-        "reason": "NVIDIA precision control is not part of the ccec policy",
-        "optional_value": true
-      },
-      {
-        "pattern": "--prec-div=*",
-        "reason": "NVIDIA precision control is not part of the ccec policy"
-      },
-      {
-        "pattern": "--prec-sqrt",
-        "takes_value": true,
-        "reason": "NVIDIA precision control is not part of the ccec policy",
-        "optional_value": true
-      },
-      {
-        "pattern": "--prec-sqrt=*",
-        "reason": "NVIDIA precision control is not part of the ccec policy"
-      },
-      {
-        "pattern": "--ftz",
-        "takes_value": true,
-        "reason": "NVIDIA flush-to-zero control is not part of the ccec policy",
-        "optional_value": true
-      },
-      {
-        "pattern": "--ftz=*",
-        "reason": "NVIDIA flush-to-zero control is not part of the ccec policy"
-      },
-      {
-        "pattern": "-G",
-        "reason": "NVIDIA device-debug mode is not part of the ccec policy"
-      },
-      {
-        "pattern": "-static",
-        "reason": "fully static linking cannot resolve the bridge runtime (a shared object); link proceeds dynamically instead of failing inside ld (cu-bridge rewrites it for the same backend limitation)"
-      },
-      {
-        "pattern": "--resource-usage",
-        "reason": "NVIDIA resource-usage report is not part of the ccec toolchain"
-      },
-      {
-        "pattern": "-rdc=*",
-        "reason": "separable-compilation off spelling is dropped; the cucc CMake layer forces CUDA_SEPARABLE_COMPILATION OFF"
-      },
-      {
-        "pattern": "--relocatable-device-code=*",
-        "reason": "separable-compilation off spelling is dropped; the cucc CMake layer forces CUDA_SEPARABLE_COMPILATION OFF"
-      },
-      {
-        "pattern": "--forward-unknown-to-host-compiler=*",
-        "reason": "nvcc forwarding control is not needed by ccec"
-      },
-      {
-        "pattern": "-Wl,-Bstatic",
-        "reason": "cudart static library control is not needed; cu2cce injects the bridge runtime"
-      },
-      {
-        "pattern": "-Wl,-Bdynamic",
-        "reason": "cudart static library control is not needed; cu2cce injects the bridge runtime"
-      },
-      {
-        "pattern": "-Wl,--start-group",
-        "reason": "link-group quoting is not required by ccec link lines"
-      },
-      {
-        "pattern": "-Wl,--end-group",
-        "reason": "link-group quoting is not required by ccec link lines"
-      },
-      {
-        "pattern": "-Xnvlink",
-        "takes_value": true,
-        "reason": "nvlink driver options are not part of the Ascend toolchain"
-      },
-      {
-        "pattern": "-Xnvlink=*",
-        "reason": "nvlink driver options are not part of the Ascend toolchain"
-      },
-      {
-        "pattern": "-Xcyco",
-        "takes_value": true,
-        "reason": "cyco driver options are not part of the Ascend toolchain"
-      },
-      {
-        "pattern": "-Xcyco=*",
-        "reason": "cyco driver options are not part of the Ascend toolchain"
-      },
-      {
-        "pattern": "--dlink-time-opt",
-        "reason": "NVIDIA device-link optimization is not part of the ccec toolchain"
-      },
-      {
-        "pattern": "--device-link",
-        "reason": "CUDA device-link is disabled; the cucc CMake layer forces CUDA_SEPARABLE_COMPILATION OFF"
-      },
-      {
-        "pattern": "-dlink",
-        "reason": "CUDA device-link is disabled; the cucc CMake layer forces CUDA_SEPARABLE_COMPILATION OFF"
-      },
-      {
-        "pattern": "-link",
-        "reason": "nvcc -link is not a library reference; ccec links host objects directly"
-      },
-      {
-        "pattern": "-l:libcudart*",
-        "reason": "CUDA runtime libraries are replaced by the bridge runtime at link"
-      },
-      {
-        "pattern": "-l:libcuda.so*",
-        "reason": "CUDA driver library references are replaced by the bridge runtime at link"
-      },
-      {
-        "pattern": "-l:libOpenCL*",
-        "reason": "OpenCL device libraries do not exist on the Ascend puresimt path"
-      },
-      {
-        "pattern": "-lOpenCL",
-        "reason": "OpenCL device libraries do not exist on the Ascend puresimt path (cu-bridge conf.json drops it too)"
-      },
-      {
-        "pattern": "-lnvrtc",
-        "reason": "NVRTC is not part of the puresimt toolchain; drop instead of a late link error (cu-bridge conf.json parity)"
-      },
-      {
-        "pattern": "-l:libnvrtc*",
-        "reason": "NVRTC is not part of the puresimt toolchain; drop instead of a late link error (cu-bridge conf.json parity)"
-      },
-      {
-        "pattern": "-lculibos",
-        "reason": "CUDA utility library does not exist on Ascend"
-      },
-      {
-        "pattern": "--Wno-deprecated-gpu-targets",
-        "reason": "NVIDIA GPU-target deprecation warnings do not apply to Ascend"
-      },
-      {
-        "pattern": "-expt-relaxed-constexpr",
-        "reason": "ccec/clang15 enables relaxed constexpr handling natively"
-      },
-      {
-        "pattern": "--expt-extended-lambda",
-        "reason": "ccec/clang15 handles extended lambdas natively"
-      },
-      {
-        "pattern": "-expt-extended-lambda",
-        "reason": "ccec/clang15 handles extended lambdas natively"
-      },
-      {
-        "pattern": "--extended-lambda",
-        "reason": "ccec/clang15 handles extended lambdas natively"
-      },
-      {
-        "pattern": "-extended-lambda",
-        "reason": "ccec/clang15 handles extended lambdas natively"
-      },
-      {
-        "pattern": "-flto",
-        "reason": "LTO is not validated on the ccec puresimt path"
-      },
-      {
-        "pattern": "-flto=*",
-        "reason": "LTO is not validated on the ccec puresimt path"
-      },
-      {
-        "pattern": "-compress-all",
-        "reason": "fatbin compression is an NVIDIA-specific artifact option"
-      },
-      {
-        "pattern": "-extra-device-vectorization",
-        "reason": "NVIDIA optimizer knob has no ccec equivalent"
-      },
-      {
-        "pattern": "--extra-device-vectorization",
-        "reason": "NVIDIA optimizer knob has no ccec equivalent"
-      },
-      {
-        "pattern": "-allow-unsupported-compiler",
-        "reason": "ccec has no host-compiler version gate"
-      },
-      {
-        "pattern": "--allow-unsupported-compiler",
-        "reason": "ccec has no host-compiler version gate"
-      },
-      {
-        "pattern": "--diag_suppress=*",
-        "reason": "nvcc diagnostic suppression spelling is not accepted by ccec"
-      },
-      {
-        "pattern": "--diag-suppress=*",
-        "reason": "nvcc diagnostic suppression spelling is not accepted by ccec"
-      },
-      {
-        "pattern": "-restrict",
-        "reason": "nvcc restrict spelling; use __restrict__ in source"
-      },
-      {
-        "pattern": "--restrict",
-        "reason": "nvcc restrict spelling; use __restrict__ in source"
-      },
-      {
-        "pattern": "-cuda",
-        "reason": "nvcc source-language token is not applicable; language is selected by cu2cce"
-      },
-      {
-        "pattern": "-no-canonical-prefixes",
-        "reason": "nvcc toolchain-root option is not applicable to ccec"
-      },
-      {
-        "pattern": "--source-in-ptx",
-        "reason": "PTX embedding is not part of the puresimt path"
-      },
-      {
-        "pattern": "--libdevice-directory",
-        "takes_value": true,
-        "reason": "libdevice does not exist on the puresimt path; bridge headers supply intrinsics"
-      },
-      {
-        "pattern": "--Wdefault-stream-launch",
-        "reason": "nvcc-specific warning name is not accepted by ccec"
-      },
-      {
-        "pattern": "-Wmissing-launch-bounds",
-        "reason": "nvcc-specific warning name is not accepted by ccec"
-      },
-      {
-        "pattern": "-Wext-lambda-captures-this",
-        "reason": "nvcc-specific warning name is not accepted by ccec"
-      },
-      {
-        "pattern": "--offload-arch=*",
-        "reason": "offload architecture is selected by cu2cce via CU2CCE_NPU_ARCH"
-      },
-      {
-        "pattern": "--offload-arch",
-        "takes_value": true,
-        "reason": "offload architecture is selected by cu2cce via CU2CCE_NPU_ARCH"
-      },
-      {
-        "pattern": "-threads=*",
-        "reason": "nvcc host-compile parallelism is meaningless for a single ccec invocation"
-      },
-      {
-        "pattern": "-t=*",
-        "reason": "nvcc host-compile parallelism is meaningless for a single ccec invocation"
-      },
-      {
-        "pattern": "--default-stream*",
-        "reason": "legacy/per-thread default stream spellings are represented by the bridge default stream"
-      },
-      {
-        "pattern": "-default-stream*",
-        "reason": "legacy/per-thread default stream spellings are represented by the bridge default stream"
-      },
-      {
-        "pattern": "--disable-warnings",
-        "reason": "nvcc warning-control spelling; use -w (clang spelling) instead"
-      },
-      {
-        "pattern": "-x=*",
-        "reason": "single-token language selector is normalized; cu2cce selects asc for CUDA sources"
-      },
-      {
-        "pattern": "--threads",
-        "takes_value": true,
-        "reason": "nvcc host-compile parallelism is meaningless for one ccec invocation"
-      },
-      {
-        "pattern": "-t",
-        "takes_value": true,
-        "reason": "nvcc host-compile parallelism is meaningless for one ccec invocation"
-      },
-      {
-        "pattern": "--nvlink-options",
-        "takes_value": true,
-        "reason": "nvlink options are not part of the Ascend ccec toolchain"
-      },
-      {
-        "pattern": "--nvlink-options=*",
-        "reason": "nvlink options are not part of the Ascend ccec toolchain"
-      },
-      {
-        "pattern": "-fno-lifetime-dse",
-        "reason": "gcc-specific lifetime DSE control is not accepted by the ccec/clang backend"
-      },
-      {
-        "pattern": "-Wdefault-stream-launch",
-        "reason": "nvcc-specific warning name is not accepted by ccec"
-      }
-    ],
-    "replace": [
-      {
-        "pattern": "-Xcompiler",
-        "takes_value": true,
-        "split_value": true,
-        "reason": "forward host compiler options"
-      },
-      {
-        "pattern": "--compiler-options",
-        "takes_value": true,
-        "split_value": true,
-        "reason": "forward host compiler options"
-      },
-      {
-        "pattern": "-Xcompiler=*",
-        "split_value": true,
-        "reason": "forward host compiler options"
-      },
-      {
-        "pattern": "--compiler-options=*",
-        "split_value": true,
-        "reason": "forward host compiler options"
-      },
-      {
-        "pattern": "--use_fast_math",
-        "to": [
-          "-ffast-math"
-        ],
-        "reason": "clang/ccec equivalent of nvcc fast-math (cu-bridge maps it to its backend spelling too); FP semantics change is exactly what the caller asked for"
-      },
-      {
-        "pattern": "-use_fast_math",
-        "to": [
-          "-ffast-math"
-        ],
-        "reason": "clang/ccec equivalent of nvcc fast-math (cu-bridge maps it to its backend spelling too)"
-      },
-      {
-        "pattern": "--use-fast-math",
-        "to": [
-          "-ffast-math"
-        ],
-        "reason": "clang/ccec equivalent of nvcc fast-math (cu-bridge maps it to its backend spelling too)"
-      },
-      {
-        "pattern": "-use-fast-math",
-        "to": [
-          "-ffast-math"
-        ],
-        "reason": "clang/ccec equivalent of nvcc fast-math (cu-bridge maps it to its backend spelling too)"
-      },
-      {
-        "pattern": "-lgomp",
-        "to": [
-          "-lomp"
-        ],
-        "reason": "clang-based drivers link OpenMP through libomp, not gcc's libgomp (cu-bridge maps -lgomp to its backend OpenMP runtime too)"
-      },
-      {
-        "pattern": "-l:libgomp*",
-        "to": [
-          "-lomp"
-        ],
-        "reason": "clang-based drivers link OpenMP through libomp, not gcc's libgomp"
-      },
-      {
-        "pattern": "--share",
-        "reason": "nvcc-compat spelling of -shared (cu-bridge conf.json parity)",
-        "to": [
-          "-shared"
-        ]
-      },
-      {
-        "pattern": "-Werror=implicit-fallthrough",
-        "reason": "already clang-compatible; normalized by the replace rule for trace visibility (cu-bridge bin/cucc:250-280 parity)",
-        "to": [
-          "-Werror=implicit-fallthrough"
-        ]
-      },
-      {
-        "pattern": "-Werror=implicit-fallthrough=*",
-        "reason": "nvcc/gcc =N level spelling is not accepted by clang; normalized to the clang-compatible form (cu-bridge bin/cucc:250-280 parity)",
-        "to": [
-          "-Werror=implicit-fallthrough"
-        ]
-      },
-      {
-        "pattern": "--Werror=implicit-fallthrough=*",
-        "reason": "nvcc/gcc =N level spelling is not accepted by clang; normalized to the clang-compatible form (cu-bridge bin/cucc:250-280 parity)",
-        "to": [
-          "-Werror=implicit-fallthrough"
-        ]
-      },
-      {
-        "pattern": "--linker-options",
-        "takes_value": true,
-        "preserve_value": true,
-        "to": [
-          "-Xlinker"
-        ],
-        "reason": "cu-bridge --linker-options parity; ccec accepts -Xlinker <arg>"
-      },
-      {
-        "pattern": "--linker-options=*",
-        "preserve_value": true,
-        "to": [
-          "-Xlinker"
-        ],
-        "reason": "cu-bridge --linker-options=<arg> parity; ccec accepts -Xlinker <arg>"
-      },
-      {
-        "pattern": "--pre-include",
-        "takes_value": true,
-        "preserve_value": true,
-        "to": [
-          "-include"
-        ],
-        "reason": "nvcc pre-include spelling maps to ccec -include"
-      },
-      {
-        "pattern": "--pre-include=*",
-        "preserve_value": true,
-        "to": [
-          "-include"
-        ],
-        "reason": "nvcc pre-include spelling maps to ccec -include"
-      },
-      {
-        "pattern": "--include-path",
-        "takes_value": true,
-        "preserve_value": true,
-        "to": [
-          "-I"
-        ],
-        "reason": "nvcc include-path spelling maps to ccec -I"
-      },
-      {
-        "pattern": "--include-path=*",
-        "preserve_value": true,
-        "to": [
-          "-I"
-        ],
-        "reason": "nvcc include-path spelling maps to ccec -I"
-      },
-      {
-        "pattern": "--library-path",
-        "takes_value": true,
-        "preserve_value": true,
-        "to": [
-          "-L"
-        ],
-        "reason": "nvcc library-path spelling maps to ccec -L"
-      },
-      {
-        "pattern": "--library-path=*",
-        "preserve_value": true,
-        "to": [
-          "-L"
-        ],
-        "reason": "nvcc library-path spelling maps to ccec -L"
-      }
-    ],
-    "reject": [
-      {
-        "pattern": "--ptx",
-        "reason": "PTX generation is unsupported on Ascend puresimt"
-      },
-      {
-        "pattern": "--cubin",
-        "reason": "CUBIN generation is unsupported on Ascend puresimt"
-      },
-      {
-        "pattern": "--fatbin",
-        "reason": "FATBIN generation is unsupported on Ascend puresimt"
-      },
-      {
-        "pattern": "-rdc",
-        "reason": "CUDA separable compilation is unsupported on Ascend puresimt"
-      },
-      {
-        "pattern": "-rdc=true",
-        "reason": "CUDA separable compilation is unsupported on Ascend puresimt"
-      },
-      {
-        "pattern": "--relocatable-device-code",
-        "reason": "CUDA separable compilation is unsupported on Ascend puresimt"
-      },
-      {
-        "pattern": "--relocatable-device-code=true",
-        "reason": "CUDA separable compilation is unsupported on Ascend puresimt"
-      },
-      {
-        "pattern": "nvrtc",
-        "reason": "NVRTC is not part of the cu2cce puresimt toolchain"
-      },
-      {
-        "pattern": "nvlink",
-        "reason": "nvlink is not part of the Ascend toolchain"
-      },
-      {
-        "pattern": "ptxas",
-        "reason": "ptxas is not part of the Ascend toolchain"
-      },
-      {
-        "pattern": "fatbinary",
-        "reason": "fatbinary is not part of the Ascend toolchain"
       }
     ],
     "filter": [
@@ -1738,192 +852,6 @@
     "adder": []
   },
   "compile": {
-    "reject": [
-      {
-        "pattern": "-dc",
-        "reason": "RDC/separable compilation object (-dc) is unsupported on the puresimt path; force CUDA_SEPARABLE_COMPILATION OFF"
-      },
-      {
-        "pattern": "--device-c",
-        "reason": "RDC/separable compilation object (--device-c) is unsupported on the puresimt path; force CUDA_SEPARABLE_COMPILATION OFF"
-      }
-    ],
-    "replace": [
-      {
-        "pattern": "-dw",
-        "reason": "whole-program compilation is the only device mode; -dw is normalized to plain -c",
-        "to": [
-          "-c"
-        ]
-      },
-      {
-        "pattern": "--device-w",
-        "reason": "whole-program compilation is the only device mode; --device-w is normalized to plain -c",
-        "to": [
-          "-c"
-        ]
-      },
-      {
-        "pattern": "--compile",
-        "reason": "nvcc long spelling of -c",
-        "to": [
-          "-c"
-        ]
-      }
-    ],
-    "inject": [
-      {
-        "tokens": [
-          "-fopenmp",
-          "-fopenmp=libomp"
-        ],
-        "when": "use_gopenmp",
-        "reason": "CUCC_USE_GOPENMP=1 maps cu-bridge OpenMP request to ccec/clang libomp"
-      },
-      {
-        "tokens": [
-          "-I",
-          "${CUCC_PATH}/include/shadow"
-        ],
-        "when": "has_shadow_compat"
-      },
-      {
-        "tokens": [
-          "-fPIC"
-        ],
-        "when": "shared_link_without_pic",
-        "reason": "shared CUDA objects require position-independent code"
-      },
-      {
-        "tokens": [
-          "-I",
-          "${CUCC_PATH}/include"
-        ],
-        "when": "has_cucc"
-      },
-      {
-        "tokens": [
-          "-I",
-          "${CUCC_PATH}/third_party/nvidia_cuda_samples/Common"
-        ],
-        "when": "has_samples_common"
-      },
-      {
-        "tokens": [
-          "-I",
-          "${ASCEND_TOOLKIT_HOME}/include"
-        ]
-      },
-      {
-        "tokens": [
-          "-I",
-          "${SIMT_API_ROOT}"
-        ],
-        "when": "has_simt_api"
-      },
-      {
-        "tokens": [
-          "-I",
-          "${SIMT_API_PARENT}"
-        ],
-        "when": "has_simt_api"
-      },
-      {
-        "tokens": [
-          "-include",
-          "${CUCC_PATH}/include/cuda_runtime.h"
-        ],
-        "when": "source_is_cuda_and_runtime_header",
-        "reason": "nvcc auto-preincludes cuda_runtime.h for .cu translation units (cu-bridge condition parity); guarded include keeps double inclusion harmless"
-      },
-      {
-        "tokens": [
-          "-include",
-          "${CUCC_PATH}/include/bridge/kernel/simt_adaptor.h"
-        ],
-        "when": "source_is_cuda_and_has_adaptor"
-      },
-      {
-        "tokens": [
-          "-std=gnu++17"
-        ],
-        "when": "no_user_std",
-        "reason": "an explicit user -std=... is forwarded untouched; the default only fills the gap"
-      },
-      {
-        "tokens": [
-          "-D",
-          "__CU2CCE_NO_LIBC__"
-        ],
-        "when": "not_system_libc"
-      },
-      {
-        "tokens": [
-          "-D",
-          "__CU2CCE_SYSTEM_LIBC__"
-        ],
-        "when": "system_libc",
-        "reason": "use system C/C++ headers for large host projects"
-      },
-      {
-        "tokens": [
-          "-D__CUDACC__",
-          "-D__CUDACC_VER_MAJOR__=${CUCC_CUDA_VER_MAJOR}",
-          "-D__CUDACC_VER_MINOR__=${CUCC_CUDA_VER_MINOR}",
-          "-D__CUDACC_VER_BUILD__=${CUCC_CUDA_VER_BUILD}",
-          "-D__CUDACC_VER__=${CUCC_CUDA_VER_LEGACY}"
-        ],
-        "when": "source_is_cuda",
-        "reason": "nvcc defines the __CUDACC__/__CUDACC_VER_* family for every .cu translation unit (cu-bridge -imacros __macro_mxcc.h parity); values derive from CUCC_CUDA_VERSION so user overrides propagate"
-      },
-      {
-        "tokens": [
-          "-D",
-          "__CU2CCE_DEVICE_COMPILATION__"
-        ],
-        "when": "source_is_cuda",
-        "reason": "mark ccec CUDA translation units for compatibility headers"
-      },
-      {
-        "tokens": [
-          "-D",
-          "CUDA_VERSION=${CUCC_CUDA_VERSION}"
-        ]
-      },
-      {
-        "tokens": [
-          "-D",
-          "__CUDA_ARCH__=${CU2CCE_CUDA_ARCH}"
-        ],
-        "when": "has_cuda_arch"
-      },
-      {
-        "tokens": [
-          "-D",
-          "__CUDA_ARCH__=${CU2CCE_CUDA_ARCH_EXTRACTED}"
-        ],
-        "when": "arch_macro_auto",
-        "reason": "CU2CCE_ARCH_MACRO=auto derives the macro from the dropped -gencode/-arch value (cu-bridge not_found.dev_compile parity); opt-in because the puresimt path has no separate device pass"
-      },
-      {
-        "tokens": [
-          "--cce-aicore-arch=${CU2CCE_NPU_ARCH}"
-        ]
-      },
-      {
-        "tokens": [
-          "-x",
-          "asc"
-        ],
-        "when": "source_is_cuda"
-      },
-      {
-        "tokens": [
-          "--enable-simt"
-        ],
-        "when": "source_is_cuda"
-      }
-    ],
     "filter": [],
     "replacer": [
       {
@@ -2103,77 +1031,6 @@
     ]
   },
   "link": {
-    "inject": [
-      {
-        "tokens": [
-          "-L",
-          "${ASCEND_TOOLKIT_HOME}/lib64"
-        ]
-      },
-      {
-        "tokens": [
-          "-L",
-          "${CANN_BASE}/runtime/lib64"
-        ]
-      },
-      {
-        "tokens": [
-          "-L",
-          "${CANN_BASE}/lib64"
-        ]
-      },
-      {
-        "tokens": [
-          "-lascendcl"
-        ]
-      },
-      {
-        "tokens": [
-          "-lruntime"
-        ]
-      },
-      {
-        "tokens": [
-          "-lstdc++",
-          "-lpthread",
-          "-lm"
-        ]
-      },
-      {
-        "tokens": [
-          "-L",
-          "${CUCC_PATH}/lib"
-        ],
-        "when": "has_cucc"
-      },
-      {
-        "tokens": [
-          "-Wl,-rpath,${CUCC_PATH}/lib"
-        ],
-        "when": "has_cucc"
-      },
-      {
-        "tokens": [
-          "-lcce_bridge_runtime"
-        ],
-        "when": "has_cucc"
-      },
-      {
-        "tokens": [
-          "-Wl,-rpath,${ASCEND_TOOLKIT_HOME}/lib64"
-        ]
-      },
-      {
-        "tokens": [
-          "-Wl,-rpath,${CANN_BASE}/lib64"
-        ]
-      },
-      {
-        "tokens": [
-          "-Wl,-rpath,${CANN_BASE}/runtime/lib64"
-        ]
-      }
-    ],
     "filter": [],
     "replacer": [],
     "adder": [
@@ -2249,189 +1106,232 @@
     ]
   },
   "compile_and_link": {
-    "inject": [],
     "filter": [],
     "replacer": [],
     "adder": []
   },
-  "hostcc": {
-    "comment": "bin/gnu parity (cu-bridge conf_gnu.json link adders), NPU-adapted: the link executor stays g++ but carries the bridge runtime + CANN acl libraries. Consumed by tools/cu2cce_driver.py --hostcc-mode via tools/hostcc_cce.",
-    "link": {
-      "inject": [
-        {
-          "tokens": [
-            "-L",
-            "${CUCC_PATH}/lib"
-          ],
-          "when": "has_cucc"
-        },
-        {
-          "tokens": [
-            "-Wl,-rpath,${CUCC_PATH}/lib"
-          ],
-          "when": "has_cucc"
-        },
-        {
-          "tokens": [
-            "-lcce_bridge_runtime"
-          ],
-          "when": "has_cucc"
-        },
-        {
-          "tokens": [
-            "-L",
-            "${CANN_BASE}/lib64"
-          ]
-        },
-        {
-          "tokens": [
-            "-Wl,-rpath,${CANN_BASE}/lib64"
-          ]
-        },
-        {
-          "tokens": [
-            "-lascendcl"
-          ]
-        }
-      ]
-    }
-  },
-  "capabilities": {
-    "cudart": {
-      "status": "supported_by_bridge",
-      "action": "bridge_inject"
-    },
-    "cublas": {
-      "status": "experimental",
-      "action": "warn_no_automatic_replacement"
-    },
-    "cufft": {
-      "status": "unsupported",
-      "action": "warn_no_automatic_replacement"
-    },
-    "cusparse": {
-      "status": "unsupported",
-      "action": "warn_no_automatic_replacement",
-      "map_to": "CANN sparse operators; no 1:1 shim yet"
-    },
-    "curand": {
-      "status": "unsupported",
-      "action": "warn_no_automatic_replacement",
-      "map_to": "Ascend C random operators; no device-side curand_kernel.h equivalent yet"
-    },
-    "cudnn": {
-      "status": "unsupported",
-      "action": "warn_no_automatic_replacement",
-      "map_to": "ATB / CANN operator library; no 1:1 shim yet"
-    },
-    "cusolver": {
-      "status": "unsupported",
-      "action": "warn_no_automatic_replacement",
-      "map_to": "CANN ops-math (aol) dense-solver operators; no 1:1 shim yet"
-    },
-    "cublasLt": {
-      "status": "experimental",
-      "action": "warn_no_automatic_replacement",
-      "map_to": "ATB (Ascend Transformer Boost) / aclblas GEMM family"
-    },
-    "nccl": {
-      "status": "map_available",
-      "action": "warn_no_automatic_replacement",
-      "map_to": "HCCL (hccl.h: HcclCommInitRootInfo/HcclCommInitClusterInfo, HcclAllReduce/Broadcast/Send/Recv, HcclGetRankSize/RankId)"
-    },
-    "cufftw": {
-      "status": "unsupported",
-      "action": "warn_no_automatic_replacement",
-      "map_to": "CANN FFT operators; no 1:1 cufftw shim yet"
-    },
-    "cufile": {
-      "status": "unsupported",
-      "action": "warn_no_automatic_replacement",
-      "map_to": "Ascend data mover/ACL IO APIs; no 1:1 cuFile shim yet"
-    },
-    "cupti": {
-      "status": "unsupported",
-      "action": "warn_no_automatic_replacement",
-      "map_to": "CANN profiling APIs; nvToolsExt shim is separate"
-    },
-    "nvjpeg": {
-      "status": "unsupported",
-      "action": "warn_no_automatic_replacement",
-      "map_to": "CANN image/codec operators; no 1:1 nvJPEG shim yet"
-    },
-    "npp": {
-      "status": "unsupported",
-      "action": "warn_no_automatic_replacement",
-      "map_to": "CANN image/vision operators; no 1:1 NPP shim yet"
-    },
-    "nvperf": {
-      "status": "unsupported",
-      "action": "warn_no_automatic_replacement",
-      "map_to": "CANN profiling/performance tooling; no 1:1 nvperf shim yet"
-    },
-    "nvidia-ml": {
-      "status": "unsupported",
-      "action": "warn_no_automatic_replacement",
-      "map_to": "Ascend npu-smi/device management; no 1:1 NVML shim yet"
-    }
-  },
-  "regex_cleanup": [
-    {
-      "pattern": "^-fno-canonical-system-headers$",
-      "reason": "gcc-only spelling rejected by ccec/clang; dropped (cu-bridge bin/cucc:55-83 inline parity, gomxccbin layer equivalent)"
-    },
-    {
-      "pattern": "^-Wno-nonnull-compare$",
-      "reason": "gcc-only warning spelling with no ccec counterpart; dropped (cu-bridge bin/cucc:55-83 inline parity, gomxccbin layer equivalent)"
-    },
-    {
-      "pattern": "^-f(no-)?var-tracking(-assignments)?$",
-      "reason": "gcc-only debug-info flags rejected by clang as unknown arguments; dropped (cu-bridge conf.json filter parity)"
-    }
-  ],
-  "diagnostics": {
-    "default_unknown": "warn_forward",
-    "strict_env": "CU2CCE_STRICT_FLAGS",
-    "debug_env": "CU2CCE_DEBUG",
-    "trace_env": "CU2CCE_TRACE_FILE",
-    "unsupported_modes": {
-      "-S": "CUDA assembly output is unsupported by ccec puresimt",
-      "--device-link": "CUDA device-link/separable compilation is unsupported by current scope",
-      "WCUDA_BAZEL_TF_BUILD": "Bazel/TF cu-bridge mode has no validated Ascend puresimt equivalent; use explicit CMake/Make integration"
-    }
-  },
-  "data": "0109",
-  "skipstring": [
-    "-E",
-    "-dumpversion",
-    "-dumpmachine",
-    "-print-search-dirs",
-    "-print-libgcc-file-name",
-    "-print-file-name=*",
-    "-print-prog-name=*",
-    "-print-multiarch",
-    "-print-multi-directory",
-    "-print-multi-lib",
-    "-print-multi-os-directory",
-    "-print-sysroot"
-  ],
   "condition": [],
   "not_found": {
     "action": "forward",
     "reason": "unmatched arguments are handled by the Ascend-aware driver policy"
   },
-  "backend": "ascend-cann",
-  "compiler": "bisheng-ccec",
-  "device_arch": "dav-*",
-  "runtime": "libcce_bridge_runtime.so",
-  "comment": "Reference-shaped cu-bridge-compatible manifest; Ascend-specific policy remains in the existing semantic fields.",
   "cu2cce": {
     "backend": "ascend-cann",
     "compiler": "bisheng-ccec",
     "enable_simt": true,
     "default_arch": "dav-c310-vec",
-    "device_arch_policy": "accept only dav-*; never pass sm_* or compute_* to ccec",
-    "runtime": "libcce_bridge_runtime.so plus CANN runtime libraries",
-    "library_policy": "CUDA names are compatibility inputs; unverified libraries warn or reject"
-  }
+    "frontend": {
+      "compiler": "ccec",
+      "language": "asc",
+      "enable_simt": true,
+      "default_arch": "dav-c310-vec",
+      "cuda_version": "11060"
+    },
+    "reject": {
+      "all": [
+        {
+          "pattern": "--ptx",
+          "reason": "PTX generation is unsupported on Ascend puresimt"
+        },
+        {
+          "pattern": "--cubin",
+          "reason": "CUBIN generation is unsupported on Ascend puresimt"
+        },
+        {
+          "pattern": "--fatbin",
+          "reason": "FATBIN generation is unsupported on Ascend puresimt"
+        },
+        {
+          "pattern": "-rdc",
+          "reason": "CUDA separable compilation is unsupported on Ascend puresimt"
+        },
+        {
+          "pattern": "-rdc=true",
+          "reason": "CUDA separable compilation is unsupported on Ascend puresimt"
+        },
+        {
+          "pattern": "--relocatable-device-code",
+          "reason": "CUDA separable compilation is unsupported on Ascend puresimt"
+        },
+        {
+          "pattern": "--relocatable-device-code=true",
+          "reason": "CUDA separable compilation is unsupported on Ascend puresimt"
+        },
+        {
+          "pattern": "nvrtc",
+          "reason": "NVRTC is not part of the cu2cce puresimt toolchain"
+        },
+        {
+          "pattern": "nvlink",
+          "reason": "nvlink is not part of the Ascend toolchain"
+        },
+        {
+          "pattern": "ptxas",
+          "reason": "ptxas is not part of the Ascend toolchain"
+        },
+        {
+          "pattern": "fatbinary",
+          "reason": "fatbinary is not part of the Ascend toolchain"
+        }
+      ],
+      "compile": [
+        {
+          "pattern": "-dc",
+          "reason": "RDC/separable compilation object (-dc) is unsupported on the puresimt path; force CUDA_SEPARABLE_COMPILATION OFF"
+        },
+        {
+          "pattern": "--device-c",
+          "reason": "RDC/separable compilation object (--device-c) is unsupported on the puresimt path; force CUDA_SEPARABLE_COMPILATION OFF"
+        }
+      ]
+    },
+    "capabilities": {
+      "cudart": {
+        "status": "supported_by_bridge",
+        "action": "bridge_inject"
+      },
+      "cublas": {
+        "status": "experimental",
+        "action": "warn_no_automatic_replacement"
+      },
+      "cufft": {
+        "status": "unsupported",
+        "action": "warn_no_automatic_replacement"
+      },
+      "cusparse": {
+        "status": "unsupported",
+        "action": "warn_no_automatic_replacement",
+        "map_to": "CANN sparse operators; no 1:1 shim yet"
+      },
+      "curand": {
+        "status": "unsupported",
+        "action": "warn_no_automatic_replacement",
+        "map_to": "Ascend C random operators; no device-side curand_kernel.h equivalent yet"
+      },
+      "cudnn": {
+        "status": "unsupported",
+        "action": "warn_no_automatic_replacement",
+        "map_to": "ATB / CANN operator library; no 1:1 shim yet"
+      },
+      "cusolver": {
+        "status": "unsupported",
+        "action": "warn_no_automatic_replacement",
+        "map_to": "CANN ops-math (aol) dense-solver operators; no 1:1 shim yet"
+      },
+      "cublasLt": {
+        "status": "experimental",
+        "action": "warn_no_automatic_replacement",
+        "map_to": "ATB (Ascend Transformer Boost) / aclblas GEMM family"
+      },
+      "nccl": {
+        "status": "map_available",
+        "action": "warn_no_automatic_replacement",
+        "map_to": "HCCL (hccl.h: HcclCommInitRootInfo/HcclCommInitClusterInfo, HcclAllReduce/Broadcast/Send/Recv, HcclGetRankSize/RankId)"
+      },
+      "cufftw": {
+        "status": "unsupported",
+        "action": "warn_no_automatic_replacement",
+        "map_to": "CANN FFT operators; no 1:1 cufftw shim yet"
+      },
+      "cufile": {
+        "status": "unsupported",
+        "action": "warn_no_automatic_replacement",
+        "map_to": "Ascend data mover/ACL IO APIs; no 1:1 cuFile shim yet"
+      },
+      "cupti": {
+        "status": "unsupported",
+        "action": "warn_no_automatic_replacement",
+        "map_to": "CANN profiling APIs; nvToolsExt shim is separate"
+      },
+      "nvjpeg": {
+        "status": "unsupported",
+        "action": "warn_no_automatic_replacement",
+        "map_to": "CANN image/codec operators; no 1:1 nvJPEG shim yet"
+      },
+      "npp": {
+        "status": "unsupported",
+        "action": "warn_no_automatic_replacement",
+        "map_to": "CANN image/vision operators; no 1:1 NPP shim yet"
+      },
+      "nvperf": {
+        "status": "unsupported",
+        "action": "warn_no_automatic_replacement",
+        "map_to": "CANN profiling/performance tooling; no 1:1 nvperf shim yet"
+      },
+      "nvidia-ml": {
+        "status": "unsupported",
+        "action": "warn_no_automatic_replacement",
+        "map_to": "Ascend npu-smi/device management; no 1:1 NVML shim yet"
+      }
+    },
+    "hostcc": {
+      "comment": "bin/gnu parity (cu-bridge conf_gnu.json link adders), NPU-adapted: the link executor stays g++ but carries the bridge runtime + CANN acl libraries. Consumed by tools/cu2cce_driver.py --hostcc-mode via tools/hostcc_cce.",
+      "link": {
+        "inject": [
+          {
+            "tokens": [
+              "-L",
+              "${CUCC_PATH}/lib"
+            ],
+            "when": "has_cucc"
+          },
+          {
+            "tokens": [
+              "-Wl,-rpath,${CUCC_PATH}/lib"
+            ],
+            "when": "has_cucc"
+          },
+          {
+            "tokens": [
+              "-lcce_bridge_runtime"
+            ],
+            "when": "has_cucc"
+          },
+          {
+            "tokens": [
+              "-L",
+              "${CANN_BASE}/lib64"
+            ]
+          },
+          {
+            "tokens": [
+              "-Wl,-rpath,${CANN_BASE}/lib64"
+            ]
+          },
+          {
+            "tokens": [
+              "-lascendcl"
+            ]
+          }
+        ]
+      }
+    },
+    "regex_cleanup": [
+      {
+        "pattern": "^-fno-canonical-system-headers$",
+        "reason": "gcc-only spelling rejected by ccec/clang; dropped (cu-bridge bin/cucc:55-83 inline parity, gomxccbin layer equivalent)"
+      },
+      {
+        "pattern": "^-Wno-nonnull-compare$",
+        "reason": "gcc-only warning spelling with no ccec counterpart; dropped (cu-bridge bin/cucc:55-83 inline parity, gomxccbin layer equivalent)"
+      },
+      {
+        "pattern": "^-f(no-)?var-tracking(-assignments)?$",
+        "reason": "gcc-only debug-info flags rejected by clang as unknown arguments; dropped (cu-bridge conf.json filter parity)"
+      }
+    ],
+    "diagnostics": {
+      "default_unknown": "warn_forward",
+      "strict_env": "CU2CCE_STRICT_FLAGS",
+      "debug_env": "CU2CCE_DEBUG",
+      "trace_env": "CU2CCE_TRACE_FILE",
+      "unsupported_modes": {
+        "-S": "CUDA assembly output is unsupported by ccec puresimt",
+        "--device-link": "CUDA device-link/separable compilation is unsupported by current scope",
+        "WCUDA_BAZEL_TF_BUILD": "Bazel/TF cu-bridge mode has no validated Ascend puresimt equivalent; use explicit CMake/Make integration"
+      }
+    },
+    "runtime": "libcce_bridge_runtime.so plus CANN runtime libraries"
+  },
+  "comment": "cu-bridge 风格 cucc 配置；实际后端为 Ascend CANN / Bisheng ccec，扩展字段记录 dav-*、runtime 和库能力策略。"
 }

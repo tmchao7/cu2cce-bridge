@@ -6,8 +6,8 @@ The implementation is intentionally Ascend-aware: the virtual directory only
 provides CUDA-shaped entry points while the real compiler remains Bisheng
 ``ccec`` and the real runtime remains ``libcce_bridge_runtime.so`` plus CANN.
 ``tools/link.json`` is the Make/pre manifest and ``tools/mock/stub_link.json``
-is the CMake configure manifest. The old ``config/shim_layout.json`` format
-is still accepted for migration and compatibility.
+is the CMake configure manifest. The builder intentionally accepts only these
+canonical manifests so layout ownership stays unambiguous.
 
 Layout contract (normalized from the manifests):
   - dirs: directories created under the CUDA dir (${HOST_TRIPLE} resolved)
@@ -62,24 +62,6 @@ def cuda_version_display() -> str:
         return "11.6.0"
 
 
-def _replace_symlink(link: Path, target: str) -> None:
-    """Create or replace a symbolic link without touching the target."""
-    if link.is_symlink() or link.exists():
-        if link.is_symlink() and os.readlink(link) == target:
-            return
-        if link.is_dir() and not link.is_symlink():
-            # A real directory from an older shim generation: only descend
-            # for the include fallback case handled by the caller; here the
-            # manifest owns the shape, so replace via rename is unsafe for
-            # non-empty dirs — clear it first.
-            import shutil  # noqa: PLC0415
-            shutil.rmtree(link)
-        else:
-            link.unlink()
-    link.parent.mkdir(parents=True, exist_ok=True)
-    os.symlink(target, link)
-
-
 def _atomic_symlink(link: Path, target: str) -> None:
     if link.is_symlink():
         if os.readlink(link) == target:
@@ -89,8 +71,8 @@ def _atomic_symlink(link: Path, target: str) -> None:
         # A previous interrupted/older shim build may have left a real
         # directory where the manifest now requires a link (for example
         # targets/<triple>/include).  This path is inside the generated fake
-        # toolkit, so remove the stale directory just like _replace_symlink
-        # does instead of calling Path.unlink() and failing with IsADirectoryError.
+        # toolkit, so remove the stale directory instead of calling
+        # Path.unlink() and failing with IsADirectoryError.
         if link.is_dir():
             import shutil  # noqa: PLC0415
             shutil.rmtree(link)
@@ -146,7 +128,8 @@ def load_layout(layout_path: Path, _seen: Optional[set] = None) -> Dict[str, obj
         layout = virtual_cmake.get("layout")
         if isinstance(layout, dict):
             return dict(layout)
-    # Migration format: config/shim_layout.json itself is already normalized.
+    # Canonical manifests are link.json (pre_make) and stub_link.json
+    # (virtual_cmake); no legacy centralized layout is accepted here.
     return data
 
 
@@ -188,10 +171,9 @@ def build_virtual_toolkit(
     for entry in layout.get("dir_links", []):
         link = cuda_dir / _substitute(entry["link"], variables)
         target = _substitute(entry["target"], variables)
-        if entry.get("replace"):
-            _replace_symlink(link, target)
-        else:
-            _atomic_symlink(link, target)
+        # All manifest-owned links use the same atomic replacement path;
+        # the old replace/non-replace split duplicated identical cleanup.
+        _atomic_symlink(link, target)
         notes.append(f"dir link {link} -> {target}")
 
     # cu-bridge make_maca parity: a whole-tree include link can silently fail
@@ -327,10 +309,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         candidates = [
             args.cucc_path / "tools" / "link.json",
             args.cucc_path / "tools" / "mock" / "stub_link.json",
-            args.cucc_path / "config" / "shim_layout.json",
             Path(__file__).resolve().parents[2] / "tools" / "link.json",
             Path(__file__).resolve().parents[2] / "tools" / "mock" / "stub_link.json",
-            Path(__file__).resolve().parents[2] / "config" / "shim_layout.json",
         ]
         layout_path = next((candidate for candidate in candidates if candidate.is_file()), None)
         if layout_path is None:

@@ -87,13 +87,12 @@ install(PROGRAMS tools/make_cce tools/cmake_cce tools/ninja_cce
         DESTINATION bin)
 install(PROGRAMS tools/cu2cce_driver.py tools/validate_cucc_rules.py
         tools/compare_cubridge_parity.py tools/virtual_toolkit_env.sh
-        tools/build_shim_tree.py tools/fake_toolkit_env.sh
         DESTINATION tools)
 install(PROGRAMS tools/device_arch.sh tools/pre_cce tools/hostcc_cce
         tools/gfortran_cce tools/mpi_cce
         DESTINATION tools)
 install(FILES bin/conf.json DESTINATION bin)
-install(PROGRAMS bin/process_args.py bin/gnu bin/gfortran
+install(PROGRAMS bin/gnu bin/gfortran
         DESTINATION bin)
 install(DIRECTORY tools/mock DESTINATION tools)
 # Explicit PROGRAMS install keeps the mock entrypoints executable on CMake
@@ -109,8 +108,7 @@ install(PROGRAMS tools/real_test/fetch_external_cuda_samples.sh
 # expose validated bridge-backed targets and legacy build macros; they do not
 # perform CUDA kernel conversion.
 install(DIRECTORY cmake_modules/ DESTINATION cmake_modules)
-install(FILES config/cu2cce_rules.json config/shim_layout.json config/artifact_contract.json
-        DESTINATION config)
+install(FILES config/artifact_contract.json DESTINATION config)
 install(FILES tools/link.json DESTINATION tools)
 
 # Native cu2cce package. This is intentionally separate from CUDA::cudart:

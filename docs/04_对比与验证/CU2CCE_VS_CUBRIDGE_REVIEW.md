@@ -16,7 +16,7 @@
 
 | cu-bridge 机制 | cu2cce-bridge 实现 |
 |---|---|
-| 参数 filter/replacer/adder | `config/cu2cce_rules.json` 的 forward/drop/replace/inject/reject |
+| 参数 filter/replacer/adder | `bin/conf.json` 的 forward/drop/replace/inject/reject |
 | 编译阶段区分 | `compile` / `compile_and_link` / `link` / `preprocess` / `dependency` |
 | nvcc mock | `tools/mock/mock_nvcc.py` |
 | CUDA Toolkit 虚拟目录 | `cmake_cce`/`make_cce` shim |
@@ -88,7 +88,7 @@ registration helper。因此多 `.cu` 静态 archive 不是普通 linker flag �
 ```text
 bin/cucc
   → tools/cu2cce_driver.py
-  → config/cu2cce_rules.json
+  → bin/conf.json
   → ccec
 ```
 

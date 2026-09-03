@@ -73,7 +73,7 @@ different directory per concurrent project. The artifact contract additionally c
 ## cucc rule diagnostics
 
 The compiler driver is rule-driven. The installed policy is
-`config/cu2cce_rules.json`, shared by normal `cucc` and the CMake nvcc shim.
+`bin/conf.json`, shared by normal `cucc` and the CMake nvcc shim.
 For diagnostics:
 
 ```bash

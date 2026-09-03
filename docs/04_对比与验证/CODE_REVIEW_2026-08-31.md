@@ -120,7 +120,7 @@ exec "$@"
 本机 macOS 只做静态/mock 验证，未执行 CANN/NPU 产物构建：
 
 ```text
-python3 tools/validate_cucc_rules.py config/cu2cce_rules.json   PASS
+python3 tools/validate_cucc_rules.py bin/conf.json   PASS
 python3 -m py_compile ...                                      PASS
 bash -n 22 个 shell entrypoints                                  PASS
 bash tests/mock_acl/syntax_check.sh                            PASS=3 FAIL=0

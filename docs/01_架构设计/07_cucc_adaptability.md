@@ -15,7 +15,7 @@ nvcc 的参数面极大且语义繁杂（数百个选项、多种产品线概念
 导师的约束"**不让硬编码**"因此落地为一条设计规则：
 
 > **"某个参数遇到 ccec 该怎么处理"是数据，不是代码。**
-> 处理规则全部存放在 `config/cu2cce_rules.json`，驱动只实现五种动作的
+> 处理规则全部存放在 `bin/conf.json`，驱动只实现五种动作的
 > 执行语义与匹配算法。新增兼容项 = 修改 JSON（零代码、零重编译）。
 
 ## 2. 驱动主流程图
@@ -47,7 +47,7 @@ graph TD
 ## 3. 五种规则动作（真实 JSON 片段）
 
 ```jsonc
-// config/cu2cce_rules.json —— 153 条规则，全部数据驱动
+// bin/conf.json —— 153 条规则，全部数据驱动
 // compile.drop：NVIDIA 架构参数不伪造 Ascend 架构
 { "tokens": ["-gencode"], "takes_value": true,
   "when": "source_is_cuda",
@@ -104,7 +104,7 @@ graph TD
 
 ```mermaid
 graph LR
-    subgraph L1 数据层["L1 数据层 · config/cu2cce_rules.json · 153 条"]
+    subgraph L1 数据层["L1 数据层 · bin/conf.json · 153 条"]
         R1[drop 98] --- R2[inject 29] --- R3[forward 11] --- R4[reject 11] --- R5[replace 4]
     end
     subgraph L2 策略层["L2 策略层 · 驱动内集中 · ~200 行"]

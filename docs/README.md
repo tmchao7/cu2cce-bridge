@@ -51,7 +51,7 @@ docs/
 ```text
 CUDA .cu
   → bin/cucc / tools/cmake_cce / tools/make_cce / tools/ninja_cce
-  → tools/cu2cce_driver.py + config/cu2cce_rules.json
+  → tools/cu2cce_driver.py + bin/conf.json
   → ccec -x asc --enable-simt --cce-aicore-arch=dav-*
   → CUDA 兼容头 + libcce_bridge_runtime.so + CANN runtime
   → Ascend NPU

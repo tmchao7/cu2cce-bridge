@@ -15,7 +15,6 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         import json
         canonical = {
             ROOT / "bin/conf.json": False,
-            ROOT / "bin/process_args.py": False,
             ROOT / "bin/gnu": False,
             ROOT / "bin/gfortran": False,
             ROOT / "tools/link.json": False,
@@ -33,38 +32,38 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         for phase in ("all", "compile", "link", "compile_and_link"):
             for key in ("filter", "replacer", "adder"):
                 self.assertIn(key, conf[phase])
-        self.assertEqual(conf["backend"], "ascend-cann")
-        self.assertEqual(conf["compiler"], "bisheng-ccec")
-        self.assertEqual(conf["frontend"]["compiler"], "ccec")
         self.assertEqual(conf["cu2cce"]["backend"], "ascend-cann")
         self.assertEqual(conf["cu2cce"]["compiler"], "bisheng-ccec")
-        self.assertNotEqual(conf["runtime"], "runtime_cu.so")
-        self.assertNotEqual(conf["runtime"], "symbol_cu.so")
+        self.assertEqual(conf["cu2cce"]["frontend"]["compiler"], "ccec")
+        self.assertNotEqual(conf["cu2cce"]["runtime"], "runtime_cu.so")
+        self.assertNotEqual(conf["cu2cce"]["runtime"], "symbol_cu.so")
         gnu = (ROOT / "bin/gnu").read_text(encoding="utf-8")
         for compiler_name in ("c++", "g++", "gcc", "cc"):
             self.assertIn(compiler_name, gnu)
         self.assertIn("os.path.realpath", gnu)
 
-    def test_cucc_conf_and_legacy_rules_keep_semantic_sections_in_sync(self) -> None:
+    def test_cucc_conf_is_the_single_canonical_rule_document(self) -> None:
         import json
-        canonical = json.loads((ROOT / "bin/conf.json").read_text(encoding="utf-8"))
-        legacy = json.loads((ROOT / "config/cu2cce_rules.json").read_text(encoding="utf-8"))
-        for section in ("frontend", "queries", "hostcc", "capabilities", "regex_cleanup", "diagnostics"):
-            self.assertEqual(canonical[section], legacy[section], section)
-        for section in ("all", "compile", "link", "compile_and_link"):
-            for action in ("forward", "drop", "replace", "inject", "reject"):
-                self.assertEqual(canonical[section].get(action, []), legacy[section].get(action, []), f"{section}.{action}")
+        conf = json.loads((ROOT / "bin/conf.json").read_text(encoding="utf-8"))
+        for key in ("schema_version", "data", "skipstring", "condition", "not_found", "cu2cce"):
+            self.assertIn(key, conf)
+        for phase in ("all", "compile", "link", "compile_and_link"):
+            for action in ("filter", "replacer", "adder"):
+                self.assertIn(action, conf[phase])
+        self.assertEqual(conf["cu2cce"]["backend"], "ascend-cann")
+        self.assertEqual(conf["cu2cce"]["compiler"], "bisheng-ccec")
+        driver = (ROOT / "tools/cu2cce_driver.py").read_text(encoding="utf-8")
+        self.assertIn('self.cucc_path / "bin" / "conf.json"', driver)
+        self.assertNotIn('self.cucc_path / "config" / "cu2cce_rules.json"', driver)
 
-    def test_legacy_builder_is_a_regular_thin_compatibility_launcher(self) -> None:
-        legacy = ROOT / "tools/build_shim_tree.py"
-        canonical = ROOT / "tools/mock/virtualDir.py"
-        self.assertTrue(legacy.is_file())
-        self.assertTrue(canonical.is_file())
-        self.assertFalse(legacy.is_symlink())
-        text = legacy.read_text(encoding="utf-8")
-        self.assertIn("tools/mock/virtualDir.py", text)
-        self.assertIn("build_virtual_toolkit", text)
-        self.assertNotIn("def _atomic_symlink", text)
+    def test_migration_only_builder_and_helper_files_are_removed(self) -> None:
+        for path in (
+            ROOT / "config/shim_layout.json",
+            ROOT / "tools/build_shim_tree.py",
+            ROOT / "tools/fake_toolkit_env.sh",
+            ROOT / "bin/process_args.py",
+        ):
+            self.assertFalse(path.exists(), path)
 
     def test_cubridge_parity_audit_defaults_to_muxi_reference_checkout(self) -> None:
         audit = (ROOT / "tools/compare_cubridge_parity.py").read_text(encoding="utf-8")
@@ -264,7 +263,7 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
 
     def test_unsupported_build_features_are_explicit(self) -> None:
         find_cuda = (ROOT / "cmake_modules/FindCUDA.cmake").read_text(encoding="utf-8")
-        rules = (ROOT / "config/cu2cce_rules.json").read_text(encoding="utf-8")
+        rules = (ROOT / "bin/conf.json").read_text(encoding="utf-8")
         for feature in ("cuda_compile_ptx", "cuda_compile_cubin", "cuda_compile_fatbin"):
             self.assertIn(feature, find_cuda)
         for feature in ("--device-link", "--ptx", "--cubin", "--fatbin"):
@@ -2030,7 +2029,7 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         # no-bridge degradation to the plain system compiler.
         self.assertIn('exec "/usr/bin/$name" "$@"', hostcc)
         self.assertIn("--hostcc-mode", hostcc)
-        rules_text = (ROOT / "config/cu2cce_rules.json").read_text(encoding="utf-8")
+        rules_text = (ROOT / "bin/conf.json").read_text(encoding="utf-8")
         self.assertIn('"hostcc"', rules_text)
         self.assertIn('"-lcce_bridge_runtime"', rules_text)
         self.assertIn("is a CUDA source",

@@ -136,9 +136,9 @@ def _item(
 
 
 def build_report(repo: Path, reference: Path) -> Dict[str, Any]:
-    rules = _json(repo / "bin/conf.json") if (repo / "bin/conf.json").is_file() else _json(repo / "config/cu2cce_rules.json")
+    rules = _json(repo / "bin/conf.json")
     manifest = repo / "tools/link.json"
-    layout = _json(manifest) if manifest.is_file() else _json(repo / "config/shim_layout.json")
+    layout = _json(manifest)
     if isinstance(layout.get("pre_make"), dict):
         layout = layout["pre_make"]
     conf = _json(reference / "bin/conf.json")

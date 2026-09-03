@@ -17,7 +17,7 @@
   └─ $CUCC_PATH/bin/cucc
        └─ tools/cu2cce_driver.py
             ├─ bin/conf.json                  # cu-bridge 风格主规则
-            ├─ config/cu2cce_rules.json       # 旧规则格式兼容入口
+            ├─ bin/conf.json       # 旧规则格式兼容入口
             ├─ include/                       # CUDA/SIMT 兼容头
             └─ ccec -x asc --enable-simt
                  └─ libcce_bridge_runtime.so
@@ -99,7 +99,7 @@ make_cce / ninja_cce / pre_cce
 当前驱动的 drop/replace/inject/query passthrough；`reject`、`capabilities`、
 `frontend` 和诊断字段保留 `Bisheng/ccec`、CANN、`dav-*` 的后端策略。
 
-### `config/cu2cce_rules.json`
+### `bin/conf.json`
 
 旧版规则路径。它仍然保留，供 `CU2CCE_RULES_FILE` 和历史集成显式指定；新功能优先
 修改 `bin/conf.json`，并同步验证两份规则的行为一致。
@@ -121,7 +121,7 @@ make_cce / ninja_cce / pre_cce
 
 极薄的 shell 入口，负责解析安装根和启动 Python driver。它不转换 CUDA 源文件，也不负责
 CANN API 逻辑。遇到参数过滤、phase、架构或库策略问题，直接看
-`tools/cu2cce_driver.py` 和 `bin/conf.json`（旧入口：`config/cu2cce_rules.json`）。
+`tools/cu2cce_driver.py` 和 `bin/conf.json`（旧入口：`bin/conf.json`）。
 
 ### `tools/cu2cce_driver.py`
 
@@ -206,7 +206,7 @@ cucc/ccec。
 
 ## 4. 配置文件
 
-### `config/cu2cce_rules.json`
+### `bin/conf.json`
 
 规则数据源。主要 section：
 
@@ -224,7 +224,7 @@ cucc/ccec。
 修改此文件后必须运行：
 
 ```bash
-python3 tools/validate_cucc_rules.py config/cu2cce_rules.json
+python3 tools/validate_cucc_rules.py bin/conf.json
 ```
 
 ### `tools/link.json`
@@ -351,7 +351,7 @@ tools/real_test/server_cmd.txt
 修改入口/规则/安装文件时，按以下顺序：
 
 ```bash
-python3 tools/validate_cucc_rules.py config/cu2cce_rules.json
+python3 tools/validate_cucc_rules.py bin/conf.json
 python3 -m unittest discover -s tests -p 'test_*.py' -v
 bash tests/mock_acl/syntax_check.sh
 git diff --check
@@ -421,7 +421,6 @@ git diff --check
 | `bin/cucc` | 用户命令入口；当前为 cucc 的启动脚本 |
 | `bin/nvcc` | 安装树中的普通 CUDA 兼容入口，转发到 `bin/cucc`，不依赖安装软链接 |
 | `bin/conf.json` | cu-bridge 风格主规则文件，保留 Ascend/CANN/Bisheng 扩展 |
-| `bin/process_args.py` | 迁移脚本可用的安全 argv 过滤/替换辅助工具；主 cucc 不依赖它 |
 | `bin/gnu` | 参考项目风格的 host compiler carrier，实际调用 `tools/hostcc_cce` |
 | `bin/gfortran` | 参考项目风格的 host Fortran carrier，实际调用 `tools/gfortran_cce` |
 
@@ -447,8 +446,8 @@ git diff --check
 | 路径 | 职责 |
 |---|---|
 | `config/artifact_contract.json` | cucc/CMake/Make/Ninja artifact contract 清单 |
-| `config/cu2cce_rules.json` | cucc 旧参数规则格式兼容入口 |
-| `config/shim_layout.json` | 旧版集中式虚拟工具链清单兼容入口；新维护入口是 `tools/link.json` 和 `tools/mock/stub_link.json` |
+| `bin/conf.json` | cucc 旧参数规则格式兼容入口 |
+| `tools/link.json` | 旧版集中式虚拟工具链清单兼容入口；新维护入口是 `tools/link.json` 和 `tools/mock/stub_link.json` |
 
 ### `docs/`
 
@@ -668,13 +667,10 @@ git diff --check
 | `tools/link.json` | Make/pre 使用的虚拟 CUDA 工具链布局清单 |
 | `tools/mock/stub_link.json` | CMake configure 使用的 virtual_cmake 布局清单 |
 | `tools/virtual_toolkit_env.sh` | CMake/Make/Ninja/pre 共用的虚拟 CUDA 工具链环境 helper |
-| `tools/fake_toolkit_env.sh` | 旧环境 helper 的普通文件兼容启动器，不含独立实现 |
-| `tools/build_shim_tree.py` | 旧构建器的普通文件兼容启动器，不含独立实现 |
 | `tools/cmake_cce` | CMake configure/build wrapper；mock 到真实 cucc 双阶段入口 |
 | `tools/compare_cubridge_parity.py` | 与 cu-bridge reference 的 backend-aware parity 报告工具 |
 | `tools/cu2cce_driver.py` | cucc 与 CMake mock 共用的规则驱动核心 |
 | `tools/device_arch.sh` | Ascend dav-* 架构解析（环境、npu-smi、cache、default） |
-
 | `tools/gfortran_cce` | host-only Fortran/MPI wrapper；拒绝 CUDA source 误用 |
 | `tools/hostcc_cce` | host compiler wrapper；link 注入 bridge/CANN runtime |
 | `tools/make_cce` | Make wrapper；虚拟工具链目录中的 nvcc 入口到 cucc 的构建入口 |

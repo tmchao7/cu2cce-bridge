@@ -156,9 +156,9 @@ $CUCC_PATH/
 │   ├── libcce_bridge_runtime.so   # wcuda* → aclrt* 运行时
 │   └── cmake/cu2cce-bridge/       # cu2cce-bridgeConfig.cmake（包定位）
 ├── include/                       # cuda_runtime.h / crt/ / bridge/ / shadow/ ...
-├── config/cu2cce_rules.json       # cucc 参数规则（数据驱动核心）
+├── bin/conf.json       # cucc 参数规则（数据驱动核心）
 ├── cmake_modules/                 # FindCUDAToolkit / override / FindCUDA
-└── tools/                         # nvcc_entry.sh / cu2cce_driver.py 等
+└── tools/                         # mock/nvcc_entry.sh / cu2cce_driver.py 等
 ```
 
 构建系统生成物的真实回归由 `config/artifact_contract.json` 描述，服务器上由
@@ -338,7 +338,7 @@ cucc vector_add.cu -o build/vector_add
 cucc -c vector_add.cu -o build/vector_add.o
 ```
 
-cucc 的参数适配由安装目录中的 `config/cu2cce_rules.json` 驱动。需要查看每个参数
+cucc 的参数适配由安装目录中的 `bin/conf.json` 驱动。需要查看每个参数
 被保留、丢弃或注入的原因时，可以使用：
 
 ```bash
