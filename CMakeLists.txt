@@ -110,6 +110,7 @@ install(PROGRAMS bin/nvcc DESTINATION bin)
 install(PROGRAMS tools/make_cce tools/cmake_cce tools/ninja_cce
         DESTINATION bin)
 install(PROGRAMS tools/cu2cce_driver.py tools/validate_cucc_rules.py
+        tools/validate_cuda_api_parity.py tools/generate_cuda_api_parity_inventory.py
         tools/compare_cubridge_parity.py tools/virtual_toolkit_env.sh
         DESTINATION tools)
 install(PROGRAMS tools/device_arch.sh tools/pre_cce tools/hostcc_cce
@@ -132,7 +133,10 @@ install(PROGRAMS tools/real_test/fetch_external_cuda_samples.sh
 # expose validated bridge-backed targets and legacy build macros; they do not
 # perform CUDA kernel conversion.
 install(DIRECTORY cmake_modules/ DESTINATION cmake_modules)
-install(FILES config/artifact_contract.json DESTINATION config)
+install(FILES
+    config/artifact_contract.json
+    config/cuda_api_parity_inventory.json
+    DESTINATION config)
 install(FILES tools/link.json DESTINATION tools)
 
 # Native cu2cce package. This is intentionally separate from CUDA::cudart:

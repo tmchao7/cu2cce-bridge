@@ -1,0 +1,1897 @@
+#ifndef __CU2CCE_CUDA_TO_CCE_RESERVED_PARITY_H__
+#define __CU2CCE_CUDA_TO_CCE_RESERVED_PARITY_H__
+
+/*
+ * GENERATED parity inventory. Source: ../cu-bridge-muxi
+ *
+ * These entries intentionally stay under #if 0. They document CUDA
+ * names present in cu-bridge but not active for the Ascend/CANN backend.
+ * Do not enable an entry until its CANN public API, type surface and
+ * real-device contract are implemented and tested.
+ */
+
+#if 0
+/* RESERVED_NPU category: Array_Texture_Surface
+ * Future implementation: include/bridge/runtime/ and src/bridge/runtime/.
+ */
+/* reference_maca: cudaArray -> _mcArray */
+#define cudaArray CU2CCE_RESERVED_NPU_cudaArray
+/* reference_maca: cudaArrayColorAttachment -> mcArrayColorAttachment */
+#define cudaArrayColorAttachment CU2CCE_RESERVED_NPU_cudaArrayColorAttachment
+/* reference_maca: cudaArrayCubemap -> mcArrayCubemap */
+#define cudaArrayCubemap CU2CCE_RESERVED_NPU_cudaArrayCubemap
+/* reference_maca: cudaArrayDefault -> mcArrayDefault */
+#define cudaArrayDefault CU2CCE_RESERVED_NPU_cudaArrayDefault
+/* reference_maca: cudaArrayDeferredMapping -> mcArrayDeferredMapping */
+#define cudaArrayDeferredMapping CU2CCE_RESERVED_NPU_cudaArrayDeferredMapping
+/* reference_maca: cudaArrayGetMemoryRequirements -> wcudaArrayGetMemoryRequirements */
+#define cudaArrayGetMemoryRequirements CU2CCE_RESERVED_NPU_cudaArrayGetMemoryRequirements
+/* reference_maca: cudaArrayGetPlane -> wcudaArrayGetPlane */
+#define cudaArrayGetPlane CU2CCE_RESERVED_NPU_cudaArrayGetPlane
+/* reference_maca: cudaArrayGetSparseProperties -> wcudaArrayGetSparseProperties */
+#define cudaArrayGetSparseProperties CU2CCE_RESERVED_NPU_cudaArrayGetSparseProperties
+/* reference_maca: cudaArrayLayered -> mcArrayLayered */
+#define cudaArrayLayered CU2CCE_RESERVED_NPU_cudaArrayLayered
+/* reference_maca: cudaArrayMemoryRequirements -> mcArrayMemoryRequirements_st */
+#define cudaArrayMemoryRequirements CU2CCE_RESERVED_NPU_cudaArrayMemoryRequirements
+/* reference_maca: cudaArraySparse -> mcArraySparse */
+#define cudaArraySparse CU2CCE_RESERVED_NPU_cudaArraySparse
+/* reference_maca: cudaArraySparseProperties -> mcArraySparseProperties_st */
+#define cudaArraySparseProperties CU2CCE_RESERVED_NPU_cudaArraySparseProperties
+/* reference_maca: cudaArraySparsePropertiesSingleMipTail -> mcArraySparsePropertiesSingleMipTail */
+#define cudaArraySparsePropertiesSingleMipTail CU2CCE_RESERVED_NPU_cudaArraySparsePropertiesSingleMipTail
+/* reference_maca: cudaArraySurfaceLoadStore -> mcArraySurfaceLoadStore */
+#define cudaArraySurfaceLoadStore CU2CCE_RESERVED_NPU_cudaArraySurfaceLoadStore
+/* reference_maca: cudaArrayTextureGather -> mcArrayTextureGather */
+#define cudaArrayTextureGather CU2CCE_RESERVED_NPU_cudaArrayTextureGather
+/* reference_maca: cudaBindSurfaceToArray -> wcudaBindSurfaceToArray */
+#define cudaBindSurfaceToArray CU2CCE_RESERVED_NPU_cudaBindSurfaceToArray
+/* reference_maca: cudaBindTexture2D -> wcudaBindTexture2D */
+#define cudaBindTexture2D CU2CCE_RESERVED_NPU_cudaBindTexture2D
+/* reference_maca: cudaBindTextureToArray -> wcudaBindTextureToArray */
+#define cudaBindTextureToArray CU2CCE_RESERVED_NPU_cudaBindTextureToArray
+/* reference_maca: cudaBindTextureToMipmappedArray -> wcudaBindTextureToMipmappedArray */
+#define cudaBindTextureToMipmappedArray CU2CCE_RESERVED_NPU_cudaBindTextureToMipmappedArray
+/* reference_maca: cudaChannelFormatKindNV12 -> mcChannelFormatKindNV12 */
+#define cudaChannelFormatKindNV12 CU2CCE_RESERVED_NPU_cudaChannelFormatKindNV12
+/* reference_maca: cudaChannelFormatKindSignedBlockCompressed4 -> mcChannelFormatKindSignedBlockCompressed4 */
+#define cudaChannelFormatKindSignedBlockCompressed4 CU2CCE_RESERVED_NPU_cudaChannelFormatKindSignedBlockCompressed4
+/* reference_maca: cudaChannelFormatKindSignedBlockCompressed5 -> mcChannelFormatKindSignedBlockCompressed5 */
+#define cudaChannelFormatKindSignedBlockCompressed5 CU2CCE_RESERVED_NPU_cudaChannelFormatKindSignedBlockCompressed5
+/* reference_maca: cudaChannelFormatKindSignedBlockCompressed6H -> mcChannelFormatKindSignedBlockCompressed6H */
+#define cudaChannelFormatKindSignedBlockCompressed6H CU2CCE_RESERVED_NPU_cudaChannelFormatKindSignedBlockCompressed6H
+/* reference_maca: cudaChannelFormatKindSignedNormalized16X1 -> mcChannelFormatKindSignedNormalized16X1 */
+#define cudaChannelFormatKindSignedNormalized16X1 CU2CCE_RESERVED_NPU_cudaChannelFormatKindSignedNormalized16X1
+/* reference_maca: cudaChannelFormatKindSignedNormalized16X2 -> mcChannelFormatKindSignedNormalized16X2 */
+#define cudaChannelFormatKindSignedNormalized16X2 CU2CCE_RESERVED_NPU_cudaChannelFormatKindSignedNormalized16X2
+/* reference_maca: cudaChannelFormatKindSignedNormalized16X4 -> mcChannelFormatKindSignedNormalized16X4 */
+#define cudaChannelFormatKindSignedNormalized16X4 CU2CCE_RESERVED_NPU_cudaChannelFormatKindSignedNormalized16X4
+/* reference_maca: cudaChannelFormatKindSignedNormalized8X1 -> mcChannelFormatKindSignedNormalized8X1 */
+#define cudaChannelFormatKindSignedNormalized8X1 CU2CCE_RESERVED_NPU_cudaChannelFormatKindSignedNormalized8X1
+/* reference_maca: cudaChannelFormatKindSignedNormalized8X2 -> mcChannelFormatKindSignedNormalized8X2 */
+#define cudaChannelFormatKindSignedNormalized8X2 CU2CCE_RESERVED_NPU_cudaChannelFormatKindSignedNormalized8X2
+/* reference_maca: cudaChannelFormatKindSignedNormalized8X4 -> mcChannelFormatKindSignedNormalized8X4 */
+#define cudaChannelFormatKindSignedNormalized8X4 CU2CCE_RESERVED_NPU_cudaChannelFormatKindSignedNormalized8X4
+/* reference_maca: cudaChannelFormatKindUnsignedBlockCompressed1 -> mcChannelFormatKindUnsignedBlockCompressed1 */
+#define cudaChannelFormatKindUnsignedBlockCompressed1 CU2CCE_RESERVED_NPU_cudaChannelFormatKindUnsignedBlockCompressed1
+/* reference_maca: cudaChannelFormatKindUnsignedBlockCompressed1SRGB -> mcChannelFormatKindUnsignedBlockCompressed1SRGB */
+#define cudaChannelFormatKindUnsignedBlockCompressed1SRGB CU2CCE_RESERVED_NPU_cudaChannelFormatKindUnsignedBlockCompressed1SRGB
+/* reference_maca: cudaChannelFormatKindUnsignedBlockCompressed2 -> mcChannelFormatKindUnsignedBlockCompressed2 */
+#define cudaChannelFormatKindUnsignedBlockCompressed2 CU2CCE_RESERVED_NPU_cudaChannelFormatKindUnsignedBlockCompressed2
+/* reference_maca: cudaChannelFormatKindUnsignedBlockCompressed2SRGB -> mcChannelFormatKindUnsignedBlockCompressed2SRGB */
+#define cudaChannelFormatKindUnsignedBlockCompressed2SRGB CU2CCE_RESERVED_NPU_cudaChannelFormatKindUnsignedBlockCompressed2SRGB
+/* reference_maca: cudaChannelFormatKindUnsignedBlockCompressed3 -> mcChannelFormatKindUnsignedBlockCompressed3 */
+#define cudaChannelFormatKindUnsignedBlockCompressed3 CU2CCE_RESERVED_NPU_cudaChannelFormatKindUnsignedBlockCompressed3
+/* reference_maca: cudaChannelFormatKindUnsignedBlockCompressed3SRGB -> mcChannelFormatKindUnsignedBlockCompressed3SRGB */
+#define cudaChannelFormatKindUnsignedBlockCompressed3SRGB CU2CCE_RESERVED_NPU_cudaChannelFormatKindUnsignedBlockCompressed3SRGB
+/* reference_maca: cudaChannelFormatKindUnsignedBlockCompressed4 -> mcChannelFormatKindUnsignedBlockCompressed4 */
+#define cudaChannelFormatKindUnsignedBlockCompressed4 CU2CCE_RESERVED_NPU_cudaChannelFormatKindUnsignedBlockCompressed4
+/* reference_maca: cudaChannelFormatKindUnsignedBlockCompressed5 -> mcChannelFormatKindUnsignedBlockCompressed5 */
+#define cudaChannelFormatKindUnsignedBlockCompressed5 CU2CCE_RESERVED_NPU_cudaChannelFormatKindUnsignedBlockCompressed5
+/* reference_maca: cudaChannelFormatKindUnsignedBlockCompressed6H -> mcChannelFormatKindUnsignedBlockCompressed6H */
+#define cudaChannelFormatKindUnsignedBlockCompressed6H CU2CCE_RESERVED_NPU_cudaChannelFormatKindUnsignedBlockCompressed6H
+/* reference_maca: cudaChannelFormatKindUnsignedBlockCompressed7 -> mcChannelFormatKindUnsignedBlockCompressed7 */
+#define cudaChannelFormatKindUnsignedBlockCompressed7 CU2CCE_RESERVED_NPU_cudaChannelFormatKindUnsignedBlockCompressed7
+/* reference_maca: cudaChannelFormatKindUnsignedBlockCompressed7SRGB -> mcChannelFormatKindUnsignedBlockCompressed7SRGB */
+#define cudaChannelFormatKindUnsignedBlockCompressed7SRGB CU2CCE_RESERVED_NPU_cudaChannelFormatKindUnsignedBlockCompressed7SRGB
+/* reference_maca: cudaChannelFormatKindUnsignedNormalized16X1 -> mcChannelFormatKindUnsignedNormalized16X1 */
+#define cudaChannelFormatKindUnsignedNormalized16X1 CU2CCE_RESERVED_NPU_cudaChannelFormatKindUnsignedNormalized16X1
+/* reference_maca: cudaChannelFormatKindUnsignedNormalized16X2 -> mcChannelFormatKindUnsignedNormalized16X2 */
+#define cudaChannelFormatKindUnsignedNormalized16X2 CU2CCE_RESERVED_NPU_cudaChannelFormatKindUnsignedNormalized16X2
+/* reference_maca: cudaChannelFormatKindUnsignedNormalized16X4 -> mcChannelFormatKindUnsignedNormalized16X4 */
+#define cudaChannelFormatKindUnsignedNormalized16X4 CU2CCE_RESERVED_NPU_cudaChannelFormatKindUnsignedNormalized16X4
+/* reference_maca: cudaChannelFormatKindUnsignedNormalized8X1 -> mcChannelFormatKindUnsignedNormalized8X1 */
+#define cudaChannelFormatKindUnsignedNormalized8X1 CU2CCE_RESERVED_NPU_cudaChannelFormatKindUnsignedNormalized8X1
+/* reference_maca: cudaChannelFormatKindUnsignedNormalized8X2 -> mcChannelFormatKindUnsignedNormalized8X2 */
+#define cudaChannelFormatKindUnsignedNormalized8X2 CU2CCE_RESERVED_NPU_cudaChannelFormatKindUnsignedNormalized8X2
+/* reference_maca: cudaChannelFormatKindUnsignedNormalized8X4 -> mcChannelFormatKindUnsignedNormalized8X4 */
+#define cudaChannelFormatKindUnsignedNormalized8X4 CU2CCE_RESERVED_NPU_cudaChannelFormatKindUnsignedNormalized8X4
+/* reference_maca: cudaGetSurfaceObjectResourceDesc -> wcudaGetSurfaceObjectResourceDesc */
+#define cudaGetSurfaceObjectResourceDesc CU2CCE_RESERVED_NPU_cudaGetSurfaceObjectResourceDesc
+/* reference_maca: cudaGetSurfaceReference -> wcudaGetSurfaceReference */
+#define cudaGetSurfaceReference CU2CCE_RESERVED_NPU_cudaGetSurfaceReference
+/* reference_maca: cudaGetTextureAlignmentOffset -> wcudaGetTextureAlignmentOffset */
+#define cudaGetTextureAlignmentOffset CU2CCE_RESERVED_NPU_cudaGetTextureAlignmentOffset
+/* reference_maca: cudaGetTextureObjectResourceDesc -> wcudaGetTextureObjectResourceDesc */
+#define cudaGetTextureObjectResourceDesc CU2CCE_RESERVED_NPU_cudaGetTextureObjectResourceDesc
+/* reference_maca: cudaGetTextureObjectResourceViewDesc -> wcudaGetTextureObjectResourceViewDesc */
+#define cudaGetTextureObjectResourceViewDesc CU2CCE_RESERVED_NPU_cudaGetTextureObjectResourceViewDesc
+/* reference_maca: cudaGetTextureObjectTextureDesc -> wcudaGetTextureObjectTextureDesc */
+#define cudaGetTextureObjectTextureDesc CU2CCE_RESERVED_NPU_cudaGetTextureObjectTextureDesc
+/* reference_maca: cudaGetTextureObjectTextureDesc_v2 -> wcudaGetTextureObjectTextureDesc_v2 */
+#define cudaGetTextureObjectTextureDesc_v2 CU2CCE_RESERVED_NPU_cudaGetTextureObjectTextureDesc_v2
+/* reference_maca: cudaGetTextureReference -> wcudaGetTextureReference */
+#define cudaGetTextureReference CU2CCE_RESERVED_NPU_cudaGetTextureReference
+/* reference_maca: cudaSurfaceBoundaryMode -> _mcSurfaceBoundaryMode */
+#define cudaSurfaceBoundaryMode CU2CCE_RESERVED_NPU_cudaSurfaceBoundaryMode
+/* reference_maca: cudaSurfaceFormatMode -> _mcSurfaceFormatMode */
+#define cudaSurfaceFormatMode CU2CCE_RESERVED_NPU_cudaSurfaceFormatMode
+/* reference_maca: cudaSurfaceType1D -> mcSurfaceType1D */
+#define cudaSurfaceType1D CU2CCE_RESERVED_NPU_cudaSurfaceType1D
+/* reference_maca: cudaSurfaceType1DLayered -> mcSurfaceType1DLayered */
+#define cudaSurfaceType1DLayered CU2CCE_RESERVED_NPU_cudaSurfaceType1DLayered
+/* reference_maca: cudaSurfaceType2D -> mcSurfaceType2D */
+#define cudaSurfaceType2D CU2CCE_RESERVED_NPU_cudaSurfaceType2D
+/* reference_maca: cudaSurfaceType2DLayered -> mcSurfaceType2DLayered */
+#define cudaSurfaceType2DLayered CU2CCE_RESERVED_NPU_cudaSurfaceType2DLayered
+/* reference_maca: cudaSurfaceType3D -> mcSurfaceType3D */
+#define cudaSurfaceType3D CU2CCE_RESERVED_NPU_cudaSurfaceType3D
+/* reference_maca: cudaSurfaceTypeCubemap -> mcSurfaceTypeCubemap */
+#define cudaSurfaceTypeCubemap CU2CCE_RESERVED_NPU_cudaSurfaceTypeCubemap
+/* reference_maca: cudaSurfaceTypeCubemapLayered -> mcSurfaceTypeCubemapLayered */
+#define cudaSurfaceTypeCubemapLayered CU2CCE_RESERVED_NPU_cudaSurfaceTypeCubemapLayered
+/* reference_maca: cudaTextureType1D -> mcTextureType1D */
+#define cudaTextureType1D CU2CCE_RESERVED_NPU_cudaTextureType1D
+/* reference_maca: cudaTextureType1DLayered -> mcTextureType1DLayered */
+#define cudaTextureType1DLayered CU2CCE_RESERVED_NPU_cudaTextureType1DLayered
+/* reference_maca: cudaTextureType2D -> mcTextureType2D */
+#define cudaTextureType2D CU2CCE_RESERVED_NPU_cudaTextureType2D
+/* reference_maca: cudaTextureType2DLayered -> mcTextureType2DLayered */
+#define cudaTextureType2DLayered CU2CCE_RESERVED_NPU_cudaTextureType2DLayered
+/* reference_maca: cudaTextureType3D -> mcTextureType3D */
+#define cudaTextureType3D CU2CCE_RESERVED_NPU_cudaTextureType3D
+/* reference_maca: cudaTextureTypeCubemap -> mcTextureTypeCubemap */
+#define cudaTextureTypeCubemap CU2CCE_RESERVED_NPU_cudaTextureTypeCubemap
+/* reference_maca: cudaTextureTypeCubemapLayered -> mcTextureTypeCubemapLayered */
+#define cudaTextureTypeCubemapLayered CU2CCE_RESERVED_NPU_cudaTextureTypeCubemapLayered
+#endif
+
+#if 0
+/* RESERVED_NPU category: Device_Context_Launch
+ * Future implementation: include/bridge/runtime/ and src/bridge/runtime/.
+ */
+/* reference_maca: cudaChooseDevice -> wcudaChooseDevice */
+#define cudaChooseDevice CU2CCE_RESERVED_NPU_cudaChooseDevice
+/* reference_maca: cudaCtxResetPersistingL2Cache -> wcudaCtxResetPersistingL2Cache */
+#define cudaCtxResetPersistingL2Cache CU2CCE_RESERVED_NPU_cudaCtxResetPersistingL2Cache
+/* reference_maca: cudaDeviceFlushGPUDirectRDMAWrites -> wcudaDeviceFlushGPUDirectRDMAWrites */
+#define cudaDeviceFlushGPUDirectRDMAWrites CU2CCE_RESERVED_NPU_cudaDeviceFlushGPUDirectRDMAWrites
+/* reference_maca: cudaDeviceGetDefaultMemPool -> wcudaDeviceGetDefaultMemPool */
+#define cudaDeviceGetDefaultMemPool CU2CCE_RESERVED_NPU_cudaDeviceGetDefaultMemPool
+/* reference_maca: cudaDeviceGetDevResource -> wcudaDeviceGetDevResource */
+#define cudaDeviceGetDevResource CU2CCE_RESERVED_NPU_cudaDeviceGetDevResource
+/* reference_maca: cudaDeviceGetExecutionCtx -> wcudaDeviceGetExecutionCtx */
+#define cudaDeviceGetExecutionCtx CU2CCE_RESERVED_NPU_cudaDeviceGetExecutionCtx
+/* reference_maca: cudaDeviceGetGraphMemAttribute -> wcudaDeviceGetGraphMemAttribute */
+#define cudaDeviceGetGraphMemAttribute CU2CCE_RESERVED_NPU_cudaDeviceGetGraphMemAttribute
+/* reference_maca: cudaDeviceGetNvSciSyncAttributes -> wcudaDeviceGetNvSciSyncAttributes */
+#define cudaDeviceGetNvSciSyncAttributes CU2CCE_RESERVED_NPU_cudaDeviceGetNvSciSyncAttributes
+/* reference_maca: cudaDeviceGetP2PAttribute -> wcudaDeviceGetP2PAttribute */
+#define cudaDeviceGetP2PAttribute CU2CCE_RESERVED_NPU_cudaDeviceGetP2PAttribute
+/* reference_maca: cudaDeviceGetTexture1DLinearMaxWidth -> wcudaDeviceGetTexture1DLinearMaxWidth */
+#define cudaDeviceGetTexture1DLinearMaxWidth CU2CCE_RESERVED_NPU_cudaDeviceGetTexture1DLinearMaxWidth
+/* reference_maca: cudaDeviceGraphMemTrim -> wcudaDeviceGraphMemTrim */
+#define cudaDeviceGraphMemTrim CU2CCE_RESERVED_NPU_cudaDeviceGraphMemTrim
+/* reference_maca: cudaDeviceP2PAttr -> mcDeviceP2PAttr */
+#define cudaDeviceP2PAttr CU2CCE_RESERVED_NPU_cudaDeviceP2PAttr
+/* reference_maca: cudaDevicePropDontCare -> mcDevicePropDontCare */
+#define cudaDevicePropDontCare CU2CCE_RESERVED_NPU_cudaDevicePropDontCare
+/* reference_maca: cudaDeviceSetGraphMemAttribute -> wcudaDeviceSetGraphMemAttribute */
+#define cudaDeviceSetGraphMemAttribute CU2CCE_RESERVED_NPU_cudaDeviceSetGraphMemAttribute
+/* reference_maca: cudaLaunchAttribute -> mcLaunchAttribute */
+#define cudaLaunchAttribute CU2CCE_RESERVED_NPU_cudaLaunchAttribute
+/* reference_maca: cudaLaunchAttributeAccessPolicyWindow -> mcLaunchAttributeAccessPolicyWindow */
+#define cudaLaunchAttributeAccessPolicyWindow CU2CCE_RESERVED_NPU_cudaLaunchAttributeAccessPolicyWindow
+/* reference_maca: cudaLaunchAttributeClusterDimension -> mcLaunchAttributeClusterDimension */
+#define cudaLaunchAttributeClusterDimension CU2CCE_RESERVED_NPU_cudaLaunchAttributeClusterDimension
+/* reference_maca: cudaLaunchAttributeClusterSchedulingPolicyPreference -> mcLaunchAttributeClusterSchedulingPolicyPreference */
+#define cudaLaunchAttributeClusterSchedulingPolicyPreference CU2CCE_RESERVED_NPU_cudaLaunchAttributeClusterSchedulingPolicyPreference
+/* reference_maca: cudaLaunchAttributeCooperative -> mcLaunchAttributeCooperative */
+#define cudaLaunchAttributeCooperative CU2CCE_RESERVED_NPU_cudaLaunchAttributeCooperative
+/* reference_maca: cudaLaunchAttributeDeviceUpdatableKernelNode -> mcLaunchAttributeDeviceUpdatableKernelNode */
+#define cudaLaunchAttributeDeviceUpdatableKernelNode CU2CCE_RESERVED_NPU_cudaLaunchAttributeDeviceUpdatableKernelNode
+/* reference_maca: cudaLaunchAttributeIgnore -> mcLaunchAttributeIgnore */
+#define cudaLaunchAttributeIgnore CU2CCE_RESERVED_NPU_cudaLaunchAttributeIgnore
+/* reference_maca: cudaLaunchAttributeLaunchCompletionEvent -> mcLaunchAttributeLaunchCompletionEvent */
+#define cudaLaunchAttributeLaunchCompletionEvent CU2CCE_RESERVED_NPU_cudaLaunchAttributeLaunchCompletionEvent
+/* reference_maca: cudaLaunchAttributeMemSyncDomain -> mcLaunchAttributeMemSyncDomain */
+#define cudaLaunchAttributeMemSyncDomain CU2CCE_RESERVED_NPU_cudaLaunchAttributeMemSyncDomain
+/* reference_maca: cudaLaunchAttributeMemSyncDomainMap -> mcLaunchAttributeMemSyncDomainMap */
+#define cudaLaunchAttributeMemSyncDomainMap CU2CCE_RESERVED_NPU_cudaLaunchAttributeMemSyncDomainMap
+/* reference_maca: cudaLaunchAttributePreferredClusterDimension -> mcLaunchAttributePreferredClusterDimension */
+#define cudaLaunchAttributePreferredClusterDimension CU2CCE_RESERVED_NPU_cudaLaunchAttributePreferredClusterDimension
+/* reference_maca: cudaLaunchAttributePreferredSharedMemoryCarveout -> mcLaunchAttributePreferredSharedMemoryCarveout */
+#define cudaLaunchAttributePreferredSharedMemoryCarveout CU2CCE_RESERVED_NPU_cudaLaunchAttributePreferredSharedMemoryCarveout
+/* reference_maca: cudaLaunchAttributePriority -> mcLaunchAttributePriority */
+#define cudaLaunchAttributePriority CU2CCE_RESERVED_NPU_cudaLaunchAttributePriority
+/* reference_maca: cudaLaunchAttributeProgrammaticEvent -> mcLaunchAttributeProgrammaticEvent */
+#define cudaLaunchAttributeProgrammaticEvent CU2CCE_RESERVED_NPU_cudaLaunchAttributeProgrammaticEvent
+/* reference_maca: cudaLaunchAttributeProgrammaticStreamSerialization -> mcLaunchAttributeProgrammaticStreamSerialization */
+#define cudaLaunchAttributeProgrammaticStreamSerialization CU2CCE_RESERVED_NPU_cudaLaunchAttributeProgrammaticStreamSerialization
+/* reference_maca: cudaLaunchAttributeSynchronizationPolicy -> mcLaunchAttributeSynchronizationPolicy */
+#define cudaLaunchAttributeSynchronizationPolicy CU2CCE_RESERVED_NPU_cudaLaunchAttributeSynchronizationPolicy
+/* reference_maca: cudaLaunchConfig_t -> mcLaunchConfig_t */
+#define cudaLaunchConfig_t CU2CCE_RESERVED_NPU_cudaLaunchConfig_t
+/* reference_maca: cudaLaunchCooperativeKernelMultiDevice -> wcudaLaunchCooperativeKernelMultiDevice */
+#define cudaLaunchCooperativeKernelMultiDevice CU2CCE_RESERVED_NPU_cudaLaunchCooperativeKernelMultiDevice
+/* reference_maca: cudaLaunchDevice -> wcudaLaunchDevice */
+#define cudaLaunchDevice CU2CCE_RESERVED_NPU_cudaLaunchDevice
+/* reference_maca: cudaLaunchDeviceV2 -> wcudaLaunchDeviceV2 */
+#define cudaLaunchDeviceV2 CU2CCE_RESERVED_NPU_cudaLaunchDeviceV2
+/* reference_maca: cudaLaunchDeviceV2_ptsz -> wcudaLaunchDeviceV2_ptsz */
+#define cudaLaunchDeviceV2_ptsz CU2CCE_RESERVED_NPU_cudaLaunchDeviceV2_ptsz
+/* reference_maca: cudaLaunchDevice_ptsz -> wcudaLaunchDevice_ptsz */
+#define cudaLaunchDevice_ptsz CU2CCE_RESERVED_NPU_cudaLaunchDevice_ptsz
+/* reference_maca: cudaLaunchKernelEx -> wcudaLaunchKernelEx */
+#define cudaLaunchKernelEx CU2CCE_RESERVED_NPU_cudaLaunchKernelEx
+/* reference_maca: cudaLaunchKernelExC -> wcudaLaunchKernelExC */
+#define cudaLaunchKernelExC CU2CCE_RESERVED_NPU_cudaLaunchKernelExC
+/* reference_maca: cudaLaunchMemSyncDomainDefault -> mcLaunchMemSyncDomainDefault */
+#define cudaLaunchMemSyncDomainDefault CU2CCE_RESERVED_NPU_cudaLaunchMemSyncDomainDefault
+/* reference_maca: cudaLaunchMemSyncDomainMap -> mcLaunchMemSyncDomainMap */
+#define cudaLaunchMemSyncDomainMap CU2CCE_RESERVED_NPU_cudaLaunchMemSyncDomainMap
+/* reference_maca: cudaLaunchMemSyncDomainRemote -> mcLaunchMemSyncDomainRemote */
+#define cudaLaunchMemSyncDomainRemote CU2CCE_RESERVED_NPU_cudaLaunchMemSyncDomainRemote
+/* reference_maca: cudaLaunchParams -> mcLaunchParams_t */
+#define cudaLaunchParams CU2CCE_RESERVED_NPU_cudaLaunchParams
+/* reference_maca: cudaOccupancyDefault -> mcOccupancyDefault */
+#define cudaOccupancyDefault CU2CCE_RESERVED_NPU_cudaOccupancyDefault
+/* reference_maca: cudaOccupancyDisableCachingOverride -> mcOccupancyDisableCachingOverride */
+#define cudaOccupancyDisableCachingOverride CU2CCE_RESERVED_NPU_cudaOccupancyDisableCachingOverride
+/* reference_maca: cudaOccupancyMaxActiveClusters -> wcudaOccupancyMaxActiveClusters */
+#define cudaOccupancyMaxActiveClusters CU2CCE_RESERVED_NPU_cudaOccupancyMaxActiveClusters
+/* reference_maca: cudaOccupancyMaxPotentialBlockSizeVariableSMem -> wcudaOccupancyMaxPotentialBlockSizeVariableSMem */
+#define cudaOccupancyMaxPotentialBlockSizeVariableSMem CU2CCE_RESERVED_NPU_cudaOccupancyMaxPotentialBlockSizeVariableSMem
+/* reference_maca: cudaOccupancyMaxPotentialBlockSizeVariableSMemWithFlags -> wcudaOccupancyMaxPotentialBlockSizeVariableSMemWithFlags */
+#define cudaOccupancyMaxPotentialBlockSizeVariableSMemWithFlags CU2CCE_RESERVED_NPU_cudaOccupancyMaxPotentialBlockSizeVariableSMemWithFlags
+/* reference_maca: cudaOccupancyMaxPotentialClusterSize -> wcudaOccupancyMaxPotentialClusterSize */
+#define cudaOccupancyMaxPotentialClusterSize CU2CCE_RESERVED_NPU_cudaOccupancyMaxPotentialClusterSize
+/* reference_maca: cudaSetValidDevices -> wcudaSetValidDevices */
+#define cudaSetValidDevices CU2CCE_RESERVED_NPU_cudaSetValidDevices
+#endif
+
+#if 0
+/* RESERVED_NPU category: Graph
+ * Future implementation: include/bridge/runtime/ and src/bridge/runtime/.
+ */
+/* reference_maca: cudaGraphAddChildGraphNode -> wcudaGraphAddChildGraphNode */
+#define cudaGraphAddChildGraphNode CU2CCE_RESERVED_NPU_cudaGraphAddChildGraphNode
+/* reference_maca: cudaGraphAddDependencies -> wcudaGraphAddDependencies */
+#define cudaGraphAddDependencies CU2CCE_RESERVED_NPU_cudaGraphAddDependencies
+/* reference_maca: cudaGraphAddDependencies_v2 -> wcudaGraphAddDependencies_v2 */
+#define cudaGraphAddDependencies_v2 CU2CCE_RESERVED_NPU_cudaGraphAddDependencies_v2
+/* reference_maca: cudaGraphAddEmptyNode -> wcudaGraphAddEmptyNode */
+#define cudaGraphAddEmptyNode CU2CCE_RESERVED_NPU_cudaGraphAddEmptyNode
+/* reference_maca: cudaGraphAddEventRecordNode -> wcudaGraphAddEventRecordNode */
+#define cudaGraphAddEventRecordNode CU2CCE_RESERVED_NPU_cudaGraphAddEventRecordNode
+/* reference_maca: cudaGraphAddEventWaitNode -> wcudaGraphAddEventWaitNode */
+#define cudaGraphAddEventWaitNode CU2CCE_RESERVED_NPU_cudaGraphAddEventWaitNode
+/* reference_maca: cudaGraphAddExternalSemaphoresSignalNode -> wcudaGraphAddExternalSemaphoresSignalNode */
+#define cudaGraphAddExternalSemaphoresSignalNode CU2CCE_RESERVED_NPU_cudaGraphAddExternalSemaphoresSignalNode
+/* reference_maca: cudaGraphAddExternalSemaphoresWaitNode -> wcudaGraphAddExternalSemaphoresWaitNode */
+#define cudaGraphAddExternalSemaphoresWaitNode CU2CCE_RESERVED_NPU_cudaGraphAddExternalSemaphoresWaitNode
+/* reference_maca: cudaGraphAddHostNode -> wcudaGraphAddHostNode */
+#define cudaGraphAddHostNode CU2CCE_RESERVED_NPU_cudaGraphAddHostNode
+/* reference_maca: cudaGraphAddMemAllocNode -> wcudaGraphAddMemAllocNode */
+#define cudaGraphAddMemAllocNode CU2CCE_RESERVED_NPU_cudaGraphAddMemAllocNode
+/* reference_maca: cudaGraphAddMemFreeNode -> wcudaGraphAddMemFreeNode */
+#define cudaGraphAddMemFreeNode CU2CCE_RESERVED_NPU_cudaGraphAddMemFreeNode
+/* reference_maca: cudaGraphAddMemcpyNode -> wcudaGraphAddMemcpyNode */
+#define cudaGraphAddMemcpyNode CU2CCE_RESERVED_NPU_cudaGraphAddMemcpyNode
+/* reference_maca: cudaGraphAddMemcpyNode1D -> wcudaGraphAddMemcpyNode1D */
+#define cudaGraphAddMemcpyNode1D CU2CCE_RESERVED_NPU_cudaGraphAddMemcpyNode1D
+/* reference_maca: cudaGraphAddMemcpyNodeFromSymbol -> wcudaGraphAddMemcpyNodeFromSymbol */
+#define cudaGraphAddMemcpyNodeFromSymbol CU2CCE_RESERVED_NPU_cudaGraphAddMemcpyNodeFromSymbol
+/* reference_maca: cudaGraphAddMemcpyNodeToSymbol -> wcudaGraphAddMemcpyNodeToSymbol */
+#define cudaGraphAddMemcpyNodeToSymbol CU2CCE_RESERVED_NPU_cudaGraphAddMemcpyNodeToSymbol
+/* reference_maca: cudaGraphAddMemsetNode -> wcudaGraphAddMemsetNode */
+#define cudaGraphAddMemsetNode CU2CCE_RESERVED_NPU_cudaGraphAddMemsetNode
+/* reference_maca: cudaGraphAddNode -> wcudaGraphAddNode */
+#define cudaGraphAddNode CU2CCE_RESERVED_NPU_cudaGraphAddNode
+/* reference_maca: cudaGraphAddNode_v2 -> wcudaGraphAddNode_v2 */
+#define cudaGraphAddNode_v2 CU2CCE_RESERVED_NPU_cudaGraphAddNode_v2
+/* reference_maca: cudaGraphChildGraphNodeGetGraph -> wcudaGraphChildGraphNodeGetGraph */
+#define cudaGraphChildGraphNodeGetGraph CU2CCE_RESERVED_NPU_cudaGraphChildGraphNodeGetGraph
+/* reference_maca: cudaGraphClone -> wcudaGraphClone */
+#define cudaGraphClone CU2CCE_RESERVED_NPU_cudaGraphClone
+/* reference_maca: cudaGraphCondAssignDefault -> mcGraphCondAssignDefault */
+#define cudaGraphCondAssignDefault CU2CCE_RESERVED_NPU_cudaGraphCondAssignDefault
+/* reference_maca: cudaGraphCondTypeIf -> mcGraphCondTypeIf */
+#define cudaGraphCondTypeIf CU2CCE_RESERVED_NPU_cudaGraphCondTypeIf
+/* reference_maca: cudaGraphCondTypeSwitch -> mcGraphCondTypeSwitch */
+#define cudaGraphCondTypeSwitch CU2CCE_RESERVED_NPU_cudaGraphCondTypeSwitch
+/* reference_maca: cudaGraphCondTypeWhile -> mcGraphCondTypeWhile */
+#define cudaGraphCondTypeWhile CU2CCE_RESERVED_NPU_cudaGraphCondTypeWhile
+/* reference_maca: cudaGraphConditionalHandle -> mcGraphConditionalHandle */
+#define cudaGraphConditionalHandle CU2CCE_RESERVED_NPU_cudaGraphConditionalHandle
+/* reference_maca: cudaGraphConditionalHandleCreate -> wcudaGraphConditionalHandleCreate */
+#define cudaGraphConditionalHandleCreate CU2CCE_RESERVED_NPU_cudaGraphConditionalHandleCreate
+/* reference_maca: cudaGraphConditionalHandleFlags -> mcGraphConditionalHandleFlags */
+#define cudaGraphConditionalHandleFlags CU2CCE_RESERVED_NPU_cudaGraphConditionalHandleFlags
+/* reference_maca: cudaGraphDebugDotFlags -> mcGraphDebugDotFlags_enum */
+#define cudaGraphDebugDotFlags CU2CCE_RESERVED_NPU_cudaGraphDebugDotFlags
+/* reference_maca: cudaGraphDebugDotFlagsConditionalNodeParams -> mcGraphDebugDotFlagsConditionalNodeParams */
+#define cudaGraphDebugDotFlagsConditionalNodeParams CU2CCE_RESERVED_NPU_cudaGraphDebugDotFlagsConditionalNodeParams
+/* reference_maca: cudaGraphDebugDotFlagsEventNodeParams -> mcGraphDebugDotFlagsEventNodeParams */
+#define cudaGraphDebugDotFlagsEventNodeParams CU2CCE_RESERVED_NPU_cudaGraphDebugDotFlagsEventNodeParams
+/* reference_maca: cudaGraphDebugDotFlagsExtSemasSignalNodeParams -> mcGraphDebugDotFlagsExtSemasSignalNodeParams */
+#define cudaGraphDebugDotFlagsExtSemasSignalNodeParams CU2CCE_RESERVED_NPU_cudaGraphDebugDotFlagsExtSemasSignalNodeParams
+/* reference_maca: cudaGraphDebugDotFlagsExtSemasWaitNodeParams -> mcGraphDebugDotFlagsExtSemasWaitNodeParams */
+#define cudaGraphDebugDotFlagsExtSemasWaitNodeParams CU2CCE_RESERVED_NPU_cudaGraphDebugDotFlagsExtSemasWaitNodeParams
+/* reference_maca: cudaGraphDebugDotFlagsHandles -> mcGraphDebugDotFlagsHandles */
+#define cudaGraphDebugDotFlagsHandles CU2CCE_RESERVED_NPU_cudaGraphDebugDotFlagsHandles
+/* reference_maca: cudaGraphDebugDotFlagsHostNodeParams -> mcGraphDebugDotFlagsHostNodeParams */
+#define cudaGraphDebugDotFlagsHostNodeParams CU2CCE_RESERVED_NPU_cudaGraphDebugDotFlagsHostNodeParams
+/* reference_maca: cudaGraphDebugDotFlagsKernelNodeAttributes -> mcGraphDebugDotFlagsKernelNodeAttributes */
+#define cudaGraphDebugDotFlagsKernelNodeAttributes CU2CCE_RESERVED_NPU_cudaGraphDebugDotFlagsKernelNodeAttributes
+/* reference_maca: cudaGraphDebugDotFlagsKernelNodeParams -> mcGraphDebugDotFlagsKernelNodeParams */
+#define cudaGraphDebugDotFlagsKernelNodeParams CU2CCE_RESERVED_NPU_cudaGraphDebugDotFlagsKernelNodeParams
+/* reference_maca: cudaGraphDebugDotFlagsMemcpyNodeParams -> mcGraphDebugDotFlagsMemcpyNodeParams */
+#define cudaGraphDebugDotFlagsMemcpyNodeParams CU2CCE_RESERVED_NPU_cudaGraphDebugDotFlagsMemcpyNodeParams
+/* reference_maca: cudaGraphDebugDotFlagsMemsetNodeParams -> mcGraphDebugDotFlagsMemsetNodeParams */
+#define cudaGraphDebugDotFlagsMemsetNodeParams CU2CCE_RESERVED_NPU_cudaGraphDebugDotFlagsMemsetNodeParams
+/* reference_maca: cudaGraphDebugDotFlagsVerbose -> mcGraphDebugDotFlagsVerbose */
+#define cudaGraphDebugDotFlagsVerbose CU2CCE_RESERVED_NPU_cudaGraphDebugDotFlagsVerbose
+/* reference_maca: cudaGraphDebugDotPrint -> wcudaGraphDebugDotPrint */
+#define cudaGraphDebugDotPrint CU2CCE_RESERVED_NPU_cudaGraphDebugDotPrint
+/* reference_maca: cudaGraphDependencyType -> mcGraphDependencyType */
+#define cudaGraphDependencyType CU2CCE_RESERVED_NPU_cudaGraphDependencyType
+/* reference_maca: cudaGraphDependencyTypeDefault -> mcGraphDependencyTypeDefault */
+#define cudaGraphDependencyTypeDefault CU2CCE_RESERVED_NPU_cudaGraphDependencyTypeDefault
+/* reference_maca: cudaGraphDependencyTypeProgrammatic -> mcGraphDependencyTypeProgrammatic */
+#define cudaGraphDependencyTypeProgrammatic CU2CCE_RESERVED_NPU_cudaGraphDependencyTypeProgrammatic
+/* reference_maca: cudaGraphDestroyNode -> wcudaGraphDestroyNode */
+#define cudaGraphDestroyNode CU2CCE_RESERVED_NPU_cudaGraphDestroyNode
+/* reference_maca: cudaGraphDeviceNode_t -> mcGraphDeviceNode_t */
+#define cudaGraphDeviceNode_t CU2CCE_RESERVED_NPU_cudaGraphDeviceNode_t
+/* reference_maca: cudaGraphEdgeData -> mcGraphEdgeData */
+#define cudaGraphEdgeData CU2CCE_RESERVED_NPU_cudaGraphEdgeData
+/* reference_maca: cudaGraphEventRecordNodeGetEvent -> wcudaGraphEventRecordNodeGetEvent */
+#define cudaGraphEventRecordNodeGetEvent CU2CCE_RESERVED_NPU_cudaGraphEventRecordNodeGetEvent
+/* reference_maca: cudaGraphEventRecordNodeSetEvent -> wcudaGraphEventRecordNodeSetEvent */
+#define cudaGraphEventRecordNodeSetEvent CU2CCE_RESERVED_NPU_cudaGraphEventRecordNodeSetEvent
+/* reference_maca: cudaGraphEventWaitNodeGetEvent -> wcudaGraphEventWaitNodeGetEvent */
+#define cudaGraphEventWaitNodeGetEvent CU2CCE_RESERVED_NPU_cudaGraphEventWaitNodeGetEvent
+/* reference_maca: cudaGraphEventWaitNodeSetEvent -> wcudaGraphEventWaitNodeSetEvent */
+#define cudaGraphEventWaitNodeSetEvent CU2CCE_RESERVED_NPU_cudaGraphEventWaitNodeSetEvent
+/* reference_maca: cudaGraphExecChildGraphNodeSetParams -> wcudaGraphExecChildGraphNodeSetParams */
+#define cudaGraphExecChildGraphNodeSetParams CU2CCE_RESERVED_NPU_cudaGraphExecChildGraphNodeSetParams
+/* reference_maca: cudaGraphExecEventRecordNodeSetEvent -> wcudaGraphExecEventRecordNodeSetEvent */
+#define cudaGraphExecEventRecordNodeSetEvent CU2CCE_RESERVED_NPU_cudaGraphExecEventRecordNodeSetEvent
+/* reference_maca: cudaGraphExecEventWaitNodeSetEvent -> wcudaGraphExecEventWaitNodeSetEvent */
+#define cudaGraphExecEventWaitNodeSetEvent CU2CCE_RESERVED_NPU_cudaGraphExecEventWaitNodeSetEvent
+/* reference_maca: cudaGraphExecExternalSemaphoresSignalNodeSetParams -> wcudaGraphExecExternalSemaphoresSignalNodeSetParams */
+#define cudaGraphExecExternalSemaphoresSignalNodeSetParams CU2CCE_RESERVED_NPU_cudaGraphExecExternalSemaphoresSignalNodeSetParams
+/* reference_maca: cudaGraphExecExternalSemaphoresWaitNodeSetParams -> wcudaGraphExecExternalSemaphoresWaitNodeSetParams */
+#define cudaGraphExecExternalSemaphoresWaitNodeSetParams CU2CCE_RESERVED_NPU_cudaGraphExecExternalSemaphoresWaitNodeSetParams
+/* reference_maca: cudaGraphExecGetFlags -> wcudaGraphExecGetFlags */
+#define cudaGraphExecGetFlags CU2CCE_RESERVED_NPU_cudaGraphExecGetFlags
+/* reference_maca: cudaGraphExecHostNodeSetParams -> wcudaGraphExecHostNodeSetParams */
+#define cudaGraphExecHostNodeSetParams CU2CCE_RESERVED_NPU_cudaGraphExecHostNodeSetParams
+/* reference_maca: cudaGraphExecKernelNodeSetParams -> wcudaGraphExecKernelNodeSetParams */
+#define cudaGraphExecKernelNodeSetParams CU2CCE_RESERVED_NPU_cudaGraphExecKernelNodeSetParams
+/* reference_maca: cudaGraphExecMemcpyNodeSetParams -> wcudaGraphExecMemcpyNodeSetParams */
+#define cudaGraphExecMemcpyNodeSetParams CU2CCE_RESERVED_NPU_cudaGraphExecMemcpyNodeSetParams
+/* reference_maca: cudaGraphExecMemcpyNodeSetParams1D -> wcudaGraphExecMemcpyNodeSetParams1D */
+#define cudaGraphExecMemcpyNodeSetParams1D CU2CCE_RESERVED_NPU_cudaGraphExecMemcpyNodeSetParams1D
+/* reference_maca: cudaGraphExecMemcpyNodeSetParamsFromSymbol -> wcudaGraphExecMemcpyNodeSetParamsFromSymbol */
+#define cudaGraphExecMemcpyNodeSetParamsFromSymbol CU2CCE_RESERVED_NPU_cudaGraphExecMemcpyNodeSetParamsFromSymbol
+/* reference_maca: cudaGraphExecMemcpyNodeSetParamsToSymbol -> wcudaGraphExecMemcpyNodeSetParamsToSymbol */
+#define cudaGraphExecMemcpyNodeSetParamsToSymbol CU2CCE_RESERVED_NPU_cudaGraphExecMemcpyNodeSetParamsToSymbol
+/* reference_maca: cudaGraphExecMemsetNodeSetParams -> wcudaGraphExecMemsetNodeSetParams */
+#define cudaGraphExecMemsetNodeSetParams CU2CCE_RESERVED_NPU_cudaGraphExecMemsetNodeSetParams
+/* reference_maca: cudaGraphExecUpdateError -> mcGraphExecUpdateError */
+#define cudaGraphExecUpdateError CU2CCE_RESERVED_NPU_cudaGraphExecUpdateError
+/* reference_maca: cudaGraphExecUpdateErrorAttributesChanged -> mcGraphExecUpdateErrorAttributesChanged */
+#define cudaGraphExecUpdateErrorAttributesChanged CU2CCE_RESERVED_NPU_cudaGraphExecUpdateErrorAttributesChanged
+/* reference_maca: cudaGraphExecUpdateErrorFunctionChanged -> mcGraphExecUpdateErrorFunctionChanged */
+#define cudaGraphExecUpdateErrorFunctionChanged CU2CCE_RESERVED_NPU_cudaGraphExecUpdateErrorFunctionChanged
+/* reference_maca: cudaGraphExecUpdateErrorNodeTypeChanged -> mcGraphExecUpdateErrorNodeTypeChanged */
+#define cudaGraphExecUpdateErrorNodeTypeChanged CU2CCE_RESERVED_NPU_cudaGraphExecUpdateErrorNodeTypeChanged
+/* reference_maca: cudaGraphExecUpdateErrorNotSupported -> mcGraphExecUpdateErrorNotSupported */
+#define cudaGraphExecUpdateErrorNotSupported CU2CCE_RESERVED_NPU_cudaGraphExecUpdateErrorNotSupported
+/* reference_maca: cudaGraphExecUpdateErrorParametersChanged -> mcGraphExecUpdateErrorParametersChanged */
+#define cudaGraphExecUpdateErrorParametersChanged CU2CCE_RESERVED_NPU_cudaGraphExecUpdateErrorParametersChanged
+/* reference_maca: cudaGraphExecUpdateErrorTopologyChanged -> mcGraphExecUpdateErrorTopologyChanged */
+#define cudaGraphExecUpdateErrorTopologyChanged CU2CCE_RESERVED_NPU_cudaGraphExecUpdateErrorTopologyChanged
+/* reference_maca: cudaGraphExecUpdateErrorUnsupportedFunctionChange -> mcGraphExecUpdateErrorUnsupportedFunctionChange */
+#define cudaGraphExecUpdateErrorUnsupportedFunctionChange CU2CCE_RESERVED_NPU_cudaGraphExecUpdateErrorUnsupportedFunctionChange
+/* reference_maca: cudaGraphExecUpdateResult -> mcGraphExecUpdateResult_enum */
+#define cudaGraphExecUpdateResult CU2CCE_RESERVED_NPU_cudaGraphExecUpdateResult
+/* reference_maca: cudaGraphExecUpdateResultInfo -> mcGraphExecUpdateResultInfo_st */
+#define cudaGraphExecUpdateResultInfo CU2CCE_RESERVED_NPU_cudaGraphExecUpdateResultInfo
+/* reference_maca: cudaGraphExecUpdateSuccess -> mcGraphExecUpdateSuccess */
+#define cudaGraphExecUpdateSuccess CU2CCE_RESERVED_NPU_cudaGraphExecUpdateSuccess
+/* reference_maca: cudaGraphExec_t -> mcGraphExec_t */
+#define cudaGraphExec_t CU2CCE_RESERVED_NPU_cudaGraphExec_t
+/* reference_maca: cudaGraphExternalSemaphoresSignalNodeGetParams -> wcudaGraphExternalSemaphoresSignalNodeGetParams */
+#define cudaGraphExternalSemaphoresSignalNodeGetParams CU2CCE_RESERVED_NPU_cudaGraphExternalSemaphoresSignalNodeGetParams
+/* reference_maca: cudaGraphExternalSemaphoresSignalNodeSetParams -> wcudaGraphExternalSemaphoresSignalNodeSetParams */
+#define cudaGraphExternalSemaphoresSignalNodeSetParams CU2CCE_RESERVED_NPU_cudaGraphExternalSemaphoresSignalNodeSetParams
+/* reference_maca: cudaGraphExternalSemaphoresWaitNodeGetParams -> wcudaGraphExternalSemaphoresWaitNodeGetParams */
+#define cudaGraphExternalSemaphoresWaitNodeGetParams CU2CCE_RESERVED_NPU_cudaGraphExternalSemaphoresWaitNodeGetParams
+/* reference_maca: cudaGraphExternalSemaphoresWaitNodeSetParams -> wcudaGraphExternalSemaphoresWaitNodeSetParams */
+#define cudaGraphExternalSemaphoresWaitNodeSetParams CU2CCE_RESERVED_NPU_cudaGraphExternalSemaphoresWaitNodeSetParams
+/* reference_maca: cudaGraphGetEdges -> wcudaGraphGetEdges */
+#define cudaGraphGetEdges CU2CCE_RESERVED_NPU_cudaGraphGetEdges
+/* reference_maca: cudaGraphGetEdges_v2 -> wcudaGraphGetEdges_v2 */
+#define cudaGraphGetEdges_v2 CU2CCE_RESERVED_NPU_cudaGraphGetEdges_v2
+/* reference_maca: cudaGraphGetNodes -> wcudaGraphGetNodes */
+#define cudaGraphGetNodes CU2CCE_RESERVED_NPU_cudaGraphGetNodes
+/* reference_maca: cudaGraphGetRootNodes -> wcudaGraphGetRootNodes */
+#define cudaGraphGetRootNodes CU2CCE_RESERVED_NPU_cudaGraphGetRootNodes
+/* reference_maca: cudaGraphHostNodeGetParams -> wcudaGraphHostNodeGetParams */
+#define cudaGraphHostNodeGetParams CU2CCE_RESERVED_NPU_cudaGraphHostNodeGetParams
+/* reference_maca: cudaGraphHostNodeSetParams -> wcudaGraphHostNodeSetParams */
+#define cudaGraphHostNodeSetParams CU2CCE_RESERVED_NPU_cudaGraphHostNodeSetParams
+/* reference_maca: cudaGraphInstantiateError -> mcGraphInstantiateError */
+#define cudaGraphInstantiateError CU2CCE_RESERVED_NPU_cudaGraphInstantiateError
+/* reference_maca: cudaGraphInstantiateFlagAutoFreeOnLaunch -> mcGraphInstantiateFlagAutoFreeOnLaunch */
+#define cudaGraphInstantiateFlagAutoFreeOnLaunch CU2CCE_RESERVED_NPU_cudaGraphInstantiateFlagAutoFreeOnLaunch
+/* reference_maca: cudaGraphInstantiateFlagDeviceLaunch -> mcGraphInstantiateFlagDeviceLaunch */
+#define cudaGraphInstantiateFlagDeviceLaunch CU2CCE_RESERVED_NPU_cudaGraphInstantiateFlagDeviceLaunch
+/* reference_maca: cudaGraphInstantiateFlagUpload -> mcGraphInstantiateFlagUpload */
+#define cudaGraphInstantiateFlagUpload CU2CCE_RESERVED_NPU_cudaGraphInstantiateFlagUpload
+/* reference_maca: cudaGraphInstantiateFlagUseNodePriority -> mcGraphInstantiateFlagUseNodePriority */
+#define cudaGraphInstantiateFlagUseNodePriority CU2CCE_RESERVED_NPU_cudaGraphInstantiateFlagUseNodePriority
+/* reference_maca: cudaGraphInstantiateFlags -> mcGraphInstantiateFlags_enum */
+#define cudaGraphInstantiateFlags CU2CCE_RESERVED_NPU_cudaGraphInstantiateFlags
+/* reference_maca: cudaGraphInstantiateInvalidStructure -> mcGraphInstantiateInvalidStructure */
+#define cudaGraphInstantiateInvalidStructure CU2CCE_RESERVED_NPU_cudaGraphInstantiateInvalidStructure
+/* reference_maca: cudaGraphInstantiateMultipleDevicesNotSupported -> mcGraphInstantiateMultipleDevicesNotSupported */
+#define cudaGraphInstantiateMultipleDevicesNotSupported CU2CCE_RESERVED_NPU_cudaGraphInstantiateMultipleDevicesNotSupported
+/* reference_maca: cudaGraphInstantiateNodeOperationNotSupported -> mcGraphInstantiateNodeOperationNotSupported */
+#define cudaGraphInstantiateNodeOperationNotSupported CU2CCE_RESERVED_NPU_cudaGraphInstantiateNodeOperationNotSupported
+/* reference_maca: cudaGraphInstantiateParams -> mcGraphInstantiateParams_st */
+#define cudaGraphInstantiateParams CU2CCE_RESERVED_NPU_cudaGraphInstantiateParams
+/* reference_maca: cudaGraphInstantiateResult -> mcGraphInstantiateResult_enum */
+#define cudaGraphInstantiateResult CU2CCE_RESERVED_NPU_cudaGraphInstantiateResult
+/* reference_maca: cudaGraphInstantiateSuccess -> mcGraphInstantiateSuccess */
+#define cudaGraphInstantiateSuccess CU2CCE_RESERVED_NPU_cudaGraphInstantiateSuccess
+/* reference_maca: cudaGraphInstantiateWithFlags -> wcudaGraphInstantiateWithFlags */
+#define cudaGraphInstantiateWithFlags CU2CCE_RESERVED_NPU_cudaGraphInstantiateWithFlags
+/* reference_maca: cudaGraphInstantiateWithParams -> wcudaGraphInstantiateWithParams */
+#define cudaGraphInstantiateWithParams CU2CCE_RESERVED_NPU_cudaGraphInstantiateWithParams
+/* reference_maca: cudaGraphKernelNodeCopyAttributes -> wcudaGraphKernelNodeCopyAttributes */
+#define cudaGraphKernelNodeCopyAttributes CU2CCE_RESERVED_NPU_cudaGraphKernelNodeCopyAttributes
+/* reference_maca: cudaGraphKernelNodeGetAttribute -> wcudaGraphKernelNodeGetAttribute */
+#define cudaGraphKernelNodeGetAttribute CU2CCE_RESERVED_NPU_cudaGraphKernelNodeGetAttribute
+/* reference_maca: cudaGraphKernelNodeGetParams -> wcudaGraphKernelNodeGetParams */
+#define cudaGraphKernelNodeGetParams CU2CCE_RESERVED_NPU_cudaGraphKernelNodeGetParams
+/* reference_maca: cudaGraphKernelNodePortDefault -> mcGraphKernelNodePortDefault */
+#define cudaGraphKernelNodePortDefault CU2CCE_RESERVED_NPU_cudaGraphKernelNodePortDefault
+/* reference_maca: cudaGraphKernelNodePortLaunchCompletion -> mcGraphKernelNodePortLaunchCompletion */
+#define cudaGraphKernelNodePortLaunchCompletion CU2CCE_RESERVED_NPU_cudaGraphKernelNodePortLaunchCompletion
+/* reference_maca: cudaGraphKernelNodePortProgrammatic -> mcGraphKernelNodePortProgrammatic */
+#define cudaGraphKernelNodePortProgrammatic CU2CCE_RESERVED_NPU_cudaGraphKernelNodePortProgrammatic
+/* reference_maca: cudaGraphKernelNodeSetAttribute -> wcudaGraphKernelNodeSetAttribute */
+#define cudaGraphKernelNodeSetAttribute CU2CCE_RESERVED_NPU_cudaGraphKernelNodeSetAttribute
+/* reference_maca: cudaGraphKernelNodeSetParams -> wcudaGraphKernelNodeSetParams */
+#define cudaGraphKernelNodeSetParams CU2CCE_RESERVED_NPU_cudaGraphKernelNodeSetParams
+/* reference_maca: cudaGraphMemAllocNodeGetParams -> wcudaGraphMemAllocNodeGetParams */
+#define cudaGraphMemAllocNodeGetParams CU2CCE_RESERVED_NPU_cudaGraphMemAllocNodeGetParams
+/* reference_maca: cudaGraphMemAttrReservedMemCurrent -> mcGraphMemAttrReservedMemCurrent */
+#define cudaGraphMemAttrReservedMemCurrent CU2CCE_RESERVED_NPU_cudaGraphMemAttrReservedMemCurrent
+/* reference_maca: cudaGraphMemAttrReservedMemHigh -> mcGraphMemAttrReservedMemHigh */
+#define cudaGraphMemAttrReservedMemHigh CU2CCE_RESERVED_NPU_cudaGraphMemAttrReservedMemHigh
+/* reference_maca: cudaGraphMemAttrUsedMemCurrent -> mcGraphMemAttrUsedMemCurrent */
+#define cudaGraphMemAttrUsedMemCurrent CU2CCE_RESERVED_NPU_cudaGraphMemAttrUsedMemCurrent
+/* reference_maca: cudaGraphMemAttrUsedMemHigh -> mcGraphMemAttrUsedMemHigh */
+#define cudaGraphMemAttrUsedMemHigh CU2CCE_RESERVED_NPU_cudaGraphMemAttrUsedMemHigh
+/* reference_maca: cudaGraphMemAttributeType -> mcGraphMemAttributeType_enum */
+#define cudaGraphMemAttributeType CU2CCE_RESERVED_NPU_cudaGraphMemAttributeType
+/* reference_maca: cudaGraphMemFreeNodeGetParams -> wcudaGraphMemFreeNodeGetParams */
+#define cudaGraphMemFreeNodeGetParams CU2CCE_RESERVED_NPU_cudaGraphMemFreeNodeGetParams
+/* reference_maca: cudaGraphMemcpyNodeGetParams -> wcudaGraphMemcpyNodeGetParams */
+#define cudaGraphMemcpyNodeGetParams CU2CCE_RESERVED_NPU_cudaGraphMemcpyNodeGetParams
+/* reference_maca: cudaGraphMemcpyNodeSetParams -> wcudaGraphMemcpyNodeSetParams */
+#define cudaGraphMemcpyNodeSetParams CU2CCE_RESERVED_NPU_cudaGraphMemcpyNodeSetParams
+/* reference_maca: cudaGraphMemcpyNodeSetParamsFromSymbol -> wcudaGraphMemcpyNodeSetParamsFromSymbol */
+#define cudaGraphMemcpyNodeSetParamsFromSymbol CU2CCE_RESERVED_NPU_cudaGraphMemcpyNodeSetParamsFromSymbol
+/* reference_maca: cudaGraphMemcpyNodeSetParamsToSymbol -> wcudaGraphMemcpyNodeSetParamsToSymbol */
+#define cudaGraphMemcpyNodeSetParamsToSymbol CU2CCE_RESERVED_NPU_cudaGraphMemcpyNodeSetParamsToSymbol
+/* reference_maca: cudaGraphMemsetNodeGetParams -> wcudaGraphMemsetNodeGetParams */
+#define cudaGraphMemsetNodeGetParams CU2CCE_RESERVED_NPU_cudaGraphMemsetNodeGetParams
+/* reference_maca: cudaGraphMemsetNodeSetParams -> wcudaGraphMemsetNodeSetParams */
+#define cudaGraphMemsetNodeSetParams CU2CCE_RESERVED_NPU_cudaGraphMemsetNodeSetParams
+/* reference_maca: cudaGraphNodeFindInClone -> wcudaGraphNodeFindInClone */
+#define cudaGraphNodeFindInClone CU2CCE_RESERVED_NPU_cudaGraphNodeFindInClone
+/* reference_maca: cudaGraphNodeGetDependencies -> wcudaGraphNodeGetDependencies */
+#define cudaGraphNodeGetDependencies CU2CCE_RESERVED_NPU_cudaGraphNodeGetDependencies
+/* reference_maca: cudaGraphNodeGetDependencies_v2 -> wcudaGraphNodeGetDependencies_v2 */
+#define cudaGraphNodeGetDependencies_v2 CU2CCE_RESERVED_NPU_cudaGraphNodeGetDependencies_v2
+/* reference_maca: cudaGraphNodeGetDependentNodes -> wcudaGraphNodeGetDependentNodes */
+#define cudaGraphNodeGetDependentNodes CU2CCE_RESERVED_NPU_cudaGraphNodeGetDependentNodes
+/* reference_maca: cudaGraphNodeGetDependentNodes_v2 -> wcudaGraphNodeGetDependentNodes_v2 */
+#define cudaGraphNodeGetDependentNodes_v2 CU2CCE_RESERVED_NPU_cudaGraphNodeGetDependentNodes_v2
+/* reference_maca: cudaGraphNodeGetEnabled -> wcudaGraphNodeGetEnabled */
+#define cudaGraphNodeGetEnabled CU2CCE_RESERVED_NPU_cudaGraphNodeGetEnabled
+/* reference_maca: cudaGraphNodeGetType -> wcudaGraphNodeGetType */
+#define cudaGraphNodeGetType CU2CCE_RESERVED_NPU_cudaGraphNodeGetType
+/* reference_maca: cudaGraphNodeParams -> mcGraphNodeParams */
+#define cudaGraphNodeParams CU2CCE_RESERVED_NPU_cudaGraphNodeParams
+/* reference_maca: cudaGraphNodeSetEnabled -> wcudaGraphNodeSetEnabled */
+#define cudaGraphNodeSetEnabled CU2CCE_RESERVED_NPU_cudaGraphNodeSetEnabled
+/* reference_maca: cudaGraphNodeType -> mcGraphNodeType_t */
+#define cudaGraphNodeType CU2CCE_RESERVED_NPU_cudaGraphNodeType
+/* reference_maca: cudaGraphNodeTypeConditional -> mcGraphNodeTypeConditional */
+#define cudaGraphNodeTypeConditional CU2CCE_RESERVED_NPU_cudaGraphNodeTypeConditional
+/* reference_maca: cudaGraphNodeTypeCount -> mcGraphNodeTypeCount */
+#define cudaGraphNodeTypeCount CU2CCE_RESERVED_NPU_cudaGraphNodeTypeCount
+/* reference_maca: cudaGraphNodeTypeEmpty -> mcGraphNodeTypeEmpty */
+#define cudaGraphNodeTypeEmpty CU2CCE_RESERVED_NPU_cudaGraphNodeTypeEmpty
+/* reference_maca: cudaGraphNodeTypeEventRecord -> mcGraphNodeTypeEventRecord */
+#define cudaGraphNodeTypeEventRecord CU2CCE_RESERVED_NPU_cudaGraphNodeTypeEventRecord
+/* reference_maca: cudaGraphNodeTypeExtSemaphoreSignal -> mcGraphNodeTypeExtSemaphoreSignal */
+#define cudaGraphNodeTypeExtSemaphoreSignal CU2CCE_RESERVED_NPU_cudaGraphNodeTypeExtSemaphoreSignal
+/* reference_maca: cudaGraphNodeTypeExtSemaphoreWait -> mcGraphNodeTypeExtSemaphoreWait */
+#define cudaGraphNodeTypeExtSemaphoreWait CU2CCE_RESERVED_NPU_cudaGraphNodeTypeExtSemaphoreWait
+/* reference_maca: cudaGraphNodeTypeGraph -> mcGraphNodeTypeGraph */
+#define cudaGraphNodeTypeGraph CU2CCE_RESERVED_NPU_cudaGraphNodeTypeGraph
+/* reference_maca: cudaGraphNodeTypeHost -> mcGraphNodeTypeHost */
+#define cudaGraphNodeTypeHost CU2CCE_RESERVED_NPU_cudaGraphNodeTypeHost
+/* reference_maca: cudaGraphNodeTypeKernel -> mcGraphNodeTypeKernel */
+#define cudaGraphNodeTypeKernel CU2CCE_RESERVED_NPU_cudaGraphNodeTypeKernel
+/* reference_maca: cudaGraphNodeTypeMemAlloc -> mcGraphNodeTypeMemAlloc */
+#define cudaGraphNodeTypeMemAlloc CU2CCE_RESERVED_NPU_cudaGraphNodeTypeMemAlloc
+/* reference_maca: cudaGraphNodeTypeMemFree -> mcGraphNodeTypeMemFree */
+#define cudaGraphNodeTypeMemFree CU2CCE_RESERVED_NPU_cudaGraphNodeTypeMemFree
+/* reference_maca: cudaGraphNodeTypeMemcpy -> mcGraphNodeTypeMemcpy */
+#define cudaGraphNodeTypeMemcpy CU2CCE_RESERVED_NPU_cudaGraphNodeTypeMemcpy
+/* reference_maca: cudaGraphNodeTypeMemset -> mcGraphNodeTypeMemset */
+#define cudaGraphNodeTypeMemset CU2CCE_RESERVED_NPU_cudaGraphNodeTypeMemset
+/* reference_maca: cudaGraphNodeTypeWaitEvent -> mcGraphNodeTypeWaitEvent */
+#define cudaGraphNodeTypeWaitEvent CU2CCE_RESERVED_NPU_cudaGraphNodeTypeWaitEvent
+/* reference_maca: cudaGraphNode_t -> mcGraphNode_t */
+#define cudaGraphNode_t CU2CCE_RESERVED_NPU_cudaGraphNode_t
+/* reference_maca: cudaGraphReleaseUserObject -> wcudaGraphReleaseUserObject */
+#define cudaGraphReleaseUserObject CU2CCE_RESERVED_NPU_cudaGraphReleaseUserObject
+/* reference_maca: cudaGraphRemoveDependencies -> wcudaGraphRemoveDependencies */
+#define cudaGraphRemoveDependencies CU2CCE_RESERVED_NPU_cudaGraphRemoveDependencies
+/* reference_maca: cudaGraphRemoveDependencies_v2 -> wcudaGraphRemoveDependencies_v2 */
+#define cudaGraphRemoveDependencies_v2 CU2CCE_RESERVED_NPU_cudaGraphRemoveDependencies_v2
+/* reference_maca: cudaGraphRetainUserObject -> wcudaGraphRetainUserObject */
+#define cudaGraphRetainUserObject CU2CCE_RESERVED_NPU_cudaGraphRetainUserObject
+/* reference_maca: cudaGraphSetConditional -> mcGraphSetConditional */
+#define cudaGraphSetConditional CU2CCE_RESERVED_NPU_cudaGraphSetConditional
+/* reference_maca: cudaGraphUpload -> wcudaGraphUpload */
+#define cudaGraphUpload CU2CCE_RESERVED_NPU_cudaGraphUpload
+/* reference_maca: cudaGraphUserObjectMove -> mcGraphUserObjectMove */
+#define cudaGraphUserObjectMove CU2CCE_RESERVED_NPU_cudaGraphUserObjectMove
+/* reference_maca: cudaGraph_t -> mcGraph_t */
+#define cudaGraph_t CU2CCE_RESERVED_NPU_cudaGraph_t
+/* reference_maca: cudaGraphicsCubeFace -> mcGraphicsCubeFace */
+#define cudaGraphicsCubeFace CU2CCE_RESERVED_NPU_cudaGraphicsCubeFace
+/* reference_maca: cudaGraphicsCubeFaceNegativeX -> mcGraphicsCubeFaceNegativeX */
+#define cudaGraphicsCubeFaceNegativeX CU2CCE_RESERVED_NPU_cudaGraphicsCubeFaceNegativeX
+/* reference_maca: cudaGraphicsCubeFaceNegativeY -> mcGraphicsCubeFaceNegativeY */
+#define cudaGraphicsCubeFaceNegativeY CU2CCE_RESERVED_NPU_cudaGraphicsCubeFaceNegativeY
+/* reference_maca: cudaGraphicsCubeFaceNegativeZ -> mcGraphicsCubeFaceNegativeZ */
+#define cudaGraphicsCubeFaceNegativeZ CU2CCE_RESERVED_NPU_cudaGraphicsCubeFaceNegativeZ
+/* reference_maca: cudaGraphicsCubeFacePositiveX -> mcGraphicsCubeFacePositiveX */
+#define cudaGraphicsCubeFacePositiveX CU2CCE_RESERVED_NPU_cudaGraphicsCubeFacePositiveX
+/* reference_maca: cudaGraphicsCubeFacePositiveY -> mcGraphicsCubeFacePositiveY */
+#define cudaGraphicsCubeFacePositiveY CU2CCE_RESERVED_NPU_cudaGraphicsCubeFacePositiveY
+/* reference_maca: cudaGraphicsCubeFacePositiveZ -> mcGraphicsCubeFacePositiveZ */
+#define cudaGraphicsCubeFacePositiveZ CU2CCE_RESERVED_NPU_cudaGraphicsCubeFacePositiveZ
+/* reference_maca: cudaGraphicsEGLRegisterImage -> wcudaGraphicsEGLRegisterImage */
+#define cudaGraphicsEGLRegisterImage CU2CCE_RESERVED_NPU_cudaGraphicsEGLRegisterImage
+/* reference_maca: cudaGraphicsGLRegisterBuffer -> wcudaGraphicsGLRegisterBuffer */
+#define cudaGraphicsGLRegisterBuffer CU2CCE_RESERVED_NPU_cudaGraphicsGLRegisterBuffer
+/* reference_maca: cudaGraphicsGLRegisterImage -> wcudaGraphicsGLRegisterImage */
+#define cudaGraphicsGLRegisterImage CU2CCE_RESERVED_NPU_cudaGraphicsGLRegisterImage
+/* reference_maca: cudaGraphicsMapFlags -> mcGraphicsMapFlags */
+#define cudaGraphicsMapFlags CU2CCE_RESERVED_NPU_cudaGraphicsMapFlags
+/* reference_maca: cudaGraphicsMapFlagsNone -> mcGraphicsMapFlagsNone */
+#define cudaGraphicsMapFlagsNone CU2CCE_RESERVED_NPU_cudaGraphicsMapFlagsNone
+/* reference_maca: cudaGraphicsMapFlagsReadOnly -> mcGraphicsMapFlagsReadOnly */
+#define cudaGraphicsMapFlagsReadOnly CU2CCE_RESERVED_NPU_cudaGraphicsMapFlagsReadOnly
+/* reference_maca: cudaGraphicsMapFlagsWriteDiscard -> mcGraphicsMapFlagsWriteDiscard */
+#define cudaGraphicsMapFlagsWriteDiscard CU2CCE_RESERVED_NPU_cudaGraphicsMapFlagsWriteDiscard
+/* reference_maca: cudaGraphicsMapResources -> wcudaGraphicsMapResources */
+#define cudaGraphicsMapResources CU2CCE_RESERVED_NPU_cudaGraphicsMapResources
+/* reference_maca: cudaGraphicsRegisterFlags -> mcGraphicsRegisterFlags */
+#define cudaGraphicsRegisterFlags CU2CCE_RESERVED_NPU_cudaGraphicsRegisterFlags
+/* reference_maca: cudaGraphicsRegisterFlagsNone -> mcGraphicsRegisterFlagsNone */
+#define cudaGraphicsRegisterFlagsNone CU2CCE_RESERVED_NPU_cudaGraphicsRegisterFlagsNone
+/* reference_maca: cudaGraphicsRegisterFlagsReadOnly -> mcGraphicsRegisterFlagsReadOnly */
+#define cudaGraphicsRegisterFlagsReadOnly CU2CCE_RESERVED_NPU_cudaGraphicsRegisterFlagsReadOnly
+/* reference_maca: cudaGraphicsRegisterFlagsSurfaceLoadStore -> mcGraphicsRegisterFlagsSurfaceLoadStore */
+#define cudaGraphicsRegisterFlagsSurfaceLoadStore CU2CCE_RESERVED_NPU_cudaGraphicsRegisterFlagsSurfaceLoadStore
+/* reference_maca: cudaGraphicsRegisterFlagsTextureGather -> mcGraphicsRegisterFlagsTextureGather */
+#define cudaGraphicsRegisterFlagsTextureGather CU2CCE_RESERVED_NPU_cudaGraphicsRegisterFlagsTextureGather
+/* reference_maca: cudaGraphicsRegisterFlagsWriteDiscard -> mcGraphicsRegisterFlagsWriteDiscard */
+#define cudaGraphicsRegisterFlagsWriteDiscard CU2CCE_RESERVED_NPU_cudaGraphicsRegisterFlagsWriteDiscard
+/* reference_maca: cudaGraphicsResource -> mcGraphicsResource */
+#define cudaGraphicsResource CU2CCE_RESERVED_NPU_cudaGraphicsResource
+/* reference_maca: cudaGraphicsResourceGetMappedEglFrame -> wcudaGraphicsResourceGetMappedEglFrame */
+#define cudaGraphicsResourceGetMappedEglFrame CU2CCE_RESERVED_NPU_cudaGraphicsResourceGetMappedEglFrame
+/* reference_maca: cudaGraphicsResourceGetMappedMipmappedArray -> wcudaGraphicsResourceGetMappedMipmappedArray */
+#define cudaGraphicsResourceGetMappedMipmappedArray CU2CCE_RESERVED_NPU_cudaGraphicsResourceGetMappedMipmappedArray
+/* reference_maca: cudaGraphicsResourceGetMappedPointer -> wcudaGraphicsResourceGetMappedPointer */
+#define cudaGraphicsResourceGetMappedPointer CU2CCE_RESERVED_NPU_cudaGraphicsResourceGetMappedPointer
+/* reference_maca: cudaGraphicsResourceSetMapFlags -> wcudaGraphicsResourceSetMapFlags */
+#define cudaGraphicsResourceSetMapFlags CU2CCE_RESERVED_NPU_cudaGraphicsResourceSetMapFlags
+/* reference_maca: cudaGraphicsResource_t -> mcGraphicsResource_t */
+#define cudaGraphicsResource_t CU2CCE_RESERVED_NPU_cudaGraphicsResource_t
+/* reference_maca: cudaGraphicsSubResourceGetMappedArray -> wcudaGraphicsSubResourceGetMappedArray */
+#define cudaGraphicsSubResourceGetMappedArray CU2CCE_RESERVED_NPU_cudaGraphicsSubResourceGetMappedArray
+/* reference_maca: cudaGraphicsUnmapResources -> wcudaGraphicsUnmapResources */
+#define cudaGraphicsUnmapResources CU2CCE_RESERVED_NPU_cudaGraphicsUnmapResources
+/* reference_maca: cudaGraphicsUnregisterResource -> wcudaGraphicsUnregisterResource */
+#define cudaGraphicsUnregisterResource CU2CCE_RESERVED_NPU_cudaGraphicsUnregisterResource
+/* reference_maca: cudaGraphicsVDPAURegisterOutputSurface -> wcudaGraphicsVDPAURegisterOutputSurface */
+#define cudaGraphicsVDPAURegisterOutputSurface CU2CCE_RESERVED_NPU_cudaGraphicsVDPAURegisterOutputSurface
+#endif
+
+#if 0
+/* RESERVED_NPU category: Graphics_Interop
+ * Future implementation: include/bridge/runtime/ and src/bridge/runtime/.
+ */
+/* reference_maca: cudaEGLStreamConsumerAcquireFrame -> wcudaEGLStreamConsumerAcquireFrame */
+#define cudaEGLStreamConsumerAcquireFrame CU2CCE_RESERVED_NPU_cudaEGLStreamConsumerAcquireFrame
+/* reference_maca: cudaEGLStreamConsumerConnect -> wcudaEGLStreamConsumerConnect */
+#define cudaEGLStreamConsumerConnect CU2CCE_RESERVED_NPU_cudaEGLStreamConsumerConnect
+/* reference_maca: cudaEGLStreamConsumerConnectWithFlags -> wcudaEGLStreamConsumerConnectWithFlags */
+#define cudaEGLStreamConsumerConnectWithFlags CU2CCE_RESERVED_NPU_cudaEGLStreamConsumerConnectWithFlags
+/* reference_maca: cudaEGLStreamConsumerDisconnect -> wcudaEGLStreamConsumerDisconnect */
+#define cudaEGLStreamConsumerDisconnect CU2CCE_RESERVED_NPU_cudaEGLStreamConsumerDisconnect
+/* reference_maca: cudaEGLStreamConsumerReleaseFrame -> wcudaEGLStreamConsumerReleaseFrame */
+#define cudaEGLStreamConsumerReleaseFrame CU2CCE_RESERVED_NPU_cudaEGLStreamConsumerReleaseFrame
+/* reference_maca: cudaEGLStreamProducerConnect -> wcudaEGLStreamProducerConnect */
+#define cudaEGLStreamProducerConnect CU2CCE_RESERVED_NPU_cudaEGLStreamProducerConnect
+/* reference_maca: cudaEGLStreamProducerDisconnect -> wcudaEGLStreamProducerDisconnect */
+#define cudaEGLStreamProducerDisconnect CU2CCE_RESERVED_NPU_cudaEGLStreamProducerDisconnect
+/* reference_maca: cudaEGLStreamProducerPresentFrame -> wcudaEGLStreamProducerPresentFrame */
+#define cudaEGLStreamProducerPresentFrame CU2CCE_RESERVED_NPU_cudaEGLStreamProducerPresentFrame
+/* reference_maca: cudaEGLStreamProducerReturnFrame -> wcudaEGLStreamProducerReturnFrame */
+#define cudaEGLStreamProducerReturnFrame CU2CCE_RESERVED_NPU_cudaEGLStreamProducerReturnFrame
+/* reference_maca: cudaGLDeviceList -> mcGLDeviceList */
+#define cudaGLDeviceList CU2CCE_RESERVED_NPU_cudaGLDeviceList
+/* reference_maca: cudaGLDeviceListAll -> mcGLDeviceListAll */
+#define cudaGLDeviceListAll CU2CCE_RESERVED_NPU_cudaGLDeviceListAll
+/* reference_maca: cudaGLDeviceListCurrentFrame -> mcGLDeviceListCurrentFrame */
+#define cudaGLDeviceListCurrentFrame CU2CCE_RESERVED_NPU_cudaGLDeviceListCurrentFrame
+/* reference_maca: cudaGLDeviceListNextFrame -> mcGLDeviceListNextFrame */
+#define cudaGLDeviceListNextFrame CU2CCE_RESERVED_NPU_cudaGLDeviceListNextFrame
+/* reference_maca: cudaGLGetDevices -> wcudaGLGetDevices */
+#define cudaGLGetDevices CU2CCE_RESERVED_NPU_cudaGLGetDevices
+/* reference_maca: cudaGLMapBufferObject -> wcudaGLMapBufferObject */
+#define cudaGLMapBufferObject CU2CCE_RESERVED_NPU_cudaGLMapBufferObject
+/* reference_maca: cudaGLMapBufferObjectAsync -> wcudaGLMapBufferObjectAsync */
+#define cudaGLMapBufferObjectAsync CU2CCE_RESERVED_NPU_cudaGLMapBufferObjectAsync
+/* reference_maca: cudaGLMapFlags -> mcGLMapFlags */
+#define cudaGLMapFlags CU2CCE_RESERVED_NPU_cudaGLMapFlags
+/* reference_maca: cudaGLMapFlagsNone -> mcGLMapFlagsNone */
+#define cudaGLMapFlagsNone CU2CCE_RESERVED_NPU_cudaGLMapFlagsNone
+/* reference_maca: cudaGLMapFlagsReadOnly -> mcGLMapFlagsReadOnly */
+#define cudaGLMapFlagsReadOnly CU2CCE_RESERVED_NPU_cudaGLMapFlagsReadOnly
+/* reference_maca: cudaGLMapFlagsWriteDiscard -> mcGLMapFlagsWriteDiscard */
+#define cudaGLMapFlagsWriteDiscard CU2CCE_RESERVED_NPU_cudaGLMapFlagsWriteDiscard
+/* reference_maca: cudaGLRegisterBufferObject -> wcudaGLRegisterBufferObject */
+#define cudaGLRegisterBufferObject CU2CCE_RESERVED_NPU_cudaGLRegisterBufferObject
+/* reference_maca: cudaGLSetBufferObjectMapFlags -> wcudaGLSetBufferObjectMapFlags */
+#define cudaGLSetBufferObjectMapFlags CU2CCE_RESERVED_NPU_cudaGLSetBufferObjectMapFlags
+/* reference_maca: cudaGLSetGLDevice -> wcudaGLSetGLDevice */
+#define cudaGLSetGLDevice CU2CCE_RESERVED_NPU_cudaGLSetGLDevice
+/* reference_maca: cudaGLUnmapBufferObject -> wcudaGLUnmapBufferObject */
+#define cudaGLUnmapBufferObject CU2CCE_RESERVED_NPU_cudaGLUnmapBufferObject
+/* reference_maca: cudaGLUnmapBufferObjectAsync -> wcudaGLUnmapBufferObjectAsync */
+#define cudaGLUnmapBufferObjectAsync CU2CCE_RESERVED_NPU_cudaGLUnmapBufferObjectAsync
+/* reference_maca: cudaGLUnregisterBufferObject -> wcudaGLUnregisterBufferObject */
+#define cudaGLUnregisterBufferObject CU2CCE_RESERVED_NPU_cudaGLUnregisterBufferObject
+/* reference_maca: cudaVDPAUGetDevice -> wcudaVDPAUGetDevice */
+#define cudaVDPAUGetDevice CU2CCE_RESERVED_NPU_cudaVDPAUGetDevice
+/* reference_maca: cudaVDPAUSetVDPAUDevice -> wcudaVDPAUSetVDPAUDevice */
+#define cudaVDPAUSetVDPAUDevice CU2CCE_RESERVED_NPU_cudaVDPAUSetVDPAUDevice
+#endif
+
+#if 0
+/* RESERVED_NPU category: IPC_External
+ * Future implementation: include/bridge/runtime/ and src/bridge/runtime/.
+ */
+/* reference_maca: cudaExternalMemoryBufferDesc -> mcExternalMemoryBufferDesc_st */
+#define cudaExternalMemoryBufferDesc CU2CCE_RESERVED_NPU_cudaExternalMemoryBufferDesc
+/* reference_maca: cudaExternalMemoryDedicated -> mcExternalMemoryDedicated */
+#define cudaExternalMemoryDedicated CU2CCE_RESERVED_NPU_cudaExternalMemoryDedicated
+/* reference_maca: cudaExternalMemoryGetMappedBuffer -> wcudaExternalMemoryGetMappedBuffer */
+#define cudaExternalMemoryGetMappedBuffer CU2CCE_RESERVED_NPU_cudaExternalMemoryGetMappedBuffer
+/* reference_maca: cudaExternalMemoryGetMappedMipmappedArray -> wcudaExternalMemoryGetMappedMipmappedArray */
+#define cudaExternalMemoryGetMappedMipmappedArray CU2CCE_RESERVED_NPU_cudaExternalMemoryGetMappedMipmappedArray
+/* reference_maca: cudaExternalMemoryHandleDesc -> mcExternalMemoryHandleDesc_st */
+#define cudaExternalMemoryHandleDesc CU2CCE_RESERVED_NPU_cudaExternalMemoryHandleDesc
+/* reference_maca: cudaExternalMemoryHandleType -> mcExternalMemoryHandleType */
+#define cudaExternalMemoryHandleType CU2CCE_RESERVED_NPU_cudaExternalMemoryHandleType
+/* reference_maca: cudaExternalMemoryHandleTypeD3D11Resource -> mcExternalMemoryHandleTypeD3D11Resource */
+#define cudaExternalMemoryHandleTypeD3D11Resource CU2CCE_RESERVED_NPU_cudaExternalMemoryHandleTypeD3D11Resource
+/* reference_maca: cudaExternalMemoryHandleTypeD3D11ResourceKmt -> mcExternalMemoryHandleTypeD3D11ResourceKmt */
+#define cudaExternalMemoryHandleTypeD3D11ResourceKmt CU2CCE_RESERVED_NPU_cudaExternalMemoryHandleTypeD3D11ResourceKmt
+/* reference_maca: cudaExternalMemoryHandleTypeD3D12Heap -> mcExternalMemoryHandleTypeD3D12Heap */
+#define cudaExternalMemoryHandleTypeD3D12Heap CU2CCE_RESERVED_NPU_cudaExternalMemoryHandleTypeD3D12Heap
+/* reference_maca: cudaExternalMemoryHandleTypeD3D12Resource -> mcExternalMemoryHandleTypeD3D12Resource */
+#define cudaExternalMemoryHandleTypeD3D12Resource CU2CCE_RESERVED_NPU_cudaExternalMemoryHandleTypeD3D12Resource
+/* reference_maca: cudaExternalMemoryHandleTypeNvSciBuf -> mcExternalMemoryHandleTypeNvSciBuf */
+#define cudaExternalMemoryHandleTypeNvSciBuf CU2CCE_RESERVED_NPU_cudaExternalMemoryHandleTypeNvSciBuf
+/* reference_maca: cudaExternalMemoryHandleTypeOpaqueFd -> mcExternalMemoryHandleTypeOpaqueFd */
+#define cudaExternalMemoryHandleTypeOpaqueFd CU2CCE_RESERVED_NPU_cudaExternalMemoryHandleTypeOpaqueFd
+/* reference_maca: cudaExternalMemoryHandleTypeOpaqueWin32 -> mcExternalMemoryHandleTypeOpaqueWin32 */
+#define cudaExternalMemoryHandleTypeOpaqueWin32 CU2CCE_RESERVED_NPU_cudaExternalMemoryHandleTypeOpaqueWin32
+/* reference_maca: cudaExternalMemoryHandleTypeOpaqueWin32Kmt -> mcExternalMemoryHandleTypeOpaqueWin32Kmt */
+#define cudaExternalMemoryHandleTypeOpaqueWin32Kmt CU2CCE_RESERVED_NPU_cudaExternalMemoryHandleTypeOpaqueWin32Kmt
+/* reference_maca: cudaExternalMemoryMipmappedArrayDesc -> mcExternalMemoryMipmappedArrayDesc_st */
+#define cudaExternalMemoryMipmappedArrayDesc CU2CCE_RESERVED_NPU_cudaExternalMemoryMipmappedArrayDesc
+/* reference_maca: cudaExternalMemory_t -> mcExternalMemory_t */
+#define cudaExternalMemory_t CU2CCE_RESERVED_NPU_cudaExternalMemory_t
+/* reference_maca: cudaExternalSemaphoreHandleDesc -> mcExternalSemaphoreHandleDesc_st */
+#define cudaExternalSemaphoreHandleDesc CU2CCE_RESERVED_NPU_cudaExternalSemaphoreHandleDesc
+/* reference_maca: cudaExternalSemaphoreHandleType -> mcExternalSemaphoreHandleType */
+#define cudaExternalSemaphoreHandleType CU2CCE_RESERVED_NPU_cudaExternalSemaphoreHandleType
+/* reference_maca: cudaExternalSemaphoreHandleTypeD3D11Fence -> mcExternalSemaphoreHandleTypeD3D11Fence */
+#define cudaExternalSemaphoreHandleTypeD3D11Fence CU2CCE_RESERVED_NPU_cudaExternalSemaphoreHandleTypeD3D11Fence
+/* reference_maca: cudaExternalSemaphoreHandleTypeD3D12Fence -> mcExternalSemaphoreHandleTypeD3D12Fence */
+#define cudaExternalSemaphoreHandleTypeD3D12Fence CU2CCE_RESERVED_NPU_cudaExternalSemaphoreHandleTypeD3D12Fence
+/* reference_maca: cudaExternalSemaphoreHandleTypeKeyedMutex -> mcExternalSemaphoreHandleTypeKeyedMutex */
+#define cudaExternalSemaphoreHandleTypeKeyedMutex CU2CCE_RESERVED_NPU_cudaExternalSemaphoreHandleTypeKeyedMutex
+/* reference_maca: cudaExternalSemaphoreHandleTypeKeyedMutexKmt -> mcExternalSemaphoreHandleTypeKeyedMutexKmt */
+#define cudaExternalSemaphoreHandleTypeKeyedMutexKmt CU2CCE_RESERVED_NPU_cudaExternalSemaphoreHandleTypeKeyedMutexKmt
+/* reference_maca: cudaExternalSemaphoreHandleTypeNvSciSync -> mcExternalSemaphoreHandleTypeNvSciSync */
+#define cudaExternalSemaphoreHandleTypeNvSciSync CU2CCE_RESERVED_NPU_cudaExternalSemaphoreHandleTypeNvSciSync
+/* reference_maca: cudaExternalSemaphoreHandleTypeOpaqueFd -> mcExternalSemaphoreHandleTypeOpaqueFd */
+#define cudaExternalSemaphoreHandleTypeOpaqueFd CU2CCE_RESERVED_NPU_cudaExternalSemaphoreHandleTypeOpaqueFd
+/* reference_maca: cudaExternalSemaphoreHandleTypeOpaqueWin32 -> mcExternalSemaphoreHandleTypeOpaqueWin32 */
+#define cudaExternalSemaphoreHandleTypeOpaqueWin32 CU2CCE_RESERVED_NPU_cudaExternalSemaphoreHandleTypeOpaqueWin32
+/* reference_maca: cudaExternalSemaphoreHandleTypeOpaqueWin32Kmt -> mcExternalSemaphoreHandleTypeOpaqueWin32Kmt */
+#define cudaExternalSemaphoreHandleTypeOpaqueWin32Kmt CU2CCE_RESERVED_NPU_cudaExternalSemaphoreHandleTypeOpaqueWin32Kmt
+/* reference_maca: cudaExternalSemaphoreHandleTypeTimelineSemaphoreFd -> mcExternalSemaphoreHandleTypeTimelineSemaphoreFd */
+#define cudaExternalSemaphoreHandleTypeTimelineSemaphoreFd CU2CCE_RESERVED_NPU_cudaExternalSemaphoreHandleTypeTimelineSemaphoreFd
+/* reference_maca: cudaExternalSemaphoreHandleTypeTimelineSemaphoreWin32 -> mcExternalSemaphoreHandleTypeTimelineSemaphoreWin32 */
+#define cudaExternalSemaphoreHandleTypeTimelineSemaphoreWin32 CU2CCE_RESERVED_NPU_cudaExternalSemaphoreHandleTypeTimelineSemaphoreWin32
+/* reference_maca: cudaExternalSemaphoreSignalNodeParams -> mcExternalSemaphoreSignalNodeParams_st */
+#define cudaExternalSemaphoreSignalNodeParams CU2CCE_RESERVED_NPU_cudaExternalSemaphoreSignalNodeParams
+/* reference_maca: cudaExternalSemaphoreSignalParams -> mcExternalSemaphoreSignalParams_st */
+#define cudaExternalSemaphoreSignalParams CU2CCE_RESERVED_NPU_cudaExternalSemaphoreSignalParams
+/* reference_maca: cudaExternalSemaphoreSignalParams_v1 -> mcExternalSemaphoreSignalParams_deprecated */
+#define cudaExternalSemaphoreSignalParams_v1 CU2CCE_RESERVED_NPU_cudaExternalSemaphoreSignalParams_v1
+/* reference_maca: cudaExternalSemaphoreSignalSkipNvSciBufMemSync -> mcExternalSemaphoreSignalSkipNvSciBufMemSync */
+#define cudaExternalSemaphoreSignalSkipNvSciBufMemSync CU2CCE_RESERVED_NPU_cudaExternalSemaphoreSignalSkipNvSciBufMemSync
+/* reference_maca: cudaExternalSemaphoreWaitNodeParams -> mcExternalSemaphoreWaitNodeParams_st */
+#define cudaExternalSemaphoreWaitNodeParams CU2CCE_RESERVED_NPU_cudaExternalSemaphoreWaitNodeParams
+/* reference_maca: cudaExternalSemaphoreWaitParams -> mcExternalSemaphoreWaitParams_st */
+#define cudaExternalSemaphoreWaitParams CU2CCE_RESERVED_NPU_cudaExternalSemaphoreWaitParams
+/* reference_maca: cudaExternalSemaphoreWaitParams_v1 -> mcExternalSemaphoreWaitParams_deprecated */
+#define cudaExternalSemaphoreWaitParams_v1 CU2CCE_RESERVED_NPU_cudaExternalSemaphoreWaitParams_v1
+/* reference_maca: cudaExternalSemaphoreWaitSkipNvSciBufMemSync -> mcExternalSemaphoreWaitSkipNvSciBufMemSync */
+#define cudaExternalSemaphoreWaitSkipNvSciBufMemSync CU2CCE_RESERVED_NPU_cudaExternalSemaphoreWaitSkipNvSciBufMemSync
+/* reference_maca: cudaExternalSemaphore_t -> mcExternalSemaphore_t */
+#define cudaExternalSemaphore_t CU2CCE_RESERVED_NPU_cudaExternalSemaphore_t
+/* reference_maca: cudaImportExternalSemaphore -> wcudaImportExternalSemaphore */
+#define cudaImportExternalSemaphore CU2CCE_RESERVED_NPU_cudaImportExternalSemaphore
+/* reference_maca: cudaIpcCloseMemHandle -> wcudaIpcCloseMemHandle */
+#define cudaIpcCloseMemHandle CU2CCE_RESERVED_NPU_cudaIpcCloseMemHandle
+/* reference_maca: cudaIpcEventHandle_st -> mcIpcEventHandle_st */
+#define cudaIpcEventHandle_st CU2CCE_RESERVED_NPU_cudaIpcEventHandle_st
+/* reference_maca: cudaIpcEventHandle_t -> mcIpcEventHandle_t */
+#define cudaIpcEventHandle_t CU2CCE_RESERVED_NPU_cudaIpcEventHandle_t
+/* reference_maca: cudaIpcGetEventHandle -> wcudaIpcGetEventHandle */
+#define cudaIpcGetEventHandle CU2CCE_RESERVED_NPU_cudaIpcGetEventHandle
+/* reference_maca: cudaIpcGetMemHandle -> wcudaIpcGetMemHandle */
+#define cudaIpcGetMemHandle CU2CCE_RESERVED_NPU_cudaIpcGetMemHandle
+/* reference_maca: cudaIpcMemHandle_st -> mcIpcMemHandle_st */
+#define cudaIpcMemHandle_st CU2CCE_RESERVED_NPU_cudaIpcMemHandle_st
+/* reference_maca: cudaIpcMemHandle_t -> mcIpcMemHandle_t */
+#define cudaIpcMemHandle_t CU2CCE_RESERVED_NPU_cudaIpcMemHandle_t
+/* reference_maca: cudaIpcMemLazyEnablePeerAccess -> mcIpcMemLazyEnablePeerAccess */
+#define cudaIpcMemLazyEnablePeerAccess CU2CCE_RESERVED_NPU_cudaIpcMemLazyEnablePeerAccess
+/* reference_maca: cudaIpcOpenEventHandle -> wcudaIpcOpenEventHandle */
+#define cudaIpcOpenEventHandle CU2CCE_RESERVED_NPU_cudaIpcOpenEventHandle
+/* reference_maca: cudaIpcOpenMemHandle -> wcudaIpcOpenMemHandle */
+#define cudaIpcOpenMemHandle CU2CCE_RESERVED_NPU_cudaIpcOpenMemHandle
+/* reference_maca: cudaSignalExternalSemaphoresAsync -> wcudaSignalExternalSemaphoresAsync */
+#define cudaSignalExternalSemaphoresAsync CU2CCE_RESERVED_NPU_cudaSignalExternalSemaphoresAsync
+/* reference_maca: cudaSignalExternalSemaphoresAsync_v2 -> wcudaSignalExternalSemaphoresAsync */
+#define cudaSignalExternalSemaphoresAsync_v2 CU2CCE_RESERVED_NPU_cudaSignalExternalSemaphoresAsync_v2
+/* reference_maca: cudaWaitExternalSemaphoresAsync -> wcudaWaitExternalSemaphoresAsync */
+#define cudaWaitExternalSemaphoresAsync CU2CCE_RESERVED_NPU_cudaWaitExternalSemaphoresAsync
+/* reference_maca: cudaWaitExternalSemaphoresAsync_v2 -> wcudaWaitExternalSemaphoresAsync */
+#define cudaWaitExternalSemaphoresAsync_v2 CU2CCE_RESERVED_NPU_cudaWaitExternalSemaphoresAsync_v2
+#endif
+
+#if 0
+/* RESERVED_NPU category: MemoryPool_UVM
+ * Future implementation: include/bridge/runtime/ and src/bridge/runtime/.
+ */
+/* reference_maca: cudaMemAdviseSetAccessedBy -> mcMemAdviseSetAccessedBy */
+#define cudaMemAdviseSetAccessedBy CU2CCE_RESERVED_NPU_cudaMemAdviseSetAccessedBy
+/* reference_maca: cudaMemAdviseSetPreferredLocation -> mcMemAdviseSetPreferredLocation */
+#define cudaMemAdviseSetPreferredLocation CU2CCE_RESERVED_NPU_cudaMemAdviseSetPreferredLocation
+/* reference_maca: cudaMemAdviseSetReadMostly -> mcMemAdviseSetReadMostly */
+#define cudaMemAdviseSetReadMostly CU2CCE_RESERVED_NPU_cudaMemAdviseSetReadMostly
+/* reference_maca: cudaMemAdviseUnsetAccessedBy -> mcMemAdviseUnsetAccessedBy */
+#define cudaMemAdviseUnsetAccessedBy CU2CCE_RESERVED_NPU_cudaMemAdviseUnsetAccessedBy
+/* reference_maca: cudaMemAdviseUnsetPreferredLocation -> mcMemAdviseUnsetPreferredLocation */
+#define cudaMemAdviseUnsetPreferredLocation CU2CCE_RESERVED_NPU_cudaMemAdviseUnsetPreferredLocation
+/* reference_maca: cudaMemAdviseUnsetReadMostly -> mcMemAdviseUnsetReadMostly */
+#define cudaMemAdviseUnsetReadMostly CU2CCE_RESERVED_NPU_cudaMemAdviseUnsetReadMostly
+/* reference_maca: cudaMemAdvise_v2 -> wcudaMemAdvise_v2 */
+#define cudaMemAdvise_v2 CU2CCE_RESERVED_NPU_cudaMemAdvise_v2
+/* reference_maca: cudaMemPoolAttr -> mcMemPoolAttr */
+#define cudaMemPoolAttr CU2CCE_RESERVED_NPU_cudaMemPoolAttr
+/* reference_maca: cudaMemPoolAttrReleaseThreshold -> mcMemPoolAttrReleaseThreshold */
+#define cudaMemPoolAttrReleaseThreshold CU2CCE_RESERVED_NPU_cudaMemPoolAttrReleaseThreshold
+/* reference_maca: cudaMemPoolAttrReservedMemCurrent -> mcMemPoolAttrReservedMemCurrent */
+#define cudaMemPoolAttrReservedMemCurrent CU2CCE_RESERVED_NPU_cudaMemPoolAttrReservedMemCurrent
+/* reference_maca: cudaMemPoolAttrReservedMemHigh -> mcMemPoolAttrReservedMemHigh */
+#define cudaMemPoolAttrReservedMemHigh CU2CCE_RESERVED_NPU_cudaMemPoolAttrReservedMemHigh
+/* reference_maca: cudaMemPoolAttrUsedMemCurrent -> mcMemPoolAttrUsedMemCurrent */
+#define cudaMemPoolAttrUsedMemCurrent CU2CCE_RESERVED_NPU_cudaMemPoolAttrUsedMemCurrent
+/* reference_maca: cudaMemPoolAttrUsedMemHigh -> mcMemPoolAttrUsedMemHigh */
+#define cudaMemPoolAttrUsedMemHigh CU2CCE_RESERVED_NPU_cudaMemPoolAttrUsedMemHigh
+/* reference_maca: cudaMemPoolExportPointer -> wcudaMemPoolExportPointer */
+#define cudaMemPoolExportPointer CU2CCE_RESERVED_NPU_cudaMemPoolExportPointer
+/* reference_maca: cudaMemPoolExportToShareableHandle -> wcudaMemPoolExportToShareableHandle */
+#define cudaMemPoolExportToShareableHandle CU2CCE_RESERVED_NPU_cudaMemPoolExportToShareableHandle
+/* reference_maca: cudaMemPoolGetAccess -> wcudaMemPoolGetAccess */
+#define cudaMemPoolGetAccess CU2CCE_RESERVED_NPU_cudaMemPoolGetAccess
+/* reference_maca: cudaMemPoolGetAttribute -> wcudaMemPoolGetAttribute */
+#define cudaMemPoolGetAttribute CU2CCE_RESERVED_NPU_cudaMemPoolGetAttribute
+/* reference_maca: cudaMemPoolImportFromShareableHandle -> wcudaMemPoolImportFromShareableHandle */
+#define cudaMemPoolImportFromShareableHandle CU2CCE_RESERVED_NPU_cudaMemPoolImportFromShareableHandle
+/* reference_maca: cudaMemPoolImportPointer -> wcudaMemPoolImportPointer */
+#define cudaMemPoolImportPointer CU2CCE_RESERVED_NPU_cudaMemPoolImportPointer
+/* reference_maca: cudaMemPoolPtrExportData -> mcMemPoolPtrExportData */
+#define cudaMemPoolPtrExportData CU2CCE_RESERVED_NPU_cudaMemPoolPtrExportData
+/* reference_maca: cudaMemPoolReuseAllowInternalDependencies -> mcMemPoolReuseAllowInternalDependencies */
+#define cudaMemPoolReuseAllowInternalDependencies CU2CCE_RESERVED_NPU_cudaMemPoolReuseAllowInternalDependencies
+/* reference_maca: cudaMemPoolReuseAllowOpportunistic -> mcMemPoolReuseAllowOpportunistic */
+#define cudaMemPoolReuseAllowOpportunistic CU2CCE_RESERVED_NPU_cudaMemPoolReuseAllowOpportunistic
+/* reference_maca: cudaMemPoolReuseFollowEventDependencies -> mcMemPoolReuseFollowEventDependencies */
+#define cudaMemPoolReuseFollowEventDependencies CU2CCE_RESERVED_NPU_cudaMemPoolReuseFollowEventDependencies
+/* reference_maca: cudaMemPoolSetAccess -> wcudaMemPoolSetAccess */
+#define cudaMemPoolSetAccess CU2CCE_RESERVED_NPU_cudaMemPoolSetAccess
+/* reference_maca: cudaMemPoolSetAttribute -> wcudaMemPoolSetAttribute */
+#define cudaMemPoolSetAttribute CU2CCE_RESERVED_NPU_cudaMemPoolSetAttribute
+/* reference_maca: cudaMemPoolTrimTo -> wcudaMemPoolTrimTo */
+#define cudaMemPoolTrimTo CU2CCE_RESERVED_NPU_cudaMemPoolTrimTo
+/* reference_maca: cudaMemRangeAttribute -> mcMemRangeAttribute_enum */
+#define cudaMemRangeAttribute CU2CCE_RESERVED_NPU_cudaMemRangeAttribute
+/* reference_maca: cudaMemRangeAttributeAccessedBy -> mcMemRangeAttributeAccessedBy */
+#define cudaMemRangeAttributeAccessedBy CU2CCE_RESERVED_NPU_cudaMemRangeAttributeAccessedBy
+/* reference_maca: cudaMemRangeAttributeLastPrefetchLocation -> mcMemRangeAttributeLastPrefetchLocation */
+#define cudaMemRangeAttributeLastPrefetchLocation CU2CCE_RESERVED_NPU_cudaMemRangeAttributeLastPrefetchLocation
+/* reference_maca: cudaMemRangeAttributePreferredLocation -> mcMemRangeAttributePreferredLocation */
+#define cudaMemRangeAttributePreferredLocation CU2CCE_RESERVED_NPU_cudaMemRangeAttributePreferredLocation
+/* reference_maca: cudaMemRangeAttributeReadMostly -> mcMemRangeAttributeReadMostly */
+#define cudaMemRangeAttributeReadMostly CU2CCE_RESERVED_NPU_cudaMemRangeAttributeReadMostly
+/* reference_maca: cudaMemRangeGetAttribute -> wcudaMemRangeGetAttribute */
+#define cudaMemRangeGetAttribute CU2CCE_RESERVED_NPU_cudaMemRangeGetAttribute
+/* reference_maca: cudaMemRangeGetAttributes -> wcudaMemRangeGetAttributes */
+#define cudaMemRangeGetAttributes CU2CCE_RESERVED_NPU_cudaMemRangeGetAttributes
+/* reference_maca: cudaMemRemap -> wcudaMemRemap */
+#define cudaMemRemap CU2CCE_RESERVED_NPU_cudaMemRemap
+/* reference_maca: cudaMemUnremap -> wcudaMemUnremap */
+#define cudaMemUnremap CU2CCE_RESERVED_NPU_cudaMemUnremap
+#endif
+
+#if 0
+/* RESERVED_NPU category: Other_Runtime_Device
+ * Future implementation: include/bridge/runtime/ and src/bridge/runtime/.
+ */
+/* reference_maca: cudaAccessPolicyWindow -> mcAccessPolicywindow */
+#define cudaAccessPolicyWindow CU2CCE_RESERVED_NPU_cudaAccessPolicyWindow
+/* reference_maca: cudaAccessProperty -> mcAccessProperty_enum */
+#define cudaAccessProperty CU2CCE_RESERVED_NPU_cudaAccessProperty
+/* reference_maca: cudaAccessPropertyNormal -> mcAccessPropertyNormal */
+#define cudaAccessPropertyNormal CU2CCE_RESERVED_NPU_cudaAccessPropertyNormal
+/* reference_maca: cudaAccessPropertyPersisting -> mcAccessPropertyPersisting */
+#define cudaAccessPropertyPersisting CU2CCE_RESERVED_NPU_cudaAccessPropertyPersisting
+/* reference_maca: cudaAccessPropertyStreaming -> mcAccessPropertyStreaming */
+#define cudaAccessPropertyStreaming CU2CCE_RESERVED_NPU_cudaAccessPropertyStreaming
+/* reference_maca: cudaBoundaryModeClamp -> mcBoundaryModeClamp */
+#define cudaBoundaryModeClamp CU2CCE_RESERVED_NPU_cudaBoundaryModeClamp
+/* reference_maca: cudaBoundaryModeTrap -> mcBoundaryModeTrap */
+#define cudaBoundaryModeTrap CU2CCE_RESERVED_NPU_cudaBoundaryModeTrap
+/* reference_maca: cudaBoundaryModeZero -> mcBoundaryModeZero */
+#define cudaBoundaryModeZero CU2CCE_RESERVED_NPU_cudaBoundaryModeZero
+/* reference_maca: cudaCGGetIntrinsicHandle -> wcudaCGGetIntrinsicHandle */
+#define cudaCGGetIntrinsicHandle CU2CCE_RESERVED_NPU_cudaCGGetIntrinsicHandle
+/* reference_maca: cudaCGGetRank -> wcudaCGGetRank */
+#define cudaCGGetRank CU2CCE_RESERVED_NPU_cudaCGGetRank
+/* reference_maca: cudaCGGetSize -> wcudaCGGetSize */
+#define cudaCGGetSize CU2CCE_RESERVED_NPU_cudaCGGetSize
+/* reference_maca: cudaCGScope -> mcCGScope */
+#define cudaCGScope CU2CCE_RESERVED_NPU_cudaCGScope
+/* reference_maca: cudaCGScopeGrid -> mcCGScopeGrid */
+#define cudaCGScopeGrid CU2CCE_RESERVED_NPU_cudaCGScopeGrid
+/* reference_maca: cudaCGScopeInvalid -> mcCGScopeInvalid */
+#define cudaCGScopeInvalid CU2CCE_RESERVED_NPU_cudaCGScopeInvalid
+/* reference_maca: cudaCGScopeMultiGrid -> mcCGScopeMultiGrid */
+#define cudaCGScopeMultiGrid CU2CCE_RESERVED_NPU_cudaCGScopeMultiGrid
+/* reference_maca: cudaCGSynchronize -> wcudaCGSynchronize */
+#define cudaCGSynchronize CU2CCE_RESERVED_NPU_cudaCGSynchronize
+/* reference_maca: cudaCGSynchronizeGrid -> wcudaCGSynchronizeGrid */
+#define cudaCGSynchronizeGrid CU2CCE_RESERVED_NPU_cudaCGSynchronizeGrid
+/* reference_maca: cudaCSV -> mcCSV */
+#define cudaCSV CU2CCE_RESERVED_NPU_cudaCSV
+/* reference_maca: cudaClusterSchedulingPolicyDefault -> mcClusterSchedulingPolicyDefault */
+#define cudaClusterSchedulingPolicyDefault CU2CCE_RESERVED_NPU_cudaClusterSchedulingPolicyDefault
+/* reference_maca: cudaClusterSchedulingPolicyLoadBalancing -> mcClusterSchedulingPolicyLoadBalancing */
+#define cudaClusterSchedulingPolicyLoadBalancing CU2CCE_RESERVED_NPU_cudaClusterSchedulingPolicyLoadBalancing
+/* reference_maca: cudaClusterSchedulingPolicySpread -> mcClusterSchedulingPolicySpread */
+#define cudaClusterSchedulingPolicySpread CU2CCE_RESERVED_NPU_cudaClusterSchedulingPolicySpread
+/* reference_maca: cudaComputeMode -> mcComputeMode */
+#define cudaComputeMode CU2CCE_RESERVED_NPU_cudaComputeMode
+/* reference_maca: cudaComputeModeExclusive -> mcComputeModeExclusive */
+#define cudaComputeModeExclusive CU2CCE_RESERVED_NPU_cudaComputeModeExclusive
+/* reference_maca: cudaComputeModeExclusiveProcess -> mcComputeModeExclusiveProcess */
+#define cudaComputeModeExclusiveProcess CU2CCE_RESERVED_NPU_cudaComputeModeExclusiveProcess
+/* reference_maca: cudaCooperativeLaunchMultiDeviceNoPostSync -> mcCooperativeLaunchMultiDeviceNoPostSync */
+#define cudaCooperativeLaunchMultiDeviceNoPostSync CU2CCE_RESERVED_NPU_cudaCooperativeLaunchMultiDeviceNoPostSync
+/* reference_maca: cudaCooperativeLaunchMultiDeviceNoPreSync -> mcCooperativeLaunchMultiDeviceNoPreSync */
+#define cudaCooperativeLaunchMultiDeviceNoPreSync CU2CCE_RESERVED_NPU_cudaCooperativeLaunchMultiDeviceNoPreSync
+/* reference_maca: cudaCpuDeviceId -> mcCpuDeviceId */
+#define cudaCpuDeviceId CU2CCE_RESERVED_NPU_cudaCpuDeviceId
+/* reference_maca: cudaCreateTextureObject_v2 -> wcudaCreateTextureObject_v2 */
+#define cudaCreateTextureObject_v2 CU2CCE_RESERVED_NPU_cudaCreateTextureObject_v2
+/* reference_maca: cudaDestroyExternalSemaphore -> wcudaDestroyExternalSemaphore */
+#define cudaDestroyExternalSemaphore CU2CCE_RESERVED_NPU_cudaDestroyExternalSemaphore
+/* reference_maca: cudaDevAttrAsyncEngineCount -> mcDeviceAttributeAsyncEngineCount */
+#define cudaDevAttrAsyncEngineCount CU2CCE_RESERVED_NPU_cudaDevAttrAsyncEngineCount
+/* reference_maca: cudaDevAttrCanFlushRemoteWrites -> mcDeviceAttributeCanFlushRemoteWrites */
+#define cudaDevAttrCanFlushRemoteWrites CU2CCE_RESERVED_NPU_cudaDevAttrCanFlushRemoteWrites
+/* reference_maca: cudaDevAttrCanMapHostMemory -> mcDeviceAttributeCanMapHostMemory */
+#define cudaDevAttrCanMapHostMemory CU2CCE_RESERVED_NPU_cudaDevAttrCanMapHostMemory
+/* reference_maca: cudaDevAttrCanUseHostPointerForRegisteredMem -> mcDeviceAttributeCanUseHostPointerForRegisteredMem */
+#define cudaDevAttrCanUseHostPointerForRegisteredMem CU2CCE_RESERVED_NPU_cudaDevAttrCanUseHostPointerForRegisteredMem
+/* reference_maca: cudaDevAttrComputePreemptionSupported -> mcDeviceAttributeUnknow */
+#define cudaDevAttrComputePreemptionSupported CU2CCE_RESERVED_NPU_cudaDevAttrComputePreemptionSupported
+/* reference_maca: cudaDevAttrConcurrentKernels -> mcDeviceAttributeConcurrentKernels */
+#define cudaDevAttrConcurrentKernels CU2CCE_RESERVED_NPU_cudaDevAttrConcurrentKernels
+/* reference_maca: cudaDevAttrConcurrentManagedAccess -> mcDeviceAttributeConcurrentManagedAccess */
+#define cudaDevAttrConcurrentManagedAccess CU2CCE_RESERVED_NPU_cudaDevAttrConcurrentManagedAccess
+/* reference_maca: cudaDevAttrCooperativeLaunch -> mcDeviceAttributeCooperativeLaunch */
+#define cudaDevAttrCooperativeLaunch CU2CCE_RESERVED_NPU_cudaDevAttrCooperativeLaunch
+/* reference_maca: cudaDevAttrCooperativeMultiDeviceLaunch -> mcDeviceAttributeCooperativeMultiDeviceLaunch */
+#define cudaDevAttrCooperativeMultiDeviceLaunch CU2CCE_RESERVED_NPU_cudaDevAttrCooperativeMultiDeviceLaunch
+/* reference_maca: cudaDevAttrDeferredMappingCudaArraySupported -> mcDeviceAttributeUnknow */
+#define cudaDevAttrDeferredMappingCudaArraySupported CU2CCE_RESERVED_NPU_cudaDevAttrDeferredMappingCudaArraySupported
+/* reference_maca: cudaDevAttrDirectManagedMemAccessFromHost -> mcDeviceAttributeDirectManagedMemAccessFromHost */
+#define cudaDevAttrDirectManagedMemAccessFromHost CU2CCE_RESERVED_NPU_cudaDevAttrDirectManagedMemAccessFromHost
+/* reference_maca: cudaDevAttrEccEnabled -> mcDeviceAttributeEccEnabled */
+#define cudaDevAttrEccEnabled CU2CCE_RESERVED_NPU_cudaDevAttrEccEnabled
+/* reference_maca: cudaDevAttrGPUDirectRDMAFlushWritesOptions -> mcDeviceAttributeUnknow */
+#define cudaDevAttrGPUDirectRDMAFlushWritesOptions CU2CCE_RESERVED_NPU_cudaDevAttrGPUDirectRDMAFlushWritesOptions
+/* reference_maca: cudaDevAttrGPUDirectRDMASupported -> mcDeviceAttributeUnknow */
+#define cudaDevAttrGPUDirectRDMASupported CU2CCE_RESERVED_NPU_cudaDevAttrGPUDirectRDMASupported
+/* reference_maca: cudaDevAttrGPUDirectRDMAWritesOrdering -> mcDeviceAttributeUnknow */
+#define cudaDevAttrGPUDirectRDMAWritesOrdering CU2CCE_RESERVED_NPU_cudaDevAttrGPUDirectRDMAWritesOrdering
+/* reference_maca: cudaDevAttrGlobalL1CacheSupported -> mcDeviceAttributeGlobalL1CacheSupported */
+#define cudaDevAttrGlobalL1CacheSupported CU2CCE_RESERVED_NPU_cudaDevAttrGlobalL1CacheSupported
+/* reference_maca: cudaDevAttrGlobalMemoryBusWidth -> mcDeviceAttributeMemoryBusWidth */
+#define cudaDevAttrGlobalMemoryBusWidth CU2CCE_RESERVED_NPU_cudaDevAttrGlobalMemoryBusWidth
+/* reference_maca: cudaDevAttrGpuOverlap -> mcDeviceAttributeGpuOverlap */
+#define cudaDevAttrGpuOverlap CU2CCE_RESERVED_NPU_cudaDevAttrGpuOverlap
+/* reference_maca: cudaDevAttrHostNativeAtomicSupported -> mcDeviceAttributeHostNativeAtomicSupported */
+#define cudaDevAttrHostNativeAtomicSupported CU2CCE_RESERVED_NPU_cudaDevAttrHostNativeAtomicSupported
+/* reference_maca: cudaDevAttrHostRegisterReadOnlySupported -> mcDeviceAttributeUnknow */
+#define cudaDevAttrHostRegisterReadOnlySupported CU2CCE_RESERVED_NPU_cudaDevAttrHostRegisterReadOnlySupported
+/* reference_maca: cudaDevAttrHostRegisterSupported -> mcDeviceAttributeUnknow */
+#define cudaDevAttrHostRegisterSupported CU2CCE_RESERVED_NPU_cudaDevAttrHostRegisterSupported
+/* reference_maca: cudaDevAttrIsMultiGpuBoard -> mcDeviceAttributeIsMultiGpuBoard */
+#define cudaDevAttrIsMultiGpuBoard CU2CCE_RESERVED_NPU_cudaDevAttrIsMultiGpuBoard
+/* reference_maca: cudaDevAttrL2CacheSize -> mcDeviceAttributeL2CacheSize */
+#define cudaDevAttrL2CacheSize CU2CCE_RESERVED_NPU_cudaDevAttrL2CacheSize
+/* reference_maca: cudaDevAttrLocalL1CacheSupported -> mcDeviceAttributeUnknow */
+#define cudaDevAttrLocalL1CacheSupported CU2CCE_RESERVED_NPU_cudaDevAttrLocalL1CacheSupported
+/* reference_maca: cudaDevAttrManagedMemory -> mcDeviceAttributeManagedMemory */
+#define cudaDevAttrManagedMemory CU2CCE_RESERVED_NPU_cudaDevAttrManagedMemory
+/* reference_maca: cudaDevAttrMax -> mcDeviceAttributeMax */
+#define cudaDevAttrMax CU2CCE_RESERVED_NPU_cudaDevAttrMax
+/* reference_maca: cudaDevAttrMaxAccessPolicyWindowSize -> mcDeviceAttributeMaxAccessPolicyWindowSize */
+#define cudaDevAttrMaxAccessPolicyWindowSize CU2CCE_RESERVED_NPU_cudaDevAttrMaxAccessPolicyWindowSize
+/* reference_maca: cudaDevAttrMaxBlocksPerMultiprocessor -> mcDevAttrMaxBlocksPerMultiprocessor */
+#define cudaDevAttrMaxBlocksPerMultiprocessor CU2CCE_RESERVED_NPU_cudaDevAttrMaxBlocksPerMultiprocessor
+/* reference_maca: cudaDevAttrMaxPersistingL2CacheSize -> mcDeviceAttributeMaxPersistingL2CacheSize */
+#define cudaDevAttrMaxPersistingL2CacheSize CU2CCE_RESERVED_NPU_cudaDevAttrMaxPersistingL2CacheSize
+/* reference_maca: cudaDevAttrMaxRegistersPerBlock -> mcDeviceAttributeMaxRegistersPerBlock */
+#define cudaDevAttrMaxRegistersPerBlock CU2CCE_RESERVED_NPU_cudaDevAttrMaxRegistersPerBlock
+/* reference_maca: cudaDevAttrMaxRegistersPerMultiprocessor -> mcDeviceAttributeMaxRegistersPerMultiprocessor */
+#define cudaDevAttrMaxRegistersPerMultiprocessor CU2CCE_RESERVED_NPU_cudaDevAttrMaxRegistersPerMultiprocessor
+/* reference_maca: cudaDevAttrMaxSharedMemoryPerBlockOptin -> mcDeviceAttributeMaxSharedMemoryPerBlockOptin */
+#define cudaDevAttrMaxSharedMemoryPerBlockOptin CU2CCE_RESERVED_NPU_cudaDevAttrMaxSharedMemoryPerBlockOptin
+/* reference_maca: cudaDevAttrMaxSharedMemoryPerMultiprocessor -> mcDeviceAttributeMaxSharedMemoryPerMultiprocessor */
+#define cudaDevAttrMaxSharedMemoryPerMultiprocessor CU2CCE_RESERVED_NPU_cudaDevAttrMaxSharedMemoryPerMultiprocessor
+/* reference_maca: cudaDevAttrMaxSurface1DLayeredLayers -> mcDeviceAttributeUnknow */
+#define cudaDevAttrMaxSurface1DLayeredLayers CU2CCE_RESERVED_NPU_cudaDevAttrMaxSurface1DLayeredLayers
+/* reference_maca: cudaDevAttrMaxSurface1DLayeredWidth -> mcDeviceAttributeUnknow */
+#define cudaDevAttrMaxSurface1DLayeredWidth CU2CCE_RESERVED_NPU_cudaDevAttrMaxSurface1DLayeredWidth
+/* reference_maca: cudaDevAttrMaxSurface1DWidth -> mcDeviceAttributeUnknow */
+#define cudaDevAttrMaxSurface1DWidth CU2CCE_RESERVED_NPU_cudaDevAttrMaxSurface1DWidth
+/* reference_maca: cudaDevAttrMaxSurface2DHeight -> mcDeviceAttributeUnknow */
+#define cudaDevAttrMaxSurface2DHeight CU2CCE_RESERVED_NPU_cudaDevAttrMaxSurface2DHeight
+/* reference_maca: cudaDevAttrMaxSurface2DLayeredHeight -> mcDeviceAttributeUnknow */
+#define cudaDevAttrMaxSurface2DLayeredHeight CU2CCE_RESERVED_NPU_cudaDevAttrMaxSurface2DLayeredHeight
+/* reference_maca: cudaDevAttrMaxSurface2DLayeredLayers -> mcDeviceAttributeUnknow */
+#define cudaDevAttrMaxSurface2DLayeredLayers CU2CCE_RESERVED_NPU_cudaDevAttrMaxSurface2DLayeredLayers
+/* reference_maca: cudaDevAttrMaxSurface2DLayeredWidth -> mcDeviceAttributeUnknow */
+#define cudaDevAttrMaxSurface2DLayeredWidth CU2CCE_RESERVED_NPU_cudaDevAttrMaxSurface2DLayeredWidth
+/* reference_maca: cudaDevAttrMaxSurface2DWidth -> mcDeviceAttributeUnknow */
+#define cudaDevAttrMaxSurface2DWidth CU2CCE_RESERVED_NPU_cudaDevAttrMaxSurface2DWidth
+/* reference_maca: cudaDevAttrMaxSurface3DDepth -> mcDeviceAttributeUnknow */
+#define cudaDevAttrMaxSurface3DDepth CU2CCE_RESERVED_NPU_cudaDevAttrMaxSurface3DDepth
+/* reference_maca: cudaDevAttrMaxSurface3DHeight -> mcDeviceAttributeUnknow */
+#define cudaDevAttrMaxSurface3DHeight CU2CCE_RESERVED_NPU_cudaDevAttrMaxSurface3DHeight
+/* reference_maca: cudaDevAttrMaxSurface3DWidth -> mcDeviceAttributeUnknow */
+#define cudaDevAttrMaxSurface3DWidth CU2CCE_RESERVED_NPU_cudaDevAttrMaxSurface3DWidth
+/* reference_maca: cudaDevAttrMaxSurfaceCubemapLayeredLayers -> mcDeviceAttributeUnknow */
+#define cudaDevAttrMaxSurfaceCubemapLayeredLayers CU2CCE_RESERVED_NPU_cudaDevAttrMaxSurfaceCubemapLayeredLayers
+/* reference_maca: cudaDevAttrMaxSurfaceCubemapLayeredWidth -> mcDeviceAttributeUnknow */
+#define cudaDevAttrMaxSurfaceCubemapLayeredWidth CU2CCE_RESERVED_NPU_cudaDevAttrMaxSurfaceCubemapLayeredWidth
+/* reference_maca: cudaDevAttrMaxSurfaceCubemapWidth -> mcDeviceAttributeUnknow */
+#define cudaDevAttrMaxSurfaceCubemapWidth CU2CCE_RESERVED_NPU_cudaDevAttrMaxSurfaceCubemapWidth
+/* reference_maca: cudaDevAttrMaxTexture1DLayeredLayers -> mcDeviceAttributeUnknow */
+#define cudaDevAttrMaxTexture1DLayeredLayers CU2CCE_RESERVED_NPU_cudaDevAttrMaxTexture1DLayeredLayers
+/* reference_maca: cudaDevAttrMaxTexture1DLayeredWidth -> mcDeviceAttributeUnknow */
+#define cudaDevAttrMaxTexture1DLayeredWidth CU2CCE_RESERVED_NPU_cudaDevAttrMaxTexture1DLayeredWidth
+/* reference_maca: cudaDevAttrMaxTexture1DLinearWidth -> mcDeviceAttributeTexture1DLinearWidth */
+#define cudaDevAttrMaxTexture1DLinearWidth CU2CCE_RESERVED_NPU_cudaDevAttrMaxTexture1DLinearWidth
+/* reference_maca: cudaDevAttrMaxTexture1DMipmappedWidth -> mcDeviceAttributeUnknow */
+#define cudaDevAttrMaxTexture1DMipmappedWidth CU2CCE_RESERVED_NPU_cudaDevAttrMaxTexture1DMipmappedWidth
+/* reference_maca: cudaDevAttrMaxTexture1DWidth -> mcDeviceAttributeMaxTexture1DWidth */
+#define cudaDevAttrMaxTexture1DWidth CU2CCE_RESERVED_NPU_cudaDevAttrMaxTexture1DWidth
+/* reference_maca: cudaDevAttrMaxTexture2DGatherHeight -> mcDeviceAttributeUnknow */
+#define cudaDevAttrMaxTexture2DGatherHeight CU2CCE_RESERVED_NPU_cudaDevAttrMaxTexture2DGatherHeight
+/* reference_maca: cudaDevAttrMaxTexture2DGatherWidth -> mcDeviceAttributeUnknow */
+#define cudaDevAttrMaxTexture2DGatherWidth CU2CCE_RESERVED_NPU_cudaDevAttrMaxTexture2DGatherWidth
+/* reference_maca: cudaDevAttrMaxTexture2DHeight -> mcDeviceAttributeMaxTexture2DHeight */
+#define cudaDevAttrMaxTexture2DHeight CU2CCE_RESERVED_NPU_cudaDevAttrMaxTexture2DHeight
+/* reference_maca: cudaDevAttrMaxTexture2DLayeredHeight -> mcDeviceAttributeUnknow */
+#define cudaDevAttrMaxTexture2DLayeredHeight CU2CCE_RESERVED_NPU_cudaDevAttrMaxTexture2DLayeredHeight
+/* reference_maca: cudaDevAttrMaxTexture2DLayeredLayers -> mcDeviceAttributeUnknow */
+#define cudaDevAttrMaxTexture2DLayeredLayers CU2CCE_RESERVED_NPU_cudaDevAttrMaxTexture2DLayeredLayers
+/* reference_maca: cudaDevAttrMaxTexture2DLayeredWidth -> mcDeviceAttributeUnknow */
+#define cudaDevAttrMaxTexture2DLayeredWidth CU2CCE_RESERVED_NPU_cudaDevAttrMaxTexture2DLayeredWidth
+/* reference_maca: cudaDevAttrMaxTexture2DLinearHeight -> mcDeviceAttributeTexture2DLinearHeight */
+#define cudaDevAttrMaxTexture2DLinearHeight CU2CCE_RESERVED_NPU_cudaDevAttrMaxTexture2DLinearHeight
+/* reference_maca: cudaDevAttrMaxTexture2DLinearPitch -> mcDeviceAttributeTexture2DLinearPitch */
+#define cudaDevAttrMaxTexture2DLinearPitch CU2CCE_RESERVED_NPU_cudaDevAttrMaxTexture2DLinearPitch
+/* reference_maca: cudaDevAttrMaxTexture2DLinearWidth -> mcDeviceAttributeTexture2DLinearWidth */
+#define cudaDevAttrMaxTexture2DLinearWidth CU2CCE_RESERVED_NPU_cudaDevAttrMaxTexture2DLinearWidth
+/* reference_maca: cudaDevAttrMaxTexture2DMipmappedHeight -> mcDeviceAttributeUnknow */
+#define cudaDevAttrMaxTexture2DMipmappedHeight CU2CCE_RESERVED_NPU_cudaDevAttrMaxTexture2DMipmappedHeight
+/* reference_maca: cudaDevAttrMaxTexture2DMipmappedWidth -> mcDeviceAttributeUnknow */
+#define cudaDevAttrMaxTexture2DMipmappedWidth CU2CCE_RESERVED_NPU_cudaDevAttrMaxTexture2DMipmappedWidth
+/* reference_maca: cudaDevAttrMaxTexture2DWidth -> mcDeviceAttributeMaxTexture2DWidth */
+#define cudaDevAttrMaxTexture2DWidth CU2CCE_RESERVED_NPU_cudaDevAttrMaxTexture2DWidth
+/* reference_maca: cudaDevAttrMaxTexture3DDepth -> mcDeviceAttributeMaxTexture3DDepth */
+#define cudaDevAttrMaxTexture3DDepth CU2CCE_RESERVED_NPU_cudaDevAttrMaxTexture3DDepth
+/* reference_maca: cudaDevAttrMaxTexture3DDepthAlt -> mcDeviceAttributeUnknow */
+#define cudaDevAttrMaxTexture3DDepthAlt CU2CCE_RESERVED_NPU_cudaDevAttrMaxTexture3DDepthAlt
+/* reference_maca: cudaDevAttrMaxTexture3DHeight -> mcDeviceAttributeMaxTexture3DHeight */
+#define cudaDevAttrMaxTexture3DHeight CU2CCE_RESERVED_NPU_cudaDevAttrMaxTexture3DHeight
+/* reference_maca: cudaDevAttrMaxTexture3DHeightAlt -> mcDeviceAttributeUnknow */
+#define cudaDevAttrMaxTexture3DHeightAlt CU2CCE_RESERVED_NPU_cudaDevAttrMaxTexture3DHeightAlt
+/* reference_maca: cudaDevAttrMaxTexture3DWidth -> mcDeviceAttributeMaxTexture3DWidth */
+#define cudaDevAttrMaxTexture3DWidth CU2CCE_RESERVED_NPU_cudaDevAttrMaxTexture3DWidth
+/* reference_maca: cudaDevAttrMaxTexture3DWidthAlt -> mcDeviceAttributeUnknow */
+#define cudaDevAttrMaxTexture3DWidthAlt CU2CCE_RESERVED_NPU_cudaDevAttrMaxTexture3DWidthAlt
+/* reference_maca: cudaDevAttrMaxTextureCubemapLayeredLayers -> mcDeviceAttributeUnknow */
+#define cudaDevAttrMaxTextureCubemapLayeredLayers CU2CCE_RESERVED_NPU_cudaDevAttrMaxTextureCubemapLayeredLayers
+/* reference_maca: cudaDevAttrMaxTextureCubemapLayeredWidth -> mcDeviceAttributeUnknow */
+#define cudaDevAttrMaxTextureCubemapLayeredWidth CU2CCE_RESERVED_NPU_cudaDevAttrMaxTextureCubemapLayeredWidth
+/* reference_maca: cudaDevAttrMaxTextureCubemapWidth -> mcDeviceAttributeUnknow */
+#define cudaDevAttrMaxTextureCubemapWidth CU2CCE_RESERVED_NPU_cudaDevAttrMaxTextureCubemapWidth
+/* reference_maca: cudaDevAttrMaxThreadsPerMultiProcessor -> mcDeviceAttributeMaxThreadsPerMultiProcessor */
+#define cudaDevAttrMaxThreadsPerMultiProcessor CU2CCE_RESERVED_NPU_cudaDevAttrMaxThreadsPerMultiProcessor
+/* reference_maca: cudaDevAttrMaxTimelineSemaphoreInteropSupported -> mcDeviceAttributeUnknow */
+#define cudaDevAttrMaxTimelineSemaphoreInteropSupported CU2CCE_RESERVED_NPU_cudaDevAttrMaxTimelineSemaphoreInteropSupported
+/* reference_maca: cudaDevAttrMemoryClockRate -> mcDeviceAttributeMemoryClockRate */
+#define cudaDevAttrMemoryClockRate CU2CCE_RESERVED_NPU_cudaDevAttrMemoryClockRate
+/* reference_maca: cudaDevAttrMemoryPoolSupportedHandleTypes -> mcDeviceAttributeMemoryPoolSupportedHandleTypes */
+#define cudaDevAttrMemoryPoolSupportedHandleTypes CU2CCE_RESERVED_NPU_cudaDevAttrMemoryPoolSupportedHandleTypes
+/* reference_maca: cudaDevAttrMemoryPoolsSupported -> mcDeviceAttributeMemoryPoolsSupported */
+#define cudaDevAttrMemoryPoolsSupported CU2CCE_RESERVED_NPU_cudaDevAttrMemoryPoolsSupported
+/* reference_maca: cudaDevAttrMultiGpuBoardGroupID -> mcDeviceAttributeUnknow */
+#define cudaDevAttrMultiGpuBoardGroupID CU2CCE_RESERVED_NPU_cudaDevAttrMultiGpuBoardGroupID
+/* reference_maca: cudaDevAttrPageableMemoryAccess -> mcDeviceAttributePageableMemoryAccess */
+#define cudaDevAttrPageableMemoryAccess CU2CCE_RESERVED_NPU_cudaDevAttrPageableMemoryAccess
+/* reference_maca: cudaDevAttrPageableMemoryAccessUsesHostPageTables -> mcDeviceAttributePageableMemoryAccessUsesHostPageTables */
+#define cudaDevAttrPageableMemoryAccessUsesHostPageTables CU2CCE_RESERVED_NPU_cudaDevAttrPageableMemoryAccessUsesHostPageTables
+/* reference_maca: cudaDevAttrPciBusId -> mcDeviceAttributePciBusId */
+#define cudaDevAttrPciBusId CU2CCE_RESERVED_NPU_cudaDevAttrPciBusId
+/* reference_maca: cudaDevAttrPciDeviceId -> mcDeviceAttributePciDeviceId */
+#define cudaDevAttrPciDeviceId CU2CCE_RESERVED_NPU_cudaDevAttrPciDeviceId
+/* reference_maca: cudaDevAttrPciDomainId -> mcDeviceAttributeUnknow */
+#define cudaDevAttrPciDomainId CU2CCE_RESERVED_NPU_cudaDevAttrPciDomainId
+/* reference_maca: cudaDevAttrReserved92 -> mcDeviceAttributeUnknow */
+#define cudaDevAttrReserved92 CU2CCE_RESERVED_NPU_cudaDevAttrReserved92
+/* reference_maca: cudaDevAttrReserved93 -> mcDeviceAttributeUnknow */
+#define cudaDevAttrReserved93 CU2CCE_RESERVED_NPU_cudaDevAttrReserved93
+/* reference_maca: cudaDevAttrReserved94 -> mcDeviceAttributeUnknow */
+#define cudaDevAttrReserved94 CU2CCE_RESERVED_NPU_cudaDevAttrReserved94
+/* reference_maca: cudaDevAttrReservedSharedMemoryPerBlock -> mcDeviceAttributeUnknow */
+#define cudaDevAttrReservedSharedMemoryPerBlock CU2CCE_RESERVED_NPU_cudaDevAttrReservedSharedMemoryPerBlock
+/* reference_maca: cudaDevAttrSingleToDoublePrecisionPerfRatio -> mcDeviceAttributeSingleToDoublePrecisionPerfRatio */
+#define cudaDevAttrSingleToDoublePrecisionPerfRatio CU2CCE_RESERVED_NPU_cudaDevAttrSingleToDoublePrecisionPerfRatio
+/* reference_maca: cudaDevAttrSparseCudaArraySupported -> mcDeviceAttributeUnknow */
+#define cudaDevAttrSparseCudaArraySupported CU2CCE_RESERVED_NPU_cudaDevAttrSparseCudaArraySupported
+/* reference_maca: cudaDevAttrStreamPrioritiesSupported -> mcDeviceAttributeStreamPrioritiesSupported */
+#define cudaDevAttrStreamPrioritiesSupported CU2CCE_RESERVED_NPU_cudaDevAttrStreamPrioritiesSupported
+/* reference_maca: cudaDevAttrSurfaceAlignment -> mcDeviceAttributeUnknow */
+#define cudaDevAttrSurfaceAlignment CU2CCE_RESERVED_NPU_cudaDevAttrSurfaceAlignment
+/* reference_maca: cudaDevAttrTccDriver -> mcDeviceAttributeTccDriver */
+#define cudaDevAttrTccDriver CU2CCE_RESERVED_NPU_cudaDevAttrTccDriver
+/* reference_maca: cudaDevAttrTextureAlignment -> mcDeviceAttributeTextureAlignment */
+#define cudaDevAttrTextureAlignment CU2CCE_RESERVED_NPU_cudaDevAttrTextureAlignment
+/* reference_maca: cudaDevAttrTexturePitchAlignment -> mcDeviceAttributeTexturePitchAlignment */
+#define cudaDevAttrTexturePitchAlignment CU2CCE_RESERVED_NPU_cudaDevAttrTexturePitchAlignment
+/* reference_maca: cudaDevAttrTimelineSemaphoreInteropSupported -> mcDeviceAttributeUnknow */
+#define cudaDevAttrTimelineSemaphoreInteropSupported CU2CCE_RESERVED_NPU_cudaDevAttrTimelineSemaphoreInteropSupported
+/* reference_maca: cudaDevAttrTotalConstantMemory -> mcDeviceAttributeTotalConstantMemory */
+#define cudaDevAttrTotalConstantMemory CU2CCE_RESERVED_NPU_cudaDevAttrTotalConstantMemory
+/* reference_maca: cudaDevAttrUnifiedAddressing -> mcDeviceAttributeUnifiedAddressing */
+#define cudaDevAttrUnifiedAddressing CU2CCE_RESERVED_NPU_cudaDevAttrUnifiedAddressing
+/* reference_maca: cudaDevP2PAttrAccessSupported -> mcDevP2PAttrAccessSupported */
+#define cudaDevP2PAttrAccessSupported CU2CCE_RESERVED_NPU_cudaDevP2PAttrAccessSupported
+/* reference_maca: cudaDevP2PAttrCudaArrayAccessSupported -> mcDevP2PAttrMcArrayAccessSupported */
+#define cudaDevP2PAttrCudaArrayAccessSupported CU2CCE_RESERVED_NPU_cudaDevP2PAttrCudaArrayAccessSupported
+/* reference_maca: cudaDevP2PAttrNativeAtomicSupported -> mcDevP2PAttrNativeAtomicSupported */
+#define cudaDevP2PAttrNativeAtomicSupported CU2CCE_RESERVED_NPU_cudaDevP2PAttrNativeAtomicSupported
+/* reference_maca: cudaDevP2PAttrPerformanceRank -> mcDevP2PAttrPerformanceRank */
+#define cudaDevP2PAttrPerformanceRank CU2CCE_RESERVED_NPU_cudaDevP2PAttrPerformanceRank
+/* reference_maca: cudaDevResource -> mcDrvDevResource */
+#define cudaDevResource CU2CCE_RESERVED_NPU_cudaDevResource
+/* reference_maca: cudaDevResourceDesc_t -> mcDevResourceDesc_t */
+#define cudaDevResourceDesc_t CU2CCE_RESERVED_NPU_cudaDevResourceDesc_t
+/* reference_maca: cudaDevResourceGenerateDesc -> wcudaDevResourceGenerateDesc */
+#define cudaDevResourceGenerateDesc CU2CCE_RESERVED_NPU_cudaDevResourceGenerateDesc
+/* reference_maca: cudaDevResourceType -> mcDevResourceType */
+#define cudaDevResourceType CU2CCE_RESERVED_NPU_cudaDevResourceType
+/* reference_maca: cudaDevResourceTypeInvalid -> mcDevResourceTypeInvalid */
+#define cudaDevResourceTypeInvalid CU2CCE_RESERVED_NPU_cudaDevResourceTypeInvalid
+/* reference_maca: cudaDevResourceTypeSm -> mcDevResourceTypeAp */
+#define cudaDevResourceTypeSm CU2CCE_RESERVED_NPU_cudaDevResourceTypeSm
+/* reference_maca: cudaDevResourceTypeWorkqueue -> mcDevResourceTypeWorkqueue */
+#define cudaDevResourceTypeWorkqueue CU2CCE_RESERVED_NPU_cudaDevResourceTypeWorkqueue
+/* reference_maca: cudaDevResourceTypeWorkqueueConfig -> mcDevResourceTypeWorkqueueConfig */
+#define cudaDevResourceTypeWorkqueueConfig CU2CCE_RESERVED_NPU_cudaDevResourceTypeWorkqueueConfig
+/* reference_maca: cudaDevSmResource -> mcDrvDevApResource */
+#define cudaDevSmResource CU2CCE_RESERVED_NPU_cudaDevSmResource
+/* reference_maca: cudaDevSmResourceGroupParams -> mcDrvDevApResourceGroupParams */
+#define cudaDevSmResourceGroupParams CU2CCE_RESERVED_NPU_cudaDevSmResourceGroupParams
+/* reference_maca: cudaDevSmResourceSplit -> wcudaDevSmResourceSplit */
+#define cudaDevSmResourceSplit CU2CCE_RESERVED_NPU_cudaDevSmResourceSplit
+/* reference_maca: cudaDevSmResourceSplitByCount -> wcudaDevSmResourceSplitByCount */
+#define cudaDevSmResourceSplitByCount CU2CCE_RESERVED_NPU_cudaDevSmResourceSplitByCount
+/* reference_maca: cudaDevWorkqueueConfigResource -> mcDevWorkqueueConfigResource */
+#define cudaDevWorkqueueConfigResource CU2CCE_RESERVED_NPU_cudaDevWorkqueueConfigResource
+/* reference_maca: cudaDevWorkqueueConfigScope -> mcDevWorkqueueConfigScope */
+#define cudaDevWorkqueueConfigScope CU2CCE_RESERVED_NPU_cudaDevWorkqueueConfigScope
+/* reference_maca: cudaDevWorkqueueConfigScopeDeviceCtx -> mcDevWorkqueueConfigScopeDeviceCtx */
+#define cudaDevWorkqueueConfigScopeDeviceCtx CU2CCE_RESERVED_NPU_cudaDevWorkqueueConfigScopeDeviceCtx
+/* reference_maca: cudaDevWorkqueueConfigScopeGreenCtxBalanced -> mcDevWorkqueueConfigScopeGreenCtxBalanced */
+#define cudaDevWorkqueueConfigScopeGreenCtxBalanced CU2CCE_RESERVED_NPU_cudaDevWorkqueueConfigScopeGreenCtxBalanced
+/* reference_maca: cudaDevWorkqueueResource -> mcDevWorkqueueResource */
+#define cudaDevWorkqueueResource CU2CCE_RESERVED_NPU_cudaDevWorkqueueResource
+/* reference_maca: cudaDriverEntryPointQueryResult -> mcDriverEntryPointQueryResult */
+#define cudaDriverEntryPointQueryResult CU2CCE_RESERVED_NPU_cudaDriverEntryPointQueryResult
+/* reference_maca: cudaDriverEntryPointSuccess -> mcDriverEntryPointSuccess */
+#define cudaDriverEntryPointSuccess CU2CCE_RESERVED_NPU_cudaDriverEntryPointSuccess
+/* reference_maca: cudaDriverEntryPointSymbolNotFound -> mcDriverEntryPointSymbolNotFound */
+#define cudaDriverEntryPointSymbolNotFound CU2CCE_RESERVED_NPU_cudaDriverEntryPointSymbolNotFound
+/* reference_maca: cudaDriverEntryPointVersionNotSufficent -> mcDriverEntryPointVersionNotSufficent */
+#define cudaDriverEntryPointVersionNotSufficent CU2CCE_RESERVED_NPU_cudaDriverEntryPointVersionNotSufficent
+/* reference_maca: cudaEglColorFormat -> mcEglColorFormat */
+#define cudaEglColorFormat CU2CCE_RESERVED_NPU_cudaEglColorFormat
+/* reference_maca: cudaEglColorFormatA -> mcEglColorFormatA */
+#define cudaEglColorFormatA CU2CCE_RESERVED_NPU_cudaEglColorFormatA
+/* reference_maca: cudaEglColorFormatABGR -> mcEglColorFormatABGR */
+#define cudaEglColorFormatABGR CU2CCE_RESERVED_NPU_cudaEglColorFormatABGR
+/* reference_maca: cudaEglColorFormatARGB -> mcEglColorFormatARGB */
+#define cudaEglColorFormatARGB CU2CCE_RESERVED_NPU_cudaEglColorFormatARGB
+/* reference_maca: cudaEglColorFormatAYUV -> mcEglColorFormatAYUV */
+#define cudaEglColorFormatAYUV CU2CCE_RESERVED_NPU_cudaEglColorFormatAYUV
+/* reference_maca: cudaEglColorFormatAYUV_ER -> mcEglColorFormatAYUV_ER */
+#define cudaEglColorFormatAYUV_ER CU2CCE_RESERVED_NPU_cudaEglColorFormatAYUV_ER
+/* reference_maca: cudaEglColorFormatBGRA -> mcEglColorFormatBGRA */
+#define cudaEglColorFormatBGRA CU2CCE_RESERVED_NPU_cudaEglColorFormatBGRA
+/* reference_maca: cudaEglColorFormatBayer10BGGR -> mcEglColorFormatBayer10BGGR */
+#define cudaEglColorFormatBayer10BGGR CU2CCE_RESERVED_NPU_cudaEglColorFormatBayer10BGGR
+/* reference_maca: cudaEglColorFormatBayer10CCCC -> mcEglColorFormatBayer10CCCC */
+#define cudaEglColorFormatBayer10CCCC CU2CCE_RESERVED_NPU_cudaEglColorFormatBayer10CCCC
+/* reference_maca: cudaEglColorFormatBayer10GBRG -> mcEglColorFormatBayer10GBRG */
+#define cudaEglColorFormatBayer10GBRG CU2CCE_RESERVED_NPU_cudaEglColorFormatBayer10GBRG
+/* reference_maca: cudaEglColorFormatBayer10GRBG -> mcEglColorFormatBayer10GRBG */
+#define cudaEglColorFormatBayer10GRBG CU2CCE_RESERVED_NPU_cudaEglColorFormatBayer10GRBG
+/* reference_maca: cudaEglColorFormatBayer10RGGB -> mcEglColorFormatBayer10RGGB */
+#define cudaEglColorFormatBayer10RGGB CU2CCE_RESERVED_NPU_cudaEglColorFormatBayer10RGGB
+/* reference_maca: cudaEglColorFormatBayer12BCCR -> mcEglColorFormatBayer12BCCR */
+#define cudaEglColorFormatBayer12BCCR CU2CCE_RESERVED_NPU_cudaEglColorFormatBayer12BCCR
+/* reference_maca: cudaEglColorFormatBayer12BGGR -> mcEglColorFormatBayer12BGGR */
+#define cudaEglColorFormatBayer12BGGR CU2CCE_RESERVED_NPU_cudaEglColorFormatBayer12BGGR
+/* reference_maca: cudaEglColorFormatBayer12CBRC -> mcEglColorFormatBayer12CBRC */
+#define cudaEglColorFormatBayer12CBRC CU2CCE_RESERVED_NPU_cudaEglColorFormatBayer12CBRC
+/* reference_maca: cudaEglColorFormatBayer12CCCC -> mcEglColorFormatBayer12CCCC */
+#define cudaEglColorFormatBayer12CCCC CU2CCE_RESERVED_NPU_cudaEglColorFormatBayer12CCCC
+/* reference_maca: cudaEglColorFormatBayer12CRBC -> mcEglColorFormatBayer12CRBC */
+#define cudaEglColorFormatBayer12CRBC CU2CCE_RESERVED_NPU_cudaEglColorFormatBayer12CRBC
+/* reference_maca: cudaEglColorFormatBayer12GBRG -> mcEglColorFormatBayer12GBRG */
+#define cudaEglColorFormatBayer12GBRG CU2CCE_RESERVED_NPU_cudaEglColorFormatBayer12GBRG
+/* reference_maca: cudaEglColorFormatBayer12GRBG -> mcEglColorFormatBayer12GRBG */
+#define cudaEglColorFormatBayer12GRBG CU2CCE_RESERVED_NPU_cudaEglColorFormatBayer12GRBG
+/* reference_maca: cudaEglColorFormatBayer12RCCB -> mcEglColorFormatBayer12RCCB */
+#define cudaEglColorFormatBayer12RCCB CU2CCE_RESERVED_NPU_cudaEglColorFormatBayer12RCCB
+/* reference_maca: cudaEglColorFormatBayer12RGGB -> mcEglColorFormatBayer12RGGB */
+#define cudaEglColorFormatBayer12RGGB CU2CCE_RESERVED_NPU_cudaEglColorFormatBayer12RGGB
+/* reference_maca: cudaEglColorFormatBayer14BGGR -> mcEglColorFormatBayer14BGGR */
+#define cudaEglColorFormatBayer14BGGR CU2CCE_RESERVED_NPU_cudaEglColorFormatBayer14BGGR
+/* reference_maca: cudaEglColorFormatBayer14GBRG -> mcEglColorFormatBayer14GBRG */
+#define cudaEglColorFormatBayer14GBRG CU2CCE_RESERVED_NPU_cudaEglColorFormatBayer14GBRG
+/* reference_maca: cudaEglColorFormatBayer14GRBG -> mcEglColorFormatBayer14GRBG */
+#define cudaEglColorFormatBayer14GRBG CU2CCE_RESERVED_NPU_cudaEglColorFormatBayer14GRBG
+/* reference_maca: cudaEglColorFormatBayer14RGGB -> mcEglColorFormatBayer14RGGB */
+#define cudaEglColorFormatBayer14RGGB CU2CCE_RESERVED_NPU_cudaEglColorFormatBayer14RGGB
+/* reference_maca: cudaEglColorFormatBayer20BGGR -> mcEglColorFormatBayer20BGGR */
+#define cudaEglColorFormatBayer20BGGR CU2CCE_RESERVED_NPU_cudaEglColorFormatBayer20BGGR
+/* reference_maca: cudaEglColorFormatBayer20GBRG -> mcEglColorFormatBayer20GBRG */
+#define cudaEglColorFormatBayer20GBRG CU2CCE_RESERVED_NPU_cudaEglColorFormatBayer20GBRG
+/* reference_maca: cudaEglColorFormatBayer20GRBG -> mcEglColorFormatBayer20GRBG */
+#define cudaEglColorFormatBayer20GRBG CU2CCE_RESERVED_NPU_cudaEglColorFormatBayer20GRBG
+/* reference_maca: cudaEglColorFormatBayer20RGGB -> mcEglColorFormatBayer20RGGB */
+#define cudaEglColorFormatBayer20RGGB CU2CCE_RESERVED_NPU_cudaEglColorFormatBayer20RGGB
+/* reference_maca: cudaEglColorFormatBayerBCCR -> mcEglColorFormatBayerBCCR */
+#define cudaEglColorFormatBayerBCCR CU2CCE_RESERVED_NPU_cudaEglColorFormatBayerBCCR
+/* reference_maca: cudaEglColorFormatBayerBGGR -> mcEglColorFormatBayerBGGR */
+#define cudaEglColorFormatBayerBGGR CU2CCE_RESERVED_NPU_cudaEglColorFormatBayerBGGR
+/* reference_maca: cudaEglColorFormatBayerCBRC -> mcEglColorFormatBayerCBRC */
+#define cudaEglColorFormatBayerCBRC CU2CCE_RESERVED_NPU_cudaEglColorFormatBayerCBRC
+/* reference_maca: cudaEglColorFormatBayerCRBC -> mcEglColorFormatBayerCRBC */
+#define cudaEglColorFormatBayerCRBC CU2CCE_RESERVED_NPU_cudaEglColorFormatBayerCRBC
+/* reference_maca: cudaEglColorFormatBayerGBRG -> mcEglColorFormatBayerGBRG */
+#define cudaEglColorFormatBayerGBRG CU2CCE_RESERVED_NPU_cudaEglColorFormatBayerGBRG
+/* reference_maca: cudaEglColorFormatBayerGRBG -> mcEglColorFormatBayerGRBG */
+#define cudaEglColorFormatBayerGRBG CU2CCE_RESERVED_NPU_cudaEglColorFormatBayerGRBG
+/* reference_maca: cudaEglColorFormatBayerIspBGGR -> mcEglColorFormatBayerIspBGGR */
+#define cudaEglColorFormatBayerIspBGGR CU2CCE_RESERVED_NPU_cudaEglColorFormatBayerIspBGGR
+/* reference_maca: cudaEglColorFormatBayerIspGBRG -> mcEglColorFormatBayerIspGBRG */
+#define cudaEglColorFormatBayerIspGBRG CU2CCE_RESERVED_NPU_cudaEglColorFormatBayerIspGBRG
+/* reference_maca: cudaEglColorFormatBayerIspGRBG -> mcEglColorFormatBayerIspGRBG */
+#define cudaEglColorFormatBayerIspGRBG CU2CCE_RESERVED_NPU_cudaEglColorFormatBayerIspGRBG
+/* reference_maca: cudaEglColorFormatBayerIspRGGB -> mcEglColorFormatBayerIspRGGB */
+#define cudaEglColorFormatBayerIspRGGB CU2CCE_RESERVED_NPU_cudaEglColorFormatBayerIspRGGB
+/* reference_maca: cudaEglColorFormatBayerRCCB -> mcEglColorFormatBayerRCCB */
+#define cudaEglColorFormatBayerRCCB CU2CCE_RESERVED_NPU_cudaEglColorFormatBayerRCCB
+/* reference_maca: cudaEglColorFormatBayerRGGB -> mcEglColorFormatBayerRGGB */
+#define cudaEglColorFormatBayerRGGB CU2CCE_RESERVED_NPU_cudaEglColorFormatBayerRGGB
+/* reference_maca: cudaEglColorFormatL -> mcEglColorFormatL */
+#define cudaEglColorFormatL CU2CCE_RESERVED_NPU_cudaEglColorFormatL
+/* reference_maca: cudaEglColorFormatR -> mcEglColorFormatR */
+#define cudaEglColorFormatR CU2CCE_RESERVED_NPU_cudaEglColorFormatR
+/* reference_maca: cudaEglColorFormatRG -> mcEglColorFormatRG */
+#define cudaEglColorFormatRG CU2CCE_RESERVED_NPU_cudaEglColorFormatRG
+/* reference_maca: cudaEglColorFormatRGBA -> mcEglColorFormatRGBA */
+#define cudaEglColorFormatRGBA CU2CCE_RESERVED_NPU_cudaEglColorFormatRGBA
+/* reference_maca: cudaEglColorFormatUYVY422 -> mcEglColorFormatUYVY422 */
+#define cudaEglColorFormatUYVY422 CU2CCE_RESERVED_NPU_cudaEglColorFormatUYVY422
+/* reference_maca: cudaEglColorFormatUYVY_ER -> mcEglColorFormatUYVY_ER */
+#define cudaEglColorFormatUYVY_ER CU2CCE_RESERVED_NPU_cudaEglColorFormatUYVY_ER
+/* reference_maca: cudaEglColorFormatVYUY -> mcEglColorFormatVYUY */
+#define cudaEglColorFormatVYUY CU2CCE_RESERVED_NPU_cudaEglColorFormatVYUY
+/* reference_maca: cudaEglColorFormatVYUY_ER -> mcEglColorFormatVYUY_ER */
+#define cudaEglColorFormatVYUY_ER CU2CCE_RESERVED_NPU_cudaEglColorFormatVYUY_ER
+/* reference_maca: cudaEglColorFormatY -> mcEglColorFormatY */
+#define cudaEglColorFormatY CU2CCE_RESERVED_NPU_cudaEglColorFormatY
+/* reference_maca: cudaEglColorFormatY10V10U10_420SemiPlanar -> mcEglColorFormatY10V10U10_420SemiPlanar */
+#define cudaEglColorFormatY10V10U10_420SemiPlanar CU2CCE_RESERVED_NPU_cudaEglColorFormatY10V10U10_420SemiPlanar
+/* reference_maca: cudaEglColorFormatY10V10U10_420SemiPlanar_2020 -> mcEglColorFormatY10V10U10_420SemiPlanar_2020 */
+#define cudaEglColorFormatY10V10U10_420SemiPlanar_2020 CU2CCE_RESERVED_NPU_cudaEglColorFormatY10V10U10_420SemiPlanar_2020
+/* reference_maca: cudaEglColorFormatY10V10U10_420SemiPlanar_709 -> mcEglColorFormatY10V10U10_420SemiPlanar_709 */
+#define cudaEglColorFormatY10V10U10_420SemiPlanar_709 CU2CCE_RESERVED_NPU_cudaEglColorFormatY10V10U10_420SemiPlanar_709
+/* reference_maca: cudaEglColorFormatY10V10U10_420SemiPlanar_709_ER -> mcEglColorFormatY10V10U10_420SemiPlanar_709_ER */
+#define cudaEglColorFormatY10V10U10_420SemiPlanar_709_ER CU2CCE_RESERVED_NPU_cudaEglColorFormatY10V10U10_420SemiPlanar_709_ER
+/* reference_maca: cudaEglColorFormatY10V10U10_420SemiPlanar_ER -> mcEglColorFormatY10V10U10_420SemiPlanar_ER */
+#define cudaEglColorFormatY10V10U10_420SemiPlanar_ER CU2CCE_RESERVED_NPU_cudaEglColorFormatY10V10U10_420SemiPlanar_ER
+/* reference_maca: cudaEglColorFormatY10V10U10_422SemiPlanar -> mcEglColorFormatY10V10U10_422SemiPlanar */
+#define cudaEglColorFormatY10V10U10_422SemiPlanar CU2CCE_RESERVED_NPU_cudaEglColorFormatY10V10U10_422SemiPlanar
+/* reference_maca: cudaEglColorFormatY10V10U10_422SemiPlanar_2020 -> mcEglColorFormatY10V10U10_422SemiPlanar_2020 */
+#define cudaEglColorFormatY10V10U10_422SemiPlanar_2020 CU2CCE_RESERVED_NPU_cudaEglColorFormatY10V10U10_422SemiPlanar_2020
+/* reference_maca: cudaEglColorFormatY10V10U10_422SemiPlanar_709 -> mcEglColorFormatY10V10U10_422SemiPlanar_709 */
+#define cudaEglColorFormatY10V10U10_422SemiPlanar_709 CU2CCE_RESERVED_NPU_cudaEglColorFormatY10V10U10_422SemiPlanar_709
+/* reference_maca: cudaEglColorFormatY10V10U10_444SemiPlanar -> mcEglColorFormatY10V10U10_444SemiPlanar */
+#define cudaEglColorFormatY10V10U10_444SemiPlanar CU2CCE_RESERVED_NPU_cudaEglColorFormatY10V10U10_444SemiPlanar
+/* reference_maca: cudaEglColorFormatY10V10U10_444SemiPlanar_709_ER -> mcEglColorFormatY10V10U10_444SemiPlanar_709_ER */
+#define cudaEglColorFormatY10V10U10_444SemiPlanar_709_ER CU2CCE_RESERVED_NPU_cudaEglColorFormatY10V10U10_444SemiPlanar_709_ER
+/* reference_maca: cudaEglColorFormatY10V10U10_444SemiPlanar_ER -> mcEglColorFormatY10V10U10_444SemiPlanar_ER */
+#define cudaEglColorFormatY10V10U10_444SemiPlanar_ER CU2CCE_RESERVED_NPU_cudaEglColorFormatY10V10U10_444SemiPlanar_ER
+/* reference_maca: cudaEglColorFormatY10_709_ER -> mcEglColorFormatY10_709_ER */
+#define cudaEglColorFormatY10_709_ER CU2CCE_RESERVED_NPU_cudaEglColorFormatY10_709_ER
+/* reference_maca: cudaEglColorFormatY10_ER -> mcEglColorFormatY10_ER */
+#define cudaEglColorFormatY10_ER CU2CCE_RESERVED_NPU_cudaEglColorFormatY10_ER
+/* reference_maca: cudaEglColorFormatY12V12U12_420SemiPlanar -> mcEglColorFormatY12V12U12_420SemiPlanar */
+#define cudaEglColorFormatY12V12U12_420SemiPlanar CU2CCE_RESERVED_NPU_cudaEglColorFormatY12V12U12_420SemiPlanar
+/* reference_maca: cudaEglColorFormatY12V12U12_420SemiPlanar_709_ER -> mcEglColorFormatY12V12U12_420SemiPlanar_709_ER */
+#define cudaEglColorFormatY12V12U12_420SemiPlanar_709_ER CU2CCE_RESERVED_NPU_cudaEglColorFormatY12V12U12_420SemiPlanar_709_ER
+/* reference_maca: cudaEglColorFormatY12V12U12_420SemiPlanar_ER -> mcEglColorFormatY12V12U12_420SemiPlanar_ER */
+#define cudaEglColorFormatY12V12U12_420SemiPlanar_ER CU2CCE_RESERVED_NPU_cudaEglColorFormatY12V12U12_420SemiPlanar_ER
+/* reference_maca: cudaEglColorFormatY12V12U12_444SemiPlanar -> mcEglColorFormatY12V12U12_444SemiPlanar */
+#define cudaEglColorFormatY12V12U12_444SemiPlanar CU2CCE_RESERVED_NPU_cudaEglColorFormatY12V12U12_444SemiPlanar
+/* reference_maca: cudaEglColorFormatY12V12U12_444SemiPlanar_709_ER -> mcEglColorFormatY12V12U12_444SemiPlanar_709_ER */
+#define cudaEglColorFormatY12V12U12_444SemiPlanar_709_ER CU2CCE_RESERVED_NPU_cudaEglColorFormatY12V12U12_444SemiPlanar_709_ER
+/* reference_maca: cudaEglColorFormatY12V12U12_444SemiPlanar_ER -> mcEglColorFormatY12V12U12_444SemiPlanar_ER */
+#define cudaEglColorFormatY12V12U12_444SemiPlanar_ER CU2CCE_RESERVED_NPU_cudaEglColorFormatY12V12U12_444SemiPlanar_ER
+/* reference_maca: cudaEglColorFormatY12_709_ER -> mcEglColorFormatY12_709_ER */
+#define cudaEglColorFormatY12_709_ER CU2CCE_RESERVED_NPU_cudaEglColorFormatY12_709_ER
+/* reference_maca: cudaEglColorFormatY12_ER -> mcEglColorFormatY12_ER */
+#define cudaEglColorFormatY12_ER CU2CCE_RESERVED_NPU_cudaEglColorFormatY12_ER
+/* reference_maca: cudaEglColorFormatYUV420Planar -> mcEglColorFormatYUV420Planar */
+#define cudaEglColorFormatYUV420Planar CU2CCE_RESERVED_NPU_cudaEglColorFormatYUV420Planar
+/* reference_maca: cudaEglColorFormatYUV420Planar_2020 -> mcEglColorFormatYUV420Planar_2020 */
+#define cudaEglColorFormatYUV420Planar_2020 CU2CCE_RESERVED_NPU_cudaEglColorFormatYUV420Planar_2020
+/* reference_maca: cudaEglColorFormatYUV420Planar_709 -> mcEglColorFormatYUV420Planar_709 */
+#define cudaEglColorFormatYUV420Planar_709 CU2CCE_RESERVED_NPU_cudaEglColorFormatYUV420Planar_709
+/* reference_maca: cudaEglColorFormatYUV420Planar_ER -> mcEglColorFormatYUV420Planar_ER */
+#define cudaEglColorFormatYUV420Planar_ER CU2CCE_RESERVED_NPU_cudaEglColorFormatYUV420Planar_ER
+/* reference_maca: cudaEglColorFormatYUV420SemiPlanar -> mcEglColorFormatYUV420SemiPlanar */
+#define cudaEglColorFormatYUV420SemiPlanar CU2CCE_RESERVED_NPU_cudaEglColorFormatYUV420SemiPlanar
+/* reference_maca: cudaEglColorFormatYUV420SemiPlanar_2020 -> mcEglColorFormatYUV420SemiPlanar_2020 */
+#define cudaEglColorFormatYUV420SemiPlanar_2020 CU2CCE_RESERVED_NPU_cudaEglColorFormatYUV420SemiPlanar_2020
+/* reference_maca: cudaEglColorFormatYUV420SemiPlanar_709 -> mcEglColorFormatYUV420SemiPlanar_709 */
+#define cudaEglColorFormatYUV420SemiPlanar_709 CU2CCE_RESERVED_NPU_cudaEglColorFormatYUV420SemiPlanar_709
+/* reference_maca: cudaEglColorFormatYUV420SemiPlanar_ER -> mcEglColorFormatYUV420SemiPlanar_ER */
+#define cudaEglColorFormatYUV420SemiPlanar_ER CU2CCE_RESERVED_NPU_cudaEglColorFormatYUV420SemiPlanar_ER
+/* reference_maca: cudaEglColorFormatYUV422Planar -> mcEglColorFormatYUV422Planar */
+#define cudaEglColorFormatYUV422Planar CU2CCE_RESERVED_NPU_cudaEglColorFormatYUV422Planar
+/* reference_maca: cudaEglColorFormatYUV422Planar_ER -> mcEglColorFormatYUV422Planar_ER */
+#define cudaEglColorFormatYUV422Planar_ER CU2CCE_RESERVED_NPU_cudaEglColorFormatYUV422Planar_ER
+/* reference_maca: cudaEglColorFormatYUV422SemiPlanar -> mcEglColorFormatYUV422SemiPlanar */
+#define cudaEglColorFormatYUV422SemiPlanar CU2CCE_RESERVED_NPU_cudaEglColorFormatYUV422SemiPlanar
+/* reference_maca: cudaEglColorFormatYUV422SemiPlanar_ER -> mcEglColorFormatYUV422SemiPlanar_ER */
+#define cudaEglColorFormatYUV422SemiPlanar_ER CU2CCE_RESERVED_NPU_cudaEglColorFormatYUV422SemiPlanar_ER
+/* reference_maca: cudaEglColorFormatYUV444Planar -> mcEglColorFormatYUV444Planar */
+#define cudaEglColorFormatYUV444Planar CU2CCE_RESERVED_NPU_cudaEglColorFormatYUV444Planar
+/* reference_maca: cudaEglColorFormatYUV444Planar_ER -> mcEglColorFormatYUV444Planar_ER */
+#define cudaEglColorFormatYUV444Planar_ER CU2CCE_RESERVED_NPU_cudaEglColorFormatYUV444Planar_ER
+/* reference_maca: cudaEglColorFormatYUV444SemiPlanar -> mcEglColorFormatYUV444SemiPlanar */
+#define cudaEglColorFormatYUV444SemiPlanar CU2CCE_RESERVED_NPU_cudaEglColorFormatYUV444SemiPlanar
+/* reference_maca: cudaEglColorFormatYUV444SemiPlanar_ER -> mcEglColorFormatYUV444SemiPlanar_ER */
+#define cudaEglColorFormatYUV444SemiPlanar_ER CU2CCE_RESERVED_NPU_cudaEglColorFormatYUV444SemiPlanar_ER
+/* reference_maca: cudaEglColorFormatYUVA -> mcEglColorFormatYUVA */
+#define cudaEglColorFormatYUVA CU2CCE_RESERVED_NPU_cudaEglColorFormatYUVA
+/* reference_maca: cudaEglColorFormatYUVA_ER -> mcEglColorFormatYUVA_ER */
+#define cudaEglColorFormatYUVA_ER CU2CCE_RESERVED_NPU_cudaEglColorFormatYUVA_ER
+/* reference_maca: cudaEglColorFormatYUYV422 -> mcEglColorFormatYUYV422 */
+#define cudaEglColorFormatYUYV422 CU2CCE_RESERVED_NPU_cudaEglColorFormatYUYV422
+/* reference_maca: cudaEglColorFormatYUYV_ER -> mcEglColorFormatYUYV_ER */
+#define cudaEglColorFormatYUYV_ER CU2CCE_RESERVED_NPU_cudaEglColorFormatYUYV_ER
+/* reference_maca: cudaEglColorFormatYVU420Planar -> mcEglColorFormatYVU420Planar */
+#define cudaEglColorFormatYVU420Planar CU2CCE_RESERVED_NPU_cudaEglColorFormatYVU420Planar
+/* reference_maca: cudaEglColorFormatYVU420Planar_2020 -> mcEglColorFormatYVU420Planar_2020 */
+#define cudaEglColorFormatYVU420Planar_2020 CU2CCE_RESERVED_NPU_cudaEglColorFormatYVU420Planar_2020
+/* reference_maca: cudaEglColorFormatYVU420Planar_709 -> mcEglColorFormatYVU420Planar_709 */
+#define cudaEglColorFormatYVU420Planar_709 CU2CCE_RESERVED_NPU_cudaEglColorFormatYVU420Planar_709
+/* reference_maca: cudaEglColorFormatYVU420Planar_ER -> mcEglColorFormatYVU420Planar_ER */
+#define cudaEglColorFormatYVU420Planar_ER CU2CCE_RESERVED_NPU_cudaEglColorFormatYVU420Planar_ER
+/* reference_maca: cudaEglColorFormatYVU420SemiPlanar -> mcEglColorFormatYVU420SemiPlanar */
+#define cudaEglColorFormatYVU420SemiPlanar CU2CCE_RESERVED_NPU_cudaEglColorFormatYVU420SemiPlanar
+/* reference_maca: cudaEglColorFormatYVU420SemiPlanar_2020 -> mcEglColorFormatYVU420SemiPlanar_2020 */
+#define cudaEglColorFormatYVU420SemiPlanar_2020 CU2CCE_RESERVED_NPU_cudaEglColorFormatYVU420SemiPlanar_2020
+/* reference_maca: cudaEglColorFormatYVU420SemiPlanar_709 -> mcEglColorFormatYVU420SemiPlanar_709 */
+#define cudaEglColorFormatYVU420SemiPlanar_709 CU2CCE_RESERVED_NPU_cudaEglColorFormatYVU420SemiPlanar_709
+/* reference_maca: cudaEglColorFormatYVU420SemiPlanar_ER -> mcEglColorFormatYVU420SemiPlanar_ER */
+#define cudaEglColorFormatYVU420SemiPlanar_ER CU2CCE_RESERVED_NPU_cudaEglColorFormatYVU420SemiPlanar_ER
+/* reference_maca: cudaEglColorFormatYVU422Planar -> mcEglColorFormatYVU422Planar */
+#define cudaEglColorFormatYVU422Planar CU2CCE_RESERVED_NPU_cudaEglColorFormatYVU422Planar
+/* reference_maca: cudaEglColorFormatYVU422Planar_ER -> mcEglColorFormatYVU422Planar_ER */
+#define cudaEglColorFormatYVU422Planar_ER CU2CCE_RESERVED_NPU_cudaEglColorFormatYVU422Planar_ER
+/* reference_maca: cudaEglColorFormatYVU422SemiPlanar -> mcEglColorFormatYVU422SemiPlanar */
+#define cudaEglColorFormatYVU422SemiPlanar CU2CCE_RESERVED_NPU_cudaEglColorFormatYVU422SemiPlanar
+/* reference_maca: cudaEglColorFormatYVU422SemiPlanar_ER -> mcEglColorFormatYVU422SemiPlanar_ER */
+#define cudaEglColorFormatYVU422SemiPlanar_ER CU2CCE_RESERVED_NPU_cudaEglColorFormatYVU422SemiPlanar_ER
+/* reference_maca: cudaEglColorFormatYVU444Planar -> mcEglColorFormatYVU444Planar */
+#define cudaEglColorFormatYVU444Planar CU2CCE_RESERVED_NPU_cudaEglColorFormatYVU444Planar
+/* reference_maca: cudaEglColorFormatYVU444Planar_ER -> mcEglColorFormatYVU444Planar_ER */
+#define cudaEglColorFormatYVU444Planar_ER CU2CCE_RESERVED_NPU_cudaEglColorFormatYVU444Planar_ER
+/* reference_maca: cudaEglColorFormatYVU444SemiPlanar -> mcEglColorFormatYVU444SemiPlanar */
+#define cudaEglColorFormatYVU444SemiPlanar CU2CCE_RESERVED_NPU_cudaEglColorFormatYVU444SemiPlanar
+/* reference_maca: cudaEglColorFormatYVU444SemiPlanar_ER -> mcEglColorFormatYVU444SemiPlanar_ER */
+#define cudaEglColorFormatYVU444SemiPlanar_ER CU2CCE_RESERVED_NPU_cudaEglColorFormatYVU444SemiPlanar_ER
+/* reference_maca: cudaEglColorFormatYVYU -> mcEglColorFormatYVYU */
+#define cudaEglColorFormatYVYU CU2CCE_RESERVED_NPU_cudaEglColorFormatYVYU
+/* reference_maca: cudaEglColorFormatYVYU_ER -> mcEglColorFormatYVYU_ER */
+#define cudaEglColorFormatYVYU_ER CU2CCE_RESERVED_NPU_cudaEglColorFormatYVYU_ER
+/* reference_maca: cudaEglColorFormatY_709_ER -> mcEglColorFormatY_ER */
+#define cudaEglColorFormatY_709_ER CU2CCE_RESERVED_NPU_cudaEglColorFormatY_709_ER
+/* reference_maca: cudaEglColorFormatY_ER -> mcEglColorFormatY_ER */
+#define cudaEglColorFormatY_ER CU2CCE_RESERVED_NPU_cudaEglColorFormatY_ER
+/* reference_maca: cudaEglColorFormat_enum -> mcEglColorFormat_enum */
+#define cudaEglColorFormat_enum CU2CCE_RESERVED_NPU_cudaEglColorFormat_enum
+/* reference_maca: cudaEglFrame -> mcEglFrame_st */
+#define cudaEglFrame CU2CCE_RESERVED_NPU_cudaEglFrame
+/* reference_maca: cudaEglFrameType -> mcEglFrameType */
+#define cudaEglFrameType CU2CCE_RESERVED_NPU_cudaEglFrameType
+/* reference_maca: cudaEglFrameTypeArray -> mcEglFrameTypeArray */
+#define cudaEglFrameTypeArray CU2CCE_RESERVED_NPU_cudaEglFrameTypeArray
+/* reference_maca: cudaEglFrameTypePitch -> mcEglFrameTypePitch */
+#define cudaEglFrameTypePitch CU2CCE_RESERVED_NPU_cudaEglFrameTypePitch
+/* reference_maca: cudaEglFrameType_enum -> mcEglFrameType_enum */
+#define cudaEglFrameType_enum CU2CCE_RESERVED_NPU_cudaEglFrameType_enum
+/* reference_maca: cudaEglFrame_st -> mcEglFrame_st */
+#define cudaEglFrame_st CU2CCE_RESERVED_NPU_cudaEglFrame_st
+/* reference_maca: cudaEglPlaneDesc -> mcEglPlaneDesc */
+#define cudaEglPlaneDesc CU2CCE_RESERVED_NPU_cudaEglPlaneDesc
+/* reference_maca: cudaEglPlaneDesc_st -> mcEglPlaneDesc_st */
+#define cudaEglPlaneDesc_st CU2CCE_RESERVED_NPU_cudaEglPlaneDesc_st
+/* reference_maca: cudaEglResourceLocationFlags -> mcEglResourceLocationFlags */
+#define cudaEglResourceLocationFlags CU2CCE_RESERVED_NPU_cudaEglResourceLocationFlags
+/* reference_maca: cudaEglResourceLocationFlags_enum -> mcEglResourceLocationFlags_enum */
+#define cudaEglResourceLocationFlags_enum CU2CCE_RESERVED_NPU_cudaEglResourceLocationFlags_enum
+/* reference_maca: cudaEglResourceLocationSysmem -> mcEglResourceLocationSysmem */
+#define cudaEglResourceLocationSysmem CU2CCE_RESERVED_NPU_cudaEglResourceLocationSysmem
+/* reference_maca: cudaEglResourceLocationVidmem -> mcEglResourceLocationVidmem */
+#define cudaEglResourceLocationVidmem CU2CCE_RESERVED_NPU_cudaEglResourceLocationVidmem
+/* reference_maca: cudaEglStreamConnection -> mcEglStreamConnection */
+#define cudaEglStreamConnection CU2CCE_RESERVED_NPU_cudaEglStreamConnection
+/* reference_maca: cudaEnableDefault -> mcEnableDefault */
+#define cudaEnableDefault CU2CCE_RESERVED_NPU_cudaEnableDefault
+/* reference_maca: cudaEnableLegacyStream -> mcEnableLegacyStream */
+#define cudaEnableLegacyStream CU2CCE_RESERVED_NPU_cudaEnableLegacyStream
+/* reference_maca: cudaEnablePerThreadDefaultStream -> mcEnablePerThreadDefaultStream */
+#define cudaEnablePerThreadDefaultStream CU2CCE_RESERVED_NPU_cudaEnablePerThreadDefaultStream
+/* reference_maca: cudaError -> _mcError_t */
+#define cudaError CU2CCE_RESERVED_NPU_cudaError
+/* reference_maca: cudaExecutionContext_st -> MCctx_st */
+#define cudaExecutionContext_st CU2CCE_RESERVED_NPU_cudaExecutionContext_st
+/* reference_maca: cudaExecutionContext_t -> mcExecutionContext_t */
+#define cudaExecutionContext_t CU2CCE_RESERVED_NPU_cudaExecutionContext_t
+/* reference_maca: cudaExecutionCtxDestroy -> wcudaExecutionCtxDestroy */
+#define cudaExecutionCtxDestroy CU2CCE_RESERVED_NPU_cudaExecutionCtxDestroy
+/* reference_maca: cudaExecutionCtxGetDevResource -> wcudaExecutionCtxGetDevResource */
+#define cudaExecutionCtxGetDevResource CU2CCE_RESERVED_NPU_cudaExecutionCtxGetDevResource
+/* reference_maca: cudaExecutionCtxGetDevice -> wcudaExecutionCtxGetDevice */
+#define cudaExecutionCtxGetDevice CU2CCE_RESERVED_NPU_cudaExecutionCtxGetDevice
+/* reference_maca: cudaExecutionCtxGetId -> wcudaExecutionCtxGetId */
+#define cudaExecutionCtxGetId CU2CCE_RESERVED_NPU_cudaExecutionCtxGetId
+/* reference_maca: cudaExecutionCtxRecordEvent -> wcudaExecutionCtxRecordEvent */
+#define cudaExecutionCtxRecordEvent CU2CCE_RESERVED_NPU_cudaExecutionCtxRecordEvent
+/* reference_maca: cudaExecutionCtxStreamCreate -> wcudaExecutionCtxStreamCreate */
+#define cudaExecutionCtxStreamCreate CU2CCE_RESERVED_NPU_cudaExecutionCtxStreamCreate
+/* reference_maca: cudaExecutionCtxSynchronize -> wcudaExecutionCtxSynchronize */
+#define cudaExecutionCtxSynchronize CU2CCE_RESERVED_NPU_cudaExecutionCtxSynchronize
+/* reference_maca: cudaExecutionCtxWaitEvent -> wcudaExecutionCtxWaitEvent */
+#define cudaExecutionCtxWaitEvent CU2CCE_RESERVED_NPU_cudaExecutionCtxWaitEvent
+/* reference_maca: cudaFlushGPUDirectRDMAWritesOptionHost -> mcFlushGPUDirectRDMAWritesOptionHost */
+#define cudaFlushGPUDirectRDMAWritesOptionHost CU2CCE_RESERVED_NPU_cudaFlushGPUDirectRDMAWritesOptionHost
+/* reference_maca: cudaFlushGPUDirectRDMAWritesOptionMemOps -> mcFlushGPUDirectRDMAWritesOptionMemOps */
+#define cudaFlushGPUDirectRDMAWritesOptionMemOps CU2CCE_RESERVED_NPU_cudaFlushGPUDirectRDMAWritesOptionMemOps
+/* reference_maca: cudaFlushGPUDirectRDMAWritesOptions -> mcFlushGPUDirectRDMAWritesOptions */
+#define cudaFlushGPUDirectRDMAWritesOptions CU2CCE_RESERVED_NPU_cudaFlushGPUDirectRDMAWritesOptions
+/* reference_maca: cudaFlushGPUDirectRDMAWritesScope -> mcFlushGPUDirectRDMAWritesScope */
+#define cudaFlushGPUDirectRDMAWritesScope CU2CCE_RESERVED_NPU_cudaFlushGPUDirectRDMAWritesScope
+/* reference_maca: cudaFlushGPUDirectRDMAWritesTarget -> mcFlushGPUDirectRDMAWritesTarget */
+#define cudaFlushGPUDirectRDMAWritesTarget CU2CCE_RESERVED_NPU_cudaFlushGPUDirectRDMAWritesTarget
+/* reference_maca: cudaFlushGPUDirectRDMAWritesTargetCurrentDevice -> mcFlushGPUDirectRDMAWritesTargetCurrentDevice */
+#define cudaFlushGPUDirectRDMAWritesTargetCurrentDevice CU2CCE_RESERVED_NPU_cudaFlushGPUDirectRDMAWritesTargetCurrentDevice
+/* reference_maca: cudaFlushGPUDirectRDMAWritesToAllDevices -> mcFlushGPUDirectRDMAWritesToAllDevices */
+#define cudaFlushGPUDirectRDMAWritesToAllDevices CU2CCE_RESERVED_NPU_cudaFlushGPUDirectRDMAWritesToAllDevices
+/* reference_maca: cudaFlushGPUDirectRDMAWritesToOwner -> mcFlushGPUDirectRDMAWritesToOwner */
+#define cudaFlushGPUDirectRDMAWritesToOwner CU2CCE_RESERVED_NPU_cudaFlushGPUDirectRDMAWritesToOwner
+/* reference_maca: cudaFormatModeAuto -> mcFormatModeAuto */
+#define cudaFormatModeAuto CU2CCE_RESERVED_NPU_cudaFormatModeAuto
+/* reference_maca: cudaFormatModeForced -> mcFormatModeForced */
+#define cudaFormatModeForced CU2CCE_RESERVED_NPU_cudaFormatModeForced
+/* reference_maca: cudaFuncAttribute -> mcFuncAttribute_enum */
+#define cudaFuncAttribute CU2CCE_RESERVED_NPU_cudaFuncAttribute
+/* reference_maca: cudaFuncAttributeMax -> mcFuncAttributeMax */
+#define cudaFuncAttributeMax CU2CCE_RESERVED_NPU_cudaFuncAttributeMax
+/* reference_maca: cudaFuncAttributeMaxDynamicSharedMemorySize -> mcFuncAttributeMaxDynamicSharedMemorySize */
+#define cudaFuncAttributeMaxDynamicSharedMemorySize CU2CCE_RESERVED_NPU_cudaFuncAttributeMaxDynamicSharedMemorySize
+/* reference_maca: cudaFuncAttributePreferredSharedMemoryCarveout -> mcFuncAttributePreferredSharedMemoryCarveout */
+#define cudaFuncAttributePreferredSharedMemoryCarveout CU2CCE_RESERVED_NPU_cudaFuncAttributePreferredSharedMemoryCarveout
+/* reference_maca: cudaFuncCache -> mcFuncCache_t */
+#define cudaFuncCache CU2CCE_RESERVED_NPU_cudaFuncCache
+/* reference_maca: cudaFuncCachePreferEqual -> mcFuncCachePreferEqual */
+#define cudaFuncCachePreferEqual CU2CCE_RESERVED_NPU_cudaFuncCachePreferEqual
+/* reference_maca: cudaFuncCachePreferL1 -> mcFuncCachePreferL1 */
+#define cudaFuncCachePreferL1 CU2CCE_RESERVED_NPU_cudaFuncCachePreferL1
+/* reference_maca: cudaFuncCachePreferNone -> mcFuncCachePreferNone */
+#define cudaFuncCachePreferNone CU2CCE_RESERVED_NPU_cudaFuncCachePreferNone
+/* reference_maca: cudaFuncCachePreferShared -> mcFuncCachePreferShared */
+#define cudaFuncCachePreferShared CU2CCE_RESERVED_NPU_cudaFuncCachePreferShared
+/* reference_maca: cudaFuncGetParamInfo -> wcudaFuncGetParamInfo */
+#define cudaFuncGetParamInfo CU2CCE_RESERVED_NPU_cudaFuncGetParamInfo
+/* reference_maca: cudaFunction_t -> mcFunction_t */
+#define cudaFunction_t CU2CCE_RESERVED_NPU_cudaFunction_t
+/* reference_maca: cudaGPUDirectRDMAWritesOrdering -> mcGPUDirectRDMAWritesOrdering */
+#define cudaGPUDirectRDMAWritesOrdering CU2CCE_RESERVED_NPU_cudaGPUDirectRDMAWritesOrdering
+/* reference_maca: cudaGPUDirectRDMAWritesOrderingAllDevices -> mcGPUDirectRDMAWritesOrderingAllDevices */
+#define cudaGPUDirectRDMAWritesOrderingAllDevices CU2CCE_RESERVED_NPU_cudaGPUDirectRDMAWritesOrderingAllDevices
+/* reference_maca: cudaGPUDirectRDMAWritesOrderingNone -> mcGPUDirectRDMAWritesOrderingNone */
+#define cudaGPUDirectRDMAWritesOrderingNone CU2CCE_RESERVED_NPU_cudaGPUDirectRDMAWritesOrderingNone
+/* reference_maca: cudaGPUDirectRDMAWritesOrderingOwner -> mcGPUDirectRDMAWritesOrderingOwner */
+#define cudaGPUDirectRDMAWritesOrderingOwner CU2CCE_RESERVED_NPU_cudaGPUDirectRDMAWritesOrderingOwner
+/* reference_maca: cudaGetDriverEntryPoint -> wcudaGetDriverEntryPoint */
+#define cudaGetDriverEntryPoint CU2CCE_RESERVED_NPU_cudaGetDriverEntryPoint
+/* reference_maca: cudaGetDriverEntryPointFlags -> mcGetDriverEntryPointFlags */
+#define cudaGetDriverEntryPointFlags CU2CCE_RESERVED_NPU_cudaGetDriverEntryPointFlags
+/* reference_maca: cudaGetExportTable -> wcudaGetExportTable */
+#define cudaGetExportTable CU2CCE_RESERVED_NPU_cudaGetExportTable
+/* reference_maca: cudaGetFuncBySymbol -> wcudaGetFuncBySymbol */
+#define cudaGetFuncBySymbol CU2CCE_RESERVED_NPU_cudaGetFuncBySymbol
+/* reference_maca: cudaGetMipmappedArrayLevel -> wcudaGetMipmappedArrayLevel */
+#define cudaGetMipmappedArrayLevel CU2CCE_RESERVED_NPU_cudaGetMipmappedArrayLevel
+/* reference_maca: cudaGetParameterBuffer -> wcudaGetParameterBuffer */
+#define cudaGetParameterBuffer CU2CCE_RESERVED_NPU_cudaGetParameterBuffer
+/* reference_maca: cudaGetParameterBufferV2 -> wcudaGetParameterBufferV2 */
+#define cudaGetParameterBufferV2 CU2CCE_RESERVED_NPU_cudaGetParameterBufferV2
+/* reference_maca: cudaGreenCtxCreate -> wcudaGreenCtxCreate */
+#define cudaGreenCtxCreate CU2CCE_RESERVED_NPU_cudaGreenCtxCreate
+/* reference_maca: cudaHostNodeParams -> mcHostNodeParams_st */
+#define cudaHostNodeParams CU2CCE_RESERVED_NPU_cudaHostNodeParams
+/* reference_maca: cudaHostRegisterDefault -> mcHostRegisterDefault */
+#define cudaHostRegisterDefault CU2CCE_RESERVED_NPU_cudaHostRegisterDefault
+/* reference_maca: cudaHostRegisterIoMemory -> mcHostRegisterIoMemory */
+#define cudaHostRegisterIoMemory CU2CCE_RESERVED_NPU_cudaHostRegisterIoMemory
+/* reference_maca: cudaHostRegisterMapped -> mcHostRegisterMapped */
+#define cudaHostRegisterMapped CU2CCE_RESERVED_NPU_cudaHostRegisterMapped
+/* reference_maca: cudaHostRegisterPortable -> mcHostRegisterPortable */
+#define cudaHostRegisterPortable CU2CCE_RESERVED_NPU_cudaHostRegisterPortable
+/* reference_maca: cudaHostRegisterReadOnly -> mcHostRegisterReadOnly */
+#define cudaHostRegisterReadOnly CU2CCE_RESERVED_NPU_cudaHostRegisterReadOnly
+/* reference_maca: cudaInvalidDeviceId -> mcInvalidDeviceId */
+#define cudaInvalidDeviceId CU2CCE_RESERVED_NPU_cudaInvalidDeviceId
+/* reference_maca: cudaKernelNodeAttrID -> mcKernelNodeAttrID */
+#define cudaKernelNodeAttrID CU2CCE_RESERVED_NPU_cudaKernelNodeAttrID
+/* reference_maca: cudaKernelNodeAttrValue -> mcKernelNodeAttrValue */
+#define cudaKernelNodeAttrValue CU2CCE_RESERVED_NPU_cudaKernelNodeAttrValue
+/* reference_maca: cudaKernelNodeAttributeAccessPolicyWindow -> mcKernelNodeAttributeAccessPolicyWindow */
+#define cudaKernelNodeAttributeAccessPolicyWindow CU2CCE_RESERVED_NPU_cudaKernelNodeAttributeAccessPolicyWindow
+/* reference_maca: cudaKernelNodeAttributeCooperative -> mcKernelNodeAttributeCooperative */
+#define cudaKernelNodeAttributeCooperative CU2CCE_RESERVED_NPU_cudaKernelNodeAttributeCooperative
+/* reference_maca: cudaKernelNodeAttributePriority -> mcKernelNodeAttributePriority */
+#define cudaKernelNodeAttributePriority CU2CCE_RESERVED_NPU_cudaKernelNodeAttributePriority
+/* reference_maca: cudaKernelNodeParams -> mcKernelNodeParams_st */
+#define cudaKernelNodeParams CU2CCE_RESERVED_NPU_cudaKernelNodeParams
+/* reference_maca: cudaKeyValuePair -> mcKeyValuePair */
+#define cudaKeyValuePair CU2CCE_RESERVED_NPU_cudaKeyValuePair
+/* reference_maca: cudaLibXtCopyType -> mcLibXtCopyType */
+#define cudaLibXtCopyType CU2CCE_RESERVED_NPU_cudaLibXtCopyType
+/* reference_maca: cudaLibXtDesc -> mcLibXtDesc */
+#define cudaLibXtDesc CU2CCE_RESERVED_NPU_cudaLibXtDesc
+/* reference_maca: cudaLibXtDesc_t -> mcLibXtDesc_t */
+#define cudaLibXtDesc_t CU2CCE_RESERVED_NPU_cudaLibXtDesc_t
+/* reference_maca: cudaLimit -> mcLimit_t */
+#define cudaLimit CU2CCE_RESERVED_NPU_cudaLimit
+/* reference_maca: cudaLimitDevRuntimePendingLaunchCount -> mcLimitDevRuntimePendingLaunchCount */
+#define cudaLimitDevRuntimePendingLaunchCount CU2CCE_RESERVED_NPU_cudaLimitDevRuntimePendingLaunchCount
+/* reference_maca: cudaLimitDevRuntimeSyncDepth -> mcLimitDevRuntimeSyncDepth */
+#define cudaLimitDevRuntimeSyncDepth CU2CCE_RESERVED_NPU_cudaLimitDevRuntimeSyncDepth
+/* reference_maca: cudaLimitMallocHeapSize -> mcLimitMallocHeapSize */
+#define cudaLimitMallocHeapSize CU2CCE_RESERVED_NPU_cudaLimitMallocHeapSize
+/* reference_maca: cudaLimitMaxL2FetchGranularity -> mcLimitMaxL2FetchGranularity */
+#define cudaLimitMaxL2FetchGranularity CU2CCE_RESERVED_NPU_cudaLimitMaxL2FetchGranularity
+/* reference_maca: cudaLimitPersistingL2CacheSize -> mcLimitPersistingL2CacheSize */
+#define cudaLimitPersistingL2CacheSize CU2CCE_RESERVED_NPU_cudaLimitPersistingL2CacheSize
+/* reference_maca: cudaLimitPrintfFifoSize -> mcLimitPrintfFifoSize */
+#define cudaLimitPrintfFifoSize CU2CCE_RESERVED_NPU_cudaLimitPrintfFifoSize
+/* reference_maca: cudaLimitStackSize -> mcLimitStackSize */
+#define cudaLimitStackSize CU2CCE_RESERVED_NPU_cudaLimitStackSize
+/* reference_maca: cudaMallocFromPoolAsync -> wcudaMallocFromPoolAsync */
+#define cudaMallocFromPoolAsync CU2CCE_RESERVED_NPU_cudaMallocFromPoolAsync
+/* reference_maca: cudaMemAccessDesc -> mcMemAccessDesc */
+#define cudaMemAccessDesc CU2CCE_RESERVED_NPU_cudaMemAccessDesc
+/* reference_maca: cudaMemAccessFlags -> mcMemAccessFlags */
+#define cudaMemAccessFlags CU2CCE_RESERVED_NPU_cudaMemAccessFlags
+/* reference_maca: cudaMemAccessFlagsProtNone -> mcMemAccessFlagsProtNone */
+#define cudaMemAccessFlagsProtNone CU2CCE_RESERVED_NPU_cudaMemAccessFlagsProtNone
+/* reference_maca: cudaMemAccessFlagsProtRead -> mcMemAccessFlagsProtRead */
+#define cudaMemAccessFlagsProtRead CU2CCE_RESERVED_NPU_cudaMemAccessFlagsProtRead
+/* reference_maca: cudaMemAccessFlagsProtReadWrite -> mcMemAccessFlagsProtReadWrite */
+#define cudaMemAccessFlagsProtReadWrite CU2CCE_RESERVED_NPU_cudaMemAccessFlagsProtReadWrite
+/* reference_maca: cudaMemAllocNodeParams -> mcMemAllocNodeParams */
+#define cudaMemAllocNodeParams CU2CCE_RESERVED_NPU_cudaMemAllocNodeParams
+/* reference_maca: cudaMemAllocationHandleType -> mcMemAllocationHandleType */
+#define cudaMemAllocationHandleType CU2CCE_RESERVED_NPU_cudaMemAllocationHandleType
+/* reference_maca: cudaMemAllocationType -> mcMemAllocationType */
+#define cudaMemAllocationType CU2CCE_RESERVED_NPU_cudaMemAllocationType
+/* reference_maca: cudaMemAllocationTypeInvalid -> mcMemAllocationTypeInvalid */
+#define cudaMemAllocationTypeInvalid CU2CCE_RESERVED_NPU_cudaMemAllocationTypeInvalid
+/* reference_maca: cudaMemAllocationTypeMax -> mcMemAllocationTypeMax */
+#define cudaMemAllocationTypeMax CU2CCE_RESERVED_NPU_cudaMemAllocationTypeMax
+/* reference_maca: cudaMemAllocationTypePinned -> mcMemAllocationTypePinned */
+#define cudaMemAllocationTypePinned CU2CCE_RESERVED_NPU_cudaMemAllocationTypePinned
+/* reference_maca: cudaMemAttachGlobal -> mcMemAttachGlobal */
+#define cudaMemAttachGlobal CU2CCE_RESERVED_NPU_cudaMemAttachGlobal
+/* reference_maca: cudaMemAttachHost -> mcMemAttachHost */
+#define cudaMemAttachHost CU2CCE_RESERVED_NPU_cudaMemAttachHost
+/* reference_maca: cudaMemAttachSingle -> mcMemAttachSingle */
+#define cudaMemAttachSingle CU2CCE_RESERVED_NPU_cudaMemAttachSingle
+/* reference_maca: cudaMemHandleTypeFabric -> mcMemHandleTypeFabric */
+#define cudaMemHandleTypeFabric CU2CCE_RESERVED_NPU_cudaMemHandleTypeFabric
+/* reference_maca: cudaMemHandleTypeNone -> mcMemHandleTypeNone */
+#define cudaMemHandleTypeNone CU2CCE_RESERVED_NPU_cudaMemHandleTypeNone
+/* reference_maca: cudaMemHandleTypePosixFileDescriptor -> mcMemHandleTypePosixFileDescriptor */
+#define cudaMemHandleTypePosixFileDescriptor CU2CCE_RESERVED_NPU_cudaMemHandleTypePosixFileDescriptor
+/* reference_maca: cudaMemHandleTypeWin32 -> mcMemHandleTypeWin32 */
+#define cudaMemHandleTypeWin32 CU2CCE_RESERVED_NPU_cudaMemHandleTypeWin32
+/* reference_maca: cudaMemHandleTypeWin32Kmt -> mcMemHandleTypeWin32Kmt */
+#define cudaMemHandleTypeWin32Kmt CU2CCE_RESERVED_NPU_cudaMemHandleTypeWin32Kmt
+/* reference_maca: cudaMemLocation -> mcMemLocation */
+#define cudaMemLocation CU2CCE_RESERVED_NPU_cudaMemLocation
+/* reference_maca: cudaMemLocationType -> mcMemLocationType */
+#define cudaMemLocationType CU2CCE_RESERVED_NPU_cudaMemLocationType
+/* reference_maca: cudaMemLocationTypeDevice -> mcMemLocationTypeDevice */
+#define cudaMemLocationTypeDevice CU2CCE_RESERVED_NPU_cudaMemLocationTypeDevice
+/* reference_maca: cudaMemLocationTypeHost -> mcMemLocationTypeHost */
+#define cudaMemLocationTypeHost CU2CCE_RESERVED_NPU_cudaMemLocationTypeHost
+/* reference_maca: cudaMemLocationTypeHostNuma -> mcMemLocationTypeHostNuma */
+#define cudaMemLocationTypeHostNuma CU2CCE_RESERVED_NPU_cudaMemLocationTypeHostNuma
+/* reference_maca: cudaMemLocationTypeHostNumaCurrent -> mcMemLocationTypeHostNumaCurrent */
+#define cudaMemLocationTypeHostNumaCurrent CU2CCE_RESERVED_NPU_cudaMemLocationTypeHostNumaCurrent
+/* reference_maca: cudaMemLocationTypeInvalid -> mcMemLocationTypeInvalid */
+#define cudaMemLocationTypeInvalid CU2CCE_RESERVED_NPU_cudaMemLocationTypeInvalid
+/* reference_maca: cudaMemLocationTypeNone -> mcMemLocationTypeNone */
+#define cudaMemLocationTypeNone CU2CCE_RESERVED_NPU_cudaMemLocationTypeNone
+/* reference_maca: cudaMemcpy2DAsync_ptsz -> wcudaMemcpy2DAsync_ptsz */
+#define cudaMemcpy2DAsync_ptsz CU2CCE_RESERVED_NPU_cudaMemcpy2DAsync_ptsz
+/* reference_maca: cudaMemcpy3DAsync_ptsz -> wcudaMemcpy3DAsync_ptsz */
+#define cudaMemcpy3DAsync_ptsz CU2CCE_RESERVED_NPU_cudaMemcpy3DAsync_ptsz
+/* reference_maca: cudaMemcpyAsync_ptsz -> wcudaMemcpyAsync_ptsz */
+#define cudaMemcpyAsync_ptsz CU2CCE_RESERVED_NPU_cudaMemcpyAsync_ptsz
+/* reference_maca: cudaMemoryAdvise -> mcMemoryAdvise_enum */
+#define cudaMemoryAdvise CU2CCE_RESERVED_NPU_cudaMemoryAdvise
+/* reference_maca: cudaMemset2DAsync_ptsz -> wcudaMemset2DAsync_ptsz */
+#define cudaMemset2DAsync_ptsz CU2CCE_RESERVED_NPU_cudaMemset2DAsync_ptsz
+/* reference_maca: cudaMemset3DAsync_ptsz -> wcudaMemset3DAsync_ptsz */
+#define cudaMemset3DAsync_ptsz CU2CCE_RESERVED_NPU_cudaMemset3DAsync_ptsz
+/* reference_maca: cudaMemsetAsync_ptsz -> wcudaMemsetAsync_ptsz */
+#define cudaMemsetAsync_ptsz CU2CCE_RESERVED_NPU_cudaMemsetAsync_ptsz
+/* reference_maca: cudaMemsetParams -> mcMemsetParams_st */
+#define cudaMemsetParams CU2CCE_RESERVED_NPU_cudaMemsetParams
+/* reference_maca: cudaMipmappedArray -> _mcMipmappedArray_t */
+#define cudaMipmappedArray CU2CCE_RESERVED_NPU_cudaMipmappedArray
+/* reference_maca: cudaMipmappedArrayGetMemoryRequirements -> wcudaMipmappedArrayGetMemoryRequirements */
+#define cudaMipmappedArrayGetMemoryRequirements CU2CCE_RESERVED_NPU_cudaMipmappedArrayGetMemoryRequirements
+/* reference_maca: cudaMipmappedArrayGetSparseProperties -> wcudaMipmappedArrayGetSparseProperties */
+#define cudaMipmappedArrayGetSparseProperties CU2CCE_RESERVED_NPU_cudaMipmappedArrayGetSparseProperties
+/* reference_maca: cudaMipmappedArray_const_t -> mcMipmappedArray_const_t */
+#define cudaMipmappedArray_const_t CU2CCE_RESERVED_NPU_cudaMipmappedArray_const_t
+/* reference_maca: cudaNvSciSyncAttrSignal -> mcNvSciSyncAttrSignal */
+#define cudaNvSciSyncAttrSignal CU2CCE_RESERVED_NPU_cudaNvSciSyncAttrSignal
+/* reference_maca: cudaNvSciSyncAttrWait -> mcNvSciSyncAttrWait */
+#define cudaNvSciSyncAttrWait CU2CCE_RESERVED_NPU_cudaNvSciSyncAttrWait
+/* reference_maca: cudaOccAlignUpShmemSizeVoltaPlus -> mcOccAlignUpShmemSizeVoltaPlus */
+#define cudaOccAlignUpShmemSizeVoltaPlus CU2CCE_RESERVED_NPU_cudaOccAlignUpShmemSizeVoltaPlus
+/* reference_maca: cudaOccAvailableDynamicSMemPerBlock -> mcOccAvailableDynamicSMemPerBlock */
+#define cudaOccAvailableDynamicSMemPerBlock CU2CCE_RESERVED_NPU_cudaOccAvailableDynamicSMemPerBlock
+/* reference_maca: cudaOccCacheConfig -> mcOccCacheConfig */
+#define cudaOccCacheConfig CU2CCE_RESERVED_NPU_cudaOccCacheConfig
+/* reference_maca: cudaOccCacheConfig_enum -> mcOccCacheConfig_enum */
+#define cudaOccCacheConfig_enum CU2CCE_RESERVED_NPU_cudaOccCacheConfig_enum
+/* reference_maca: cudaOccCarveoutConfig -> mcOccCarveoutConfig */
+#define cudaOccCarveoutConfig CU2CCE_RESERVED_NPU_cudaOccCarveoutConfig
+/* reference_maca: cudaOccCarveoutConfig_enum -> mcOccCarveoutConfig_enum */
+#define cudaOccCarveoutConfig_enum CU2CCE_RESERVED_NPU_cudaOccCarveoutConfig_enum
+/* reference_maca: cudaOccDeviceProp -> mcOccDeviceProp */
+#define cudaOccDeviceProp CU2CCE_RESERVED_NPU_cudaOccDeviceProp
+/* reference_maca: cudaOccDevicePropCheck -> mcOccDevicePropCheck */
+#define cudaOccDevicePropCheck CU2CCE_RESERVED_NPU_cudaOccDevicePropCheck
+/* reference_maca: cudaOccDeviceState -> mcOccDeviceState */
+#define cudaOccDeviceState CU2CCE_RESERVED_NPU_cudaOccDeviceState
+/* reference_maca: cudaOccDeviceStateCheck -> mcOccDeviceStateCheck */
+#define cudaOccDeviceStateCheck CU2CCE_RESERVED_NPU_cudaOccDeviceStateCheck
+/* reference_maca: cudaOccError -> mcOccError */
+#define cudaOccError CU2CCE_RESERVED_NPU_cudaOccError
+/* reference_maca: cudaOccError_enum -> mcOccError_enum */
+#define cudaOccError_enum CU2CCE_RESERVED_NPU_cudaOccError_enum
+/* reference_maca: cudaOccFuncAttributes -> mcOccFuncAttributes */
+#define cudaOccFuncAttributes CU2CCE_RESERVED_NPU_cudaOccFuncAttributes
+/* reference_maca: cudaOccFuncAttributesCheck -> mcOccFuncAttributesCheck */
+#define cudaOccFuncAttributesCheck CU2CCE_RESERVED_NPU_cudaOccFuncAttributesCheck
+/* reference_maca: cudaOccFuncShmemConfig -> mcOccFuncShmemConfig */
+#define cudaOccFuncShmemConfig CU2CCE_RESERVED_NPU_cudaOccFuncShmemConfig
+/* reference_maca: cudaOccFuncShmemConfig_enum -> mcOccFuncShmemConfig_enum */
+#define cudaOccFuncShmemConfig_enum CU2CCE_RESERVED_NPU_cudaOccFuncShmemConfig_enum
+/* reference_maca: cudaOccInputCheck -> mcOccInputCheck */
+#define cudaOccInputCheck CU2CCE_RESERVED_NPU_cudaOccInputCheck
+/* reference_maca: cudaOccLimitingFactor -> mcOccLimitingFactor */
+#define cudaOccLimitingFactor CU2CCE_RESERVED_NPU_cudaOccLimitingFactor
+/* reference_maca: cudaOccLimitingFactor_enum -> mcOccLimitingFactor_enum */
+#define cudaOccLimitingFactor_enum CU2CCE_RESERVED_NPU_cudaOccLimitingFactor_enum
+/* reference_maca: cudaOccMaxActiveBlocksPerMultiprocessor -> mcOccMaxActiveBlocksPerMultiprocessor */
+#define cudaOccMaxActiveBlocksPerMultiprocessor CU2CCE_RESERVED_NPU_cudaOccMaxActiveBlocksPerMultiprocessor
+/* reference_maca: cudaOccMaxBlocksPerMultiprocessor -> mcOccMaxBlocksPerMultiprocessor */
+#define cudaOccMaxBlocksPerMultiprocessor CU2CCE_RESERVED_NPU_cudaOccMaxBlocksPerMultiprocessor
+/* reference_maca: cudaOccMaxBlocksPerSMRegsLimit -> mcOccMaxBlocksPerSMRegsLimit */
+#define cudaOccMaxBlocksPerSMRegsLimit CU2CCE_RESERVED_NPU_cudaOccMaxBlocksPerSMRegsLimit
+/* reference_maca: cudaOccMaxBlocksPerSMSmemLimit -> mcOccMaxBlocksPerSMSmemLimit */
+#define cudaOccMaxBlocksPerSMSmemLimit CU2CCE_RESERVED_NPU_cudaOccMaxBlocksPerSMSmemLimit
+/* reference_maca: cudaOccMaxBlocksPerSMWarpsLimit -> mcOccMaxBlocksPerSMWarpsLimit */
+#define cudaOccMaxBlocksPerSMWarpsLimit CU2CCE_RESERVED_NPU_cudaOccMaxBlocksPerSMWarpsLimit
+/* reference_maca: cudaOccMaxPotentialOccupancyBlockSize -> mcOccMaxPotentialOccupancyBlockSize */
+#define cudaOccMaxPotentialOccupancyBlockSize CU2CCE_RESERVED_NPU_cudaOccMaxPotentialOccupancyBlockSize
+/* reference_maca: cudaOccMaxPotentialOccupancyBlockSizeVariableSMem -> mcOccMaxPotentialOccupancyBlockSizeVariableSMem */
+#define cudaOccMaxPotentialOccupancyBlockSizeVariableSMem CU2CCE_RESERVED_NPU_cudaOccMaxPotentialOccupancyBlockSizeVariableSMem
+/* reference_maca: cudaOccPartitionedGCConfig -> mcOccPartitionedGCConfig */
+#define cudaOccPartitionedGCConfig CU2CCE_RESERVED_NPU_cudaOccPartitionedGCConfig
+/* reference_maca: cudaOccPartitionedGCConfig_enum -> mcOccPartitionedGCConfig_enum */
+#define cudaOccPartitionedGCConfig_enum CU2CCE_RESERVED_NPU_cudaOccPartitionedGCConfig_enum
+/* reference_maca: cudaOccPartitionedGCExpected -> mcOccPartitionedGCExpected */
+#define cudaOccPartitionedGCExpected CU2CCE_RESERVED_NPU_cudaOccPartitionedGCExpected
+/* reference_maca: cudaOccPartitionedGCSupport -> mcOccPartitionedGCSupport */
+#define cudaOccPartitionedGCSupport CU2CCE_RESERVED_NPU_cudaOccPartitionedGCSupport
+/* reference_maca: cudaOccPartitionedGCSupport_enum -> mcOccPartitionedGCSupport_enum */
+#define cudaOccPartitionedGCSupport_enum CU2CCE_RESERVED_NPU_cudaOccPartitionedGCSupport_enum
+/* reference_maca: cudaOccPartitionedGlobalCachingModeSupport -> mcOccPartitionedGlobalCachingModeSupport */
+#define cudaOccPartitionedGlobalCachingModeSupport CU2CCE_RESERVED_NPU_cudaOccPartitionedGlobalCachingModeSupport
+/* reference_maca: cudaOccRegAllocationGranularity -> mcOccRegAllocationGranularity */
+#define cudaOccRegAllocationGranularity CU2CCE_RESERVED_NPU_cudaOccRegAllocationGranularity
+/* reference_maca: cudaOccRegAllocationMaxPerThread -> mcOccRegAllocationMaxPerThread */
+#define cudaOccRegAllocationMaxPerThread CU2CCE_RESERVED_NPU_cudaOccRegAllocationMaxPerThread
+/* reference_maca: cudaOccResult -> mcOccResult */
+#define cudaOccResult CU2CCE_RESERVED_NPU_cudaOccResult
+/* reference_maca: cudaOccSMemAllocationGranularity -> mcOccSMemAllocationGranularity */
+#define cudaOccSMemAllocationGranularity CU2CCE_RESERVED_NPU_cudaOccSMemAllocationGranularity
+/* reference_maca: cudaOccSMemPerBlock -> mcOccSMemPerBlock */
+#define cudaOccSMemPerBlock CU2CCE_RESERVED_NPU_cudaOccSMemPerBlock
+/* reference_maca: cudaOccSMemPerMultiprocessor -> mcOccSMemPerMultiprocessor */
+#define cudaOccSMemPerMultiprocessor CU2CCE_RESERVED_NPU_cudaOccSMemPerMultiprocessor
+/* reference_maca: cudaOccSMemPreference -> mcOccSMemPreference */
+#define cudaOccSMemPreference CU2CCE_RESERVED_NPU_cudaOccSMemPreference
+/* reference_maca: cudaOccSMemPreferenceVoltaPlus -> mcOccSMemPreferenceVoltaPlus */
+#define cudaOccSMemPreferenceVoltaPlus CU2CCE_RESERVED_NPU_cudaOccSMemPreferenceVoltaPlus
+/* reference_maca: cudaOccSubPartitionsPerMultiprocessor -> mcOccSubPartitionsPerMultiprocessor */
+#define cudaOccSubPartitionsPerMultiprocessor CU2CCE_RESERVED_NPU_cudaOccSubPartitionsPerMultiprocessor
+/* reference_maca: cudaOutputMode -> mcOutputMode */
+#define cudaOutputMode CU2CCE_RESERVED_NPU_cudaOutputMode
+/* reference_maca: cudaOutputMode_t -> mcOutputMode_t */
+#define cudaOutputMode_t CU2CCE_RESERVED_NPU_cudaOutputMode_t
+/* reference_maca: cudaPeerAccessDefault -> mcPeerAccessDefault */
+#define cudaPeerAccessDefault CU2CCE_RESERVED_NPU_cudaPeerAccessDefault
+/* reference_maca: cudaProfilerInitialize -> wcudaProfilerInitialize */
+#define cudaProfilerInitialize CU2CCE_RESERVED_NPU_cudaProfilerInitialize
+/* reference_maca: cudaResViewFormatSignedBlockCompressed4 -> mcResViewFormatSignedBlockCompressed4 */
+#define cudaResViewFormatSignedBlockCompressed4 CU2CCE_RESERVED_NPU_cudaResViewFormatSignedBlockCompressed4
+/* reference_maca: cudaResViewFormatSignedBlockCompressed5 -> mcResViewFormatSignedBlockCompressed5 */
+#define cudaResViewFormatSignedBlockCompressed5 CU2CCE_RESERVED_NPU_cudaResViewFormatSignedBlockCompressed5
+/* reference_maca: cudaResViewFormatSignedBlockCompressed6H -> mcResViewFormatSignedBlockCompressed6H */
+#define cudaResViewFormatSignedBlockCompressed6H CU2CCE_RESERVED_NPU_cudaResViewFormatSignedBlockCompressed6H
+/* reference_maca: cudaResViewFormatUnsignedBlockCompressed1 -> mcResViewFormatUnsignedBlockCompressed1 */
+#define cudaResViewFormatUnsignedBlockCompressed1 CU2CCE_RESERVED_NPU_cudaResViewFormatUnsignedBlockCompressed1
+/* reference_maca: cudaResViewFormatUnsignedBlockCompressed2 -> mcResViewFormatUnsignedBlockCompressed2 */
+#define cudaResViewFormatUnsignedBlockCompressed2 CU2CCE_RESERVED_NPU_cudaResViewFormatUnsignedBlockCompressed2
+/* reference_maca: cudaResViewFormatUnsignedBlockCompressed3 -> mcResViewFormatUnsignedBlockCompressed3 */
+#define cudaResViewFormatUnsignedBlockCompressed3 CU2CCE_RESERVED_NPU_cudaResViewFormatUnsignedBlockCompressed3
+/* reference_maca: cudaResViewFormatUnsignedBlockCompressed4 -> mcResViewFormatUnsignedBlockCompressed4 */
+#define cudaResViewFormatUnsignedBlockCompressed4 CU2CCE_RESERVED_NPU_cudaResViewFormatUnsignedBlockCompressed4
+/* reference_maca: cudaResViewFormatUnsignedBlockCompressed5 -> mcResViewFormatUnsignedBlockCompressed5 */
+#define cudaResViewFormatUnsignedBlockCompressed5 CU2CCE_RESERVED_NPU_cudaResViewFormatUnsignedBlockCompressed5
+/* reference_maca: cudaResViewFormatUnsignedBlockCompressed6H -> mcResViewFormatUnsignedBlockCompressed6H */
+#define cudaResViewFormatUnsignedBlockCompressed6H CU2CCE_RESERVED_NPU_cudaResViewFormatUnsignedBlockCompressed6H
+/* reference_maca: cudaResViewFormatUnsignedBlockCompressed7 -> mcResViewFormatUnsignedBlockCompressed7 */
+#define cudaResViewFormatUnsignedBlockCompressed7 CU2CCE_RESERVED_NPU_cudaResViewFormatUnsignedBlockCompressed7
+/* reference_maca: cudaSetDoubleForDevice -> wcudaSetDoubleForDevice */
+#define cudaSetDoubleForDevice CU2CCE_RESERVED_NPU_cudaSetDoubleForDevice
+/* reference_maca: cudaSetDoubleForHost -> wcudaSetDoubleForHost */
+#define cudaSetDoubleForHost CU2CCE_RESERVED_NPU_cudaSetDoubleForHost
+/* reference_maca: cudaSharedCarveout -> mcSharedCarveout */
+#define cudaSharedCarveout CU2CCE_RESERVED_NPU_cudaSharedCarveout
+/* reference_maca: cudaSharedMemBankSizeDefault -> mcSharedMemBankSizeDefault */
+#define cudaSharedMemBankSizeDefault CU2CCE_RESERVED_NPU_cudaSharedMemBankSizeDefault
+/* reference_maca: cudaSharedMemBankSizeEightByte -> mcSharedMemBankSizeEightByte */
+#define cudaSharedMemBankSizeEightByte CU2CCE_RESERVED_NPU_cudaSharedMemBankSizeEightByte
+/* reference_maca: cudaSharedMemBankSizeFourByte -> mcSharedMemBankSizeFourByte */
+#define cudaSharedMemBankSizeFourByte CU2CCE_RESERVED_NPU_cudaSharedMemBankSizeFourByte
+/* reference_maca: cudaSharedMemConfig -> mcSharedMemConfig */
+#define cudaSharedMemConfig CU2CCE_RESERVED_NPU_cudaSharedMemConfig
+/* reference_maca: cudaSharedmemCarveoutDefault -> mcSharedmemCarveoutDefault */
+#define cudaSharedmemCarveoutDefault CU2CCE_RESERVED_NPU_cudaSharedmemCarveoutDefault
+/* reference_maca: cudaSharedmemCarveoutMaxL1 -> mcSharedmemCarveoutMaxL1 */
+#define cudaSharedmemCarveoutMaxL1 CU2CCE_RESERVED_NPU_cudaSharedmemCarveoutMaxL1
+/* reference_maca: cudaSharedmemCarveoutMaxShared -> mcSharedmemCarveoutMaxShared */
+#define cudaSharedmemCarveoutMaxShared CU2CCE_RESERVED_NPU_cudaSharedmemCarveoutMaxShared
+/* reference_maca: cudaSyncPolicyAuto -> mcSyncPolicyAuto */
+#define cudaSyncPolicyAuto CU2CCE_RESERVED_NPU_cudaSyncPolicyAuto
+/* reference_maca: cudaSyncPolicyBlockingSync -> mcSyncPolicyBlockingSync */
+#define cudaSyncPolicyBlockingSync CU2CCE_RESERVED_NPU_cudaSyncPolicyBlockingSync
+/* reference_maca: cudaSyncPolicySpin -> mcSyncPolicySpin */
+#define cudaSyncPolicySpin CU2CCE_RESERVED_NPU_cudaSyncPolicySpin
+/* reference_maca: cudaSyncPolicyYield -> mcSyncPolicyYield */
+#define cudaSyncPolicyYield CU2CCE_RESERVED_NPU_cudaSyncPolicyYield
+/* reference_maca: cudaSynchronizationPolicy -> mcSynchronizationPolicy */
+#define cudaSynchronizationPolicy CU2CCE_RESERVED_NPU_cudaSynchronizationPolicy
+/* reference_maca: cudaUUID_t -> mcUuid_t */
+#define cudaUUID_t CU2CCE_RESERVED_NPU_cudaUUID_t
+/* reference_maca: cudaUnbindTexture -> wcudaUnbindTexture */
+#define cudaUnbindTexture CU2CCE_RESERVED_NPU_cudaUnbindTexture
+/* reference_maca: cudaUserObjectCreate -> wcudaUserObjectCreate */
+#define cudaUserObjectCreate CU2CCE_RESERVED_NPU_cudaUserObjectCreate
+/* reference_maca: cudaUserObjectFlags -> mcUserObjectFlags */
+#define cudaUserObjectFlags CU2CCE_RESERVED_NPU_cudaUserObjectFlags
+/* reference_maca: cudaUserObjectNoDestructorSync -> mcUserObjectNoDestructorSync */
+#define cudaUserObjectNoDestructorSync CU2CCE_RESERVED_NPU_cudaUserObjectNoDestructorSync
+/* reference_maca: cudaUserObjectRelease -> wcudaUserObjectRelease */
+#define cudaUserObjectRelease CU2CCE_RESERVED_NPU_cudaUserObjectRelease
+/* reference_maca: cudaUserObjectRetain -> wcudaUserObjectRetain */
+#define cudaUserObjectRetain CU2CCE_RESERVED_NPU_cudaUserObjectRetain
+/* reference_maca: cudaUserObjectRetainFlags -> mcUserObjectRetainFlags */
+#define cudaUserObjectRetainFlags CU2CCE_RESERVED_NPU_cudaUserObjectRetainFlags
+/* reference_maca: cudaUserObject_t -> mcUserObject_t */
+#define cudaUserObject_t CU2CCE_RESERVED_NPU_cudaUserObject_t
+/* reference_maca: cudaWGLGetDevice -> wcudaWGLGetDevice */
+#define cudaWGLGetDevice CU2CCE_RESERVED_NPU_cudaWGLGetDevice
+/* reference_maca: cudaXtCopyType_t -> mcXtCopyType_t */
+#define cudaXtCopyType_t CU2CCE_RESERVED_NPU_cudaXtCopyType_t
+/* reference_maca: cudaXtDesc -> mcXtDesc */
+#define cudaXtDesc CU2CCE_RESERVED_NPU_cudaXtDesc
+/* reference_maca: cudaXtDesc_t -> mcXtDesc_t */
+#define cudaXtDesc_t CU2CCE_RESERVED_NPU_cudaXtDesc_t
+#endif
+
+#if 0
+/* RESERVED_NPU category: Stream_Event_Thread
+ * Future implementation: include/bridge/runtime/ and src/bridge/runtime/.
+ */
+/* reference_maca: cudaEventCreateFromEGLSync -> wcudaEventCreateFromEGLSync */
+#define cudaEventCreateFromEGLSync CU2CCE_RESERVED_NPU_cudaEventCreateFromEGLSync
+/* reference_maca: cudaEventElapsedTime_v2 -> wcudaEventElapsedTime */
+#define cudaEventElapsedTime_v2 CU2CCE_RESERVED_NPU_cudaEventElapsedTime_v2
+/* reference_maca: cudaEventRecordDefault -> mcEventRecordDefault */
+#define cudaEventRecordDefault CU2CCE_RESERVED_NPU_cudaEventRecordDefault
+/* reference_maca: cudaEventRecordExternal -> mcEventRecordExternal */
+#define cudaEventRecordExternal CU2CCE_RESERVED_NPU_cudaEventRecordExternal
+/* reference_maca: cudaEventRecordWithFlags_ptsz -> wcudaEventRecordWithFlags_ptsz */
+#define cudaEventRecordWithFlags_ptsz CU2CCE_RESERVED_NPU_cudaEventRecordWithFlags_ptsz
+/* reference_maca: cudaEventRecord_ptsz -> wcudaEventRecord_ptsz */
+#define cudaEventRecord_ptsz CU2CCE_RESERVED_NPU_cudaEventRecord_ptsz
+/* reference_maca: cudaEventWaitDefault -> mcEventWaitDefault */
+#define cudaEventWaitDefault CU2CCE_RESERVED_NPU_cudaEventWaitDefault
+/* reference_maca: cudaEventWaitExternal -> mcEventWaitExternal */
+#define cudaEventWaitExternal CU2CCE_RESERVED_NPU_cudaEventWaitExternal
+/* reference_maca: cudaStreamAddCaptureDependencies -> mcStreamAddCaptureDependencies */
+#define cudaStreamAddCaptureDependencies CU2CCE_RESERVED_NPU_cudaStreamAddCaptureDependencies
+/* reference_maca: cudaStreamAttrID -> mcStreamAttrID_enum */
+#define cudaStreamAttrID CU2CCE_RESERVED_NPU_cudaStreamAttrID
+/* reference_maca: cudaStreamAttrValue -> mcStreamAttrValue */
+#define cudaStreamAttrValue CU2CCE_RESERVED_NPU_cudaStreamAttrValue
+/* reference_maca: cudaStreamAttributeAccessPolicyWindow -> mcStreamAttributeAccessPolicyWindow */
+#define cudaStreamAttributeAccessPolicyWindow CU2CCE_RESERVED_NPU_cudaStreamAttributeAccessPolicyWindow
+/* reference_maca: cudaStreamAttributeSynchronizationPolicy -> mcStreamAttributeSynchronizationPolicy */
+#define cudaStreamAttributeSynchronizationPolicy CU2CCE_RESERVED_NPU_cudaStreamAttributeSynchronizationPolicy
+/* reference_maca: cudaStreamBeginCaptureToGraph -> wcudaStreamBeginCaptureToGraph */
+#define cudaStreamBeginCaptureToGraph CU2CCE_RESERVED_NPU_cudaStreamBeginCaptureToGraph
+/* reference_maca: cudaStreamCallback_t -> mcStreamCallback_t */
+#define cudaStreamCallback_t CU2CCE_RESERVED_NPU_cudaStreamCallback_t
+/* reference_maca: cudaStreamCopyAttributes -> wcudaStreamCopyAttributes */
+#define cudaStreamCopyAttributes CU2CCE_RESERVED_NPU_cudaStreamCopyAttributes
+/* reference_maca: cudaStreamGetAttribute -> wcudaStreamGetAttribute */
+#define cudaStreamGetAttribute CU2CCE_RESERVED_NPU_cudaStreamGetAttribute
+/* reference_maca: cudaStreamGetDevResource -> wcudaStreamGetDevResource */
+#define cudaStreamGetDevResource CU2CCE_RESERVED_NPU_cudaStreamGetDevResource
+/* reference_maca: cudaStreamLegacy -> mcStreamAllThreads */
+#define cudaStreamLegacy CU2CCE_RESERVED_NPU_cudaStreamLegacy
+/* reference_maca: cudaStreamPerThread -> mcStreamPerThread */
+#define cudaStreamPerThread CU2CCE_RESERVED_NPU_cudaStreamPerThread
+/* reference_maca: cudaStreamSetAttribute -> wcudaStreamSetAttribute */
+#define cudaStreamSetAttribute CU2CCE_RESERVED_NPU_cudaStreamSetAttribute
+/* reference_maca: cudaStreamSetCaptureDependencies -> mcStreamSetCaptureDependencies */
+#define cudaStreamSetCaptureDependencies CU2CCE_RESERVED_NPU_cudaStreamSetCaptureDependencies
+/* reference_maca: cudaStreamUpdateCaptureDependencies -> wcudaStreamUpdateCaptureDependencies */
+#define cudaStreamUpdateCaptureDependencies CU2CCE_RESERVED_NPU_cudaStreamUpdateCaptureDependencies
+/* reference_maca: cudaStreamUpdateCaptureDependenciesFlags -> mcStreamUpdateCaptureDependenciesFlags_enum */
+#define cudaStreamUpdateCaptureDependenciesFlags CU2CCE_RESERVED_NPU_cudaStreamUpdateCaptureDependenciesFlags
+/* reference_maca: cudaStreamWaitEvent_ptsz -> wcudaStreamWaitEvent_ptsz */
+#define cudaStreamWaitEvent_ptsz CU2CCE_RESERVED_NPU_cudaStreamWaitEvent_ptsz
+/* reference_maca: cudaThreadExchangeStreamCaptureMode -> wcudaThreadExchangeStreamCaptureMode */
+#define cudaThreadExchangeStreamCaptureMode CU2CCE_RESERVED_NPU_cudaThreadExchangeStreamCaptureMode
+#endif
+
+#endif /* __CU2CCE_CUDA_TO_CCE_RESERVED_PARITY_H__ */

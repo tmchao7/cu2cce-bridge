@@ -462,6 +462,29 @@ docs/02_能力清单/BLAS_COMPATIBILITY_MATRIX.md
 | `cudnn` | aclnn/ATB | `ROUTE_ONLY` | 不生成虚假 CUDA target |
 | `nvrtc`、PTX、CUBIN、FATBIN | 无 puresimt 等价物 | `UNSUPPORTED` | cucc 明确拒绝 |
 
+### 8.2.1 cu-bridge 替换表完整登记
+
+参考 `cu-bridge-muxi` 的 Runtime adaptor 不等于可直接复制的 Ascend 实现。为避免“参考有、桥侧完全无入口”，本项目将参考 CUDA 名称分为：
+
+| 状态 | 含义 | 编译/运行行为 |
+|---|---|---|
+| `ACTIVE_DIRECT` | 已有稳定 CANN/bridge 对应 | 正常映射到 `wcuda*` / `aclrt*` |
+| `ACTIVE_ADAPTED` | 需要默认流、参数、错误码或内存语义适配 | 正常调用，但限制写入矩阵 |
+| `UNSUPPORTED_TYPED` | 原型和类型已存在，Ascend 无等价物 | wrapper 返回 `ACL_ERROR_API_NOT_SUPPORT` |
+| `RESERVED_NPU` | 参考条目已登记但尚无安全 CANN 实现路径 | 位于 `cuda_to_cce_reserved_parity.h` 的 `#if 0` inventory，不激活 |
+| `DIAGNOSTIC_ONLY` | 仅用于 target/API 探针 | 不升级为正式支持 |
+
+完整性由以下命令校验：
+
+```bash
+python3 tools/validate_cuda_api_parity.py \
+  --reference ../cu-bridge-muxi \
+  --implementation include/bridge/runtime/cuda_to_cce_mcr_adaptor.h \
+  --inventory include/bridge/runtime/cuda_to_cce_reserved_parity.h
+```
+
+`missing_entries=0` 只表示参考表中的 CUDA 名称都已 active 或 reserved 登记，不表示所有 API 已在 Ascend 真机实现。
+
 ### 8.3 CUDA Runtime 数据类型入口
 
 `include/bridge/runtime/cuda_runtime_types.h` 提供不依赖 CANN ABI 的数据形状容器，并由 adaptor 映射公开 CUDA 名称：

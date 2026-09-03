@@ -20,6 +20,7 @@
 
 #include "acl/acl_base.h"
 #include "acl/acl_rt.h"
+#include "cuda_to_cce_reserved_parity.h"
 
 //============================CUDA Runtime API====================//
 

@@ -191,10 +191,13 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
 
     def test_cmake_entrypoints_are_installed(self) -> None:
         cmake = (ROOT / "CMakeLists.txt").read_text(encoding="utf-8")
-        for tool in ("tools/cmake_cce", "tools/make_cce", "tools/ninja_cce", "tools/cu2cce_driver.py", "tools/compare_cubridge_parity.py"):
+        for tool in ("tools/cmake_cce", "tools/make_cce", "tools/ninja_cce", "tools/cu2cce_driver.py",
+                     "tools/compare_cubridge_parity.py", "tools/validate_cuda_api_parity.py",
+                     "tools/generate_cuda_api_parity_inventory.py"):
             self.assertIn(tool, cmake)
         self.assertIn("tools/real_test/verify_artifacts.py", cmake)
         self.assertIn("config/artifact_contract.json", cmake)
+        self.assertIn("config/cuda_api_parity_inventory.json", cmake)
 
     def test_stream_and_device_flag_compatibility_is_declared(self) -> None:
         adaptor = (ROOT / "include/bridge/runtime/cuda_to_cce_mcr_adaptor.h").read_text(encoding="utf-8")

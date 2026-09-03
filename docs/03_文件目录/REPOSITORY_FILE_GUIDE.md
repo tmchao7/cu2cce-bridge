@@ -606,6 +606,7 @@ git diff --check
 | `include/bridge/runtime/cuda_runtime_wrapper.h` | CUDA runtime bridge 的类型、声明和内部接口头 |
 | `include/bridge/runtime/cuda_runtime_types.h` | CUDA Runtime 的 extent/pitch/pos/pointer/array/descriptor 源码兼容类型 |
 | `include/bridge/runtime/cuda_to_cce_mcr_adaptor.h` | CUDA runtime bridge 的类型、声明和内部接口头 |
+| `include/bridge/runtime/cuda_to_cce_reserved_parity.h` | 从 cu-bridge 生成的 RESERVED_NPU CUDA 替换表 inventory；默认 `#if 0` 不激活 |
 | `include/bridge/runtime/cuda_wrapper_internal.h` | CUDA runtime bridge 的类型、声明和内部接口头 |
 | `include/bridge/runtime/cuda_wrapper_internal_types.h` | CUDA runtime bridge 的类型、声明和内部接口头 |
 | `include/bridge/runtime/cuda_wrapper_types.h` | CUDA runtime bridge 的类型、声明和内部接口头 |
@@ -718,6 +719,8 @@ git diff --check
 | `tools/real_test/validate_fetch_url.py` | 真机回归辅助、外部样本或 URL 安全工具 |
 | `tools/real_test/verify_artifacts.py` | 真实构建产物类型、依赖、RPATH 和 metadata 检查器 |
 | `tools/validate_cucc_rules.py` | cucc JSON 规则 schema/冲突校验器 |
+| `tools/validate_cuda_api_parity.py` | 校验参考 cu-bridge 条目在 active 或 RESERVED_NPU inventory 中均有归宿 |
+| `tools/generate_cuda_api_parity_inventory.py` | 从参考 adaptor 生成 RESERVED_NPU CUDA 条目 inventory |
 
 ## 8. 中文文档分区入口
 

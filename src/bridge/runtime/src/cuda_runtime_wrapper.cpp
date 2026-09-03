@@ -1749,6 +1749,48 @@ aclError wcudaOccupancyMaxPotentialBlockSize(int *minGridSize, int *blockSize, c
     WCUDA_RETURN(ACL_SUCCESS);
 }
 
+aclError wcudaOccupancyAvailableDynamicSMemPerBlock(size_t *dynamicSmemSize, const void *func,
+                                                     int numBlocks, int blockSize) {
+    (void)func;
+    (void)numBlocks;
+    (void)blockSize;
+    if (dynamicSmemSize != nullptr) {
+        *dynamicSmemSize = 0;
+    }
+    /* CANN has no public occupancy model compatible with CUDA's dynamic-SMEM query. */
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaOccupancyMaxActiveBlocksPerMultiprocessorWithFlags(
+    int *numBlocks, const void *func, int blockSize, size_t dynamicSMemSize, unsigned int flags) {
+    (void)func;
+    (void)blockSize;
+    (void)dynamicSMemSize;
+    (void)flags;
+    if (numBlocks != nullptr) {
+        *numBlocks = 0;
+    }
+    /* CUDA occupancy flags do not have a CANN SIMT equivalent. */
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaOccupancyMaxPotentialBlockSizeWithFlags(
+    int *minGridSize, int *blockSize, const void *func, size_t dynamicSMemSize,
+    int blockSizeLimit, unsigned int flags) {
+    (void)func;
+    (void)dynamicSMemSize;
+    (void)blockSizeLimit;
+    (void)flags;
+    if (minGridSize != nullptr) {
+        *minGridSize = 0;
+    }
+    if (blockSize != nullptr) {
+        *blockSize = 0;
+    }
+    /* A normal occupancy estimate would silently ignore CUDA-specific flags. */
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
 /* ---------------- Execution Control ---------------- */
 
 aclError wcudaLaunchCooperativeKernel(const void *hostFunction, dim3 gridDim, dim3 blockDim,

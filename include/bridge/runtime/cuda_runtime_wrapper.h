@@ -269,6 +269,13 @@ aclError CUBRIDGE_API wcudaOccupancyMaxPotentialBlockSize(int *minGridSize, int 
                                                          const void *func,
                                                          size_t dynamicSMemSize /* =0 */,
                                                          int blockSizeLimit /* =0 */);
+aclError CUBRIDGE_API wcudaOccupancyAvailableDynamicSMemPerBlock(
+    size_t *dynamicSmemSize, const void *func, int numBlocks, int blockSize);
+aclError CUBRIDGE_API wcudaOccupancyMaxActiveBlocksPerMultiprocessorWithFlags(
+    int *numBlocks, const void *func, int blockSize, size_t dynamicSMemSize, unsigned int flags);
+aclError CUBRIDGE_API wcudaOccupancyMaxPotentialBlockSizeWithFlags(
+    int *minGridSize, int *blockSize, const void *func, size_t dynamicSMemSize,
+    int blockSizeLimit, unsigned int flags);
 
 /* ============ Execution Control ============ */
 /* cudaLaunchKernel(func, gridDim, blockDim, args, sharedMem, stream)
