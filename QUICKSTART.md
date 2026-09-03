@@ -356,6 +356,19 @@ cucc -c vector_add.cu -o build/vector_add.o
 架构通过 `CU2CCE_NPU_ARCH` 设置。`--ptx`、`--cubin`、`--fatbin` 和 device-link
 等无法保持 puresimt 语义的功能会明确失败。
 
+CUDA device-side 扩展 API 默认关闭。当前主线只承诺已经在 Ascend950 puresimt
+回归中验证的基础 SIMT/atomic 形态。以下接口需要目标 CANN/设备单独核验，只有显式
+设置 `CU2CCE_ENABLE_EXPERIMENTAL_DEVICE_APIS=1` 才会暴露：
+
+```text
+__activemask / __reduce_max_sync / __reduce_min_sync
+atomicCAS / atomicInc / atomicDec / atomicAnd / atomicOr / atomicXor
+```
+
+这个开关只表示允许实验性编译探针使用这些接口，不代表它们已经取得当前 NPU
+目标的真机运行支持。`__threadfence_system()` 没有被降级成普通 fence，
+`cudaMemcpyDefault` 也不会被猜测成 Device-to-Device。
+
 cucc 也会根据 `.o` 输出后缀兼容识别下面的写法：
 
 ```bash

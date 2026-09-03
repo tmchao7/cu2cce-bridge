@@ -323,6 +323,19 @@ CU2CCE_TRACE_FILE=/tmp/cu2cce-trace.json \
 `--dryrun` 只打印最终准备交给 ccec 的命令，不执行编译；trace 记录参数决策，不记录 CUDA
 源文件内容。
 
+CUDA device-side 扩展 API 默认关闭。当前主线只承诺已经在 Ascend950 puresimt
+回归中验证的基础 SIMT/atomic 形态。以下接口需要目标 CANN/设备单独核验，只有显式
+设置 `CU2CCE_ENABLE_EXPERIMENTAL_DEVICE_APIS=1` 才会暴露：
+
+```text
+__activemask / __reduce_max_sync / __reduce_min_sync
+atomicCAS / atomicInc / atomicDec / atomicAnd / atomicOr / atomicXor
+```
+
+这个开关只表示允许实验性编译探针使用这些接口，不代表它们已经取得当前 NPU
+目标的真机运行支持。`__threadfence_system()` 没有被降级成普通 fence，
+`cudaMemcpyDefault` 也不会被猜测成 Device-to-Device。
+
 ## 使用 CMake
 
 CMake 工程不需要修改用户的 `.cu` 源码；推荐始终用 `cmake_cce` 完成 configure 和 build。
