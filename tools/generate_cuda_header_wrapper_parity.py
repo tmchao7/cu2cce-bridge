@@ -130,7 +130,7 @@ def write_placeholder(path: Path, reference_rel: str, api_names: Iterable[str], 
             return
     guard = guard_for(str(path.relative_to(path.parents[2])) if len(path.parents) > 2 else path.name)
     lines = [
-        f"#ifndef {guard}", f"#define {guard}", "", 
+        f"#ifndef {guard}", f"#define {guard}", "",
         "/* CUDA compatibility header parity entry. */",
         f"/* Reference header: {reference_rel} */",
         "/* This is a cu2cce compatibility surface, not an NVIDIA runtime copy. */",
