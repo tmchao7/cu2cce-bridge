@@ -36,6 +36,29 @@ class CudaHeaderWrapperParityToolTest(unittest.TestCase):
         self.assertEqual(report["duplicate_entries"], [])
         self.assertEqual(report["active_maca_backend_names"], [])
 
+    def test_generator_is_idempotent_for_reserved_wrapper_inventory(self) -> None:
+        sys.path.insert(0, str(TOOLS))
+        import generate_cuda_header_wrapper_parity as generator
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            reference = root / "reference"
+            implementation = root / "implementation"
+            (reference / "include/bridge/runtime").mkdir(parents=True)
+            (implementation / "include/bridge").mkdir(parents=True)
+            (reference / "include/cuda.h").write_text("#pragma once\n", encoding="utf-8")
+            (reference / "include/bridge/runtime/wrapper.h").write_text(
+                "int wcuFuture(void);\n", encoding="utf-8"
+            )
+            inventory = implementation / "config/inventory.json"
+            generator.generate(reference, implementation, inventory)
+            reserved = implementation / "include/bridge/cuda_to_cce_reserved_wrapper_parity.h"
+            first_inventory = inventory.read_bytes()
+            first_reserved = reserved.read_bytes()
+            generator.generate(reference, implementation, inventory)
+            self.assertEqual(inventory.read_bytes(), first_inventory)
+            self.assertEqual(reserved.read_bytes(), first_reserved)
+
     def test_generator_ignores_wrappers_mentioned_inside_reserved_comments(self) -> None:
         sys.path.insert(0, str(TOOLS))
         import generate_cuda_header_wrapper_parity as generator
