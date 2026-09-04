@@ -106,19 +106,20 @@ cat >"$work/interop.cpp" <<'CPP'
 int main() { return 0; }
 CPP
 
-if command -v g++ >/dev/null 2>&1 && g++ -fsyntax-only -I"$repo_root/include" -I"$include_root" "$work/library.cpp" >"$work/library.log" 2>&1; then
-    echo "[DIAG-PASS] BLAS/FFT/RAND/SOLVER/SPARSE/DNN/NVRTC header include"
-else
-    echo "[DIAG-ONLY] BLAS/FFT/RAND/SOLVER/SPARSE/DNN/NVRTC header include unavailable"
-    tail -n 8 "$work/library.log" 2>/dev/null || true
-fi
+run_diag_include_probe() {
+    local label="$1" source="$2" log="$3"
+    if command -v g++ >/dev/null 2>&1 && \
+        g++ -fsyntax-only -I"$repo_root/include" -I"$include_root" \
+            "$source" >"$log" 2>&1; then
+        echo "[DIAG-PASS] $label header include"
+    else
+        echo "[DIAG-ONLY] $label header include unavailable"
+        tail -n 8 "$log" 2>/dev/null || true
+    fi
+}
 
-if command -v g++ >/dev/null 2>&1 && g++ -fsyntax-only -I"$repo_root/include" -I"$include_root" "$work/interop.cpp" >"$work/interop.log" 2>&1; then
-    echo "[DIAG-PASS] Interop/NVTX header include"
-else
-    echo "[DIAG-ONLY] Interop/NVTX header include unavailable"
-    tail -n 8 "$work/interop.log" 2>/dev/null || true
-fi
+run_diag_include_probe "BLAS/FFT/RAND/SOLVER/SPARSE/DNN/NVRTC"     "$work/library.cpp" "$work/library.log"
+run_diag_include_probe "Interop/NVTX" "$work/interop.cpp" "$work/interop.log"
 
 if [ -n "$CCEC" ] && [ -x "$CCEC" ] && [ -d "$BRIDGE_INCLUDE" ]; then
     if "$CCEC" -x asc --enable-simt --cce-aicore-arch="$NPU_ARCH" \

@@ -46,6 +46,11 @@ def _without_comments(text: str) -> str:
 def wrapper_functions(root: Path) -> dict[str, list[str]]:
     found: dict[str, list[str]] = {}
     for path in sorted(root.rglob("*.h")):
+        # Reserved parity headers deliberately contain reference prototypes in
+        # comments. They are never active wrappers and must not be reclassified
+        # merely because a reference comment itself contains nested /* ... */.
+        if path.name.startswith("cuda_to_cce_reserved"):
+            continue
         text = _without_comments(path.read_text(encoding="utf-8", errors="ignore"))
         for name in sorted(set(FUNC_RE.findall(text))):
             found.setdefault(name, []).append(str(path.relative_to(root)))

@@ -36,6 +36,19 @@ class CudaHeaderWrapperParityToolTest(unittest.TestCase):
         self.assertEqual(report["duplicate_entries"], [])
         self.assertEqual(report["active_maca_backend_names"], [])
 
+    def test_generator_ignores_wrappers_mentioned_inside_reserved_comments(self) -> None:
+        sys.path.insert(0, str(TOOLS))
+        import generate_cuda_header_wrapper_parity as generator
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            reserved = root / "cuda_to_cce_reserved_wrapper_parity.h"
+            reserved.write_text(
+                "/* Reference prototype: #endif /* _WIN32 */ int wcuFuture(void); */\n",
+                encoding="utf-8",
+            )
+            self.assertNotIn("wcuFuture", generator.wrapper_functions(root))
+
     def test_validator_requires_reserved_header_for_non_active_wrapper(self) -> None:
         sys.path.insert(0, str(TOOLS))
         import validate_cuda_header_wrapper_parity as parity
@@ -171,6 +184,12 @@ class CudaHeaderWrapperParityToolTest(unittest.TestCase):
         self.assertIn("validate_cuda_header_wrapper_parity.py", server)
         self.assertIn("cuda_header_surface_probe.sh", server)
         self.assertIn("CUDA_HEADER_WRAPPER_PARITY_REGRESSION_PASS", server)
+
+    def test_header_surface_probe_deduplicates_diagnostic_include_compiles(self) -> None:
+        script = (ROOT / "tools/real_test/diag/cuda_header_surface_probe.sh").read_text(encoding="utf-8")
+        self.assertIn("run_diag_include_probe()", script)
+        self.assertIn('run_diag_include_probe "BLAS/FFT/RAND/SOLVER/SPARSE/DNN/NVRTC"', script)
+        self.assertIn('run_diag_include_probe "Interop/NVTX"', script)
 
     def test_header_surface_probe_initializes_work_before_parity_log_redirection(self) -> None:
         script = (ROOT / "tools/real_test/diag/cuda_header_surface_probe.sh").read_text(encoding="utf-8")

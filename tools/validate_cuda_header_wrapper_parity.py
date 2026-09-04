@@ -16,6 +16,11 @@ PRIVATE_HEADERS = {"__macro_mxcc.h"}
 def funcs(root: Path) -> set[str]:
     found: set[str] = set()
     for p in root.rglob("*.h"):
+        # Reserved inventory comments are documentation, not active wrapper
+        # declarations. Excluding them avoids accidental promotion when a
+        # reference prototype contains nested C-style comment markers.
+        if p.name.startswith("cuda_to_cce_reserved"):
+            continue
         text = active_text(p)
         found.update(FUNC_RE.findall(text))
     return found
