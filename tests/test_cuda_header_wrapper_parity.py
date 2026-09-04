@@ -172,6 +172,12 @@ class CudaHeaderWrapperParityToolTest(unittest.TestCase):
         self.assertIn("cuda_header_surface_probe.sh", server)
         self.assertIn("CUDA_HEADER_WRAPPER_PARITY_REGRESSION_PASS", server)
 
+    def test_header_surface_probe_initializes_work_before_parity_log_redirection(self) -> None:
+        script = (ROOT / "tools/real_test/diag/cuda_header_surface_probe.sh").read_text(encoding="utf-8")
+        work_pos = script.index('work="${TMPDIR:-/tmp}/cu2cce-header-probe.$$"')
+        parity_log_pos = script.index('>"$work/parity.log"')
+        self.assertLess(work_pos, parity_log_pos)
+
     def test_header_surface_probe_has_layered_checks_and_compact_output(self) -> None:
         path = ROOT / "tools/real_test/diag/cuda_header_surface_probe.sh"
         self.assertTrue(path.is_file())

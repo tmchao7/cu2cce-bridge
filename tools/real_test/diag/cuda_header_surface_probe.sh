@@ -26,6 +26,9 @@ if [ -n "$OUTPUT" ]; then
 fi
 
 status=0
+work="${TMPDIR:-/tmp}/cu2cce-header-probe.$$"
+mkdir -p "$work"
+trap 'rm -rf "$work"' EXIT
 include_root="$CANN_ROOT/include"
 if [ ! -d "$include_root" ] && [ -n "${ASCEND_TOOLKIT_HOME:-}" ]; then
     include_root="$ASCEND_TOOLKIT_HOME/include"
@@ -48,9 +51,6 @@ else
     status=1
 fi
 
-work="${TMPDIR:-/tmp}/cu2cce-header-probe.$$"
-mkdir -p "$work"
-trap 'rm -rf "$work"' EXIT
 cat >"$work/core.cu" <<'CPP'
 #include <cuda_runtime.h>
 #include <cuda_runtime_api.h>
