@@ -13,7 +13,8 @@ MACA 的编译器、库名或设备产物。
 | `CU2CCE_VS_CUBRIDGE_REVIEW.md` | 两个项目的当前实现差异审查 |
 | `PARITY_AUDIT_*.md` | 分阶段 parity 审计和差异归类 |
 | `CURRENT_STATE.md` | 当前 `main / puresimt` 状态快照 |
-| `RELEASE_READINESS_2026-09-02.md` | 发布前收口与产物契约证据（不代表现在创建 release） |
+| `RELEASE_READINESS_2026-09-04.md` | 当前最终验证、产物契约、API/header parity 与真机 full profile 证据（不创建 release/tag） |
+| `RELEASE_READINESS_2026-09-02.md` | 历史发布前收口记录 |
 | `MENTOR_REPORT_2026-08-28.md` | 阶段性导师汇报材料 |
 | `CODE_REVIEW_*.md` | code review / simplifier 记录 |
 | `CMAKE_MAKE_CUCC_MENTOR_GUIDE_2026-09-01.md` | CMake/Make/cuсc 对齐维护指南 |

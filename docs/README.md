@@ -61,6 +61,13 @@ CMake 的 configure 阶段使用 virtual CUDA toolkit 和 `mock_nvcc.py` 满足 
 调用真实 `cucc`；Make/Ninja/pre wrapper 复用 `virtual_toolkit_env.sh` 和
 `tools/mock/virtualDir.py`。这是对齐 `cu-bridge` 的机制，而不是复制 MACA 的库名和设备产物。
 
+## 当前验证快照
+
+2026 年 9 月 4 日的 Ascend 真机 `full` profile 已通过；当前发布前证据、产物契约和
+CUDA header/Wrapper parity 结论见
+[`04_对比与验证/RELEASE_READINESS_2026-09-04.md`](04_对比与验证/RELEASE_READINESS_2026-09-04.md)。
+该记录不创建 release/tag，也不扩大未验证 CUDA 能力的承诺。
+
 ## 状态和证据规则
 
 - `SUPPORTED`：主线实现并有对应测试或真机证据。

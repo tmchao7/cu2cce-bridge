@@ -25,6 +25,44 @@ class RepositoryHygieneTest(unittest.TestCase):
         self.assertFalse((ROOT / ".claude").exists())
         self.assertIn(".claude/", (ROOT / ".gitignore").read_text(encoding="utf-8"))
 
+    def test_gitignore_excludes_local_ai_state_and_binary_outputs(self) -> None:
+        ignore = (ROOT / ".gitignore").read_text(encoding="utf-8")
+        for pattern in (
+            "/.claude/", "/.codex/", "/.cursor/", "/.aider/",
+            "/.agents/", "/.agent/", "/.continue/", "/.roo/",
+            "/.windsurf/", "/.gemini/", "/.copilot/",
+            "*.elf", "*.bin", "*.ptx", "*.cubin", "*.fatbin",
+            "*.om", "*.run", "*.d", "*.profraw", "*.profdata",
+            "*.gcda", "*.gcno", "*.gcov", "core", "core.*",
+        ):
+            self.assertIn(pattern, ignore)
+        for path, expected_ignored in (
+            ("CLAUDE.md", False), (".claude/local.json", True),
+            ("scratch/kernel.cubin", True), ("scratch/runtime.elf", True),
+            ("tools/real_test/diag/echo.cce", False),
+        ):
+            result = subprocess.run(
+                ["git", "check-ignore", "-q", "--no-index", path],
+                cwd=ROOT, check=False,
+            )
+            self.assertEqual(result.returncode == 0, expected_ignored, path)
+
+    def test_release_docs_record_latest_full_profile_evidence(self) -> None:
+        readiness = ROOT / "docs/04_对比与验证/RELEASE_READINESS_2026-09-04.md"
+        self.assertTrue(readiness.is_file())
+        text = readiness.read_text(encoding="utf-8")
+        for item in (
+            "FAIL=0", "DEVICE_HEALTHY=1", "TEST_BLOCKED_BY_DEVICE=0",
+            "CUDA_HEADER_WRAPPER_PARITY_REGRESSION_PASS",
+            "CUDA_API_PARITY_REGRESSION_PASS", "不创建 release tag",
+        ):
+            self.assertIn(item, text)
+        for path in (
+            ROOT / "README.md", ROOT / "docs/04_对比与验证/README.md",
+            ROOT / "docs/04_对比与验证/CURRENT_STATE.md",
+        ):
+            self.assertIn("RELEASE_READINESS_2026-09-04.md", path.read_text(encoding="utf-8"))
+
     def test_gitignore_covers_release_and_runtime_outputs(self) -> None:
         ignore = (ROOT / ".gitignore").read_text(encoding="utf-8")
         for pattern in (".DS_Store", "/build/", ".mimosa/", ".worktrees/", "*.log", "*.py[cod]"):
@@ -133,7 +171,7 @@ class RepositoryHygieneTest(unittest.TestCase):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         for link in (
             "QUICKSTART.md",
-            "docs/04_对比与验证/RELEASE_READINESS_2026-09-02.md",
+            "docs/04_对比与验证/RELEASE_READINESS_2026-09-04.md",
             "docs/02_能力清单/BUILD_SYSTEM_COMPATIBILITY_MATRIX.md",
             "docs/02_能力清单/CUCC_OPTION_COMPATIBILITY_MATRIX.md",
             "docs/02_能力清单/CUDA_OPERATOR_API_SUPPORT_MATRIX.md",

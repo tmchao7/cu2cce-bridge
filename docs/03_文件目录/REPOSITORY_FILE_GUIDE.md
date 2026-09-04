@@ -509,7 +509,8 @@ python3 tools/validate_cuda_header_wrapper_parity.py \
 | `docs/04_对比与验证/PARITY_AUDIT_2026-08-31.md` | cu-bridge 对比、兼容矩阵、产物和 code review 证据 |
 | `docs/04_对比与验证/PARITY_AUDIT_2026-09-01.md` | cu-bridge 对比、兼容矩阵、产物和 code review 证据 |
 | `docs/02_能力清单/PURESIMT_COMPATIBILITY_MATRIX.md` | cu-bridge 对比、兼容矩阵、产物和 code review 证据 |
-| `docs/04_对比与验证/RELEASE_READINESS_2026-09-02.md` | cu-bridge 对比、兼容矩阵、产物和 code review 证据 |
+| `docs/04_对比与验证/RELEASE_READINESS_2026-09-04.md` | 当前最终验证记录：真机 full profile、本地门禁、API/header parity 与发布边界 |
+| `docs/04_对比与验证/RELEASE_READINESS_2026-09-02.md` | 历史发布前收口记录，供版本演进追溯 |
 | `docs/04_对比与验证/mapping.md` | cu-bridge 对比、兼容矩阵、产物和 code review 证据 |
 | `docs/02_能力清单/LIMITS_AND_BOUNDARIES.md` | 支持范围与明确限制 |
 | `docs/02_能力清单/SUPPORTED_SCOPE.md` | 支持范围与明确限制 |

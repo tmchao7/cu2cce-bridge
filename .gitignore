@@ -18,6 +18,25 @@ build_out/
 *.dylib
 *.exe
 a.out
+*.elf
+*.bin
+*.ptx
+*.cubin
+*.fatbin
+*.om
+*.run
+*.d
+*.dwo
+*.pdb
+*.ilk
+*.dSYM/
+*.gcda
+*.gcno
+*.gcov
+*.profraw
+*.profdata
+core
+core.*
 
 # CMake
 CMakeCache.txt
@@ -42,8 +61,19 @@ custom_opp_*.run
 *.o.npu
 tiling*.h
 
-# 本地 AI/编辑器配置（不属于发布内容）
-.claude/
+# 本地 AI 助手状态（不属于发布内容）。
+# 根目录 CLAUDE.md 是项目维护约束，保持版本化；只忽略工具生成的目录。
+/.claude/
+/.codex/
+/.cursor/
+/.aider/
+/.agents/
+/.agent/
+/.continue/
+/.roo/
+/.windsurf/
+/.gemini/
+/.copilot/
 
 # 编辑器 / IDE
 .vscode/*
@@ -52,10 +82,6 @@ tiling*.h
 *.swp
 *.swo
 *~
-
-# Claude Code 本地会话配置（保留 settings.json 和 agents/commands，忽略本地权限文件）
-.claude/settings.local.json
-.claude/*.local.json
 
 # Python
 __pycache__/

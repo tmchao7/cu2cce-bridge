@@ -22,10 +22,11 @@ CUDA .cu
 `main` 不使用 Python kernel converter，不生成用户可见的 `.cce`、PTX、CUBIN、FATBIN 或
 Ascend kernel 包装源文件。
 
-## 当前状态（2026-09-03）
+## 当前状态（2026-09-04）
 
 - `cucc`、CMake、Make、Ninja 已统一到同一个参数规则、virtual CUDA toolkit 和 Ascend-aware
-  产物契约；最近一次服务器 full profile 汇总为 `FAIL=0`。
+  产物契约；2026 年 9 月 4 日 Ascend 服务器 `full` profile 已通过：`FAIL=0`、
+  `DEVICE_HEALTHY=1`、`TEST_BLOCKED_BY_DEVICE=0`。
 - 已验证的构建产物类别包括 `.o`、`.d`、`.a`、`.so` 和 ELF executable，并检查
   `NEEDED`、RPATH/RUNPATH、CMake/Ninja metadata、install/export。
 - `sm_*`/`compute_*` 只用于 CUDA 兼容宏或诊断；Ascend 编译目标必须是明确的 `dav-*`。
@@ -65,7 +66,7 @@ python3 tools/validate_cuda_header_wrapper_parity.py \
 - [`docs/03_文件目录/REPOSITORY_FILE_GUIDE.md`](docs/03_文件目录/REPOSITORY_FILE_GUIDE.md)：文件级职责、调用链、
   cu-bridge 命名映射和故障定位顺序；
 - [`docs/README.md`](docs/README.md)：文档导航；
-- [`docs/04_对比与验证/RELEASE_READINESS_2026-09-02.md`](docs/04_对比与验证/RELEASE_READINESS_2026-09-02.md)：
+- [`docs/04_对比与验证/RELEASE_READINESS_2026-09-04.md`](docs/04_对比与验证/RELEASE_READINESS_2026-09-04.md)：
   code review、目录卫生和发布前审计。
 
 当前目录职责保持与 `cu-bridge` 接近，但保留 Ascend 命名：
@@ -609,7 +610,7 @@ link 阶段按规则注入 bridge/CANN runtime。`.cu` 源必须交给 `cucc`，
 - [`PURESIMT_COMPATIBILITY_MATRIX.md`](docs/02_能力清单/PURESIMT_COMPATIBILITY_MATRIX.md)
 - [`BUILD_SYSTEM_COMPATIBILITY_MATRIX.md`](docs/02_能力清单/BUILD_SYSTEM_COMPATIBILITY_MATRIX.md)
 - [`CUCC_OPTION_COMPATIBILITY_MATRIX.md`](docs/02_能力清单/CUCC_OPTION_COMPATIBILITY_MATRIX.md)
-- [`RELEASE_READINESS_2026-09-02.md`](docs/04_对比与验证/RELEASE_READINESS_2026-09-02.md)
+- [`RELEASE_READINESS_2026-09-04.md`](docs/04_对比与验证/RELEASE_READINESS_2026-09-04.md)
 
 ## 真机回归（维护者）
 
