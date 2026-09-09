@@ -13,6 +13,7 @@ typedef unsigned long size_t;
 void *memset(void *, int, unsigned long);
 void *memcpy(void *, const void *, unsigned long);
 void *memmove(void *, const void *, unsigned long);
+void *memchr(const void *, int, unsigned long);
 int memcmp(const void *, const void *, unsigned long);
 unsigned long strlen(const char *);
 int strcmp(const char *, const char *);
@@ -20,9 +21,17 @@ int strncmp(const char *, const char *, unsigned long);
 char *strcpy(char *, const char *);
 char *strncpy(char *, const char *, unsigned long);
 char *strcat(char *, const char *);
+char *strncat(char *, const char *, unsigned long);
+int strcoll(const char *, const char *);
+unsigned long strxfrm(char *, const char *, unsigned long);
 char *strstr(const char *, const char *);
 char *strchr(const char *, int);
 char *strrchr(const char *, int);
+char *strpbrk(const char *, const char *);
+unsigned long strspn(const char *, const char *);
+unsigned long strcspn(const char *, const char *);
+char *strtok(char *, const char *);
+char *strerror(int);
 char *strdup(const char *);
 
 #if defined(__cplusplus)

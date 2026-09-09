@@ -23,6 +23,20 @@
 #endif
 
 /*
+ * Expose the ISO C floating-point limit macros (FLT_MAX, DBL_MAX, ...).
+ * Real nvcc makes these available in device code through its crt headers even
+ * when the source omits <float.h>/<cfloat>; the puresimt frontend does not
+ * preinject them, so an upstream __global__ using FLT_MAX/DBL_MAX fails with
+ * "use of undeclared identifier". <float.h> is a macro-only C header, safe to
+ * include here.
+ */
+#if defined(__has_include)
+#if __has_include(<float.h>)
+#include <float.h>
+#endif
+#endif
+
+/*
  * Execution-space keyword map for NVIDIA spellings.
  *
  * Round-4 server proof: the bisheng puresimt front-end parses __global__
@@ -90,13 +104,24 @@
  * non-template declarations, device-context overload resolution keeps
  * preferring the exact-match native candidates, and host-context calls that
  * previously had no viable candidate now resolve here.
+ *
+ * The two type parameters let mixed-width host calls compile the way CUDA's
+ * crt min/max do (e.g. min(uint, 1024)), where a single-parameter template
+ * would fail deduction with "conflicting types" and std::min is not viable
+ * either. The result type follows the usual arithmetic conversions of ?:.
  */
 #if defined(__cplusplus) && !defined(__CU2CCE_NO_HOST_ARITHMETIC_OVERLOADS__)
-template <typename T>
-inline T max(T left, T right) { return left > right ? left : right; }
+template <typename T, typename U>
+inline auto max(T left, U right) -> decltype(left > right ? left : right)
+{
+    return left > right ? left : right;
+}
 
-template <typename T>
-inline T min(T left, T right) { return left < right ? left : right; }
+template <typename T, typename U>
+inline auto min(T left, U right) -> decltype(left < right ? left : right)
+{
+    return left < right ? left : right;
+}
 #endif
 
 #endif /* __BRIDGE_KERNEL_SIMT_ADAPTOR_H__ */

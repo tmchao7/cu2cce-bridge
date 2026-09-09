@@ -7,6 +7,50 @@
  * This declaration-only header keeps ordinary CUDA sources source-compatible,
  * including C++ <cstdio>, while the final symbols still come from libc.
  */
+/*
+ * This header fully replaces the system stdio.h in shadow-libc mode: libstdc++
+ * <cstdio> uses a plain `#include <stdio.h>` (no #include_next), so it resolves
+ * here and the real glibc header is never parsed. The macros below mirror the
+ * glibc constants that C++ stdlib code expects (fstream relies on BUFSIZ,
+ * iostream on EOF, etc.).
+ */
+#ifndef BUFSIZ
+#define BUFSIZ 8192
+#endif
+#ifndef EOF
+#define EOF (-1)
+#endif
+#ifndef SEEK_SET
+#define SEEK_SET 0
+#endif
+#ifndef SEEK_CUR
+#define SEEK_CUR 1
+#endif
+#ifndef SEEK_END
+#define SEEK_END 2
+#endif
+#ifndef _IOFBF
+#define _IOFBF 0
+#endif
+#ifndef _IOLBF
+#define _IOLBF 1
+#endif
+#ifndef _IONBF
+#define _IONBF 2
+#endif
+#ifndef FILENAME_MAX
+#define FILENAME_MAX 4096
+#endif
+#ifndef FOPEN_MAX
+#define FOPEN_MAX 16
+#endif
+#ifndef L_tmpnam
+#define L_tmpnam 20
+#endif
+#ifndef TMP_MAX
+#define TMP_MAX 238328
+#endif
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
