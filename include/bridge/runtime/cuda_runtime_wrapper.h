@@ -86,12 +86,12 @@ aclError CUBRIDGE_API wcudaStreamGetAttribute(aclrtStream stream, wcceStreamAttr
 aclError CUBRIDGE_API wcudaStreamSetAttribute(aclrtStream stream, wcceStreamAttrID attr,
                                                const wcceStreamAttrValue *value);
 aclError CUBRIDGE_API wcudaStreamAttachMemAsync(aclrtStream stream, void *devPtr,
-                                                size_t length, unsigned int flags);
+                                                 size_t length = 0, unsigned int flags = 0);
 aclError CUBRIDGE_API wcudaStreamDestroy(aclrtStream stream);
 aclError CUBRIDGE_API wcudaStreamSynchronize(aclrtStream stream);
 aclError CUBRIDGE_API wcudaStreamQuery(aclrtStream stream);
 aclError CUBRIDGE_API wcudaStreamWaitEvent(aclrtStream stream, aclrtEvent event,
-                                           unsigned int flags /* =0 */);
+                                           unsigned int flags = 0);
 aclError CUBRIDGE_API wcudaStreamAddCallback(aclrtStream stream,
                                              wcceStreamCallback_t callback,
                                              void *userData, unsigned int flags);
@@ -113,9 +113,9 @@ aclError CUBRIDGE_API wcudaStreamGetCaptureInfo_v2(aclrtStream stream, int *stat
 aclError CUBRIDGE_API wcudaEventCreate(aclrtEvent *event);
 aclError CUBRIDGE_API wcudaEventCreateWithFlags(aclrtEvent *event, unsigned int flags);
 aclError CUBRIDGE_API wcudaEventDestroy(aclrtEvent event);
-aclError CUBRIDGE_API wcudaEventRecord(aclrtEvent event, aclrtStream stream /* =0 */);
-aclError CUBRIDGE_API wcudaEventRecordWithFlags(aclrtEvent event, aclrtStream stream /* =0 */,
-                                                unsigned int flags /* =0 */);
+aclError CUBRIDGE_API wcudaEventRecord(aclrtEvent event, aclrtStream stream = 0);
+aclError CUBRIDGE_API wcudaEventRecordWithFlags(aclrtEvent event, aclrtStream stream = 0,
+                                                unsigned int flags = 0);
 aclError CUBRIDGE_API wcudaEventSynchronize(aclrtEvent event);
 aclError CUBRIDGE_API wcudaEventQuery(aclrtEvent event);
 aclError CUBRIDGE_API wcudaEventElapsedTime(float *ms, aclrtEvent start, aclrtEvent end);
@@ -250,10 +250,10 @@ aclError CUBRIDGE_API wcudaIpcOpenEventHandle(aclrtEvent *event, wcceIpcEventHan
 
 /* Unified Memory：昇腾无 managed memory，fallback 到 device 分配（无自动迁移语义，标注差异）。
  * MemAdvise/Prefetch 为 no-op/not-support（昇腾无统一寻址）。 */
-aclError CUBRIDGE_API wcudaMallocManaged(void **devPtr, size_t size, unsigned int flags);
+aclError CUBRIDGE_API wcudaMallocManaged(void **devPtr, size_t size, unsigned int flags = 0);
 aclError CUBRIDGE_API wcudaMemAdvise(const void *devPtr, size_t count, int advice, int device);
 aclError CUBRIDGE_API wcudaMemPrefetchAsync(const void *devPtr, size_t count, int dstDevice,
-                                            aclrtStream stream /* =0 */);
+                                            aclrtStream stream = 0);
 /* PointerGetAttributes：昇腾无统一寻址，简化返回 device 指针属性 */
 aclError CUBRIDGE_API wcudaPointerGetAttributes(wccePointerAttributes *attributes,
                                                  const void *ptr);
@@ -379,7 +379,7 @@ aclError CUBRIDGE_API wcudaGraphDestroyNode(wcceGraphNode_t node);
 /* cudaLaunchHostFunc(stream, fn, userData)：昇腾有 aclrtLaunchCallback 对应。
  * cudaHostFn_t 签名 void(*)(void*) 与 aclrtCallback 一致。 */
 typedef void (*wcceHostFn_t)(void *);
-aclError CUBRIDGE_API wcudaLaunchHostFunc(aclrtStream stream, wcceHostFn_t fn, void *userData);
+aclError CUBRIDGE_API wcudaLaunchHostFunc(aclrtStream stream, wcceHostFn_t fn, void *userData = 0);
 /* 昇腾无 func 属性/名字接口，声明保证编译 */
 aclError CUBRIDGE_API wcudaFuncSetAttribute(const void *func, int attr, int value);
 aclError CUBRIDGE_API wcudaFuncSetCacheConfig(const void *func, wcceFuncCache cacheConfig);
