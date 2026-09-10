@@ -23,16 +23,19 @@
 #endif
 
 /*
- * Expose the ISO C floating-point limit macros (FLT_MAX, DBL_MAX, ...).
- * Real nvcc makes these available in device code through its crt headers even
- * when the source omits <float.h>/<cfloat>; the puresimt frontend does not
- * preinject them, so an upstream __global__ using FLT_MAX/DBL_MAX fails with
- * "use of undeclared identifier". <float.h> is a macro-only C header, safe to
- * include here.
+ * Expose the ISO C freestanding limit macros (FLT_MAX, DBL_MAX, INT_MAX,
+ * UINT_MAX, CHAR_BIT, ...). Real nvcc makes these available in device code
+ * through its crt headers even when the source omits <float.h>/<limits.h>;
+ * the puresimt frontend does not preinject them, so an upstream __global__
+ * using FLT_MAX/INT_MAX fails with "use of undeclared identifier". Both are
+ * macro-only C headers, safe to include here.
  */
 #if defined(__has_include)
 #if __has_include(<float.h>)
 #include <float.h>
+#endif
+#if __has_include(<limits.h>)
+#include <limits.h>
 #endif
 #endif
 
@@ -111,14 +114,21 @@
  * either. The result type follows the usual arithmetic conversions of ?:.
  */
 #if defined(__cplusplus) && !defined(__CU2CCE_NO_HOST_ARITHMETIC_OVERLOADS__)
+/*
+ * Plain `auto` return (not `decltype(auto)` / trailing `-> decltype(...)`) is
+ * deliberate: the ternary on two lvalue parameters yields an lvalue, so a
+ * trailing `decltype(left < right ? left : right)` would deduce `T&` and return
+ * a dangling reference to a by-value parameter. `auto` strips the reference and
+ * returns the common arithmetic type by value, matching CUDA crt min/max.
+ */
 template <typename T, typename U>
-inline auto max(T left, U right) -> decltype(left > right ? left : right)
+inline auto max(T left, U right)
 {
     return left > right ? left : right;
 }
 
 template <typename T, typename U>
-inline auto min(T left, U right) -> decltype(left < right ? left : right)
+inline auto min(T left, U right)
 {
     return left < right ? left : right;
 }
