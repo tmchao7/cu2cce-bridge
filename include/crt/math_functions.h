@@ -16,9 +16,11 @@
  *   device_math_minimal diagnostic loop instead of inventing values here.
  */
 
+#if defined(__CU2CCE_DEVICE_COMPILATION__) || defined(__CUDACC__)
 #if defined(__has_include)
 #if __has_include(<simt_api/math_functions.h>)
 #include <simt_api/math_functions.h>
+#endif
 #endif
 #endif
 

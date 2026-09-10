@@ -43,9 +43,18 @@
 #endif
 
 /* puresimt kernel 原语（__shared__/__syncthreads/atomicAdd）在 -x asc 直通下
- * 由本适配头映射到昇腾 SIMT（__ubuf__/asc_syncthreads/asc_atomic_add） */
+ * 由本适配头映射到昇腾 SIMT（__ubuf__/asc_syncthreads/asc_atomic_add）。
+ *
+ * These headers pull in CANN simt_api device headers that use __aicore__
+ * (=[aicore]), which is only valid under ccec --enable-simt. Host-only .cpp
+ * translation units (no __CUDACC__/__CU2CCE_DEVICE_COMPILATION__) must not
+ * transitively include them, or [aicore] is parsed as a C++17 structured
+ * binding and fails. The driver defines both macros exclusively for .cu
+ * source files (conf.json source_is_cuda conditions). */
+#if defined(__CU2CCE_DEVICE_COMPILATION__) || defined(__CUDACC__)
 #include "bridge/kernel/simt_adaptor.h"
 #include "bridge/kernel/cuda_device_api.h"
+#endif
 
 /* puresimt host（-x asc 直通）也在 acl/acl.h 可用空间内，但 bridge 头优先：
  * 用户代码 #include <cuda_runtime.h> 时，cuda* 由上面的宏表接住。 */

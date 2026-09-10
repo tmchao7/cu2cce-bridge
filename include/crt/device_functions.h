@@ -8,6 +8,7 @@
  * never fabricate semantics for symbols it does not provide.
  */
 
+#if defined(__CU2CCE_DEVICE_COMPILATION__) || defined(__CUDACC__)
 #if defined(__has_include)
 #if __has_include("simt_api/device_functions.h")
 #include "simt_api/device_functions.h"
@@ -20,5 +21,6 @@
 /* Direct users of <crt/device_functions.h> must receive the same CUDA
  * device-language map as users of <cuda_runtime.h>. */
 #include "bridge/kernel/cuda_device_api.h"
+#endif
 
 #endif /* __CU2CCE_CRT_DEVICE_FUNCTIONS_H__ */
