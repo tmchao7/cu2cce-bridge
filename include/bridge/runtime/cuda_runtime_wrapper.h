@@ -429,6 +429,41 @@ template <typename T>
 inline aclError wcudaHostAlloc(T **ptr, size_t size, unsigned int flags) {
     return wcudaHostAlloc(reinterpret_cast<void **>(ptr), size, flags);
 }
+
+/*
+ * CUDA Runtime exposes the same typed-pointer C++ overload family for the rest
+ * of the allocation APIs. Upstream sources call e.g.
+ *   cudaMallocManaged(&float_ptr, bytes)
+ *   cudaMallocPitch(&float_ptr, &pitch, w, h)
+ *   cudaMallocAsync(&float_ptr, bytes, stream)
+ *   cudaMallocFromPoolAsync(&float_ptr, bytes, pool, stream)
+ * without a (void**) cast; standard C++ forbids the implicit T** -> void**
+ * conversion, so without these templates the call fails with "no known
+ * conversion from 'float **' to 'void **'". Forward to the C ABI wrapper via
+ * reinterpret_cast, mirroring the wcudaMalloc/wcudaMallocHost pattern above.
+ * Defaults on the underlying declarations (flags=0, stream=0) are repeated
+ * here so the typed overload accepts the same reduced-argument call shapes.
+ */
+template <typename T>
+inline aclError wcudaMallocManaged(T **ptr, size_t size, unsigned int flags = 0) {
+    return wcudaMallocManaged(reinterpret_cast<void **>(ptr), size, flags);
+}
+
+template <typename T>
+inline aclError wcudaMallocPitch(T **ptr, size_t *pitch, size_t width, size_t height) {
+    return wcudaMallocPitch(reinterpret_cast<void **>(ptr), pitch, width, height);
+}
+
+template <typename T>
+inline aclError wcudaMallocAsync(T **ptr, size_t size, aclrtStream hStream) {
+    return wcudaMallocAsync(reinterpret_cast<void **>(ptr), size, hStream);
+}
+
+template <typename T>
+inline aclError wcudaMallocFromPoolAsync(T **ptr, size_t size, wcceMemPool_t memPool,
+                                         aclrtStream stream) {
+    return wcudaMallocFromPoolAsync(reinterpret_cast<void **>(ptr), size, memPool, stream);
+}
 #endif
 
 #endif //__CUDA_RUNTIME_WRAPPER_H__
