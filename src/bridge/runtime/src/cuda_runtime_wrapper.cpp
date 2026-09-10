@@ -49,6 +49,30 @@ static void wcuda_mark(const char *label, aclError e) {
     }
 }
 
+/*
+ * Unified-memory fallback 告警（一次性）。
+ * 昇腾 NPU 无统一内存，cudaMallocManaged fallback 到普通 device 分配：返回的是设备
+ * 指针，host 不能直接解引用。依赖 managed 自动 host/device 迁移的上游代码会因此在
+ * host 读写时 SIGSEGV（如 nbody-simulation）。该告警默认开启、全进程只打一次，帮用户
+ * 快速定位；CU2CCE_HIDE_UM_FALLBACK_WARN=1 可静音。
+ */
+static void wcuda_warn_um_fallback_once() {
+    static std::once_flag once;
+    const char *env = getenv("CU2CCE_HIDE_UM_FALLBACK_WARN");
+    if (env != nullptr && env[0] != '\0') {
+        return;
+    }
+    std::call_once(once, []() {
+        fprintf(stderr,
+                "[wcuda][unified-memory] Ascend NPU has no managed/unified memory; "
+                "cudaMallocManaged falls back to device allocation.\n"
+                "[wcuda][unified-memory] The returned pointer is a DEVICE pointer -- "
+                "host code MUST NOT dereference it directly (use cudaMemcpy H2D/D2H).\n"
+                "[wcuda][unified-memory] cudaMemAdvise/cudaMemPrefetchAsync are no-ops. "
+                "(set CU2CCE_HIDE_UM_FALLBACK_WARN=1 to silence)\n");
+    });
+}
+
 /* ---------------- CUDA 默认流表示 ---------------- */
 
 /* CUDA 的默认流（cudaStream_t 0，及 legacy/per-thread 变体）在昇腾没有对应
@@ -1473,6 +1497,7 @@ aclError wcudaMallocManaged(void **devPtr, size_t size, unsigned int flags) {
     /* ⚠️ 昇腾无 cudaMallocManaged 对应（无统一内存/自动迁移）。
      * 这里 fallback 到普通 device 内存，应用代码可编译运行，但没有 host/device 自动迁移语义。
      * 若应用依赖 managed 的自动拷贝，需真机评估替代方案。 */
+    wcuda_warn_um_fallback_once();
     return wcudaMalloc(devPtr, size);
 }
 
