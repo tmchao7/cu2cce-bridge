@@ -992,6 +992,14 @@
       {
         "tokens": [
           "-D",
+          "__CU2CCE_HOST_ONLY__"
+        ],
+        "when": "source_is_not_cuda",
+        "reason": "mark non-.cu host translation units so bridge headers skip CANN simt_api device includes that use __aicore__ (=[aicore], invalid without --enable-simt)"
+      },
+      {
+        "tokens": [
+          "-D",
           "CUDA_VERSION=${CUCC_CUDA_VERSION}"
         ]
       },

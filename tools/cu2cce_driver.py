@@ -819,6 +819,7 @@ class RuleDriver:
             "has_samples_common": (self.cucc_path / "third_party/nvidia_cuda_samples/Common").is_dir() if self.cucc_path else False,
             "has_simt_api": has_simt,
             "source_is_cuda": source_is_cuda,
+            "source_is_not_cuda": not source_is_cuda,
             "source_is_cuda_and_has_adaptor": source_is_cuda and bool(
                 self.cucc_path and (self.cucc_path / "include/bridge/kernel/simt_adaptor.h").is_file()
             ),

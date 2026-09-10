@@ -47,11 +47,11 @@
  *
  * These headers pull in CANN simt_api device headers that use __aicore__
  * (=[aicore]), which is only valid under ccec --enable-simt. Host-only .cpp
- * translation units (no __CUDACC__/__CU2CCE_DEVICE_COMPILATION__) must not
- * transitively include them, or [aicore] is parsed as a C++17 structured
- * binding and fails. The driver defines both macros exclusively for .cu
- * source files (conf.json source_is_cuda conditions). */
-#if defined(__CU2CCE_DEVICE_COMPILATION__) || defined(__CUDACC__)
+ * translation units get -D__CU2CCE_HOST_ONLY__ from the driver (conf.json
+ * source_is_not_cuda condition) and must skip them, or [aicore] is parsed as
+ * a C++17 structured binding and fails. .cu files — whether via cucc or
+ * direct ccec --enable-simt — do not define this marker and include normally. */
+#if !defined(__CU2CCE_HOST_ONLY__)
 #include "bridge/kernel/simt_adaptor.h"
 #include "bridge/kernel/cuda_device_api.h"
 #endif

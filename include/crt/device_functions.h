@@ -8,7 +8,7 @@
  * never fabricate semantics for symbols it does not provide.
  */
 
-#if defined(__CU2CCE_DEVICE_COMPILATION__) || defined(__CUDACC__)
+#if !defined(__CU2CCE_HOST_ONLY__)
 #if defined(__has_include)
 #if __has_include("simt_api/device_functions.h")
 #include "simt_api/device_functions.h"
