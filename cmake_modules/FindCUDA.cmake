@@ -81,6 +81,38 @@ set(CUDA_cudadevrt_LIBRARY "${_CU2CCE_RUNTIME}")
 set(CUDA_TOOLKIT_INCLUDE "${CUDA_INCLUDE_DIRS}")
 set(CUDA_TOOLKIT_LIBRARY_ROOT "${_CU2CCE_PREFIX}")
 
+# CUDA library variables parity with cu-bridge FindCUDA.cmake. Projects that
+# check CUDA_CUBLAS_LIBRARIES / CUDA_CUFFT_LIBRARIES etc. in CMake conditionals
+# need these defined (even if pointing at the bridge runtime) so the configure
+# step does not silently skip GPU code paths. Unsupported libs point at the
+# bridge runtime so the link succeeds; the actual CUDA symbols are resolved
+# by the bridge wrapper or produce a clear link error if truly absent.
+set(CUDA_CUBLAS_LIBRARIES "${_CU2CCE_RUNTIME}")
+set(CUDA_cublas_LIBRARY "${_CU2CCE_RUNTIME}")
+set(CUDA_cublas_static_LIBRARY "${_CU2CCE_RUNTIME}")
+set(CUDA_CUFFT_LIBRARIES "${_CU2CCE_RUNTIME}")
+set(CUDA_cufft_LIBRARY "${_CU2CCE_RUNTIME}")
+set(CUDA_cufft_static_LIBRARY "${_CU2CCE_RUNTIME}")
+set(CUDA_CUDNN_LIBRARIES "${_CU2CCE_RUNTIME}")
+set(CUDA_cudnn_LIBRARY "${_CU2CCE_RUNTIME}")
+set(CUDA_curand_LIBRARY "${_CU2CCE_RUNTIME}")
+set(CUDA_CURAND_LIBRARIES "${_CU2CCE_RUNTIME}")
+set(CUDA_curand_static_LIBRARY "${_CU2CCE_RUNTIME}")
+set(CUDA_cusparse_LIBRARY "${_CU2CCE_RUNTIME}")
+set(CUDA_CUSPARSE_LIBRARIES "${_CU2CCE_RUNTIME}")
+set(CUDA_cusparse_static_LIBRARY "${_CU2CCE_RUNTIME}")
+set(CUDA_cusolver_LIBRARY "${_CU2CCE_RUNTIME}")
+set(CUDA_CUSOLVER_LIBRARIES "${_CU2CCE_RUNTIME}")
+set(CUDA_cusolver_static_LIBRARY "${_CU2CCE_RUNTIME}")
+set(CUDA_cupti_LIBRARY "${_CU2CCE_RUNTIME}")
+set(CUDA_CUPTI_LIBRARIES "${_CU2CCE_RUNTIME}")
+set(CUDA_nvToolsExt_LIBRARY "${_CU2CCE_RUNTIME}")
+set(CUDA_NVTX_LIBRARIES "${_CU2CCE_RUNTIME}")
+set(CUDA_nvjpeg_LIBRARY "${_CU2CCE_RUNTIME}")
+set(CUDA_NVJPEG_LIBRARIES "${_CU2CCE_RUNTIME}")
+set(CUDA_nccl_LIBRARY "${_CU2CCE_RUNTIME}")
+set(CUDA_NCCL_LIBRARIES "${_CU2CCE_RUNTIME}")
+
 function(_cu2cce_legacy_parse target out_sources out_options out_compile_options)
   set(_sources)
   set(_cmake_options)
@@ -233,26 +265,32 @@ message(STATUS "Found cu2cce legacy CUDA compatibility: ${CUDA_NVCC_EXECUTABLE}"
 # CUDA_INCLUDE_DIRECTORIES. Do not define duplicate uppercase wrappers: doing
 # so would replace the same command and recursively call itself.
 
-function(_cu2cce_fail_unmapped_legacy_library library target)
-  message(FATAL_ERROR
-    "cu2cce: ${library} for ${target} has no validated Ascend equivalent; "
-    "use an explicit CANN/bridge target instead of a CUDA library alias")
+function(_cu2cce_warn_unmapped_legacy_library library target)
+  message(WARNING
+    "cu2cce: ${library} for ${target} has no automatic Ascend mapping; "
+    "link the CANN equivalent explicitly. The target will still be created "
+    "but may fail at link time if the CUDA library symbol is unresolved.")
 endfunction()
 
 macro(CUDA_ADD_CUBLAS_TO_TARGET target)
-  _cu2cce_fail_unmapped_legacy_library("CUDA::cublas" "${target}")
+  _cu2cce_warn_unmapped_legacy_library("CUDA_ADD_CUBLAS_TO_TARGET" "${target}")
+  target_link_libraries(${target} PRIVATE ${CUDA_LIBRARIES})
 endmacro()
 macro(CUDA_ADD_CUFFT_TO_TARGET target)
-  _cu2cce_fail_unmapped_legacy_library("CUDA::cufft" "${target}")
+  _cu2cce_warn_unmapped_legacy_library("CUDA_ADD_CUFFT_TO_TARGET" "${target}")
+  target_link_libraries(${target} PRIVATE ${CUDA_LIBRARIES})
 endmacro()
 macro(CUDA_ADD_CUSOLVER_TO_TARGET target)
-  _cu2cce_fail_unmapped_legacy_library("CUDA::cusolver" "${target}")
+  _cu2cce_warn_unmapped_legacy_library("CUDA_ADD_CUSOLVER_TO_TARGET" "${target}")
+  target_link_libraries(${target} PRIVATE ${CUDA_LIBRARIES})
 endmacro()
 macro(CUDA_ADD_CUSPARSE_TO_TARGET target)
-  _cu2cce_fail_unmapped_legacy_library("CUDA::cusparse" "${target}")
+  _cu2cce_warn_unmapped_legacy_library("CUDA_ADD_CUSPARSE_TO_TARGET" "${target}")
+  target_link_libraries(${target} PRIVATE ${CUDA_LIBRARIES})
 endmacro()
 macro(CUDA_ADD_CURAND_TO_TARGET target)
-  _cu2cce_fail_unmapped_legacy_library("CUDA::curand" "${target}")
+  _cu2cce_warn_unmapped_legacy_library("CUDA_ADD_CURAND_TO_TARGET" "${target}")
+  target_link_libraries(${target} PRIVATE ${CUDA_LIBRARIES})
 endmacro()
 
 # Additional FindCUDA helper names commonly used by older projects. They are

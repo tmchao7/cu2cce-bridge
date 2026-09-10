@@ -262,10 +262,6 @@
         "reason": "nvcc diagnostic suppression spelling is not accepted by ccec"
       },
       {
-        "pattern": "--expt-relaxed-constexpr",
-        "reason": "not needed by ccec"
-      },
-      {
         "pattern": "-x",
         "takes_value": true,
         "reason": "cu2cce selects asc for CUDA sources"
@@ -297,10 +293,6 @@
       {
         "pattern": "--cuda-path=*",
         "reason": "CUDA toolchain path is selected by cu2cce/CANN"
-      },
-      {
-        "pattern": "--extended-lambda",
-        "reason": "nvcc extended-lambda spelling is not needed by ccec"
       },
       {
         "pattern": "-lineinfo",
@@ -538,15 +530,7 @@
         "reason": "ccec/clang15 enables relaxed constexpr handling natively"
       },
       {
-        "pattern": "--expt-extended-lambda",
-        "reason": "ccec/clang15 handles extended lambdas natively"
-      },
-      {
         "pattern": "-expt-extended-lambda",
-        "reason": "ccec/clang15 handles extended lambdas natively"
-      },
-      {
-        "pattern": "--extended-lambda",
         "reason": "ccec/clang15 handles extended lambdas natively"
       },
       {
@@ -685,6 +669,34 @@
       {
         "pattern": "-Wdefault-stream-launch",
         "reason": "nvcc-specific warning name is not accepted by ccec"
+      },
+      {
+        "pattern": "-rdc=false",
+        "reason": "separable-compilation off spelling is dropped; the cucc CMake layer forces CUDA_SEPARABLE_COMPILATION OFF (cu-bridge conf.json filter parity)"
+      },
+      {
+        "pattern": "--relocatable-device-code=false",
+        "reason": "separable-compilation off spelling is dropped; the cucc CMake layer forces CUDA_SEPARABLE_COMPILATION OFF (cu-bridge conf.json filter parity)"
+      },
+      {
+        "pattern": "-l:libOpenCL.so",
+        "reason": "OpenCL device libraries do not exist on the Ascend puresimt path (cu-bridge conf.json drops it too)"
+      },
+      {
+        "pattern": "-I/usr/local/cuda*",
+        "reason": "hardcoded CUDA toolkit include path is replaced by cu2cce injected include paths (cu-bridge conf.json filter parity)"
+      },
+      {
+        "pattern": "-Wno-deprecated-declarations",
+        "reason": "nvcc deprecation suppression is unnecessary; ccec does not emit NVIDIA deprecation warnings (cu-bridge conf.json filter parity)"
+      },
+      {
+        "pattern": "-Wreorder",
+        "reason": "nvcc-only reorder warning is not accepted by ccec (cu-bridge conf.json filter parity)"
+      },
+      {
+        "pattern": "-dryrun",
+        "reason": "nvcc dry-run spelling is handled by cucc --dryrun; the bare nvcc form is dropped (cu-bridge conf.json filter parity)"
       }
     ],
     "replacer": [
@@ -744,6 +756,61 @@
           "-lomp"
         ],
         "reason": "clang-based drivers link OpenMP through libomp, not gcc's libgomp (cu-bridge maps -lgomp to its backend OpenMP runtime too)"
+      },
+      {
+        "pattern": "--expt-extended-lambda",
+        "to": [
+          "-D__CUDACC_EXTENDED_LAMBDA__"
+        ],
+        "reason": "nvcc extended-lambda flag maps to the macro CANN ccec checks (cu-bridge conf.json parity); filtering alone loses the #ifdef guard"
+      },
+      {
+        "pattern": "--extended-lambda",
+        "to": [
+          "-D__CUDACC_EXTENDED_LAMBDA__"
+        ],
+        "reason": "nvcc extended-lambda short spelling maps to the macro (cu-bridge conf.json parity)"
+      },
+      {
+        "pattern": "--expt-relaxed-constexpr",
+        "to": [
+          "-D__CUDACC_RELAXED_CONSTEXPR__"
+        ],
+        "reason": "nvcc relaxed-constexpr flag maps to the macro CUDA code guards on (cu-bridge does not map this, but modern Thrust/cub code checks it)"
+      },
+      {
+        "pattern": "-DEIGEN_USE_GPU",
+        "to": [
+          "-DEIGEN_USE_GPU",
+          "-D__CU2CCE_EIGEN_GPU__"
+        ],
+        "reason": "Eigen GPU projects need a companion define so bridge-side Eigen headers can adapt (cu-bridge adds -DEIGEN_USE_MACA parity)"
+      },
+      {
+        "pattern": "-D__CUDA_NO_HALF_OPERATORS__",
+        "to": [
+          "-D__CUDA_NO_HALF_OPERATORS__",
+          "-D__CU2CCE_NO_HALF_OPERATORS__"
+        ],
+        "reason": "CUDA half-operator suppression flag needs a bridge-side companion so fp16 headers do not emit unsupported operators (cu-bridge -D__MACA_NO_HALF_OPERATORS__ parity)"
+      },
+      {
+        "pattern": "-DNVRTC_GET_TYPE_NAME=*",
+        "preserve_value": true,
+        "to": [
+          "-DCNVRTC_GET_TYPE_NAME="
+        ],
+        "reason": "NVRTC type-name macro remapped to bridge equivalent (cu-bridge -DMCRTC_GET_TYPE_NAME=* parity)"
+      },
+      {
+        "pattern": "-x=cu",
+        "to": [],
+        "reason": "single-token -x=cu language selector is dropped; cu2cce selects asc for CUDA sources (cu-bridge maps to -x maca)"
+      },
+      {
+        "pattern": "--x=cu",
+        "to": [],
+        "reason": "single-token --x=cu language selector is dropped; cu2cce selects asc for CUDA sources (cu-bridge maps to -x maca)"
       },
       {
         "pattern": "-l:libgomp*",
@@ -1121,7 +1188,7 @@
   "condition": [],
   "not_found": {
     "action": "forward",
-    "reason": "unmatched arguments are handled by the Ascend-aware driver policy"
+    "reason": "unmatched arguments are handled by the Ascend-aware driver policy; __CUDA_ARCH__ default is derived from CU2CCE_NPU_ARCH via arch_macro_auto (cu-bridge not_found.dev_compile conceptual parity)"
   },
   "cu2cce": {
     "backend": "ascend-cann",

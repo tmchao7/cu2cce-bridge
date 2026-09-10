@@ -122,10 +122,40 @@ foreach(_alias cudart_static cudadevrt cudart)
   endif()
 endforeach()
 
+# CUDA math-library imported targets (cu-bridge FindCUDA.cmake parity).
+# These are backed by the bridge runtime so `target_link_libraries(app CUDA::cublas)`
+# resolves the target instead of failing at configure. The actual CUDA library
+# symbols are resolved by the bridge wrapper or produce a clear link error if
+# truly absent — this is the same policy as cu-bridge's library variable remap.
+foreach(_cuda_lib
+    cublas cublasLt cufft cufftw curand cusolver cusparse cudnn
+    nvToolsExt nvjpeg nccl cupti nppc nppial nppicc nppidei nppif
+    nppig nppim nppist nppisu nppitc npps)
+  if(NOT TARGET CUDA::${_cuda_lib})
+    add_library(CUDA::${_cuda_lib} INTERFACE IMPORTED)
+    set_target_properties(CUDA::${_cuda_lib} PROPERTIES
+      INTERFACE_LINK_LIBRARIES CUDA::cudart)
+  endif()
+endforeach()
+
 set(CUDAToolkit_LIBRARIES CUDA::cudart)
 set(CUDA_LIBRARIES CUDA::cudart)
 set(CUDAToolkit_CUDART_STATIC_LIBRARY "${_CU2CCE_RUNTIME}")
 set(CUDAToolkit_CUDA_DRIVER_LIBRARY "${_CU2CCE_RUNTIME}")
+
+# CUDAToolkit library variable parity (cu-bridge FindCUDA.cmake).
+# Projects that check CUDAToolkit_CUBLAS_LIBRARY etc. in conditionals need
+# these defined so the configure step does not skip GPU code paths.
+set(CUDAToolkit_CUBLAS_LIBRARY "${_CU2CCE_RUNTIME}")
+set(CUDAToolkit_CUFFT_LIBRARY "${_CU2CCE_RUNTIME}")
+set(CUDAToolkit_CUDNN_LIBRARY "${_CU2CCE_RUNTIME}")
+set(CUDAToolkit_CURAND_LIBRARY "${_CU2CCE_RUNTIME}")
+set(CUDAToolkit_CUSPARSE_LIBRARY "${_CU2CCE_RUNTIME}")
+set(CUDAToolkit_CUSOLVER_LIBRARY "${_CU2CCE_RUNTIME}")
+set(CUDAToolkit_NVTX_LIBRARY "${_CU2CCE_RUNTIME}")
+set(CUDAToolkit_NVJPEG_LIBRARY "${_CU2CCE_RUNTIME}")
+set(CUDAToolkit_NCCL_LIBRARY "${_CU2CCE_RUNTIME}")
+set(CUDAToolkit_CUPTI_LIBRARY "${_CU2CCE_RUNTIME}")
 
 
 if(CUDAToolkit_FIND_QUIETLY)
