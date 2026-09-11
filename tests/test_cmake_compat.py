@@ -421,7 +421,7 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         self.assertNotIn('rm -rf "$EXTERNAL_BUILD"', server_cmd)
         # fast keeps only the core puresimt subset; every legacy case stays in
         # the file guarded by profile checks so full remains complete.
-        fast_filter = "vectorAdd|matrixMul|event_minimal|multiKernel_minimal|atomicAdd_minimal|math_minimal"
+        fast_filter = "vectorAdd|matrixMul|event_minimal|multiKernel_minimal|atomicAdd_minimal|atomicIndex_minimal|math_minimal"
         self.assertIn(fast_filter, server_cmd)
         for case in ("cmake_demo", "cmake_compat", "cmake_compat_legacy",
                      "cmake_large_project", "cmake_build_compat", "cmake_ninja"):
@@ -508,7 +508,7 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         # gate after consecutive [DIAG-PASS] server rounds; it is no longer
         # a standalone diagnostic segment.
         self.assertIn("'device_math_minimal.cu|device_math_minimal OK'", server_cmd)
-        self.assertIn("vectorAdd|matrixMul|event_minimal|multiKernel_minimal|atomicAdd_minimal|math_minimal|device_math_minimal",
+        self.assertIn("vectorAdd|matrixMul|event_minimal|multiKernel_minimal|atomicAdd_minimal|atomicIndex_minimal|math_minimal|device_math_minimal",
                       server_cmd)
         self.assertNotIn("device_math_minimal (diagnostic-only probe)", server_cmd)
         self.assertIn("double_policy_diag (diagnostic-only type-policy demo)", server_cmd)

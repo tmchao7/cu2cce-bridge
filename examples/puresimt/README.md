@@ -28,6 +28,7 @@ They still use ordinary CUDA syntax and are not rewritten for Ascend.
 The next operator-focused tests use the same minimal-source policy:
 
 - `atomicAdd_minimal.cu` — global-memory `atomicAdd`/`atomicMin`/`atomicMax`, based on the NVIDIA `simpleAtomicIntrinsics` pattern.
+- `atomicIndex_minimal.cu` — global-memory array-indexed `atomicAdd` with non-power-of-two block width and the 2-argument `<<<>>>` launch form (many threads, few elements pattern).
 - `reduction_minimal.cu` — shared-memory tree reduction plus cross-block `atomicAdd`, based on the NVIDIA `reduction` pattern.
 
 - `warpShuffle_minimal.cu` — warp shuffle reduction, based on NVIDIA `shfl_scan`.

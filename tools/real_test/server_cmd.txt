@@ -10,6 +10,7 @@
 #   - examples/puresimt/vectorAdd_minimal.cu
 #   - examples/puresimt/matrixMul_minimal.cu
 #   - examples/puresimt/atomicAdd_minimal.cu（参考 NVIDIA simpleAtomicIntrinsics）
+#   - examples/puresimt/atomicIndex_minimal.cu（global-memory array-indexed atomicAdd）
 #   - examples/puresimt/reduction_minimal.cu（参考 NVIDIA reduction）
 #
 # 官方 .cu 文件保留 NVIDIA 原始源码；minimal 文件只使用最小 CUDA
@@ -551,6 +552,7 @@ for pair in \
     'vectorAdd_minimal.cu|vectorAdd_minimal OK' \
     'matrixMul_minimal.cu|matrixMul_minimal OK' \
     'atomicAdd_minimal.cu|atomicAdd_minimal OK' \
+    'atomicIndex_minimal.cu|atomicIndex_minimal OK' \
     'reduction_minimal.cu|reduction_minimal OK' \
     'warpShuffle_minimal.cu|warpShuffle_minimal OK' \
     'scan_minimal.cu|scan_minimal OK' \
@@ -576,7 +578,7 @@ for pair in \
     # fast 画像只跑核心子集（官方两样例 + 近期改动面覆盖的 minimal）。
     if [ "$REGRESSION_PROFILE" = fast ]; then
         case "$name" in
-            vectorAdd|matrixMul|event_minimal|multiKernel_minimal|atomicAdd_minimal|math_minimal|device_math_minimal) ;;
+            vectorAdd|matrixMul|event_minimal|multiKernel_minimal|atomicAdd_minimal|atomicIndex_minimal|math_minimal|device_math_minimal) ;;
             *) continue ;;
         esac
     fi

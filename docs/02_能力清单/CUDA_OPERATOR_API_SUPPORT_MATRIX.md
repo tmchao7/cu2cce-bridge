@@ -50,6 +50,7 @@ CUDA .cu
 | `examples/puresimt/vectorAdd_minimal.cu` | 多 block 向量加法 | global memory、同步 D2H | FP32；1D 多 block | `SUPPORTED` |
 | `examples/puresimt/matrixMul_minimal.cu` | 简化 tiled GEMM | `__shared__`、`__syncthreads` | FP32；2D grid/block | `SUPPORTED` |
 | `examples/puresimt/atomicAdd_minimal.cu` | 全局原子加/最小/最大 | `atomicAdd`、`atomicMin`、`atomicMax` | INT32；多 block 1D | `SUPPORTED` |
+| `examples/puresimt/atomicIndex_minimal.cu` | 全局数组索引原子加 | `atomicAdd(&array[tid], 1)`；非 2 幂 block width；2 参 `<<<>>>` | INT32；多 block 1D | `SUPPORTED` |
 | `examples/puresimt/reduction_minimal.cu` | block tree reduction + 跨 block 累加 | shared reduction、`atomicAdd` | INT32；global + shared | `SUPPORTED` |
 | `examples/puresimt/warpShuffle_minimal.cu` | warp 内 shuffle reduction | `__shfl_down_sync` | INT32；warp groups | `SUPPORTED` |
 | `examples/puresimt/scan_minimal.cu` | block inclusive prefix scan | shared array、barrier | INT32；单 block 1D | `SUPPORTED` |
