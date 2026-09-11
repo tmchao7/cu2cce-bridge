@@ -53,6 +53,21 @@ aclError CUBRIDGE_API wcudaDeviceSetSharedMemConfig(int config);
 aclError CUBRIDGE_API wcudaDeviceGetLimit(size_t *pValue, int limit);
 aclError CUBRIDGE_API wcudaDeviceSetLimit(int limit, size_t value);
 
+/* Additional device management (stubs for compilation; see macro adaptor) */
+aclError CUBRIDGE_API wcudaChooseDevice(int *device, const void *prop);
+aclError CUBRIDGE_API wcudaSetValidDevices(int *device, int count);
+aclError CUBRIDGE_API wcudaDeviceGetP2PAttribute(int *value, int attr, int device, int peerDevice);
+aclError CUBRIDGE_API wcudaDeviceGetDefaultMemPool(wcceMemPool_t *pool, int device);
+aclError CUBRIDGE_API wcudaDeviceFlushGPUDirectRDMAWrites(int target, int scope);
+aclError CUBRIDGE_API wcudaDeviceGetGraphMemAttribute(int device, int attr, void *value);
+aclError CUBRIDGE_API wcudaDeviceSetGraphMemAttribute(int device, int attr, const void *value);
+aclError CUBRIDGE_API wcudaDeviceGraphMemTrim(int device);
+aclError CUBRIDGE_API wcudaDeviceGetDevResource(void *resource, int device, int type);
+aclError CUBRIDGE_API wcudaDeviceGetExecutionCtx(void *ctx, int device);
+aclError CUBRIDGE_API wcudaDeviceGetNvSciSyncAttributes(void *attr, int device, unsigned int flags);
+aclError CUBRIDGE_API wcudaDeviceGetTexture1DLinearMaxWidth(size_t *width, int device);
+aclError CUBRIDGE_API wcudaCtxResetPersistingL2Cache(void);
+
 /* ============ Peer Device Memory Access ============ */
 aclError CUBRIDGE_API wcudaDeviceCanAccessPeer(int *canAccessPeer, int device, int peerDevice);
 aclError CUBRIDGE_API wcudaDeviceEnablePeerAccess(int peerDevice, unsigned int flags);
@@ -107,7 +122,14 @@ aclError CUBRIDGE_API wcudaStreamGetCaptureInfo_v2(aclrtStream stream, int *stat
                                                    unsigned long long *id_out /* =0 */,
                                                    void *graph_out /* =0 */,
                                                    const void **dependencies_out /* =0 */,
-                                                   size_t *numDependencies_out /* =0 */);
+                                                    size_t *numDependencies_out /* =0 */);
+aclError CUBRIDGE_API wcudaStreamUpdateCaptureDependencies(aclrtStream stream, const void *deps,
+                                                            size_t numDeps, unsigned int flags);
+aclError CUBRIDGE_API wcudaStreamBeginCaptureToGraph(aclrtStream stream, void *graph,
+                                                      const void *deps, size_t numDeps,
+                                                      int captureMode);
+aclError CUBRIDGE_API wcudaStreamGetDevResource(aclrtStream stream, void *resource, int type);
+aclError CUBRIDGE_API wcudaThreadExchangeStreamCaptureMode(int *mode);
 
 /* ============ Event Management ============ */
 aclError CUBRIDGE_API wcudaEventCreate(aclrtEvent *event);
@@ -267,6 +289,29 @@ aclError CUBRIDGE_API wcudaHostRegister(void *ptr, size_t size, unsigned int fla
 aclError CUBRIDGE_API wcudaHostUnregister(void *ptr);
 aclError CUBRIDGE_API wcudaHostGetFlags(unsigned int *pFlags, void *pHost);
 
+/* Extended memory management (stubs for compilation) */
+aclError CUBRIDGE_API wcudaMemAdvise_v2(const void *devPtr, size_t count, int advice, int device);
+aclError CUBRIDGE_API wcudaMemRangeGetAttribute(void *data, size_t dataSize, int attr,
+                                                 const void *devPtr, size_t count);
+aclError CUBRIDGE_API wcudaMemRangeGetAttributes(void **data, size_t *dataSizes, int *attrs,
+                                                  size_t numAttrs, const void *devPtr, size_t count);
+aclError CUBRIDGE_API wcudaMemPoolGetAccess(int *access, wcceMemPool_t pool, const void *ptr);
+aclError CUBRIDGE_API wcudaMemPoolSetAccess(wcceMemPool_t pool, const void *maps, size_t numMaps);
+aclError CUBRIDGE_API wcudaMemPoolExportToShareableHandle(void *handle, wcceMemPool_t pool,
+                                                          unsigned int handleType, unsigned int flags);
+aclError CUBRIDGE_API wcudaMemPoolImportFromShareableHandle(wcceMemPool_t *pool, void *handle,
+                                                             unsigned int handleType);
+aclError CUBRIDGE_API wcudaMemPoolExportPointer(wcceIpcMemHandle_t *ptrData, void *ptr);
+aclError CUBRIDGE_API wcudaMemPoolImportPointer(void **ptr, wcceMemPool_t pool,
+                                                 const wcceIpcMemHandle_t *ptrData);
+aclError CUBRIDGE_API wcudaMemRemap(void *ptr, size_t size, int device, int node);
+aclError CUBRIDGE_API wcudaMemUnremap(void *ptr, size_t size);
+aclError CUBRIDGE_API wcudaArrayGetPlane(wcceArray_t *pPlane, wcceArray_t array, unsigned int planeIdx);
+aclError CUBRIDGE_API wcudaArrayGetMemoryRequirements(void *req, wcceArray_t array);
+aclError CUBRIDGE_API wcudaArrayGetSparseProperties(void *props, wcceArray_t array);
+aclError CUBRIDGE_API wcudaMipmappedArrayGetMemoryRequirements(void *req, wcceMipmappedArray_t mipmap);
+aclError CUBRIDGE_API wcudaMipmappedArrayGetSparseProperties(void *props, wcceMipmappedArray_t mipmap);
+
 /* ============ Error Handling ============ */
 aclError CUBRIDGE_API wcudaGetLastError(void);
 aclError CUBRIDGE_API wcudaPeekAtLastError(void);
@@ -276,6 +321,9 @@ const char CUBRIDGE_API *wcudaGetErrorName(aclError error);
 /* ============ Func 属性 ============ */
 /* 昇腾无 kernel 属性查询，返回 not-support */
 aclError CUBRIDGE_API wcudaFuncGetAttributes(wcceFuncAttributes *attr, const void *func);
+aclError CUBRIDGE_API wcudaFuncGetParamInfo(const void *func, size_t paramIndex,
+                                             size_t *paramOffset, size_t *paramSize,
+                                             const char **paramName);
 
 /* ============ Occupancy ============ */
 /* 昇腾无 occupancy 计算接口，给 SIMT 合理默认值（block 上限 2048）。 */
@@ -294,6 +342,21 @@ aclError CUBRIDGE_API wcudaOccupancyMaxActiveBlocksPerMultiprocessorWithFlags(
 aclError CUBRIDGE_API wcudaOccupancyMaxPotentialBlockSizeWithFlags(
     int *minGridSize, int *blockSize, const void *func, size_t dynamicSMemSize,
     int blockSizeLimit, unsigned int flags);
+aclError CUBRIDGE_API wcudaOccupancyMaxPotentialClusterSize(int *clusterSize, const void *func,
+                                                             dim3 gridDim, dim3 blockDim,
+                                                             size_t dynamicSMemSize,
+                                                             aclrtStream stream);
+aclError CUBRIDGE_API wcudaOccupancyMaxActiveClusters(int *numClusters, const void *func,
+                                                       dim3 gridDim, dim3 blockDim,
+                                                       size_t dynamicSMemSize,
+                                                       aclrtStream stream);
+aclError CUBRIDGE_API wcudaOccupancyMaxPotentialBlockSizeVariableSMem(
+    int *minGridSize, int *blockSize, const void *func,
+    void (*userFunc)(size_t, size_t *), size_t dynamicSMemSize, int blockSizeLimit);
+aclError CUBRIDGE_API wcudaOccupancyMaxPotentialBlockSizeVariableSMemWithFlags(
+    int *minGridSize, int *blockSize, const void *func,
+    void (*userFunc)(size_t, size_t *), size_t dynamicSMemSize, int blockSizeLimit,
+    unsigned int flags);
 
 /* ============ Execution Control ============ */
 /* cudaLaunchKernel(func, gridDim, blockDim, args, sharedMem, stream)
@@ -303,13 +366,31 @@ aclError CUBRIDGE_API wcudaOccupancyMaxPotentialBlockSizeWithFlags(
 aclError CUBRIDGE_API wcudaLaunchKernel(const void *hostFunction, dim3 gridDim, dim3 blockDim,
                                         void **args, size_t sharedMemBytes, aclrtStream stream);
 aclError CUBRIDGE_API wcudaLaunchCooperativeKernel(const void *hostFunction, dim3 gridDim,
-                                                    dim3 blockDim, void **args,
-                                                    size_t sharedMemBytes, aclrtStream stream);
+                                                     dim3 blockDim, void **args,
+                                                     size_t sharedMemBytes, aclrtStream stream);
+aclError CUBRIDGE_API wcudaLaunchKernelExC(const void *hostFunction, dim3 gridDim, dim3 blockDim,
+                                            void **args, size_t sharedMemBytes, aclrtStream stream,
+                                            const void *config);
+aclError CUBRIDGE_API wcudaLaunchCooperativeKernelMultiDevice(const void *hostFunction,
+                                                               dim3 gridDim, dim3 blockDim,
+                                                               void **args, size_t sharedMemBytes,
+                                                               aclrtStream stream);
+aclError CUBRIDGE_API wcudaGetFuncBySymbol(void **func, const void *symbol);
+aclError CUBRIDGE_API wcudaGetExportTable(const void **table, const void *id);
+aclError CUBRIDGE_API wcudaGetDriverEntryPoint(const void **func, const char *name,
+                                                unsigned int flags, int *status);
+aclError CUBRIDGE_API wcudaGetParameterBuffer(void *buf, size_t size);
 
 /* ============ Profiler Control ============ */
 /* 昇腾 profiling 用 aclprof（API 面不同），此处 no-op 占位 */
 aclError CUBRIDGE_API wcudaProfilerStart(void);
 aclError CUBRIDGE_API wcudaProfilerStop(void);
+aclError CUBRIDGE_API wcudaProfilerInitialize(const char *configFile, const char *outputFile,
+                                                unsigned int outputMode);
+
+/* ============ Legacy / deprecated ============ */
+aclError CUBRIDGE_API wcudaSetDoubleForDevice(double *value);
+aclError CUBRIDGE_API wcudaSetDoubleForHost(double *value);
 
 /* ============ CUDA Runtime data-shape factories ============ */
 wcceExtent CUBRIDGE_API make_wcudaExtent(size_t width, size_t height, size_t depth);
@@ -345,33 +426,270 @@ aclError CUBRIDGE_API wcudaGetTextureObjectResourceViewDesc(wcceResourceViewDesc
 aclError CUBRIDGE_API wcudaGetSurfaceObjectResourceDesc(wcceResourceDesc *pResDesc,
                                                          wcceSurfaceObject_t surfObject);
 
-/* ============ External Memory（昇腾无对应，not-support） ============ */
+/* ============ External Memory & Semaphore（昇腾无对应，not-support） ============ */
 aclError CUBRIDGE_API wcudaImportExternalMemory(void *extMem_out, const void *memHandleDesc);
 aclError CUBRIDGE_API wcudaDestroyExternalMemory(void *extMem);
+aclError CUBRIDGE_API wcudaImportExternalSemaphore(void *extSem_out, const void *semHandleDesc);
+aclError CUBRIDGE_API wcudaDestroyExternalSemaphore(void *extSem);
+aclError CUBRIDGE_API wcudaSignalExternalSemaphoresAsync(const void *extSems, const void *params,
+                                                          unsigned int numExtSems,
+                                                          aclrtStream stream);
+aclError CUBRIDGE_API wcudaWaitExternalSemaphoresAsync(const void *extSems, const void *params,
+                                                        unsigned int numExtSems,
+                                                        aclrtStream stream);
+aclError CUBRIDGE_API wcudaExternalMemoryGetMappedBuffer(void **devPtr, void *extMem,
+                                                          const void *bufferDesc);
+aclError CUBRIDGE_API wcudaExternalMemoryGetMappedMipmappedArray(void *mipmap_out, void *extMem,
+                                                                  const void *mipmapDesc);
+
+/* ============ Extended Texture/Surface（not-support stubs） ============ */
+aclError CUBRIDGE_API wcudaUnbindTexture(const void *texref);
+aclError CUBRIDGE_API wcudaBindTexture2D(size_t *offset, const void *texref, const void *devPtr,
+                                          const void *desc, size_t width, size_t height,
+                                          size_t pitch);
+aclError CUBRIDGE_API wcudaBindTextureToArray(const void *texref, wcceArray_t array,
+                                               const void *desc);
+aclError CUBRIDGE_API wcudaBindTextureToMipmappedArray(const void *texref,
+                                                        wcceMipmappedArray_t mipmap,
+                                                        const void *desc);
+aclError CUBRIDGE_API wcudaBindSurfaceToArray(const void *surfref, wcceArray_t array);
+aclError CUBRIDGE_API wcudaGetTextureReference(const void **ref, const void *texref);
+aclError CUBRIDGE_API wcudaGetSurfaceReference(const void **ref, const void *surfref);
+aclError CUBRIDGE_API wcudaGetTextureAlignmentOffset(size_t *offset, const void *texref);
+
+/* ============ Extended Graph（not-support stubs） ============ */
+aclError CUBRIDGE_API wcudaGraphAddChildGraphNode(void *pGraphNode, void *graph,
+                                                   const void *deps, size_t numDeps, void *childGraph);
+aclError CUBRIDGE_API wcudaGraphAddDependencies(void *graph, const void *from, const void *to,
+                                                 size_t numDeps);
+aclError CUBRIDGE_API wcudaGraphAddEmptyNode(void *pGraphNode, void *graph, const void *deps,
+                                              size_t numDeps);
+aclError CUBRIDGE_API wcudaGraphAddEventRecordNode(void *pGraphNode, void *graph, const void *deps,
+                                                    size_t numDeps, aclrtEvent event);
+aclError CUBRIDGE_API wcudaGraphAddEventWaitNode(void *pGraphNode, void *graph, const void *deps,
+                                                  size_t numDeps, aclrtEvent event);
+aclError CUBRIDGE_API wcudaGraphAddExternalSemaphoresSignalNode(void *pGraphNode, void *graph,
+                                                                 const void *deps, size_t numDeps,
+                                                                 const void *nodeParams);
+aclError CUBRIDGE_API wcudaGraphAddExternalSemaphoresWaitNode(void *pGraphNode, void *graph,
+                                                               const void *deps, size_t numDeps,
+                                                               const void *nodeParams);
+aclError CUBRIDGE_API wcudaGraphAddHostNode(void *pGraphNode, void *graph, const void *deps,
+                                             size_t numDeps, const void *nodeParams);
+aclError CUBRIDGE_API wcudaGraphAddMemAllocNode(void *pGraphNode, void *graph, const void *deps,
+                                                 size_t numDeps, const void *nodeParams);
+aclError CUBRIDGE_API wcudaGraphAddMemcpyNode(void *pGraphNode, void *graph, const void *deps,
+                                               size_t numDeps, const void *nodeParams);
+aclError CUBRIDGE_API wcudaGraphAddMemcpyNode1D(void *pGraphNode, void *graph, const void *deps,
+                                                 size_t numDeps, void *dst, const void *src,
+                                                 size_t count, int kind);
+aclError CUBRIDGE_API wcudaGraphAddMemcpyNodeFromSymbol(void *pGraphNode, void *graph,
+                                                         const void *deps, size_t numDeps,
+                                                         void *dst, const void *symbol,
+                                                         size_t count, size_t offset, int kind);
+aclError CUBRIDGE_API wcudaGraphAddMemcpyNodeToSymbol(void *pGraphNode, void *graph,
+                                                       const void *deps, size_t numDeps,
+                                                       const void *symbol, const void *src,
+                                                       size_t count, size_t offset, int kind);
+aclError CUBRIDGE_API wcudaGraphAddMemFreeNode(void *pGraphNode, void *graph, const void *deps,
+                                                size_t numDeps, void *devPtr);
+aclError CUBRIDGE_API wcudaGraphAddMemsetNode(void *pGraphNode, void *graph, const void *deps,
+                                               size_t numDeps, const void *nodeParams);
+aclError CUBRIDGE_API wcudaGraphAddNode(void *pGraphNode, void *graph, const void *deps,
+                                         size_t numDeps, const void *nodeParams);
+aclError CUBRIDGE_API wcudaGraphChildGraphNodeGetGraph(void *node, void *childGraph);
+aclError CUBRIDGE_API wcudaGraphDebugDotPrint(void *graph, const char *path, unsigned int flags);
+aclError CUBRIDGE_API wcudaGraphEventRecordNodeGetEvent(void *node, aclrtEvent *event);
+aclError CUBRIDGE_API wcudaGraphEventRecordNodeSetEvent(void *node, aclrtEvent event);
+aclError CUBRIDGE_API wcudaGraphEventWaitNodeGetEvent(void *node, aclrtEvent *event);
+aclError CUBRIDGE_API wcudaGraphEventWaitNodeSetEvent(void *node, aclrtEvent event);
+aclError CUBRIDGE_API wcudaGraphExecChildGraphNodeSetParams(void *hGraphExec, void *hNode,
+                                                              void *childGraph);
+aclError CUBRIDGE_API wcudaGraphExecEventRecordNodeSetEvent(void *hGraphExec, void *hNode,
+                                                              aclrtEvent event);
+aclError CUBRIDGE_API wcudaGraphExecEventWaitNodeSetEvent(void *hGraphExec, void *hNode,
+                                                            aclrtEvent event);
+aclError CUBRIDGE_API wcudaGraphExecExternalSemaphoresSignalNodeSetParams(void *hGraphExec,
+                                                                           void *hNode,
+                                                                           const void *nodeParams);
+aclError CUBRIDGE_API wcudaGraphExecExternalSemaphoresWaitNodeSetParams(void *hGraphExec,
+                                                                          void *hNode,
+                                                                          const void *nodeParams);
+aclError CUBRIDGE_API wcudaGraphExecGetFlags(void *hGraphExec, unsigned int *flags);
+aclError CUBRIDGE_API wcudaGraphExecHostNodeSetParams(void *hGraphExec, void *hNode,
+                                                        const void *nodeParams);
+aclError CUBRIDGE_API wcudaGraphExecKernelNodeSetParams(void *hGraphExec, void *hNode,
+                                                          const void *nodeParams);
+aclError CUBRIDGE_API wcudaGraphExecMemcpyNodeSetParams(void *hGraphExec, void *hNode,
+                                                          const void *nodeParams);
+aclError CUBRIDGE_API wcudaGraphExecMemcpyNodeSetParams1D(void *hGraphExec, void *hNode,
+                                                             void *dst, const void *src,
+                                                             size_t count, int kind);
+aclError CUBRIDGE_API wcudaGraphExecMemcpyNodeSetParamsFromSymbol(void *hGraphExec, void *hNode,
+                                                                    void *dst, const void *symbol,
+                                                                    size_t count, size_t offset,
+                                                                    int kind);
+aclError CUBRIDGE_API wcudaGraphExecMemcpyNodeSetParamsToSymbol(void *hGraphExec, void *hNode,
+                                                                  const void *symbol,
+                                                                  const void *src, size_t count,
+                                                                  size_t offset, int kind);
+aclError CUBRIDGE_API wcudaGraphExecMemsetNodeSetParams(void *hGraphExec, void *hNode,
+                                                          const void *nodeParams);
+aclError CUBRIDGE_API wcudaGraphExternalSemaphoresSignalNodeGetParams(void *node, void *params);
+aclError CUBRIDGE_API wcudaGraphExternalSemaphoresSignalNodeSetParams(void *node, const void *params);
+aclError CUBRIDGE_API wcudaGraphExternalSemaphoresWaitNodeGetParams(void *node, void *params);
+aclError CUBRIDGE_API wcudaGraphExternalSemaphoresWaitNodeSetParams(void *node, const void *params);
+aclError CUBRIDGE_API wcudaGraphGetEdges(void *graph, void *from, void *to, size_t *numEdges);
+aclError CUBRIDGE_API wcudaGraphHostNodeGetParams(void *node, void *nodeParams);
+aclError CUBRIDGE_API wcudaGraphHostNodeSetParams(void *node, const void *nodeParams);
+aclError CUBRIDGE_API wcudaGraphInstantiateWithFlags(void *pGraphExec, void *graph,
+                                                       unsigned long long flags);
+aclError CUBRIDGE_API wcudaGraphInstantiateWithParams(void *pGraphExec, void *graph,
+                                                        const void *params);
+aclError CUBRIDGE_API wcudaGraphKernelNodeCopyAttributes(void *dst, const void *src);
+aclError CUBRIDGE_API wcudaGraphKernelNodeGetAttribute(void *node, int attr, void *value);
+aclError CUBRIDGE_API wcudaGraphKernelNodeGetParams(void *node, void *nodeParams);
+aclError CUBRIDGE_API wcudaGraphKernelNodeSetAttribute(void *node, int attr, const void *value);
+aclError CUBRIDGE_API wcudaGraphKernelNodeSetParams(void *node, const void *nodeParams);
+aclError CUBRIDGE_API wcudaGraphMemAllocNodeGetParams(void *node, void *params);
+aclError CUBRIDGE_API wcudaGraphMemcpyNodeGetParams(void *node, void *nodeParams);
+aclError CUBRIDGE_API wcudaGraphMemcpyNodeSetParams(void *node, const void *nodeParams);
+aclError CUBRIDGE_API wcudaGraphMemcpyNodeSetParamsFromSymbol(void *node, void *dst,
+                                                                const void *symbol, size_t count,
+                                                                size_t offset, int kind);
+aclError CUBRIDGE_API wcudaGraphMemcpyNodeSetParamsToSymbol(void *node, const void *symbol,
+                                                              const void *src, size_t count,
+                                                              size_t offset, int kind);
+aclError CUBRIDGE_API wcudaGraphMemFreeNodeGetParams(void *node, void *params);
+aclError CUBRIDGE_API wcudaGraphMemsetNodeGetParams(void *node, void *nodeParams);
+aclError CUBRIDGE_API wcudaGraphMemsetNodeSetParams(void *node, const void *nodeParams);
+aclError CUBRIDGE_API wcudaGraphNodeFindInClone(void *pNode, void *originalNode, void *clonedGraph);
+aclError CUBRIDGE_API wcudaGraphNodeGetDependencies(void *node, void *deps, size_t *numDeps);
+aclError CUBRIDGE_API wcudaGraphNodeGetDependentNodes(void *node, void *deps, size_t *numDeps);
+aclError CUBRIDGE_API wcudaGraphNodeGetEnabled(void *node, unsigned int *isEnabled);
+aclError CUBRIDGE_API wcudaGraphNodeGetType(void *node, int *nodeType);
+aclError CUBRIDGE_API wcudaGraphNodeSetEnabled(void *node, unsigned int isEnabled);
+aclError CUBRIDGE_API wcudaGraphReleaseUserObject(void *graph, void *userObject,
+                                                   unsigned int count);
+aclError CUBRIDGE_API wcudaGraphRemoveDependencies(void *graph, const void *from, const void *to,
+                                                    size_t numDeps);
+aclError CUBRIDGE_API wcudaGraphRetainUserObject(void *graph, void *userObject, unsigned int count,
+                                                  unsigned int flags);
+aclError CUBRIDGE_API wcudaGraphUpload(void *graph, aclrtStream stream);
+aclError CUBRIDGE_API wcudaGraphConditionalHandleCreate(void *handle, void *graph,
+                                                         unsigned int flags, int type);
+aclError CUBRIDGE_API wcudaGraphSetConditional(void *handle, unsigned int value, unsigned int flags);
+
+/* ============ Graphics Interop（not-support stubs） ============ */
+aclError CUBRIDGE_API wcudaGraphicsMapResources(unsigned int count, void **resources,
+                                                 aclrtStream stream);
+aclError CUBRIDGE_API wcudaGraphicsUnmapResources(unsigned int count, void **resources,
+                                                   aclrtStream stream);
+aclError CUBRIDGE_API wcudaGraphicsUnregisterResource(void *resource);
+aclError CUBRIDGE_API wcudaGraphicsResourceGetMappedPointer(void **devPtr, size_t *size,
+                                                              void *resource);
+aclError CUBRIDGE_API wcudaGraphicsResourceGetMappedMipmappedArray(wcceMipmappedArray_t *mipmap,
+                                                                     void *resource);
+aclError CUBRIDGE_API wcudaGraphicsResourceSetMapFlags(void *resource, unsigned int flags);
+aclError CUBRIDGE_API wcudaGraphicsSubResourceGetMappedArray(wcceArray_t *array, void *resource,
+                                                               unsigned int index,
+                                                               unsigned int level);
+aclError CUBRIDGE_API wcudaGraphicsGLRegisterBuffer(void *resource, unsigned int buffer,
+                                                      unsigned int flags);
+aclError CUBRIDGE_API wcudaGraphicsGLRegisterImage(void *resource, unsigned int image,
+                                                     unsigned int target, unsigned int flags);
+aclError CUBRIDGE_API wcudaGLGetDevices(unsigned int *deviceCount, int *devices,
+                                         unsigned int flags, int deviceList);
+aclError CUBRIDGE_API wcudaGLMapBufferObject(void **devPtr, unsigned int buffer);
+aclError CUBRIDGE_API wcudaGLMapBufferObjectAsync(void **devPtr, unsigned int buffer,
+                                                    aclrtStream stream);
+aclError CUBRIDGE_API wcudaGLRegisterBufferObject(unsigned int buffer);
+aclError CUBRIDGE_API wcudaGLSetBufferObjectMapFlags(unsigned int buffer, unsigned int flags);
+aclError CUBRIDGE_API wcudaGLSetGLDevice(int device);
+aclError CUBRIDGE_API wcudaGLUnmapBufferObject(unsigned int buffer);
+aclError CUBRIDGE_API wcudaGLUnmapBufferObjectAsync(unsigned int buffer, aclrtStream stream);
+aclError CUBRIDGE_API wcudaGLUnregisterBufferObject(unsigned int buffer);
+aclError CUBRIDGE_API wcudaGraphicsEGLRegisterImage(void *resource, void *image,
+                                                      unsigned int flags);
+aclError CUBRIDGE_API wcudaGraphicsResourceGetMappedEglFrame(void *eglFrame, void *resource,
+                                                                unsigned int index,
+                                                                unsigned int level);
+aclError CUBRIDGE_API wcudaEGLStreamConsumerAcquireFrame(void *conn, void *resource,
+                                                           aclrtStream stream);
+aclError CUBRIDGE_API wcudaEGLStreamConsumerConnect(void *conn, void *stream);
+aclError CUBRIDGE_API wcudaEGLStreamConsumerConnectWithFlags(void *conn, void *stream,
+                                                                unsigned int flags);
+aclError CUBRIDGE_API wcudaEGLStreamConsumerDisconnect(void *conn);
+aclError CUBRIDGE_API wcudaEGLStreamConsumerReleaseFrame(void *conn, void *resource,
+                                                           aclrtStream stream);
+aclError CUBRIDGE_API wcudaEGLStreamProducerConnect(void *conn, void *stream,
+                                                      unsigned int flags);
+aclError CUBRIDGE_API wcudaEGLStreamProducerDisconnect(void *conn);
+aclError CUBRIDGE_API wcudaEGLStreamProducerPresentFrame(void *conn, void *frame,
+                                                           aclrtStream stream);
+aclError CUBRIDGE_API wcudaEGLStreamProducerReturnFrame(void *conn, void *resource,
+                                                          aclrtStream stream);
+aclError CUBRIDGE_API wcudaVDPAUGetDevice(int *device, void *vdpDevice, void *vdpGetProcAddress);
+aclError CUBRIDGE_API wcudaVDPAUSetVDPAUDevice(int device, void *vdpDevice,
+                                                  void *vdpGetProcAddress);
+aclError CUBRIDGE_API wcudaGraphicsVDPAURegisterOutputSurface(void *resource, void *vdpSurface,
+                                                                unsigned int flags);
+aclError CUBRIDGE_API wcudaWGLGetDevice(int *device, void *hDC);
+
+/* ============ Cooperative Groups（not-support stubs） ============ */
+aclError CUBRIDGE_API wcudaCGSynchronize(void *handle, int scope);
+aclError CUBRIDGE_API wcudaCGSynchronizeGrid(void *handle);
+aclError CUBRIDGE_API wcudaCGGetIntrinsicHandle(void *handle);
+aclError CUBRIDGE_API wcudaCGGetRank(void *handle);
+aclError CUBRIDGE_API wcudaCGGetSize(void *handle);
+
+/* ============ Execution Context / Green Context（not-support stubs） ============ */
+aclError CUBRIDGE_API wcudaExecutionCtxDestroy(void *ctx);
+aclError CUBRIDGE_API wcudaExecutionCtxGetDevice(int *device, void *ctx);
+aclError CUBRIDGE_API wcudaExecutionCtxGetDevResource(void *resource, void *ctx, int type);
+aclError CUBRIDGE_API wcudaExecutionCtxGetId(unsigned long long *id, void *ctx);
+aclError CUBRIDGE_API wcudaExecutionCtxRecordEvent(void *ctx, aclrtEvent event);
+aclError CUBRIDGE_API wcudaExecutionCtxStreamCreate(aclrtStream *stream, void *ctx);
+aclError CUBRIDGE_API wcudaExecutionCtxSynchronize(void *ctx);
+aclError CUBRIDGE_API wcudaExecutionCtxWaitEvent(void *ctx, aclrtEvent event);
+aclError CUBRIDGE_API wcudaGreenCtxCreate(void *ctx, int device, const void *resource);
+
+/* ============ Device Resource（not-support stubs） ============ */
+aclError CUBRIDGE_API wcudaDevSmResourceSplit(void *result, const void *resource,
+                                                unsigned int count, unsigned int flags);
+aclError CUBRIDGE_API wcudaDevSmResourceSplitByCount(void *result, const void *resource,
+                                                       unsigned int count, unsigned int flags);
+
+/* ============ User Objects（not-support stubs） ============ */
+aclError CUBRIDGE_API wcudaUserObjectCreate(void *userObject, void *graph, void *data,
+                                              void *destroy, unsigned int weight,
+                                              unsigned int flags);
+aclError CUBRIDGE_API wcudaUserObjectRelease(void *userObject, unsigned int count);
+aclError CUBRIDGE_API wcudaUserObjectRetain(void *userObject, unsigned int count);
 
 /* ============ Thread Management（废弃 API，映射到等价运行时调用） ============ */
 aclError CUBRIDGE_API wcudaThreadSynchronize(void);
 aclError CUBRIDGE_API wcudaThreadExit(void);
 aclError CUBRIDGE_API wcudaThreadGetCacheConfig(int *cacheConfig);
 
-/* ============ Graph（昇腾无 CUDA Graph 对应，核心函数 not-support；句柄用 void* 简化） ============ */
+/* ============ Basic Graph（not-support；句柄用 void* 简化） ============ */
 aclError CUBRIDGE_API wcudaGraphCreate(void *pGraph, unsigned int flags);
 aclError CUBRIDGE_API wcudaGraphDestroy(void *graph);
 aclError CUBRIDGE_API wcudaGraphInstantiate(void *pGraphExec, void *graph, void *pErrorNode,
-                                            char *pLogBuffer, size_t bufferSize);
+                                             char *pLogBuffer, size_t bufferSize);
 aclError CUBRIDGE_API wcudaGraphLaunch(void *graphExec, aclrtStream stream);
 aclError CUBRIDGE_API wcudaGraphExecDestroy(void *graphExec);
 aclError CUBRIDGE_API wcudaGraphExecUpdate(void *hGraphExec, void *hGraph, void *hErrorNode_out,
-                                           int *updateResult_out);
+                                            int *updateResult_out);
 aclError CUBRIDGE_API wcudaGraphAddKernelNode(void *pGraphNode, void *graph,
-                                             const void *pDependencies, size_t numDependencies,
-                                             const void *pNodeParams);
+                                               const void *pDependencies, size_t numDependencies,
+                                               const void *pNodeParams);
 aclError CUBRIDGE_API wcudaGraphMemcpyNodeSetParams1D(void *node, void *dst, const void *src,
-                                                      size_t count, int kind);
+                                                        size_t count, int kind);
 aclError CUBRIDGE_API wcudaGraphGetNodes(wcceGraph_t graph, wcceGraphNode_t *nodes,
-                                             size_t *numNodes);
+                                          size_t *numNodes);
 aclError CUBRIDGE_API wcudaGraphGetRootNodes(wcceGraph_t graph, wcceGraphNode_t *nodes,
-                                                 size_t *numNodes);
+                                               size_t *numNodes);
 aclError CUBRIDGE_API wcudaGraphClone(wcceGraph_t *pGraphClone, wcceGraph_t originalGraph);
 aclError CUBRIDGE_API wcudaGraphDestroyNode(wcceGraphNode_t node);
 
@@ -391,6 +709,19 @@ aclError CUBRIDGE_API wcudaFuncGetName(const char **name, const void *func);
 /* ============ Version ============ */
 aclError CUBRIDGE_API wcudaRuntimeGetVersion(int *runtimeVersion);
 aclError CUBRIDGE_API wcudaDriverGetVersion(int *driverVersion);
+
+/* ============ v2/alias variants ============ */
+#define wcudaCreateTextureObject_v2 wcudaCreateTextureObject
+#define wcudaGetDriverEntryPoint_V2 wcudaGetDriverEntryPoint
+#define wcudaGraphExecUpdate_V2 wcudaGraphExecUpdate
+#define wcudaGraphInstantiate_V2 wcudaGraphInstantiate
+#define wcudaDevResourceGenerateDesc wcudaDevSmResourceSplit
+#define wcudaGraphAddDependencies_v2 wcudaGraphAddDependencies
+#define wcudaGraphAddNode_v2 wcudaGraphAddNode
+#define wcudaGraphGetEdges_v2 wcudaGraphGetEdges
+#define wcudaGraphNodeGetDependencies_v2 wcudaGraphNodeGetDependencies
+#define wcudaGraphNodeGetDependentNodes_v2 wcudaGraphNodeGetDependentNodes
+#define wcudaGraphRemoveDependencies_v2 wcudaGraphRemoveDependencies
 
 #ifdef __cplusplus
 } /* extern "C" */

@@ -2145,3 +2145,738 @@ aclError wcudaDriverGetVersion(int *driverVersion) {
     /* 昇腾无 Driver/Runtime 分层，直接复用 runtime 版本号。 */
     return wcudaRuntimeGetVersion(driverVersion);
 }
+
+/* =================== Extended API stubs (not-support) ===================
+ * The following functions are declared for CUDA API coverage parity.
+ * They return ACL_ERROR_API_NOT_SUPPORT on Ascend unless noted otherwise.
+ */
+
+aclError wcudaChooseDevice(int *device, const void *prop) {
+    if (device) *device = 0;
+    WCUDA_RETURN(ACL_SUCCESS);
+}
+
+aclError wcudaSetValidDevices(int *device, int count) {
+    WCUDA_RETURN(ACL_SUCCESS);
+}
+
+aclError wcudaDeviceGetP2PAttribute(int *value, int attr, int device, int peerDevice) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaDeviceGetDefaultMemPool(wcceMemPool_t *pool, int device) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaDeviceFlushGPUDirectRDMAWrites(int target, int scope) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaDeviceGetGraphMemAttribute(int device, int attr, void *value) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaDeviceSetGraphMemAttribute(int device, int attr, const void *value) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaDeviceGraphMemTrim(int device) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaDeviceGetDevResource(void *resource, int device, int type) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaDeviceGetExecutionCtx(void *ctx, int device) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaDeviceGetNvSciSyncAttributes(void *attr, int device, unsigned int flags) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaDeviceGetTexture1DLinearMaxWidth(size_t *width, int device) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaCtxResetPersistingL2Cache(void) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaStreamUpdateCaptureDependencies(aclrtStream stream, const void *deps, size_t numDeps, unsigned int flags) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaStreamBeginCaptureToGraph(aclrtStream stream, void *graph, const void *deps, size_t numDeps, int captureMode) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaStreamGetDevResource(aclrtStream stream, void *resource, int type) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaThreadExchangeStreamCaptureMode(int *mode) {
+    if (mode) *mode = 0;
+    WCUDA_RETURN(ACL_SUCCESS);
+}
+
+aclError wcudaMemRangeGetAttribute(void *data, size_t dataSize, int attr, const void *devPtr, size_t count) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaMemRangeGetAttributes(void **data, size_t *dataSizes, int *attrs, size_t numAttrs, const void *devPtr, size_t count) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaMemPoolGetAccess(int *access, wcceMemPool_t pool, const void *ptr) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaMemPoolSetAccess(wcceMemPool_t pool, const void *maps, size_t numMaps) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaMemPoolExportToShareableHandle(void *handle, wcceMemPool_t pool, unsigned int handleType, unsigned int flags) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaMemPoolImportFromShareableHandle(wcceMemPool_t *pool, void *handle, unsigned int handleType) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaMemPoolExportPointer(wcceIpcMemHandle_t *ptrData, void *ptr) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaMemPoolImportPointer(void **ptr, wcceMemPool_t pool, const wcceIpcMemHandle_t *ptrData) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaMemRemap(void *ptr, size_t size, int device, int node) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaMemUnremap(void *ptr, size_t size) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaArrayGetPlane(wcceArray_t *pPlane, wcceArray_t array, unsigned int planeIdx) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaArrayGetMemoryRequirements(void *req, wcceArray_t array) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaArrayGetSparseProperties(void *props, wcceArray_t array) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaMipmappedArrayGetMemoryRequirements(void *req, wcceMipmappedArray_t mipmap) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaMipmappedArrayGetSparseProperties(void *props, wcceMipmappedArray_t mipmap) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaFuncGetParamInfo(const void *func, size_t paramIndex, size_t *paramOffset, size_t *paramSize, const char **paramName) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaOccupancyMaxPotentialClusterSize(int *clusterSize, const void *func, dim3 gridDim, dim3 blockDim, size_t dynamicSMemSize, aclrtStream stream) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaOccupancyMaxActiveClusters(int *numClusters, const void *func, dim3 gridDim, dim3 blockDim, size_t dynamicSMemSize, aclrtStream stream) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaOccupancyMaxPotentialBlockSizeVariableSMem( int *minGridSize, int *blockSize, const void *func, void (*userFunc)(size_t, size_t *), size_t dynamicSMemSize, int blockSizeLimit) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaOccupancyMaxPotentialBlockSizeVariableSMemWithFlags( int *minGridSize, int *blockSize, const void *func, void (*userFunc)(size_t, size_t *), size_t dynamicSMemSize, int blockSizeLimit, unsigned int flags) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaLaunchKernelExC(const void *hostFunction, dim3 gridDim, dim3 blockDim, void **args, size_t sharedMemBytes, aclrtStream stream, const void *config) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaLaunchCooperativeKernelMultiDevice(const void *hostFunction, dim3 gridDim, dim3 blockDim, void **args, size_t sharedMemBytes, aclrtStream stream) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGetFuncBySymbol(void **func, const void *symbol) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGetExportTable(const void **table, const void *id) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGetDriverEntryPoint(const void **func, const char *name, unsigned int flags, int *status) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGetParameterBuffer(void *buf, size_t size) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaProfilerInitialize(const char *configFile, const char *outputFile, unsigned int outputMode) {
+    WCUDA_RETURN(ACL_SUCCESS);
+}
+
+aclError wcudaSetDoubleForDevice(double *value) {
+    WCUDA_RETURN(ACL_SUCCESS);
+}
+
+aclError wcudaSetDoubleForHost(double *value) {
+    WCUDA_RETURN(ACL_SUCCESS);
+}
+
+aclError wcudaImportExternalSemaphore(void *extSem_out, const void *semHandleDesc) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaDestroyExternalSemaphore(void *extSem) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaSignalExternalSemaphoresAsync(const void *extSems, const void *params, unsigned int numExtSems, aclrtStream stream) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaWaitExternalSemaphoresAsync(const void *extSems, const void *params, unsigned int numExtSems, aclrtStream stream) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaExternalMemoryGetMappedBuffer(void **devPtr, void *extMem, const void *bufferDesc) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaExternalMemoryGetMappedMipmappedArray(void *mipmap_out, void *extMem, const void *mipmapDesc) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaUnbindTexture(const void *texref) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaBindTexture2D(size_t *offset, const void *texref, const void *devPtr, const void *desc, size_t width, size_t height, size_t pitch) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaBindTextureToArray(const void *texref, wcceArray_t array, const void *desc) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaBindTextureToMipmappedArray(const void *texref, wcceMipmappedArray_t mipmap, const void *desc) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaBindSurfaceToArray(const void *surfref, wcceArray_t array) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGetTextureReference(const void **ref, const void *texref) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGetSurfaceReference(const void **ref, const void *surfref) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGetTextureAlignmentOffset(size_t *offset, const void *texref) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphAddChildGraphNode(void *pGraphNode, void *graph, const void *deps, size_t numDeps, void *childGraph) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphAddDependencies(void *graph, const void *from, const void *to, size_t numDeps) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphAddEmptyNode(void *pGraphNode, void *graph, const void *deps, size_t numDeps) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphAddEventRecordNode(void *pGraphNode, void *graph, const void *deps, size_t numDeps, aclrtEvent event) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphAddEventWaitNode(void *pGraphNode, void *graph, const void *deps, size_t numDeps, aclrtEvent event) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphAddExternalSemaphoresSignalNode(void *pGraphNode, void *graph, const void *deps, size_t numDeps, const void *nodeParams) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphAddExternalSemaphoresWaitNode(void *pGraphNode, void *graph, const void *deps, size_t numDeps, const void *nodeParams) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphAddHostNode(void *pGraphNode, void *graph, const void *deps, size_t numDeps, const void *nodeParams) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphAddMemAllocNode(void *pGraphNode, void *graph, const void *deps, size_t numDeps, const void *nodeParams) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphAddMemcpyNode(void *pGraphNode, void *graph, const void *deps, size_t numDeps, const void *nodeParams) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphAddMemcpyNode1D(void *pGraphNode, void *graph, const void *deps, size_t numDeps, void *dst, const void *src, size_t count, int kind) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphAddMemcpyNodeFromSymbol(void *pGraphNode, void *graph, const void *deps, size_t numDeps, void *dst, const void *symbol, size_t count, size_t offset, int kind) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphAddMemcpyNodeToSymbol(void *pGraphNode, void *graph, const void *deps, size_t numDeps, const void *symbol, const void *src, size_t count, size_t offset, int kind) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphAddMemFreeNode(void *pGraphNode, void *graph, const void *deps, size_t numDeps, void *devPtr) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphAddMemsetNode(void *pGraphNode, void *graph, const void *deps, size_t numDeps, const void *nodeParams) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphAddNode(void *pGraphNode, void *graph, const void *deps, size_t numDeps, const void *nodeParams) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphChildGraphNodeGetGraph(void *node, void *childGraph) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphDebugDotPrint(void *graph, const char *path, unsigned int flags) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphEventRecordNodeGetEvent(void *node, aclrtEvent *event) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphEventRecordNodeSetEvent(void *node, aclrtEvent event) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphEventWaitNodeGetEvent(void *node, aclrtEvent *event) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphEventWaitNodeSetEvent(void *node, aclrtEvent event) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphExecChildGraphNodeSetParams(void *hGraphExec, void *hNode, void *childGraph) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphExecEventRecordNodeSetEvent(void *hGraphExec, void *hNode, aclrtEvent event) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphExecEventWaitNodeSetEvent(void *hGraphExec, void *hNode, aclrtEvent event) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphExecExternalSemaphoresSignalNodeSetParams(void *hGraphExec, void *hNode, const void *nodeParams) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphExecExternalSemaphoresWaitNodeSetParams(void *hGraphExec, void *hNode, const void *nodeParams) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphExecGetFlags(void *hGraphExec, unsigned int *flags) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphExecHostNodeSetParams(void *hGraphExec, void *hNode, const void *nodeParams) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphExecKernelNodeSetParams(void *hGraphExec, void *hNode, const void *nodeParams) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphExecMemcpyNodeSetParams(void *hGraphExec, void *hNode, const void *nodeParams) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphExecMemcpyNodeSetParams1D(void *hGraphExec, void *hNode, void *dst, const void *src, size_t count, int kind) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphExecMemcpyNodeSetParamsFromSymbol(void *hGraphExec, void *hNode, void *dst, const void *symbol, size_t count, size_t offset, int kind) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphExecMemcpyNodeSetParamsToSymbol(void *hGraphExec, void *hNode, const void *symbol, const void *src, size_t count, size_t offset, int kind) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphExecMemsetNodeSetParams(void *hGraphExec, void *hNode, const void *nodeParams) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphExternalSemaphoresSignalNodeGetParams(void *node, void *params) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphExternalSemaphoresSignalNodeSetParams(void *node, const void *params) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphExternalSemaphoresWaitNodeGetParams(void *node, void *params) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphExternalSemaphoresWaitNodeSetParams(void *node, const void *params) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphGetEdges(void *graph, void *from, void *to, size_t *numEdges) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphHostNodeGetParams(void *node, void *nodeParams) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphHostNodeSetParams(void *node, const void *nodeParams) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphInstantiateWithFlags(void *pGraphExec, void *graph, unsigned long long flags) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphInstantiateWithParams(void *pGraphExec, void *graph, const void *params) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphKernelNodeCopyAttributes(void *dst, const void *src) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphKernelNodeGetAttribute(void *node, int attr, void *value) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphKernelNodeGetParams(void *node, void *nodeParams) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphKernelNodeSetAttribute(void *node, int attr, const void *value) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphKernelNodeSetParams(void *node, const void *nodeParams) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphMemAllocNodeGetParams(void *node, void *params) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphMemcpyNodeGetParams(void *node, void *nodeParams) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphMemcpyNodeSetParams(void *node, const void *nodeParams) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphMemcpyNodeSetParamsFromSymbol(void *node, void *dst, const void *symbol, size_t count, size_t offset, int kind) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphMemcpyNodeSetParamsToSymbol(void *node, const void *symbol, const void *src, size_t count, size_t offset, int kind) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphMemFreeNodeGetParams(void *node, void *params) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphMemsetNodeGetParams(void *node, void *nodeParams) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphMemsetNodeSetParams(void *node, const void *nodeParams) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphNodeFindInClone(void *pNode, void *originalNode, void *clonedGraph) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphNodeGetDependencies(void *node, void *deps, size_t *numDeps) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphNodeGetDependentNodes(void *node, void *deps, size_t *numDeps) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphNodeGetEnabled(void *node, unsigned int *isEnabled) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphNodeGetType(void *node, int *nodeType) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphNodeSetEnabled(void *node, unsigned int isEnabled) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphReleaseUserObject(void *graph, void *userObject, unsigned int count) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphRemoveDependencies(void *graph, const void *from, const void *to, size_t numDeps) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphRetainUserObject(void *graph, void *userObject, unsigned int count, unsigned int flags) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphUpload(void *graph, aclrtStream stream) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphConditionalHandleCreate(void *handle, void *graph, unsigned int flags, int type) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphSetConditional(void *handle, unsigned int value, unsigned int flags) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphicsMapResources(unsigned int count, void **resources, aclrtStream stream) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphicsUnmapResources(unsigned int count, void **resources, aclrtStream stream) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphicsUnregisterResource(void *resource) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphicsResourceGetMappedPointer(void **devPtr, size_t *size, void *resource) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphicsResourceGetMappedMipmappedArray(wcceMipmappedArray_t *mipmap, void *resource) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphicsResourceSetMapFlags(void *resource, unsigned int flags) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphicsSubResourceGetMappedArray(wcceArray_t *array, void *resource, unsigned int index, unsigned int level) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphicsGLRegisterBuffer(void *resource, unsigned int buffer, unsigned int flags) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphicsGLRegisterImage(void *resource, unsigned int image, unsigned int target, unsigned int flags) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGLGetDevices(unsigned int *deviceCount, int *devices, unsigned int flags, int deviceList) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGLMapBufferObject(void **devPtr, unsigned int buffer) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGLMapBufferObjectAsync(void **devPtr, unsigned int buffer, aclrtStream stream) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGLRegisterBufferObject(unsigned int buffer) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGLSetBufferObjectMapFlags(unsigned int buffer, unsigned int flags) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGLSetGLDevice(int device) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGLUnmapBufferObject(unsigned int buffer) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGLUnmapBufferObjectAsync(unsigned int buffer, aclrtStream stream) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGLUnregisterBufferObject(unsigned int buffer) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphicsEGLRegisterImage(void *resource, void *image, unsigned int flags) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphicsResourceGetMappedEglFrame(void *eglFrame, void *resource, unsigned int index, unsigned int level) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaEGLStreamConsumerAcquireFrame(void *conn, void *resource, aclrtStream stream) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaEGLStreamConsumerConnect(void *conn, void *stream) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaEGLStreamConsumerConnectWithFlags(void *conn, void *stream, unsigned int flags) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaEGLStreamConsumerDisconnect(void *conn) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaEGLStreamConsumerReleaseFrame(void *conn, void *resource, aclrtStream stream) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaEGLStreamProducerConnect(void *conn, void *stream, unsigned int flags) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaEGLStreamProducerDisconnect(void *conn) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaEGLStreamProducerPresentFrame(void *conn, void *frame, aclrtStream stream) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaEGLStreamProducerReturnFrame(void *conn, void *resource, aclrtStream stream) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaVDPAUGetDevice(int *device, void *vdpDevice, void *vdpGetProcAddress) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaVDPAUSetVDPAUDevice(int device, void *vdpDevice, void *vdpGetProcAddress) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGraphicsVDPAURegisterOutputSurface(void *resource, void *vdpSurface, unsigned int flags) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaWGLGetDevice(int *device, void *hDC) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaCGSynchronize(void *handle, int scope) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaCGSynchronizeGrid(void *handle) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaCGGetIntrinsicHandle(void *handle) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaCGGetRank(void *handle) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaCGGetSize(void *handle) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaExecutionCtxDestroy(void *ctx) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaExecutionCtxGetDevice(int *device, void *ctx) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaExecutionCtxGetDevResource(void *resource, void *ctx, int type) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaExecutionCtxGetId(unsigned long long *id, void *ctx) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaExecutionCtxRecordEvent(void *ctx, aclrtEvent event) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaExecutionCtxStreamCreate(aclrtStream *stream, void *ctx) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaExecutionCtxSynchronize(void *ctx) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaExecutionCtxWaitEvent(void *ctx, aclrtEvent event) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaGreenCtxCreate(void *ctx, int device, const void *resource) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaDevSmResourceSplit(void *result, const void *resource, unsigned int count, unsigned int flags) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaDevSmResourceSplitByCount(void *result, const void *resource, unsigned int count, unsigned int flags) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaUserObjectCreate(void *userObject, void *graph, void *data, void *destroy, unsigned int weight, unsigned int flags) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaUserObjectRelease(void *userObject, unsigned int count) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaUserObjectRetain(void *userObject, unsigned int count) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
+aclError wcudaMemAdvise_v2(const void *devPtr, size_t count, int advice, int device) {
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
