@@ -737,6 +737,17 @@ aclError wcudaEventCreateWithFlags(aclrtEvent *event, unsigned int flags) {
     WCUDA_RETURN(aclrtCreateEvent(event));
 }
 
+aclError wcudaEventCreateFromEGLSync(aclrtEvent *event, void *eglsync,
+                                      unsigned int flags) {
+    (void)eglsync;
+    (void)flags;
+    if (event == nullptr) {
+        WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);
+    }
+    /* EGL sync interop is not supported on Ascend. */
+    WCUDA_RETURN(ACL_ERROR_API_NOT_SUPPORT);
+}
+
 aclError wcudaEventDestroy(aclrtEvent event) {
     if (event == nullptr) {
         WCUDA_RETURN(ACL_ERROR_INVALID_PARAM);

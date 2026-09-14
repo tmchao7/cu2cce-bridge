@@ -1245,7 +1245,7 @@
 #define cudaDeviceGetNvSciSyncAttributes wcudaDeviceGetNvSciSyncAttributes
 #define cudaDeviceGetTexture1DLinearMaxWidth wcudaDeviceGetTexture1DLinearMaxWidth
 #define cudaDevicePropDontCare wcceExtent
-#define cudaDevResourceGenerateDesc wcudaDevResourceGenerateDesc
+#define cudaDevResourceGenerateDesc wcudaDevSmResourceSplit
 #define cudaNvSciSyncAttrSignal 1
 #define cudaNvSciSyncAttrWait 2
 

@@ -134,6 +134,8 @@ aclError CUBRIDGE_API wcudaThreadExchangeStreamCaptureMode(int *mode);
 /* ============ Event Management ============ */
 aclError CUBRIDGE_API wcudaEventCreate(aclrtEvent *event);
 aclError CUBRIDGE_API wcudaEventCreateWithFlags(aclrtEvent *event, unsigned int flags);
+aclError CUBRIDGE_API wcudaEventCreateFromEGLSync(aclrtEvent *event, void *eglsync,
+                                                   unsigned int flags);
 aclError CUBRIDGE_API wcudaEventDestroy(aclrtEvent event);
 aclError CUBRIDGE_API wcudaEventRecord(aclrtEvent event, aclrtStream stream = 0);
 aclError CUBRIDGE_API wcudaEventRecordWithFlags(aclrtEvent event, aclrtStream stream = 0,
@@ -715,7 +717,6 @@ aclError CUBRIDGE_API wcudaDriverGetVersion(int *driverVersion);
 #define wcudaGetDriverEntryPoint_V2 wcudaGetDriverEntryPoint
 #define wcudaGraphExecUpdate_V2 wcudaGraphExecUpdate
 #define wcudaGraphInstantiate_V2 wcudaGraphInstantiate
-#define wcudaDevResourceGenerateDesc wcudaDevSmResourceSplit
 #define wcudaGraphAddDependencies_v2 wcudaGraphAddDependencies
 #define wcudaGraphAddNode_v2 wcudaGraphAddNode
 #define wcudaGraphGetEdges_v2 wcudaGraphGetEdges
