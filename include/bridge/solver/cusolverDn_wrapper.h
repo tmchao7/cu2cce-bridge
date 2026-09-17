@@ -60,7 +60,7 @@ cusolverStatus_t wcusolverDnDestroy(cusolverDnHandle_t handle);
 /* Syevd — single precision. */
 cusolverStatus_t wcusolverDnSsyevd_bufferSize(
     cusolverDnHandle_t handle, cusolverEigMode_t jobz, cublasFillMode_t uplo,
-    int n, const float *A, int lda, int *lwork);
+    int n, const float *A, int lda, const float *W, int *lwork);
 cusolverStatus_t wcusolverDnSsyevd(
     cusolverDnHandle_t handle, cusolverEigMode_t jobz, cublasFillMode_t uplo,
     int n, float *A, int lda, float *W, float *work, int lwork, int *info);
@@ -68,7 +68,7 @@ cusolverStatus_t wcusolverDnSsyevd(
 /* Syevd — double precision (Ascend has no FP64; returns NOT_SUPPORTED). */
 cusolverStatus_t wcusolverDnDsyevd_bufferSize(
     cusolverDnHandle_t handle, cusolverEigMode_t jobz, cublasFillMode_t uplo,
-    int n, const double *A, int lda, int *lwork);
+    int n, const double *A, int lda, const double *W, int *lwork);
 cusolverStatus_t wcusolverDnDsyevd(
     cusolverDnHandle_t handle, cusolverEigMode_t jobz, cublasFillMode_t uplo,
     int n, double *A, int lda, double *W, double *work, int lwork, int *info);

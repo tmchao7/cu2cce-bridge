@@ -30,8 +30,8 @@ cusolverStatus_t wcusolverDnDestroy(cusolverDnHandle_t handle) {
 
 cusolverStatus_t wcusolverDnSsyevd_bufferSize(
     cusolverDnHandle_t handle, cusolverEigMode_t jobz, cublasFillMode_t uplo,
-    int n, const float *A, int lda, int *lwork) {
-    (void)handle; (void)jobz; (void)uplo; (void)n; (void)A; (void)lda;
+    int n, const float *A, int lda, const float *W, int *lwork) {
+    (void)handle; (void)jobz; (void)uplo; (void)n; (void)A; (void)lda; (void)W;
     if (lwork != nullptr) { *lwork = 0; }
     return CUSOLVER_STATUS_NOT_SUPPORTED;
 }
@@ -47,8 +47,8 @@ cusolverStatus_t wcusolverDnSsyevd(
 
 cusolverStatus_t wcusolverDnDsyevd_bufferSize(
     cusolverDnHandle_t handle, cusolverEigMode_t jobz, cublasFillMode_t uplo,
-    int n, const double *A, int lda, int *lwork) {
-    (void)handle; (void)jobz; (void)uplo; (void)n; (void)A; (void)lda;
+    int n, const double *A, int lda, const double *W, int *lwork) {
+    (void)handle; (void)jobz; (void)uplo; (void)n; (void)A; (void)lda; (void)W;
     if (lwork != nullptr) { *lwork = 0; }
     return CUSOLVER_STATUS_NOT_SUPPORTED;
 }
