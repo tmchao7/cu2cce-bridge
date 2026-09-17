@@ -178,13 +178,18 @@ class CuccRuleDriverTest(unittest.TestCase):
                 self.assertTrue(actions, library)
                 self.assertIn("mapping", actions[0].reason.lower())
 
-    def test_object_link_drops_cudart_but_does_not_map_cublas(self) -> None:
+    def test_object_link_drops_cudart_and_bridge_backed_libraries(self) -> None:
         prepared = self.driver().prepare([
-            "build/main.o", "-lcudart", "-lcublas", "-o", "build/app",
+            "build/main.o", "-lcudart", "-lcublas", "-lcusolver", "-lcurand", "-o", "build/app",
         ])
         self.assertEqual(prepared.phase, "link")
         self.assertNotIn("-lcudart", prepared.args)
-        self.assertIn("-lcublas", prepared.args)
+        # cublas/cusolver symbols come from libcce_bridge_runtime (wcublas*/
+        # wcusolver* stubs); curand has no Ascend .so. None exist on Ascend, so
+        # linking with the original -l would fail "unable to find library".
+        self.assertNotIn("-lcublas", prepared.args)
+        self.assertNotIn("-lcusolver", prepared.args)
+        self.assertNotIn("-lcurand", prepared.args)
         self.assertIn("-lcce_bridge_runtime", prepared.args)
         self.assertNotIn("--enable-simt", prepared.args)
 

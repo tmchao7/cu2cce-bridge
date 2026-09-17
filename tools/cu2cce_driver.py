@@ -997,9 +997,18 @@ class RuleDriver:
         ):
             raise DriverError(f"{argument} requires a value; got option {value}")
 
-    def _handle_library_policy(self, argument: str) -> bool:
+    def _handle_library_policy(self, argument: str) -> Optional[str]:
+        """Return 'forward', 'drop', or None for a `-l<lib>` argument.
+
+        None means the library matched no known CUDA capability and should
+        fall through to the normal rule pipeline. 'forward' keeps the `-l`
+        reference (with a warning). 'drop' removes it because the symbols are
+        provided by the bridge runtime (libcce_bridge_runtime) or because
+        Ascend ships no such library — keeping the reference would fail the
+        link with "unable to find library".
+        """
         if not argument.startswith("-l"):
-            return False
+            return None
         name = argument[2:]
         capabilities = self.rules.get("capabilities", {})
         # Two passes so an exact capability key (cublasLt) wins over an
@@ -1027,9 +1036,21 @@ class RuleDriver:
                     loose = True
                     break
         if capability is None:
-            return False
+            return None
         entry = capabilities.get(capability, {})
         map_to = entry.get("map_to", "")
+        # A capability whose `-l` set to "drop": the symbols are supplied by
+        # libcce_bridge_runtime (cublas -> wcublas*, cusolver -> wcusolver*
+        # stubs) or Ascend ships no such library (curand). Keeping the
+        # original -l would make the linker fail "unable to find library".
+        if entry.get("link") == "drop":
+            reason = (
+                f"CUDA library {argument}: {map_to or 'Ascend provides no such library'}; "
+                "link -l dropped (symbols come from the bridge runtime / none on Ascend)"
+            )
+            self._warn(f"ignored {argument}: {reason}")
+            self._record(argument, "drop", reason)
+            return "drop"
         if loose:
             message = (
                 f"CUDA library {argument} resembles capability {capability} "
@@ -1046,7 +1067,7 @@ class RuleDriver:
             raise DriverError(message)
         self._warn(message)
         self._record(argument, "forward", message)
-        return True
+        return "forward"
 
     # Host compiler flags that a large project propagates through
     # -Xcompiler (CMake CUDA_PROPAGATE_HOST_FLAGS). Anything that pins host
@@ -1321,8 +1342,12 @@ class RuleDriver:
                 i += 1
                 continue
 
-            if self._handle_library_policy(argument):
+            lib_action = self._handle_library_policy(argument)
+            if lib_action == "forward":
                 result.append(argument)
+                i += 1
+                continue
+            if lib_action == "drop":
                 i += 1
                 continue
 

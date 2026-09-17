@@ -1267,7 +1267,8 @@
       },
       "cublas": {
         "status": "experimental",
-        "action": "warn_no_automatic_replacement"
+        "action": "warn_no_automatic_replacement",
+        "link": "drop"
       },
       "cufft": {
         "status": "unsupported",
@@ -1281,7 +1282,8 @@
       "curand": {
         "status": "unsupported",
         "action": "warn_no_automatic_replacement",
-        "map_to": "Ascend C random operators; no device-side curand_kernel.h equivalent yet"
+        "map_to": "Ascend C random operators; no device-side curand_kernel.h equivalent yet",
+        "link": "drop"
       },
       "cudnn": {
         "status": "unsupported",
@@ -1291,7 +1293,8 @@
       "cusolver": {
         "status": "unsupported",
         "action": "warn_no_automatic_replacement",
-        "map_to": "CANN ops-math (aol) dense-solver operators; no 1:1 shim yet"
+        "map_to": "CANN ops-math (aol) dense-solver operators; no 1:1 shim yet",
+        "link": "drop"
       },
       "cublasLt": {
         "status": "experimental",
