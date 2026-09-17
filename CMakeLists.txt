@@ -61,8 +61,14 @@ file(GLOB BRIDGE_RUNTIME_SRC
 file(GLOB BRIDGE_BLAS_SRC
     "${CMAKE_CURRENT_SOURCE_DIR}/src/bridge/blas/src/*.cpp"
 )
+# Compile-time stubs for unsupported CUDA libraries (cusolver etc.).  These
+# provide linkable symbols that return NOT_SUPPORTED at runtime; they are
+# not part of puresimt acceptance.
+file(GLOB BRIDGE_SOLVER_SRC
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/bridge/solver/src/*.cpp"
+)
 
-add_library(cce_bridge_runtime SHARED ${BRIDGE_RUNTIME_SRC} ${BRIDGE_BLAS_SRC})
+add_library(cce_bridge_runtime SHARED ${BRIDGE_RUNTIME_SRC} ${BRIDGE_BLAS_SRC} ${BRIDGE_SOLVER_SRC})
 set_target_properties(cce_bridge_runtime PROPERTIES EXPORT_NAME runtime)
 
 target_include_directories(cce_bridge_runtime
@@ -75,6 +81,7 @@ target_include_directories(cce_bridge_runtime
         # 等（相对 include/bridge/{runtime,blas}），需补子目录（与 mock syntax_check 一致）
         ${CMAKE_CURRENT_SOURCE_DIR}/include/bridge/runtime
         ${CMAKE_CURRENT_SOURCE_DIR}/include/bridge/blas
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/bridge/solver
 )
 
 target_link_libraries(cce_bridge_runtime

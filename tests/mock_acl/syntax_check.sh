@@ -8,6 +8,7 @@ MOCK="$ROOT/tests/mock_acl"
 INCLUDE="$ROOT/include"
 SRC="$ROOT/src/bridge/runtime/src"
 BLAS_SRC="$ROOT/src/bridge/blas/src"
+SOLVER_SRC="$ROOT/src/bridge/solver/src"
 
 PASS=0; FAIL=0
 check() {
@@ -28,5 +29,6 @@ check "header_wrapper_smoke.cpp" -x c++ "$ROOT/tests/header_wrapper_smoke.cpp"
 check "cuda_runtime_wrapper.cpp" -x c++ "$SRC/cuda_runtime_wrapper.cpp"
 check "cuda_driver_wrapper.cpp" -x c++ "$SRC/cuda_driver_wrapper.cpp"
 check "cublas_v2_wrapper.cpp" -x c++ "$BLAS_SRC/cublas_v2_wrapper.cpp"
+check "cusolverDn_wrapper.cpp" -x c++ -I "$INCLUDE/bridge/solver" -I "$INCLUDE/bridge/blas" "$SOLVER_SRC/cusolverDn_wrapper.cpp"
 echo "---"; echo "PASS=$PASS FAIL=$FAIL"
 [ "$FAIL" -eq 0 ]

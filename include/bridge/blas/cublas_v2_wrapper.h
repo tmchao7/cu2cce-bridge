@@ -37,6 +37,13 @@
 #define CUBLAS_OP_T ACL_TRANS_T
 #define CUBLAS_OP_C ACL_TRANS_NZ /* acl 无 C(共轭转置)，映射到 NZ */
 
+// fill mode（cublasFillMode_t：NVIDIA 值 0=L, 1=U, 2=F）
+typedef enum {
+    CUBLAS_FILL_MODE_LOWER = 0,
+    CUBLAS_FILL_MODE_UPPER = 1,
+    CUBLAS_FILL_MODE_FULL = 2
+} cublasFillMode_t;
+
 //------------ GemmEx dtype/compute 常量（值与 NVIDIA library_types.h 对齐） ------------//
 #if !defined(CUDA_R_16F)
 typedef enum {
