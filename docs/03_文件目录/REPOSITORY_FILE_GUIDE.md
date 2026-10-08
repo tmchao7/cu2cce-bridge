@@ -1,7 +1,7 @@
 # cu2cce-bridge 仓库文件与问题定位指南
 
 **适用分支：** `main` / puresimt
-**更新日期：** 2026-09-03
+**更新日期：** 2026-10-08
 **对标仓库：** `cu-bridge-muxi` `6ab1076` / `3.8.0`
 **目标后端：** Ascend NPU / CANN / ccec
 
@@ -359,7 +359,7 @@ git diff --check
 
 ## 10. 当前 Git 跟踪文件逐项清单
 
-> 下面的路径以当前仓库 Git inventory 为准（生成日期：2026-09-02）。新增或移动文件时，
+> 下面的路径以当前仓库 Git inventory 为准（生成日期：2026-10-08）。新增或移动文件时，
 > 请同步补充本表；`tests/test_repo_hygiene.py` 会检查每个跟踪路径都出现在本指南中。
 
 ### `.gitattributes/`
@@ -397,6 +397,12 @@ git diff --check
 | 路径 | 职责 |
 |---|---|
 | `NOTICE.txt` | 第三方版权与归属声明 |
+
+### `opencode.json/`
+
+| 路径 | 职责 |
+|---|---|
+| `opencode.json` | opencode CLI 工具权限配置 |
 
 ### `QUICKSTART.md/`
 
@@ -514,6 +520,11 @@ python3 tools/validate_cuda_header_wrapper_parity.py \
 | `docs/04_对比与验证/mapping.md` | cu-bridge 对比、兼容矩阵、产物和 code review 证据 |
 | `docs/02_能力清单/LIMITS_AND_BOUNDARIES.md` | 支持范围与明确限制 |
 | `docs/02_能力清单/SUPPORTED_SCOPE.md` | 支持范围与明确限制 |
+| `docs/CAPABILITY.md` | 面向 wiki 的项目能力声明：能做什么、不能做什么、Vector Core 边界 |
+| `docs/HANDOVER.md` | 交接文档：项目概述、验证命令、关键目录、注意事项 |
+| `docs/WIKI_ARCHITECTURE.md` | 面向 wiki 的架构总览：nvcc→cucc→ccec、cmake/make/ninja→*_cce、cuda→aclrt bridge |
+| `docs/WIKI_QUICKSTART.md` | 面向 wiki 的快速上手：环境搭建、构建、编译运行、排障 |
+| `docs/WIKI_FILETREE.md` | 面向 wiki 的完整文件树导航：每个目录和文件的职责说明 |
 | `docs/README.md` | 文档导航或维护指南 |
 | `docs/03_文件目录/REPOSITORY_FILE_GUIDE.md` | 本文件：仓库目录、文件职责、调用链和故障定位地图 |
 | `docs/99_归档/BUILD_COMPATIBILITY_MODEL_v1.md` | 已完成计划或历史设计归档 |
@@ -591,6 +602,7 @@ python3 tools/validate_cuda_header_wrapper_parity.py \
 | `examples/puresimt/README.md` | 该示例的使用说明、预期产物或限制 |
 | `examples/puresimt/async_repro_diag.cu` | CUDA/puresimt、构建兼容或诊断示例源码 |
 | `examples/puresimt/atomicAdd_minimal.cu` | CUDA/puresimt、构建兼容或诊断示例源码 |
+| `examples/puresimt/atomicIndex_minimal.cu` | CUDA/puresimt、构建兼容或诊断示例源码 |
 | `examples/puresimt/atomicVariants_minimal.cu` | CUDA/puresimt、构建兼容或诊断示例源码 |
 | `examples/puresimt/bf16x2_minimal.cu` | CUDA/puresimt、构建兼容或诊断示例源码 |
 | `examples/puresimt/core_ops_minimal.cu` | CUDA/puresimt、构建兼容或诊断示例源码 |
@@ -679,6 +691,8 @@ python3 tools/validate_cuda_header_wrapper_parity.py \
 |---|---|
 | `src/bridge/blas/src/cublas_v2_wrapper.cpp` | experimental cuBLAS 到 ACL BLAS 实现 |
 | `src/bridge/runtime/src/cuda_runtime_wrapper.cpp` | bridge runtime 的 CUDA API 到 ACL runtime 实现 |
+| `src/bridge/runtime/src/cuda_driver_wrapper.cpp` | CUDA Driver typed placeholder；返回 `ACL_ERROR_API_NOT_SUPPORT`，不伪造 Driver ABI |
+| `src/bridge/solver/src/cusolverDn_wrapper.cpp` | cusolverDn compile-time stub 实现；全部返回 `CUSOLVER_STATUS_NOT_SUPPORTED` |
 
 ### `tests/`
 
