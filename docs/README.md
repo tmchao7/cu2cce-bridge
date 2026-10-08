@@ -8,6 +8,10 @@ API 以及 CMake/Make/Ninja 构建入口适配到昇腾 NPU 的 CANN `ccec` + SI
 
 ## 推荐阅读顺序
 
+### 所有人
+
+1. [`CAPABILITY.md`](CAPABILITY.md)：**能力声明**——能做什么、不能做什么、为什么。
+
 ### 使用者
 
 1. 根目录 [`README.md`](../README.md)：项目定位、安装树和边界。
