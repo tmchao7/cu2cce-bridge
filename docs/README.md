@@ -68,6 +68,8 @@ CUDA header/Wrapper parity 结论见
 [`04_对比与验证/RELEASE_READINESS_2026-09-04.md`](04_对比与验证/RELEASE_READINESS_2026-09-04.md)。
 该记录不创建 release/tag，也不扩大未验证 CUDA 能力的承诺。
 
+交接说明见 [`HANDOVER.md`](HANDOVER.md)。
+
 ## 状态和证据规则
 
 - `SUPPORTED`：主线实现并有对应测试或真机证据。

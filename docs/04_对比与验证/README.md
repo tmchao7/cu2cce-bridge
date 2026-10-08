@@ -11,14 +11,12 @@ MACA 的编译器、库名或设备产物。
 | `CMAKE_MAKE_ALIGNMENT_WITH_CUBRIDGE.md` | CMake/Make/Ninja/pre wrapper 的机制对照 |
 | `CUBRIDGE_CMAKE_MAKE_DESIGN_ANALYSIS.md` | 对 cu-bridge 构建策略的逐机制分析 |
 | `CU2CCE_VS_CUBRIDGE_REVIEW.md` | 两个项目的当前实现差异审查 |
-| `PARITY_AUDIT_*.md` | 分阶段 parity 审计和差异归类 |
+| `CMAKE_MAKE_CUCC_MENTOR_GUIDE_2026-09-01.md` | CMake/Make/cucc 对齐维护指南 |
 | `CURRENT_STATE.md` | 当前 `main / puresimt` 状态快照 |
 | `RELEASE_READINESS_2026-09-04.md` | 当前最终验证、产物契约、API/header parity 与真机 full profile 证据（不创建 release/tag） |
-| `RELEASE_READINESS_2026-09-02.md` | 历史发布前收口记录 |
-| `MENTOR_REPORT_2026-08-28.md` | 阶段性导师汇报材料 |
-| `CODE_REVIEW_*.md` | code review / simplifier 记录 |
-| `CMAKE_MAKE_CUCC_MENTOR_GUIDE_2026-09-01.md` | CMake/Make/cuсc 对齐维护指南 |
 | `mapping.md` | CUDA、cu-bridge 和 Ascend 映射摘要 |
+
+历史过程文档（`CODE_REVIEW_*`、`MENTOR_REPORT_*`、`PARITY_AUDIT_*`、`RELEASE_READINESS_2026-09-02`）已归档至 [`../99_归档/`](../99_归档/)。
 
 ## 验证优先级
 

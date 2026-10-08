@@ -498,19 +498,19 @@ python3 tools/validate_cuda_header_wrapper_parity.py \
 | `docs/02_能力清单/CUDA_OPERATOR_API_SUPPORT_MATRIX.md` | 已验证算子、Kernel 写法、Runtime/API 映射和构建支持总表 |
 | `docs/04_对比与验证/CMAKE_MAKE_ALIGNMENT_WITH_CUBRIDGE.md` | cu-bridge 对比、兼容矩阵、产物和 code review 证据 |
 | `docs/04_对比与验证/CMAKE_MAKE_CUCC_MENTOR_GUIDE_2026-09-01.md` | cu-bridge 对比、兼容矩阵、产物和 code review 证据 |
-| `docs/04_对比与验证/CODE_REVIEW_2026-08-31.md` | cu-bridge 对比、兼容矩阵、产物和 code review 证据 |
-| `docs/04_对比与验证/CODE_REVIEW_2026-09-01.md` | cu-bridge 对比、兼容矩阵、产物和 code review 证据 |
+| `docs/99_归档/CODE_REVIEW_2026-08-31.md` | 历史 code review（已归档） |
+| `docs/99_归档/CODE_REVIEW_2026-09-01.md` | 历史 code review（已归档） |
 | `docs/04_对比与验证/CU2CCE_VS_CUBRIDGE_REVIEW.md` | cu-bridge 对比、兼容矩阵、产物和 code review 证据 |
 | `docs/04_对比与验证/CUBRIDGE_CMAKE_MAKE_DESIGN_ANALYSIS.md` | cu-bridge 对比、兼容矩阵、产物和 code review 证据 |
 | `docs/02_能力清单/CUCC_OPTION_COMPATIBILITY_MATRIX.md` | cu-bridge 对比、兼容矩阵、产物和 code review 证据 |
 | `docs/04_对比与验证/CURRENT_STATE.md` | cu-bridge 对比、兼容矩阵、产物和 code review 证据 |
-| `docs/04_对比与验证/MENTOR_REPORT_2026-08-28.md` | cu-bridge 对比、兼容矩阵、产物和 code review 证据 |
-| `docs/04_对比与验证/PARITY_AUDIT_2026-08-28.md` | cu-bridge 对比、兼容矩阵、产物和 code review 证据 |
-| `docs/04_对比与验证/PARITY_AUDIT_2026-08-31.md` | cu-bridge 对比、兼容矩阵、产物和 code review 证据 |
-| `docs/04_对比与验证/PARITY_AUDIT_2026-09-01.md` | cu-bridge 对比、兼容矩阵、产物和 code review 证据 |
+| `docs/99_归档/MENTOR_REPORT_2026-08-28.md` | 历史导师汇报（已归档） |
+| `docs/99_归档/PARITY_AUDIT_2026-08-28.md` | 历史 parity audit（已归档） |
+| `docs/99_归档/PARITY_AUDIT_2026-08-31.md` | 历史 parity audit（已归档） |
+| `docs/99_归档/PARITY_AUDIT_2026-09-01.md` | 历史 parity audit（已归档） |
 | `docs/02_能力清单/PURESIMT_COMPATIBILITY_MATRIX.md` | cu-bridge 对比、兼容矩阵、产物和 code review 证据 |
 | `docs/04_对比与验证/RELEASE_READINESS_2026-09-04.md` | 当前最终验证记录：真机 full profile、本地门禁、API/header parity 与发布边界 |
-| `docs/04_对比与验证/RELEASE_READINESS_2026-09-02.md` | 历史发布前收口记录，供版本演进追溯 |
+| `docs/99_归档/RELEASE_READINESS_2026-09-02.md` | 历史发布前收口记录（已归档） |
 | `docs/04_对比与验证/mapping.md` | cu-bridge 对比、兼容矩阵、产物和 code review 证据 |
 | `docs/02_能力清单/LIMITS_AND_BOUNDARIES.md` | 支持范围与明确限制 |
 | `docs/02_能力清单/SUPPORTED_SCOPE.md` | 支持范围与明确限制 |

@@ -21,7 +21,7 @@ CU2CCE_REGRESSION_PROFILE=full     bash tools/real_test/server_cmd.txt   # 全�
 ```
 
 > 文档地图：**支持范围与限制** → `docs/02_能力清单/`；**架构原理五篇** →
-> `docs/01_架构设计/`；阶段汇报 → `docs/04_对比与验证/MENTOR_REPORT_2026-08-28.md`。
+> `docs/01_架构设计/`；阶段汇报 → `docs/99_归档/MENTOR_REPORT_2026-08-28.md`。
 
 ---
 

@@ -458,7 +458,7 @@ Reference: cu-bridge 6ab1076 / 3.8.0
 当前 parity audit：
 
 ```text
-/Users/tmchao7/repos/09_expLearn/cu2cce-bridge/docs/04_对比与验证/PARITY_AUDIT_2026-09-01.md
+/Users/tmchao7/repos/09_expLearn/cu2cce-bridge/docs/99_归档/PARITY_AUDIT_2026-09-01.md
 ```
 
 ## 十一、向 mentor 汇报时的推荐表达
