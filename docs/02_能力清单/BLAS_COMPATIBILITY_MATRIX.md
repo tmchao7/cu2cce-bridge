@@ -48,7 +48,7 @@ examples/blas/cublas_gemv.cu   → cublas_gemv_experimental OK (FP32 identity Sg
 ## 真机回归入口
 
 ```bash
-cd /home/t50063365/workspace/repos/cu2cce-bridge
+cd $HOME/workspace/repos/cu2cce-bridge
 REMOTE="${CU2CCE_REGRESSION_REMOTE:-origin}"
 git fetch "$REMOTE" main
 git pull --ff-only "$REMOTE" main

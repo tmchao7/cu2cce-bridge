@@ -1,7 +1,7 @@
 /*
  * Diagnostic-only carrier for the proactive FP64 type policy.
  *
- * Mentor guidance (2026-08-27): types the Ascend backend cannot run must be
+ * Design constraint (2026-08-27): types the Ascend backend cannot run must be
  * reported by cucc itself with actionable "downgrade to float" advice, and
  * the user edits their code manually. This file deliberately uses device
  * double next to an equivalent float kernel:

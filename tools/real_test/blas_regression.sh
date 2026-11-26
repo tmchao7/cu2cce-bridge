@@ -8,7 +8,8 @@ set +u
 set -o pipefail
 ulimit -c 0 2>/dev/null || true
 
-cd /home/t50063365/workspace/repos/cu2cce-bridge
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+cd "$REPO_ROOT"
 printf 'BLAS_HEAD=' && git log -1 --oneline
 
 OUT="$PWD/build/real_test/blas"

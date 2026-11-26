@@ -1,6 +1,6 @@
 # 与 cu-bridge 的 CMake/Make 机制对齐审查（2026-08-28；第五批次 2026-08-30 增补）
 
-> 背景：导师要求"实现方案与沐曦 cu-bridge 保持近似（后端不同：GPU vs NPU），
+> 背景：设计要求"实现方案与沐曦 cu-bridge 保持近似（后端不同：GPU vs NPU），
 > 并能逐文件讲清自己的代码"。本文基于对 cu-bridge-muxi v3.8.0（git `6ab1076`）
 > 的逐文件深读与其用户手册（docs/02_User_Manual），逐机制对照本桥实现，
 > 给出：已对齐 / 有意分歧（+理由）/ 真实差距（+修复）/ 代码导读。
@@ -103,7 +103,7 @@ configure 脚本用 `pre_makefile` 包裹；Python 库安装不管（FAQ Q7）�
 | 链接执行者 | mxcc | g++（+ 桥运行时 .so） |
 | 安装树 | bin/include/extras/cmake_module/tools + 库装进 `$MACA_PATH/lib` | bin/include/lib/config/cmake_modules/tools（自包含前缀）+ `bin/nvcc` 软链 |
 
-## 4. 代码导读（向导师讲解自己代码的路线）
+## 4. 代码导读路线
 
 原理白话版与 configure 时序图见
 `docs/01_架构设计/06_cmake_principle_flow.md`；本节给出按数据流顺序的
@@ -148,7 +148,7 @@ configure 脚本用 `pre_makefile` 包裹；Python 库安装不管（FAQ Q7）�
 >
 > 第六批次（2026-08-30，同日第二批）收口 cucc 运行时机制：宿主旗标逐 flag
 > 过滤（修 `-Xcompiler=...` 等号形式绕过与 mixed 泄漏两个 bug）、`-Werror`
-> 族清洗（conf_regex.yaml C500S-11780 对齐）与 `-Werror=implicit-fallthrough`
+> 族清洗（conf_regex.yaml 清洗规则对齐）与 `-Werror=implicit-fallthrough`
 > 规范化重写（bin/cucc:250-280 对齐）、`regex_cleanup` 数据驱动清洗层
 > （gomxccbin 等价，种子规则：-fno-canonical-system-headers /
 > -Wno-nonnull-compare）、`add_gcc_toolchain` 休眠对齐（cucc:1055-1066，

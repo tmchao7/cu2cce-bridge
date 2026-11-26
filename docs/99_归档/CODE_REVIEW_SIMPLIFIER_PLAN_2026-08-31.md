@@ -4,7 +4,7 @@
 
 **Goal:** Simplify the build compatibility implementation and fix the unsafe `pre_cce` argv reconstruction without changing puresimt or documented compatibility behavior.
 
-**Architecture:** Preserve the existing three-layer design: shell wrappers prepare the environment, the Python driver owns cucc argument semantics, and CMake modules expose a deliberately small legacy surface. Extract cohesive helpers only where the current implementation already has a stable behavior contract. Compare each layer to `/Users/tmchao7/repos/09_expLearn/cu-bridge`, but retain Ascend-specific compiler, architecture, runtime, linker, and unsupported-feature boundaries.
+**Architecture:** Preserve the existing three-layer design: shell wrappers prepare the environment, the Python driver owns cucc argument semantics, and CMake modules expose a deliberately small legacy surface. Extract cohesive helpers only where the current implementation already has a stable behavior contract. Compare each layer to `../cu-bridge`, but retain Ascend-specific compiler, architecture, runtime, linker, and unsupported-feature boundaries.
 
 **Tech Stack:** Bash, Python 3, CMake language modules, JSON rule data, Python `unittest`.
 
@@ -17,7 +17,7 @@
 - Do not generate `.cce`, `__simt_vf__`, `cce::async_invoke`, or converter output.
 - Preserve rule precedence, injected argument ordering, diagnostics, and environment-variable names.
 - Preserve Ascend `dav-*` architecture resolution, host `g++` linking, explicit `libruntime`/`libascendcl` requirements, and puresimt unsupported-feature boundaries.
-- Do not claim CANN/NPU validation from macOS; use `/Users/tmchao7/repos/09_expLearn/cu2cce-bridge/tools/real_test/server_cmd.txt` on the real server.
+- Do not claim CANN/NPU validation from macOS; use `tools/real_test/server_cmd.txt` on the real server.
 - Do not push `origin`; the project policy uses `gitcode`.
 
 ### Task 1: Add an end-to-end `pre_cce` argv regression test
@@ -27,7 +27,7 @@
 - Test: `tests/test_cmake_compat.py`
 
 **Interfaces:**
-- Consumes: `/Users/tmchao7/repos/09_expLearn/cu2cce-bridge/tools/pre_cce` and the repository virtual toolkit directory builder.
+- Consumes: `tools/pre_cce` and the repository virtual toolkit directory builder.
 - Produces: a regression test proving wrapped command arguments remain separate and exact.
 
 - [ ] **Step 1: Write the failing test**

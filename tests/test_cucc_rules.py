@@ -198,7 +198,7 @@ class CuccRuleDriverTest(unittest.TestCase):
             self.driver(CU2CCE_DEVICE_FP64_POLICY="bad")
 
     def test_device_double_scanner_hits_only_device_regions(self) -> None:
-        # Mentor guidance (2026-08-27): unsupported device types must be
+        # Design constraint (2026-08-27): unsupported device types must be
         # reported proactively so the user downgrades to float manually.
         source = (
             "// double in a comment must be ignored\n"
@@ -491,7 +491,12 @@ class CuccRuleDriverTest(unittest.TestCase):
         # -link must be dropped before the -l* forward rule treats it as a
         # library reference.
         dropped("-link")
-        for flag in ("-x=cu", "-l:libcudart.so", "-l:libcuda.so",
+        # -x=cu is a replacer rule with an empty target list: the flag never
+        # reaches ccec, but the recorded action is "replace", not "drop".
+        for flag in ("-x=cu",):
+            prepared = self.driver().prepare(["-c", src, flag, "-o", "t.o"])
+            self.assertNotIn(flag, prepared.args, flag)
+        for flag in ("-l:libcudart.so", "-l:libcuda.so",
                      "--Wno-deprecated-gpu-targets", "--offload-arch=sm_80",
                      "-flto=thin", "--diag_suppress=xyz", "--restrict",
                      "--source-in-ptx", "--disable-warnings"):
@@ -921,7 +926,7 @@ class CuccRuleDriverTest(unittest.TestCase):
         self.assertNotIn("-Werror=all-warnings", prepared.args)
 
     def test_xcompiler_werror_group_is_removed(self) -> None:
-        # conf_regex.yaml C500S-11780 parity: only the bare -Werror token is
+        # conf_regex.yaml parity: only the bare -Werror token is
         # removed from -Xcompiler values; clang-valid spellings such as
         # -Wno-error=cpp stay (the yaml's own example list keeps it).
         prepared = self.driver().prepare([
@@ -1210,8 +1215,8 @@ class CuccRuleDriverTest(unittest.TestCase):
         self.assertNotIn("/tmp/k", keepdir.args)
         # Valid single-dash clang warning spellings still forward on
         # purpose (dropping a working warning would be a regression).
-        kept = self.driver().prepare(["-c", "main.cu", "-Wreorder", "-o", "main.o"])
-        self.assertIn("-Wreorder", kept.args)
+        kept = self.driver().prepare(["-c", "main.cu", "-Wall", "-o", "main.o"])
+        self.assertIn("-Wall", kept.args)
 
     def test_version_banner_carries_parseable_release_token(self) -> None:
         # Scripts probing `nvcc --version` grep for "release X.Y"; the

@@ -2,7 +2,7 @@
 
 **日期：** 2026-08-31
 **基线：** `main` / `c92a4b3`（本轮为工作区未提交 diff）
-**对标：** `/Users/tmchao7/repos/09_expLearn/cu-bridge` / `6ab1076` (`3.8.0`)
+**对标：** `../cu-bridge` / `6ab1076` (`3.8.0`)
 
 ## Review 范围
 
@@ -132,7 +132,7 @@ git diff --check                                              PASS
 真机验证仍应使用：
 
 ```text
-/Users/tmchao7/repos/09_expLearn/cu2cce-bridge/tools/real_test/server_cmd.txt
+tools/real_test/server_cmd.txt
 ```
 
 尤其需要在真实 CANN 环境验证 `pre_cce`、CMake legacy helper、host g++ 链接和 `libruntime.so` 的链接顺序。

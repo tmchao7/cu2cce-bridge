@@ -108,11 +108,13 @@ docs/                 架构、范围、对比、参考和维护文档
 ### 1. 获取源码并准备 CANN
 
 ```bash
-cd /home/t50063365/workspace/repos
-git clone git@gitcode.com:tmchao7/cu2cce-bridge.git
+cd <你的工作目录>
+git clone https://gitcode.com/tmchao7/cu2cce-bridge.git
 cd cu2cce-bridge
 git switch main
 ```
+
+后文以 `$HOME/workspace/repos/cu2cce-bridge` 作为示例仓库路径，可按实际位置替换。
 
 设置 CANN 环境。不同 CANN 版本的脚本名称可能不同，优先使用机器上实际存在的脚本：
 
@@ -159,7 +161,7 @@ bash tools/real_test/build_bridge.sh
 例如：
 
 ```text
-/home/t50063365/workspace/repos/cu2cce-bridge/build/real_test/
+$HOME/workspace/repos/cu2cce-bridge/build/real_test/
 ├── cmake-build/       # bridge 自身的 CMake 构建中间目录
 ├── install/           # 可直接使用的二进制安装树（CUCC_PATH）
 ├── puresimt/          # 真机回归构建产物和日志
@@ -202,7 +204,7 @@ bash tools/real_test/build_bridge.sh \
 构建完成后，在**每个需要使用 cucc 的新 shell**中设置以下变量：
 
 ```bash
-export BRIDGE_ROOT=/home/t50063365/workspace/repos/cu2cce-bridge
+export BRIDGE_ROOT=$HOME/workspace/repos/cu2cce-bridge
 export CUCC_PATH="$BRIDGE_ROOT/build/real_test/install"
 export CUDA_PATH="$CUCC_PATH"
 export CANN_BASE=/usr/local/Ascend/latest
@@ -240,7 +242,7 @@ cucc --version
 
 ```bash
 cat >> ~/.bashrc <<'EOF'
-export BRIDGE_ROOT=/home/t50063365/workspace/repos/cu2cce-bridge
+export BRIDGE_ROOT=$HOME/workspace/repos/cu2cce-bridge
 export CUCC_PATH="$BRIDGE_ROOT/build/real_test/install"
 export CUDA_PATH="$CUCC_PATH"
 export CANN_BASE=/usr/local/Ascend/latest
@@ -259,7 +261,7 @@ source ~/.bashrc
 假设用户工程在仓库外：
 
 ```text
-/home/t50063365/workspace/repos/my-cuda-app/
+$HOME/workspace/repos/my-cuda-app/
 ├── vector_add.cu
 └── build/
 ```
@@ -267,7 +269,7 @@ source ~/.bashrc
 进入用户工程并设置输出目录：
 
 ```bash
-cd /home/t50063365/workspace/repos/my-cuda-app
+cd $HOME/workspace/repos/my-cuda-app
 mkdir -p build
 ```
 
@@ -617,7 +619,7 @@ link 阶段按规则注入 bridge/CANN runtime。`.cu` 源必须交给 `cucc`，
 这是验证 bridge 本身和四层构建入口的命令，不是普通使用者每次都需要执行的步骤：
 
 ```bash
-cd /home/t50063365/workspace/repos/cu2cce-bridge
+cd $HOME/workspace/repos/cu2cce-bridge
 REMOTE="${CU2CCE_REGRESSION_REMOTE:-origin}"
 git fetch "$REMOTE" main
 git pull --ff-only "$REMOTE" main

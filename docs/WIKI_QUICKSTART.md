@@ -1,6 +1,6 @@
 # cu2cce-bridge 快速上手
 
-> 面向新员工的操作指南。跟着做一遍，10 分钟跑通第一个 CUDA → Ascend NPU 程序。
+> 面向初次接触本项目的开发者的操作指南。跟着做一遍，10 分钟跑通第一个 CUDA → Ascend NPU 程序。
 >
 > **前提**：你有一台装了 CANN 9.x + Ascend 950 NPU 的 Linux 真机。
 
@@ -40,8 +40,8 @@ ls /dev/davinci0 /dev/davinci_manager /dev/hisi_hdc
 ### 2.1 克隆仓库
 
 ```bash
-cd /home/t50063365/workspace/repos
-git clone git@gitcode.com:tmchao7/cu2cce-bridge.git
+cd <工作目录>
+git clone https://gitcode.com/tmchao7/cu2cce-bridge.git
 cd cu2cce-bridge
 git checkout main
 ```
@@ -69,7 +69,7 @@ build/real_test/install/
 ### 2.3 设置环境变量
 
 ```bash
-export CU2CCE_BRIDGE=/home/t50063365/workspace/repos/cu2cce-bridge
+export CU2CCE_BRIDGE="$(pwd)"   # 仓库根目录
 export CUCC_PATH=$CU2CCE_BRIDGE/build/real_test/install
 export CUDA_PATH=$CUCC_PATH
 export PATH=$CUCC_PATH/bin:$PATH
@@ -208,7 +208,7 @@ make_cce -C . -j2
 验证 bridge 是否正常工作的最快方法：
 
 ```bash
-cd /home/t50063365/workspace/repos/cu2cce-bridge
+cd <仓库根目录>
 bash tools/real_test/clean.sh
 CU2CCE_REGRESSION_PROFILE=fast bash tools/real_test/server_cmd.txt
 ```
@@ -237,7 +237,7 @@ CMAKE_CCE_REGRESSION_PASS
 项目自带 25 个已验证的 CUDA 示例，可以直接编译运行：
 
 ```bash
-cd /home/t50063365/workspace/repos/cu2cce-bridge
+cd <仓库根目录>
 
 # 矩阵乘法（shared memory + __syncthreads）
 cucc examples/puresimt/matrixMul_minimal.cu -o /tmp/mm

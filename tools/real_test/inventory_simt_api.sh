@@ -3,7 +3,7 @@
 #
 # Purpose: enumerate which CUDA-compatible device-side declarations THIS
 # installed CANN actually ships, so bridge compat headers forward real
-# symbols instead of guessing. This replaces scraping the Huawei doc site:
+# symbols instead of guessing. This replaces scraping the CANN doc site:
 # those public pages are a JS-rendered SPA (a plain HTTP fetch returns only
 # navigation chrome), and their ascendcopapi family documents AscendC
 # operator APIs, not the SIMT path our bridge consumes.

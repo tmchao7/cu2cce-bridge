@@ -30,7 +30,7 @@
 | 预处理 `-E` | `SUPPORTED` for passthrough mechanism | driver query tests | ccec receives original `-E` command; actual output remains diagnostic-only until real proof |
 | CUDA `-gencode` / `-arch` | `DIAGNOSTIC_ONLY`（识别并记录） | rule trace + `extract_cuda_arch` | flag 仍丢弃；架构值进 trace；`CU2CCE_ARCH_MACRO=auto`（opt-in）时注入 `__CUDA_ARCH__`（无 `-Xdevice` 式 device-pass 限定，host 分支语义见 PARITY_AUDIT） |
 | `-std` 用户值 | `SUPPORTED`（去重） | `tests/test_cucc_rules.py` | 用户 `-std=` 存在时不注入 `-std=gnu++17` |
-| `-Werror=implicit-fallthrough*` | `SUPPORTED`（规范化） | `tests/test_cucc_rules.py` | nvcc/gcc 的 =N 拼写重写为 clang 兼容 `-Werror=implicit-fallthrough`（cu-bridge bin/cucc:250-280 对齐）；`-Xcompiler` 值中的裸 `-Werror` 丢弃（conf_regex.yaml C500S-11780 对齐） |
+| `-Werror=implicit-fallthrough*` | `SUPPORTED`（规范化） | `tests/test_cucc_rules.py` | nvcc/gcc 的 =N 拼写重写为 clang 兼容 `-Werror=implicit-fallthrough`（cu-bridge bin/cucc:250-280 对齐）；`-Xcompiler` 值中的裸 `-Werror` 丢弃（conf_regex.yaml 清洗规则对齐） |
 | `-Xcompiler` 宿主旗标过滤 | `SUPPORTED`（逐 flag） | `tests/test_cucc_rules.py` | 逗号列表逐 flag 处理；`-Xcompiler=...` 等号形式同样过滤（回归锁定）；gcc-only 拼写（-fno-canonical-system-headers、var-tracking 族等）由 `regex_cleanup` 段剔除 |
 | `__CUDACC__`/`__CUDACC_VER_*` 宏族 | `SUPPORTED`（nvcc 语义） | `tests/test_cucc_rules.py` | 仅 `.cu` TU 注入，值由 `CUCC_CUDA_VERSION` 推导（11060→11/6/0/110600）；mock identity 路径同源不重复 |
 | `-Xlinker` 链接选项 | `SUPPORTED`（成对透传） | `tests/test_cucc_rules.py` | clang 原生；compile 阶段仅 unused 告警（真机确认项） |

@@ -43,7 +43,7 @@
  * Execution-space keyword map for NVIDIA spellings.
  *
  * Round-4 server proof: the bisheng puresimt front-end parses __global__
- * natively but rejects standalone __device__ ("unknown type name"). Mentor
+ * natively but rejects standalone __device__ ("unknown type name"). Design
  * direction: bridge the recognized-form gap WITHOUT rewriting user source,
  * by macro-mapping the NVIDIA spelling onto whatever CANN itself uses.
  *

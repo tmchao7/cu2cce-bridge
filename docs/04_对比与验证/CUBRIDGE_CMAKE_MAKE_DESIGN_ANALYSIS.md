@@ -1,6 +1,6 @@
 # cu-bridge CMake/Make 设计原理剖析与借鉴决策（第五对齐批次，2026-08-30）
 
-> 参考仓库：`/Users/tmchao7/repos/09_expLearn/cu-bridge-muxi`（沐曦 MetaX，SDK 3.8.0，只读）。
+> 参考仓库：`../cu-bridge-muxi`（沐曦 MetaX，SDK 3.8.0，只读）。
 > 本文是第五对齐批次的决策记录：先完整剖析 cu-bridge 在 CMake/Make 上的设计原理，
 > 再逐项决定"借鉴 / 有意不做"，并记录 NPU（ccec puresimt）后端带来的适配差异。
 > 配套阅读：`CMAKE_MAKE_ALIGNMENT_WITH_CUBRIDGE.md`（逐项对齐表）、
@@ -167,7 +167,7 @@ build 期按 `build.make` 里**记录的绝对编译器路径**逐条发起真�
 | 19 | Bazel（conf_bazel.json）/ gfortran（conf_gfortran.json）/ MPI | 场景化 conf + 包装器 | **维持已知差距**（NPU 场景暂无需求，记录于 §四） | — |
 | 20 | `USE_CMAKE_MACA=1` 系统 cmake 二进制替换 | 备份/软链/恢复系统 cmake | **有意不做**：官方 `CMAKE_USER_MAKE_RULES_OVERRIDE` 钩子可维护性更优（对齐文档既有结论维持） | — |
 | 21 | `-Xcompiler` 宿主旗标清洗粒度 | 逐参数清洗（cucc:55-83 内联 + gomxccbin） | **对齐 + 修 bug**：本桥原"首个决定性 flag 决定整组"会泄漏（`-Xcompiler -fPIC,-march=native` 把 -march 放行），且 `-Xcompiler=...` 等号形式完全绕过过滤——均改为逐 flag 处理 | `_handle_host_flag` |
-| 22 | `-Werror` 族清洗（conf_regex.yaml C500S-11780） | 只从 `-Xcompiler` 段剔除裸 `-Werror`（`-Wno-error=cpp` 等合法拼写保留） | **对齐**：`-Xcompiler` 值中的 `-Werror`/`-Werror=<名>` 丢弃；`-Werror=implicit-fallthrough*` 重写为 clang 兼容 `-Werror=implicit-fallthrough`（cucc:250-280 对齐，原 drop 改 replace） | `_handle_host_flag`、rules replace |
+| 22 | `-Werror` 族清洗（conf_regex.yaml） | 只从 `-Xcompiler` 段剔除裸 `-Werror`（`-Wno-error=cpp` 等合法拼写保留） | **对齐**：`-Xcompiler` 值中的 `-Werror`/`-Werror=<名>` 丢弃；`-Werror=implicit-fallthrough*` 重写为 clang 兼容 `-Werror=implicit-fallthrough`（cucc:250-280 对齐，原 drop 改 replace） | `_handle_host_flag`、rules replace |
 | 23 | `add_gcc_toolchain`（cucc:1055-1066） | PATH 上真 gcc 非 /usr/bin/gcc 时追加 `--gcc-toolchain=<prefix>/` | **对齐（休眠机制）**：`_locate_real_gcc` 跳过 cu2cce shim PATH 项；非标准布局追加旗标，真机 /usr/bin/gcc 存在即 no-op；`CU2CCE_GCC_TOOLCHAIN=off` 可关 | driver |
 | 24 | 调试状态传递（make_maca↔cucc 的 BASH_XTRACE/VERBOSE/ERREXIT） | shell set -x 状态跨脚本传递 | **对齐**：bin/cucc 将三个 shell 调试变量映射为 `CU2CCE_DEBUG`（make_cce/pre_cce 已导出） | bin/cucc |
 | 25 | 库名/链接面过滤补齐（conf.json filter） | `-lnvrtc`、`-lOpenCL` 直接 filter（不等到链接期才炸）；`--share → -shared`；`-Xlinker <arg>` 直通 mxcc | **对齐 + 修丢失**：`-lnvrtc/-l:libnvrtc*/-lOpenCL` 从静默 forward 改为带警告 drop；`--share` replace 为 `-shared`；`-Xlinker` 对由 drop 改为**成对透传 ccec**（clang 原生，原 drop 丢失用户 rpath/链接脚本） | rules、driver |

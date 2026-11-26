@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -11,6 +12,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 TOOLS = ROOT / "tools"
+CUBRIDGE_REFERENCE = Path(
+    os.environ.get("CU2CCE_CUBRIDGE_REFERENCE", str(ROOT.parent / "cu-bridge-muxi"))
+).expanduser()
 sys.path.insert(0, str(TOOLS))
 
 
@@ -285,10 +289,14 @@ class CudaApiParityRepositoryContractTest(unittest.TestCase):
         self.assertIn("cuda_api_parity.log", server)
         self.assertIn("CUDA API parity inventory", server)
 
+    @unittest.skipUnless(
+        CUBRIDGE_REFERENCE.is_dir(),
+        "cu-bridge reference checkout not available; set CU2CCE_CUBRIDGE_REFERENCE",
+    )
     def test_repository_inventory_covers_reference_runtime_entries(self) -> None:
         result = subprocess.run(
             [sys.executable, str(TOOLS / "validate_cuda_api_parity.py"),
-             "--reference", str(ROOT.parent / "cu-bridge-muxi"),
+             "--reference", str(CUBRIDGE_REFERENCE),
              "--implementation", str(ROOT / "include/bridge/runtime/cuda_to_cce_mcr_adaptor.h"),
              "--inventory", str(ROOT / "include/bridge/runtime/cuda_to_cce_reserved_parity.h"),
              "--format", "json"],

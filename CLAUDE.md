@@ -33,13 +33,13 @@ cu2cce-bridge 是 CUDA→昇腾 NPU 的兼容层，目标是让用户保留原�
 - `third_party/nvidia_cuda_samples/`：官方 helper 头，只作为 include 依赖。
 - `tools/real_test/server_cmd.txt`：main 唯一真机回归入口。
 - `tools/real_test/diag/`：非主线 ACL/runtime 排障资产。
-- `docs/99_归档/参考资料/asc-devkit-simt/`：Ascend SIMT API 参考资料，不是转换模板。
+- CANN 安装树（`ascend-toolkit/include/`，含 `simt_api/`）：SIMT API 签名依据。
 
 ## 工作纪律
 
 1. 不在 macOS 构建/运行 CANN。
 2. 真机命令只写 `tools/real_test/server_cmd.txt`，不要新建轮次命令文件。
-3. 只 push `gitcode`，不要 push GitHub `origin`。
+3. 推送前确认远端名称和目标分支，避免误推到非目标仓库。
 4. 代码修改后执行 `git diff --check`、`bash -n`；能运行时再执行
    `bash tests/mock_acl/syntax_check.sh`。
 5. full profile 的回归标准同时包含 `FAIL=0`、设备健康、CMake/Make/Ninja/cuсc
@@ -48,7 +48,7 @@ cu2cce-bridge 是 CUDA→昇腾 NPU 的兼容层，目标是让用户保留原�
 ## 真机主线命令
 
 ```bash
-cd /home/t50063365/workspace/repos/cu2cce-bridge
+cd <仓库根目录>
 REMOTE="${CU2CCE_REGRESSION_REMOTE:-origin}"
 git fetch "$REMOTE" main
 git pull --ff-only "$REMOTE" main
@@ -60,14 +60,13 @@ CU2CCE_REGRESSION_REMOTE="$REMOTE" CU2CCE_REGRESSION_PROFILE=full \
 ## 交付与真机回归纪律
 
 1. 每次对仓库做出实际代码、测试或文档修改后，必须先完成本地可行验证，再创建 git commit。
-2. 提交完成后必须推送到 `gitcode` 远端的 `main`；服务器 checkout 的 fetch remote
-   可以命名为 `origin`，但不能指向 GitHub。
-3. 每次对话交付时，必须明确告诉用户服务器执行步骤，至少包括：切换到目标分支、从 `gitcode` 更新/拉取、执行 `tools/real_test/clean.sh`、最后执行 `tools/real_test/server_cmd.txt`。
+2. 提交完成后按项目配置的远端推送；服务器 checkout 的 fetch remote 名称由实际部署决定。
+3. 交付时必须说明服务器执行步骤，至少包括：切换到目标分支、拉取更新、执行 `tools/real_test/clean.sh`、最后执行 `tools/real_test/server_cmd.txt`。
 4. 服务器命令应使用当前实际提交对应的分支和提交号；如不是 `main`，不得把 `main` 命令写成默认回归命令。
 5. 服务器回归命令模板：
 
 ```bash
-cd /home/t50063365/workspace/repos/cu2cce-bridge
+cd <仓库根目录>
 git switch <目标分支>
 git fetch <remote> <目标分支>
 git pull --ff-only <remote> <目标分支>
@@ -79,4 +78,4 @@ bash tools/real_test/server_cmd.txt
 
 ## cu-bridge 对比基线
 
-当前唯一有效的沐曦参考仓库为 `/Users/tmchao7/repos/09_expLearn/cu-bridge-muxi`，远端为 `https://gitee.com/metax-maca/cu-bridge.git`，当前冻结基线为 `master` / `6ab1076` / `3.8.0`。旧的 `/Users/tmchao7/repos/09_expLearn/cu-bridge` 暂不作为比对基线。运行 `python3 tools/compare_cubridge_parity.py` 时默认使用 `../cu-bridge-muxi`，如需其他版本必须显式传 `--reference`。
+当前唯一有效的沐曦参考仓库为 `../cu-bridge-muxi`，远端为 `https://gitee.com/metax-maca/cu-bridge.git`，当前冻结基线为 `master` / `6ab1076` / `3.8.0`。旧的 `../cu-bridge` 暂不作为比对基线。运行 `python3 tools/compare_cubridge_parity.py` 时默认使用 `../cu-bridge-muxi`，如需其他版本必须显式传 `--reference`。

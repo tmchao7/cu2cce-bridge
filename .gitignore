@@ -74,6 +74,10 @@ tiling*.h
 /.windsurf/
 /.gemini/
 /.copilot/
+/.zcode/
+
+# 本地个人材料（不属于发布内容）
+/docs/05_*/
 
 # 编辑器 / IDE
 .vscode/*

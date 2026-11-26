@@ -43,7 +43,6 @@ ARTIFACT_CONTRACT_REGRESSION_PASS
 - 正式：`include/bridge/runtime`、`include/bridge/kernel/simt_adaptor.h`、
   `src/bridge/runtime`、`bin/cucc`、`examples/puresimt`。
 - experimental：`src/bridge/blas`、`include/bridge/blas`、`include/cublas_v2.h`。
-- 参考：`docs/99_归档/参考资料/asc-devkit-simt`。
 - 历史：`exp/new-homogeneous-v1` 与 Git history。
 
 ## 重要事实

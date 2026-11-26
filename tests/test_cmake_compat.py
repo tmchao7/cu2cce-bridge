@@ -9,6 +9,12 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
+CUBRIDGE_DEFAULT_REFERENCE = ROOT.parent / "cu-bridge-muxi"
+CUBRIDGE_REFERENCE = Path(
+    os.environ.get("CU2CCE_CUBRIDGE_REFERENCE", str(CUBRIDGE_DEFAULT_REFERENCE))
+).expanduser()
+CUBRIDGE_REFERENCE_AVAILABLE = CUBRIDGE_REFERENCE.is_dir()
+CUBRIDGE_DEFAULT_AVAILABLE = CUBRIDGE_DEFAULT_REFERENCE.is_dir()
 
 
 class CMakeCompatibilityContractTest(unittest.TestCase):
@@ -66,6 +72,10 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         ):
             self.assertFalse(path.exists(), path)
 
+    @unittest.skipUnless(
+        CUBRIDGE_DEFAULT_AVAILABLE,
+        "cu-bridge reference checkout not available at ../cu-bridge-muxi",
+    )
     def test_cubridge_parity_audit_defaults_to_muxi_reference_checkout(self) -> None:
         audit = (ROOT / "tools/compare_cubridge_parity.py").read_text(encoding="utf-8")
         self.assertIn("cu-bridge-muxi", audit)
@@ -79,6 +89,10 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         self.assertTrue(report["reference"]["path"].endswith("/cu-bridge-muxi"))
         self.assertEqual(report["reference"]["commit"], "6ab1076")
 
+    @unittest.skipUnless(
+        CUBRIDGE_REFERENCE_AVAILABLE,
+        "cu-bridge reference checkout not available; set CU2CCE_CUBRIDGE_REFERENCE",
+    )
     def test_cubridge_parity_audit_reports_backend_aware_sections(self) -> None:
         # Stage-0 baseline: compare the checked-in cu-bridge reference assets
         # with the NPU implementation without treating MACA-only mappings as
@@ -88,7 +102,7 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         result = subprocess.run(
             [
                 "python3", str(audit),
-                "--reference", str(ROOT.parent / "cu-bridge-muxi"),
+                "--reference", str(CUBRIDGE_REFERENCE),
                 "--format", "json",
             ],
             capture_output=True, text=True, check=False,
@@ -354,8 +368,8 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         # static non-template declarations or changing device resolution.
         adaptor = (ROOT / "include/bridge/kernel/simt_adaptor.h").read_text(encoding="utf-8")
         self.assertIn("__CU2CCE_NO_HOST_ARITHMETIC_OVERLOADS__", adaptor)
-        self.assertIn("inline T max(T left, T right)", adaptor)
-        self.assertIn("inline T min(T left, T right)", adaptor)
+        self.assertIn("inline auto max(T left, U right)", adaptor)
+        self.assertIn("inline auto min(T left, U right)", adaptor)
 
     def test_bridge_runtime_surface_for_diagnostic_samples(self) -> None:
         # Second server diagnostic round peeled two more layers:
@@ -1692,7 +1706,7 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
         self.assertIn("CUDART_INF_F", mc)
         self.assertIn("HOST-side use", mc)  # double constants carry the FP64 warning
         # parity audit document exists and records the three comparison tables
-        audit = (ROOT / "docs/04_对比与验证/PARITY_AUDIT_2026-08-28.md").read_text(encoding="utf-8")
+        audit = (ROOT / "docs/99_归档/PARITY_AUDIT_2026-08-28.md").read_text(encoding="utf-8")
         self.assertIn("-dc", audit)
         self.assertIn("libsymbol_cu", audit)
         self.assertIn("thrust", audit)
@@ -1742,7 +1756,7 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
                 capture_output=True, text=True, check=False,
             )
             self.assertNotEqual(result.returncode, 0)
-            self.assertIn("no validated Ascend equivalent", result.stderr)
+            self.assertIn("has no automatic Ascend mapping", result.stderr)
 
     def test_findcuda_exposes_cubridge_legacy_macro_names_with_npu_limits(self) -> None:
         findcuda = (ROOT / "cmake_modules/FindCUDA.cmake").read_text(encoding="utf-8")
@@ -1760,7 +1774,7 @@ class CMakeCompatibilityContractTest(unittest.TestCase):
             "macro(CUDA_ADD_CURAND_TO_TARGET",
         ):
             self.assertIn(macro, findcuda)
-        self.assertIn("no validated Ascend equivalent", findcuda)
+        self.assertIn("has no automatic Ascend mapping", findcuda)
         self.assertIn("CUDA_LIBRARIES", findcuda)
 
     def test_findcuda_helpers_preserve_common_configuration_values(self) -> None:

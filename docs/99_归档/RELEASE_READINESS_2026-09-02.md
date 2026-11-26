@@ -77,7 +77,7 @@ git diff --check
 服务器必须执行：
 
 ```bash
-cd /home/t50063365/workspace/repos/cu2cce-bridge
+cd $HOME/workspace/repos/cu2cce-bridge
 git switch main
 git fetch origin main
 git pull --ff-only origin main

@@ -12,11 +12,18 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 TOOLS = ROOT / "tools"
+CUBRIDGE_REFERENCE = Path(
+    os.environ.get("CU2CCE_CUBRIDGE_REFERENCE", str(ROOT.parent / "cu-bridge-muxi"))
+).expanduser()
 
 
 class CudaHeaderWrapperParityToolTest(unittest.TestCase):
+    @unittest.skipUnless(
+        CUBRIDGE_REFERENCE.is_dir(),
+        "cu-bridge reference checkout not available; set CU2CCE_CUBRIDGE_REFERENCE",
+    )
     def test_validator_reports_header_wrapper_and_api_gaps(self) -> None:
-        reference = ROOT.parent / "cu-bridge-muxi"
+        reference = CUBRIDGE_REFERENCE
         result = subprocess.run(
             [sys.executable, str(TOOLS / "validate_cuda_header_wrapper_parity.py"),
              "--reference", str(reference),

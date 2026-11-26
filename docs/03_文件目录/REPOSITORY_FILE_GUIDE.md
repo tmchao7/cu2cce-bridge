@@ -83,7 +83,7 @@ make_cce / ninja_cce / pre_cce
 | `tests/` | 本地规则、CMake、artifact、mock ACL 和仓库卫生测试 | 回归防护、接口契约变更 |
 | `third_party/` | 必要的 NVIDIA CUDA Samples helper 头 | 官方 sample 缺少 helper include |
 | `tools/` | wrapper、driver、virtual toolkit directory builder、真机脚本和 verifier | 构建阶段、环境、真机回归、产物检查 |
-| `docs/` | 架构、范围、对比、维护和参考文档 | 机制解释、支持范围、维护交接 |
+| `docs/` | 架构、范围、对比、维护和参考文档 | 机制解释、支持范围、维护入口 |
 | `README.md` | 项目定位、二进制使用入口和能力边界 | 使用者快速判断项目能否满足需求 |
 | `QUICKSTART.md` | 面向用户的完整 CANN/编译/运行操作手册 | 从零搭建和运行 CUDA 示例 |
 | `CLAUDE.md` | 面向维护 agent/开发者的工作纪律和对标基线 | 贡献流程、真机验证纪律 |
@@ -503,14 +503,12 @@ python3 tools/validate_cuda_header_wrapper_parity.py \
 | `docs/02_能力清单/BUILD_SYSTEM_COMPATIBILITY_MATRIX.md` | cu-bridge 对比、兼容矩阵、产物和 code review 证据 |
 | `docs/02_能力清单/CUDA_OPERATOR_API_SUPPORT_MATRIX.md` | 已验证算子、Kernel 写法、Runtime/API 映射和构建支持总表 |
 | `docs/04_对比与验证/CMAKE_MAKE_ALIGNMENT_WITH_CUBRIDGE.md` | cu-bridge 对比、兼容矩阵、产物和 code review 证据 |
-| `docs/04_对比与验证/CMAKE_MAKE_CUCC_MENTOR_GUIDE_2026-09-01.md` | cu-bridge 对比、兼容矩阵、产物和 code review 证据 |
 | `docs/99_归档/CODE_REVIEW_2026-08-31.md` | 历史 code review（已归档） |
 | `docs/99_归档/CODE_REVIEW_2026-09-01.md` | 历史 code review（已归档） |
 | `docs/04_对比与验证/CU2CCE_VS_CUBRIDGE_REVIEW.md` | cu-bridge 对比、兼容矩阵、产物和 code review 证据 |
 | `docs/04_对比与验证/CUBRIDGE_CMAKE_MAKE_DESIGN_ANALYSIS.md` | cu-bridge 对比、兼容矩阵、产物和 code review 证据 |
 | `docs/02_能力清单/CUCC_OPTION_COMPATIBILITY_MATRIX.md` | cu-bridge 对比、兼容矩阵、产物和 code review 证据 |
 | `docs/04_对比与验证/CURRENT_STATE.md` | cu-bridge 对比、兼容矩阵、产物和 code review 证据 |
-| `docs/99_归档/MENTOR_REPORT_2026-08-28.md` | 历史导师汇报（已归档） |
 | `docs/99_归档/PARITY_AUDIT_2026-08-28.md` | 历史 parity audit（已归档） |
 | `docs/99_归档/PARITY_AUDIT_2026-08-31.md` | 历史 parity audit（已归档） |
 | `docs/99_归档/PARITY_AUDIT_2026-09-01.md` | 历史 parity audit（已归档） |
@@ -520,11 +518,9 @@ python3 tools/validate_cuda_header_wrapper_parity.py \
 | `docs/04_对比与验证/mapping.md` | cu-bridge 对比、兼容矩阵、产物和 code review 证据 |
 | `docs/02_能力清单/LIMITS_AND_BOUNDARIES.md` | 支持范围与明确限制 |
 | `docs/02_能力清单/SUPPORTED_SCOPE.md` | 支持范围与明确限制 |
-| `docs/CAPABILITY.md` | 面向 wiki 的项目能力声明：能做什么、不能做什么、Vector Core 边界 |
-| `docs/HANDOVER.md` | 交接文档：项目概述、验证命令、关键目录、注意事项 |
-| `docs/WIKI_ARCHITECTURE.md` | 面向 wiki 的架构总览：nvcc→cucc→ccec、cmake/make/ninja→*_cce、cuda→aclrt bridge |
-| `docs/WIKI_QUICKSTART.md` | 面向 wiki 的快速上手：环境搭建、构建、编译运行、排障 |
-| `docs/WIKI_FILETREE.md` | 面向 wiki 的完整文件树导航：每个目录和文件的职责说明 |
+| `docs/CAPABILITY.md` | 项目能力声明：能做什么、不能做什么、Vector Core 边界 |
+| `docs/WIKI_ARCHITECTURE.md` | 架构总览：nvcc→cucc→ccec、cmake/make/ninja→*_cce、cuda→aclrt bridge |
+| `docs/WIKI_QUICKSTART.md` | 快速上手：环境搭建、构建、编译运行、排障 |
 | `docs/README.md` | 文档导航或维护指南 |
 | `docs/03_文件目录/REPOSITORY_FILE_GUIDE.md` | 本文件：仓库目录、文件职责、调用链和故障定位地图 |
 | `docs/99_归档/BUILD_COMPATIBILITY_MODEL_v1.md` | 已完成计划或历史设计归档 |
@@ -533,16 +529,6 @@ python3 tools/validate_cuda_header_wrapper_parity.py \
 | `docs/99_归档/CUCC_RULE_DRIVEN_DRIVER_v1.md` | 已完成计划或历史设计归档 |
 | `docs/99_归档/CUDA_LARGE_PROJECT_COMPATIBILITY_PLAN.md` | 已完成计划或历史设计归档 |
 | `docs/99_归档/PROJECT_ARCHITECTURE_v1.md` | 已完成计划或历史设计归档 |
-| `docs/99_归档/参考资料/asc-devkit-simt/README.md` | Ascend SIMT/CANN 参考资料 |
-| `docs/99_归档/参考资料/asc-devkit-simt/asc_simt.h` | Ascend SIMT/CANN 参考资料 |
-| `docs/99_归档/参考资料/asc-devkit-simt/device_atomic_functions.h` | Ascend SIMT/CANN 参考资料 |
-| `docs/99_归档/参考资料/asc-devkit-simt/device_functions.h` | Ascend SIMT/CANN 参考资料 |
-| `docs/99_归档/参考资料/asc-devkit-simt/device_sync_functions.h` | Ascend SIMT/CANN 参考资料 |
-| `docs/99_归档/参考资料/asc-devkit-simt/device_types.h` | Ascend SIMT/CANN 参考资料 |
-| `docs/99_归档/参考资料/asc-devkit-simt/device_warp_functions.h` | Ascend SIMT/CANN 参考资料 |
-| `docs/99_归档/参考资料/asc-devkit-simt/gather_1d.asc` | Ascend SIMT/CANN 参考资料 |
-| `docs/99_归档/参考资料/asc-devkit-simt/hello_world.asc` | Ascend SIMT/CANN 参考资料 |
-| `docs/99_归档/参考资料/cann-runtime-kernel-exec.md` | Ascend SIMT/CANN 参考资料 |
 
 ### `examples/`
 
@@ -787,6 +773,6 @@ python3 tools/validate_cuda_header_wrapper_parity.py \
 | `docs/01_架构设计/README.md` | 架构设计区导航和编译/运行时数据流 |
 | `docs/02_能力清单/README.md` | 能力矩阵、状态定义和边界入口 |
 | `docs/03_文件目录/README.md` | 文件目录区的快速问题定位 |
-| `docs/99_归档/README.md` | 历史方案、旧版设计和参考资料说明 |
+| `docs/99_归档/README.md` | 历史方案和旧版设计说明 |
 | `docs/04_对比与验证/README.md` | 对比、审计和真机验证文档导航 |
 | `docs/99_归档/README.md` | 归档范围和历史资料使用约定 |

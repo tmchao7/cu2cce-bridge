@@ -20,7 +20,7 @@
 # helper 头，作为 include 路径注入。
 #
 # 真机复制执行：
-#   cd /home/t50063365/workspace/repos/cu2cce-bridge
+#   cd <仓库根目录>
 #   git switch main
 #   git fetch origin main       # 若 remote 名为 gitcode，则改为 gitcode
 #   git pull --ff-only origin main
@@ -44,7 +44,8 @@ set +u
 set -o pipefail
 ulimit -c 0 2>/dev/null || true
 
-cd /home/t50063365/workspace/repos/cu2cce-bridge
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+cd "$REPO_ROOT"
 REGRESSION_BRANCH="${CU2CCE_REGRESSION_BRANCH:-$(git branch --show-current)}"
 if [ -z "$REGRESSION_BRANCH" ]; then REGRESSION_BRANCH=main; fi
 
@@ -652,7 +653,7 @@ else
     echo 'PURESIMT_REGRESSION_FAIL（查看上方各 .log）'
 fi
 
-# 诊断载体：主动 FP64 类型策略（导师方向：不支持的类型由 cucc 报错/警告，
+# 诊断载体：主动 FP64 类型策略（设计约束：不支持的类型由 cucc 报错/警告，
 # 引导用户手动降级为 float）。warn 展示提示后放行；error 必须在 ccec 前
 # 拦截。均不计入必需门禁。
 printf '\n----- double_policy_diag (diagnostic-only type-policy demo) -----\n'

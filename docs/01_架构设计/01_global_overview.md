@@ -58,8 +58,7 @@ docs/                     本文档树
 
 参照其构建适配机制（mock nvcc、Make/Ninja 包装、wcuda 分层），**不复制**其
 MACA 映射与 ptx2cpp 降级管线；本桥选择 puresimt 直通。详细对比见
-`../04_对比与验证/CU2CCE_VS_CUBRIDGE_REVIEW.md` 与
-`../99_归档/MENTOR_REPORT_2026-08-28.md` §2。
+`../04_对比与验证/CU2CCE_VS_CUBRIDGE_REVIEW.md`。
 
 ## 6. 阅读路径建议
 

@@ -67,4 +67,4 @@ After each change:
 - run `bash tests/mock_acl/syntax_check.sh`;
 - run `git diff --check`.
 
-CANN/NPU builds remain out of scope on macOS and must be validated through `/Users/tmchao7/repos/09_expLearn/cu2cce-bridge/tools/real_test/server_cmd.txt` on the Ascend server.
+CANN/NPU builds remain out of scope on macOS and must be validated through `tools/real_test/server_cmd.txt` on the Ascend server.

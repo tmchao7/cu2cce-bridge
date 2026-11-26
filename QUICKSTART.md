@@ -21,7 +21,7 @@ CU2CCE_REGRESSION_PROFILE=full     bash tools/real_test/server_cmd.txt   # 全�
 ```
 
 > 文档地图：**支持范围与限制** → `docs/02_能力清单/`；**架构原理五篇** →
-> `docs/01_架构设计/`；阶段汇报 → `docs/99_归档/MENTOR_REPORT_2026-08-28.md`。
+> `docs/01_架构设计/`；**验证记录** → `docs/04_对比与验证/`。
 
 ---
 
@@ -52,16 +52,18 @@ CANN runtime: /usr/local/Ascend/latest
 ### 第一次使用：克隆仓库
 
 ```bash
-cd /home/t50063365/workspace/repos
-git clone git@gitcode.com:tmchao7/cu2cce-bridge.git
+cd <你的工作目录>
+git clone https://gitcode.com/tmchao7/cu2cce-bridge.git
 cd cu2cce-bridge
 git checkout main
 ```
 
+后文以 `$HOME/workspace/repos/cu2cce-bridge` 作为示例仓库路径，可按实际位置替换。
+
 ### 已经克隆过：更新仓库
 
 ```bash
-cd /home/t50063365/workspace/repos/cu2cce-bridge
+cd <仓库根目录>
 REMOTE="${CU2CCE_REGRESSION_REMOTE:-origin}"
 git fetch "$REMOTE" main
 git pull --ff-only "$REMOTE" main
@@ -141,7 +143,7 @@ python3 tools/validate_cuda_header_wrapper_parity.py \
 ### 4.1 环境探测
 
 ```bash
-cd /home/t50063365/workspace/repos/cu2cce-bridge
+cd $HOME/workspace/repos/cu2cce-bridge
 bash tools/real_test/env_probe.sh
 ```
 
@@ -163,9 +165,9 @@ bash tools/real_test/build_bridge.sh
 成功后应存在：
 
 ```text
-/home/t50063365/workspace/repos/cu2cce-bridge/build/real_test/install/bin/cucc
-/home/t50063365/workspace/repos/cu2cce-bridge/build/real_test/install/include/
-/home/t50063365/workspace/repos/cu2cce-bridge/build/real_test/install/lib/libcce_bridge_runtime.so
+$HOME/workspace/repos/cu2cce-bridge/build/real_test/install/bin/cucc
+$HOME/workspace/repos/cu2cce-bridge/build/real_test/install/include/
+$HOME/workspace/repos/cu2cce-bridge/build/real_test/install/lib/libcce_bridge_runtime.so
 ```
 
 安装目录完整产物树（`$CUCC_PATH` = 该 install 目录）：
@@ -214,7 +216,7 @@ bash tools/real_test/build_bridge.sh
 这是验证 bridge 是否正常的推荐第一步：
 
 ```bash
-cd /home/t50063365/workspace/repos/cu2cce-bridge
+cd $HOME/workspace/repos/cu2cce-bridge
 REMOTE="${CU2CCE_REGRESSION_REMOTE:-origin}"
 git fetch "$REMOTE" main
 git pull --ff-only "$REMOTE" main
@@ -242,7 +244,7 @@ CUDA_SAMPLES_CMAKE / CUCC_RULES / LARGE_PROJECT 等按画像给出）
 推荐把自己的工程放在 cu2cce-bridge 仓库外：
 
 ```text
-/home/t50063365/workspace/repos/cu2cce-demo/
+$HOME/workspace/repos/cu2cce-demo/
 ├── vector_add.cu
 └── build/
 ```
@@ -250,8 +252,8 @@ CUDA_SAMPLES_CMAKE / CUCC_RULES / LARGE_PROJECT 等按画像给出）
 创建目录：
 
 ```bash
-mkdir -p /home/t50063365/workspace/repos/cu2cce-demo/build
-cd /home/t50063365/workspace/repos/cu2cce-demo
+mkdir -p $HOME/workspace/repos/cu2cce-demo/build
+cd $HOME/workspace/repos/cu2cce-demo
 ```
 
 创建 `vector_add.cu`：
@@ -328,7 +330,7 @@ __gm__
 先设置 cu2cce-bridge 安装目录：
 
 ```bash
-export CU2CCE_BRIDGE=/home/t50063365/workspace/repos/cu2cce-bridge
+export CU2CCE_BRIDGE=$HOME/workspace/repos/cu2cce-bridge
 export CUCC_PATH=$CU2CCE_BRIDGE/build/real_test/install
 export CUDA_PATH=$CUCC_PATH
 export PATH=$CUCC_PATH/bin:$PATH
@@ -342,7 +344,7 @@ cucc 调 ccec/ACL 会报一堆路径错误）。
 第一步使用 `-c` 只编译 CUDA 源码，生成 `.o` 目标文件；第二步才链接生成可执行文件。
 
 ```bash
-cd /home/t50063365/workspace/repos/cu2cce-demo
+cd $HOME/workspace/repos/cu2cce-demo
 cucc -c vector_add.cu -o build/vector_add.o
 cucc build/vector_add.o -o build/vector_add
 ./build/vector_add
@@ -435,10 +437,10 @@ cucc vector_add.cu -o build/vector_add.o
 
 ```bash
 cp \
-  /home/t50063365/workspace/repos/cu2cce-bridge/examples/puresimt/matrixMul_minimal.cu \
-  /home/t50063365/workspace/repos/cu2cce-demo/matrix_mul.cu
+  $HOME/workspace/repos/cu2cce-bridge/examples/puresimt/matrixMul_minimal.cu \
+  $HOME/workspace/repos/cu2cce-demo/matrix_mul.cu
 
-cd /home/t50063365/workspace/repos/cu2cce-demo
+cd $HOME/workspace/repos/cu2cce-demo
 cucc -c matrix_mul.cu -o build/matrix_mul.o
 cucc build/matrix_mul.o -o build/matrix_mul
 ./build/matrix_mul
@@ -491,7 +493,7 @@ No valid context is bound to the current thread
 确认用户程序加载的是最新 bridge：
 
 ```bash
-ldd /home/t50063365/workspace/repos/cu2cce-demo/build/vector_add \
+ldd $HOME/workspace/repos/cu2cce-demo/build/vector_add \
   | grep libcce_bridge_runtime
 ```
 
@@ -525,7 +527,7 @@ add_executable(app main.cu)
 可尝试只替换配置入口，不修改 `CMakeLists.txt`：
 
 ```bash
-export CU2CCE_BRIDGE=/home/t50063365/workspace/repos/cu2cce-bridge
+export CU2CCE_BRIDGE=$HOME/workspace/repos/cu2cce-bridge
 export CUCC_PATH=$CU2CCE_BRIDGE/build/real_test/install
 export CUDA_PATH=$CUCC_PATH
 export PATH=$CUCC_PATH/bin:$CUCC_PATH/tools:$PATH
@@ -533,7 +535,7 @@ export PATH=$CUCC_PATH/bin:$CUCC_PATH/tools:$PATH
 # configure 与 build 共享同一虚拟工具链目录；如需固定位置或跨工具共享，再设置下面这行。
 # export CU2CCE_CMAKE_SHIM_DIR=/tmp/cu2cce-cmake-virtual-toolkit
 
-cmake_cce -S /home/t50063365/workspace/repos/cu2cce-bridge/examples/cmake_demo \
+cmake_cce -S $HOME/workspace/repos/cu2cce-bridge/examples/cmake_demo \
     -B /tmp/cu2cce-cmake-build
 cmake_cce --build /tmp/cu2cce-cmake-build     # build 阶段：虚拟工具链 nvcc 自动切换为真 cucc
 /tmp/cu2cce-cmake-build/cmake_vector_add

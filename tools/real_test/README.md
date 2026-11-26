@@ -11,7 +11,7 @@
 5. 按 profile 输出主线/诊断汇总。
 
 ```bash
-cd /home/t50063365/workspace/repos/cu2cce-bridge
+cd $HOME/workspace/repos/cu2cce-bridge
 REMOTE="${CU2CCE_REGRESSION_REMOTE:-origin}"
 git fetch "$REMOTE" main
 git pull --ff-only "$REMOTE" main

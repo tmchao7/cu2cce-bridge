@@ -7,8 +7,8 @@ source files. The actual compiler remains CANN ccec.
 One read-only exception serves diagnostics: sources may be scanned (never
 modified) to pre-flight report device-side use of types the Ascend backend
 cannot run at all — bisheng has no device-side FP64/double support, so
-affected code must be downgraded to float manually by the user (mentor
-guidance, 2026-08-27). Policy knob: CU2CCE_DEVICE_FP64_POLICY =
+affected code must be downgraded to float manually by the user
+(design constraint, 2026-08-27). Policy knob: CU2CCE_DEVICE_FP64_POLICY =
 error (default) | warn | allow.
 """
 from __future__ import annotations
@@ -1142,7 +1142,7 @@ class RuleDriver:
                         ["-Werror=implicit-fallthrough"],
                     )
                     continue
-                # conf_regex.yaml C500S-11780 parity: -Werror and nvcc
+                # conf_regex.yaml parity: -Werror and nvcc
                 # warning names carried inside -Xcompiler are noise for the
                 # clang-based backend; drop instead of forwarding.
                 self._record(
@@ -1199,7 +1199,7 @@ class RuleDriver:
         """Final-command cleanup pass (gomxccbin + conf_regex.yaml parity).
 
         cu-bridge post-processes the assembled command string with regex
-        rules (bug-fix layer, e.g. C500S-11780) right before execution. The
+        rules (bug-fix layer, e.g. the -Werror cleanup) right before execution. The
         single-process equivalent: data-driven PCRE rules from the rules
         file applied to the final argument list. Patterns are anchored
         seeds; a rule without "replace" drops the argument, one with
@@ -1625,7 +1625,7 @@ class RuleDriver:
     def _pre_flight_report_device_double(self, inputs: Sequence[str]) -> None:
         """Proactively surface device-side double usage before ccec runs.
 
-        Mentor guidance (2026-08-27): unsupported device types must be
+        Design constraint (2026-08-27): unsupported device types must be
         reported with actionable "downgrade to float" advice; the user then
         edits their source manually. error policy stops the build here;
         warn prints and continues (letting ccec produce its own errors);

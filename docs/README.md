@@ -34,7 +34,7 @@ docs/
 ├── 02_能力清单/           Kernel/API/库/cuсc/CMake/Make/Ninja/产物的支持边界
 ├── 03_文件目录/           仓库文件职责、调用链和故障定位
 ├── 04_对比与验证/         cu-bridge 对比、产物审计、review、真机回归结论
-└── 99_归档/               已完成计划、旧版设计和外部参考资料
+└── 99_归档/               已完成计划、旧版设计和历史过程文档
 ```
 
 ## 文档权威关系
@@ -71,8 +71,6 @@ CMake 的 configure 阶段使用 virtual CUDA toolkit 和 `mock_nvcc.py` 满足 
 CUDA header/Wrapper parity 结论见
 [`04_对比与验证/RELEASE_READINESS_2026-09-04.md`](04_对比与验证/RELEASE_READINESS_2026-09-04.md)。
 该记录不创建 release/tag，也不扩大未验证 CUDA 能力的承诺。
-
-交接说明见 [`HANDOVER.md`](HANDOVER.md)。
 
 ## 状态和证据规则
 

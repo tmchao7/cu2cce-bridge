@@ -143,7 +143,7 @@ main 的 `cucc` 只做参数、头文件、SIMT API、库和架构注入，然�
 
 ## 9. 参考资料
 
-- `docs/99_归档/参考资料/asc-devkit-simt/`：Ascend SIMT API 头和官方形式参考；
+- CANN 安装树中的公开 SDK 头文件（`ascend-toolkit/include`，含 `simt_api/`）；
 - NVIDIA CUDA Samples：`third_party/nvidia_cuda_samples/Common` helper headers；
 - `tools/real_test/diag/`：runtime/ACL 排障资产。
 
